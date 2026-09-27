@@ -1,3 +1,3 @@
 Céus HDRI da Poly Haven (https://polyhaven.com), licença CC0 1.0 (domínio público).
-Usados (2K): kloofendal_48d_partly_cloudy_puresky (dia), belfast_sunset_puresky (pôr do sol),
+Usados (2K): kloofendal_48d_partly_cloudy_puresky (dia), qwantani_dusk_2_puresky (pôr do sol),
 rogland_clear_night (noite).

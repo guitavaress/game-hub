@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0y306bruw7dj"
-path="res://.godot/imported/belfast_sunset_puresky_2k.hdr-ea012a789b229c5767f3ba5aaeb78d74.ctex"
+uid="uid://dhjpfvwchbop2"
+path="res://.godot/imported/qwantani_dusk_2_puresky_2k.hdr-760e03c8086d6b585d242330aa4ffb1a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/polyhaven/hdri/belfast_sunset_puresky_2k.hdr"
-dest_files=["res://.godot/imported/belfast_sunset_puresky_2k.hdr-ea012a789b229c5767f3ba5aaeb78d74.ctex"]
+source_file="res://assets/polyhaven/hdri/qwantani_dusk_2_puresky_2k.hdr"
+dest_files=["res://.godot/imported/qwantani_dusk_2_puresky_2k.hdr-760e03c8086d6b585d242330aa4ffb1a.ctex"]
 
 [params]
 

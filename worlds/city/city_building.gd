@@ -35,6 +35,8 @@ const PORTRAIT_ASPECT: float = 600.0 / 900.0
 const HERO_SIZE: Vector2 = Vector2(9.0, 9.0 * 620.0 / 1920.0)
 const HERO_TOP_MARGIN: float = 0.9
 const DARK_METAL: Color = Color(0.07, 0.075, 0.08)
+## Hora em que todas as janelas sorteadas já estão acesas.
+const WINDOWS_ALL_ON_HOUR: float = 18.5
 
 ## Estilos de parede (materiais PBR da ambientCG): pasta, tamanho da repetição
 ## em metros e um tom. Cada jogo sorteia um (sempre o mesmo para o mesmo jogo).
@@ -277,6 +279,10 @@ func _build_portal() -> void:
 func set_night(night: float) -> void:
 	var smooth_night := smoothstep(0.15, 0.85, night)
 	_walls_material.set_shader_parameter("night", smooth_night)
+	# Janelas: começam a acender às 17h30 (night > 0) e estão todas acesas às
+	# 18h30, uma a uma (de manhã, apagam no caminho contrário).
+	var all_on := DayNight.night_amount(WINDOWS_ALL_ON_HOUR)
+	_walls_material.set_shader_parameter("windows_on", clampf(night / all_on, 0.0, 1.0))
 	# Néon: mesma regra das fachadas e dos letreiros (0,15 de dia, 3,2 à noite).
 	if _door_neon_material != null:
 		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(smooth_night)

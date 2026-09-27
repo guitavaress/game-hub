@@ -31,8 +31,12 @@ const PLAZA_FRIENDS_PER_RING: int = 10
 ## Céus HDRI (Poly Haven, CC0) misturados pelo relógio (sky_blend.gdshader).
 const SKY_SHADER: Shader = preload("res://worlds/city/sky_blend.gdshader")
 const SKY_DAY: Texture2D = preload("res://assets/polyhaven/hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr")
-const SKY_SUNSET: Texture2D = preload("res://assets/polyhaven/hdri/belfast_sunset_puresky_2k.hdr")
+const SKY_SUNSET: Texture2D = preload("res://assets/polyhaven/hdri/qwantani_dusk_2_puresky_2k.hdr")
 const SKY_NIGHT: Texture2D = preload("res://assets/polyhaven/hdri/rogland_clear_night_2k.hdr")
+## Calibragem da foto do pôr do sol: ela vem ~3,5x mais clara que a do dia
+## (ganho), e o brilho do sol fica em u = 0,607 da foto panorâmica.
+const SKY_SUNSET_GAIN: float = 0.27
+const SKY_SUNSET_GLOW_U: float = 0.607
 
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
@@ -195,6 +199,7 @@ func _build_environment() -> void:
 	sky_material.shader = SKY_SHADER
 	sky_material.set_shader_parameter("day_sky", SKY_DAY)
 	sky_material.set_shader_parameter("sunset_sky", SKY_SUNSET)
+	sky_material.set_shader_parameter("sunset_gain", SKY_SUNSET_GAIN)
 	sky_material.set_shader_parameter("night_sky", SKY_NIGHT)
 	var sky := Sky.new()
 	sky.sky_material = sky_material
@@ -225,6 +230,7 @@ func _build_environment() -> void:
 	_day_night.environment = env
 	_day_night.sky_material = sky_material
 	_day_night.sun = sun
+	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	add_child(_day_night)
 
 

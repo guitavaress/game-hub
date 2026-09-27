@@ -14,19 +14,26 @@ uniform float night_weight = 0.0;
 uniform float energy = 1.0;
 // Gira as fotos (em voltas: 0.25 = 90 graus), para alinhar o sol da foto.
 uniform float rotation = 0.0;
+// Giro extra só da foto do pôr do sol: o brilho dela fica do lado do sol
+// (oeste à tarde, leste de manhã). O DayNight ajusta.
+uniform float sunset_rotation = 0.0;
+// Brilho próprio da foto do pôr do sol (cada foto vem com uma exposição
+// diferente; isto deixa as três no mesmo "nível").
+uniform float sunset_gain = 1.0;
 
 // Direção de olhar -> coordenada na foto panorâmica (formato equiretangular).
-vec2 panorama_uv(vec3 direction) {
-	float u = atan(direction.x, -direction.z) / (2.0 * PI) + 0.5 + rotation;
+vec2 panorama_uv(vec3 direction, float turn) {
+	float u = atan(direction.x, -direction.z) / (2.0 * PI) + 0.5 + turn;
 	float v = acos(clamp(direction.y, -1.0, 1.0)) / PI;
 	return vec2(fract(u), v);
 }
 
 void sky() {
-	vec2 uv = panorama_uv(EYEDIR);
+	vec2 uv = panorama_uv(EYEDIR, rotation);
+	vec2 sunset_uv = panorama_uv(EYEDIR, rotation + sunset_rotation);
 	// textureLod(..., 0.0): sem mipmap, para não aparecer uma "costura" no céu.
 	vec3 color = textureLod(day_sky, uv, 0.0).rgb * day_weight
-			+ textureLod(sunset_sky, uv, 0.0).rgb * sunset_weight
+			+ textureLod(sunset_sky, sunset_uv, 0.0).rgb * sunset_weight * sunset_gain
 			+ textureLod(night_sky, uv, 0.0).rgb * night_weight;
 	COLOR = color * energy;
 }

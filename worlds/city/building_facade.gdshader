@@ -27,6 +27,9 @@ uniform float seed = 0.0;
 
 // Noite: 0 = dia, 1 = noite.
 uniform float night = 0.0;
+// Janelas: 0 = todas apagadas, 1 = todas as sorteadas acesas (vão acendendo
+// uma a uma no caminho).
+uniform float windows_on = 0.0;
 uniform vec3 window_light : source_color = vec3(1.0, 0.78, 0.5);
 uniform float lit_fraction = 0.45;
 
@@ -89,10 +92,16 @@ void fragment() {
 				roughness = 0.06;
 				metallic = 0.6;
 				normal_map = vec3(0.5, 0.5, 1.0);  // vidro liso
-				float lit = step(hash(cell + vec2(seed, seed * 1.7)), lit_fraction);
+				// Sorteio fixo por janela: só as de número < lit_fraction acendem,
+				// e cada uma tem a sua "vez" (acendem uma a uma, com windows_on).
+				float draw = hash(cell + vec2(seed, seed * 1.7));
+				float turn_on = draw / max(lit_fraction, 0.001);
+				// (com windows_on = 0 nenhuma acende; com 1, todas as sorteadas)
+				float lit = step(draw, lit_fraction)
+						* smoothstep(turn_on, turn_on + 0.08, windows_on * 1.1);
 				// Luz da janela: umas mais quentes, outras mais frias.
 				vec3 light = mix(window_light, vec3(0.85, 0.82, 0.75), step(0.7, hash(cell.yx + seed)));
-				emission = light * lit * night * 1.3;
+				emission = light * lit * 1.3;
 			} else if (in_frame) {
 				albedo = vec3(0.08);
 				roughness = 0.4;
