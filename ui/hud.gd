@@ -37,6 +37,13 @@ func _ready() -> void:
 	_message_timer.timeout.connect(func() -> void: _message_label.text = "")
 	add_child(_message_timer)
 
+	# O HUD escuta o GameLauncher para avisar quando algo dá errado.
+	GameLauncher.session_ended.connect(_on_session_ended)
+
+	if Engine.is_embedded_in_editor():
+		show_message("O jogo está rodando DENTRO do editor: o hub não vai minimizar. "
+				+ "Desative \"Embed Game on Next Play\" na aba Game.", 12.0)
+
 
 ## Mostra (ou apaga, com "") o nome do que o jogador está olhando.
 func set_look_text(text: String) -> void:
@@ -47,6 +54,11 @@ func set_look_text(text: String) -> void:
 func show_message(text: String, seconds: float = MESSAGE_SECONDS) -> void:
 	_message_label.text = text
 	_message_timer.start(seconds)
+
+
+func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:
+	if not success and not message.is_empty():
+		show_message(message)
 
 
 func _build_crosshair() -> void:

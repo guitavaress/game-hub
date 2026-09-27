@@ -15,6 +15,12 @@ config/description="Launcher em forma de mundo 3D para a biblioteca Steam."
 run/main_scene="res://worlds/city/city.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
+[autoload]
+
+SteamLibrary="*res://autoload/steam_library.gd"
+GameLauncher="*res://autoload/game_launcher.gd"
+ScreenFade="*res://ui/screen_fade.gd"
+
 [display]
 
 window/size/viewport_width=1280
