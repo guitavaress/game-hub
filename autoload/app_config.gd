@@ -29,6 +29,32 @@ steam_id=""
 friends_enabled=true
 """
 
+## Seção de áudio (fase 6), acrescentada do mesmo jeito.
+const AUDIO_SECTION_TEXT: String = """
+[audio]
+
+; Volumes de 0.0 (mudo) a 1.0 (máximo).
+master_volume=0.8
+; Passos, portal, avisos.
+effects_volume=1.0
+; Sons dos bairros (motor, cartas, vento...).
+ambience_volume=0.8
+"""
+
+## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
+## acrescentada no fim.
+const ADDED_SECTIONS: Dictionary[String, String] = {
+	"steam": STEAM_SECTION_TEXT,
+	"audio": AUDIO_SECTION_TEXT,
+}
+
+## Canais de áudio (default_bus_layout.tres) e a opção de volume de cada um.
+const VOLUME_KEYS: Dictionary[String, String] = {
+	"Master": "master_volume",
+	"Efeitos": "effects_volume",
+	"Ambiente": "ambience_volume",
+}
+
 ## Conteúdo inicial do arquivo (linhas com ";" são comentários).
 const DEFAULT_CONFIG_TEXT: String = """; Configuração do Game Hub.
 ; Edite com o Bloco de Notas, salve e abra o hub de novo.
@@ -47,7 +73,7 @@ excluded_app_ids=[431960, 993090]
 ;          acao, cartas, aventura, casual, outros
 ; Exemplo (Stardew Valley no bairro de RPG):  overrides={ 413150: "rpg" }
 overrides={}
-""" + STEAM_SECTION_TEXT
+""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT
 
 ## Problema ao ler o arquivo, para o HUD avisar ("" = tudo certo).
 var load_problem: String = ""
@@ -58,8 +84,11 @@ var _config := ConfigFile.new()
 func _ready() -> void:
 	if not FileAccess.file_exists(CONFIG_PATH):
 		_write_default_file()
-	elif not FileAccess.get_file_as_string(CONFIG_PATH).contains("[steam]"):
-		_append_to_file(STEAM_SECTION_TEXT)
+	else:
+		var current_text := FileAccess.get_file_as_string(CONFIG_PATH)
+		for section in ADDED_SECTIONS:
+			if not current_text.contains("[%s]" % section):
+				_append_to_file(ADDED_SECTIONS[section])
 
 	var error := _config.load(CONFIG_PATH)
 	if error != OK:
@@ -67,6 +96,18 @@ func _ready() -> void:
 		load_problem = "O config.cfg tem um erro de digitação (confira aspas e colchetes). " \
 				+ "Por enquanto, estou usando as opções padrão."
 		_config.parse(DEFAULT_CONFIG_TEXT)
+	_apply_volumes()
+
+
+## Aplica os volumes do config.cfg nos canais de áudio.
+func _apply_volumes() -> void:
+	for bus_name in VOLUME_KEYS:
+		var bus := AudioServer.get_bus_index(bus_name)
+		if bus == -1:
+			continue
+		var volume := clampf(float(_config.get_value("audio", VOLUME_KEYS[bus_name], 1.0)), 0.0, 1.0)
+		AudioServer.set_bus_mute(bus, volume <= 0.0)
+		AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(volume, 0.0001)))
 
 
 ## Chave da Steam Web API ("" = não configurada). É SEGREDO: nunca imprima.

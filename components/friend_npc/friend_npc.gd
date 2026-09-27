@@ -1,24 +1,40 @@
 class_name FriendNpc
 extends Node3D
-## Um amigo da Steam "em pessoa": um bonequinho feito de formas simples, com o
-## avatar e o nome flutuando em cima e uma linha de status ("Jogando Balatro").
+## Um amigo da Steam "em pessoa": um personagem (Kenney Mini Characters, CC0)
+## parado e se mexendo de leve (animação "idle"), com o avatar e o nome
+## flutuando em cima e uma linha de status ("Jogando Balatro").
 ##
 ## Uso:  var npc := FriendNpc.new();  npc.friend = ficha;  add_child(npc)
-## A origem deste nó fica nos PÉS do boneco.
+## A origem deste nó fica nos PÉS do personagem, que olha para +Z.
 ##
 ## Olhar para ele (raio da câmera) mostra "Nome — status" no HUD, pelo mesmo
 ## "contrato" dos portais: o método get_look_label().
 
-const BODY_RADIUS: float = 0.35
-const BODY_HEIGHT: float = 1.3
-const HEAD_RADIUS: float = 0.25
+## As 12 variações de personagem; cada amigo ganha sempre a mesma (pelo SteamID).
+const CHARACTER_MODELS: Array[PackedScene] = [
+	preload("res://assets/kenney/mini-characters/character-female-a.glb"),
+	preload("res://assets/kenney/mini-characters/character-female-b.glb"),
+	preload("res://assets/kenney/mini-characters/character-female-c.glb"),
+	preload("res://assets/kenney/mini-characters/character-female-d.glb"),
+	preload("res://assets/kenney/mini-characters/character-female-e.glb"),
+	preload("res://assets/kenney/mini-characters/character-female-f.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-a.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-b.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-c.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-d.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-e.glb"),
+	preload("res://assets/kenney/mini-characters/character-male-f.glb"),
+]
+## Os modelos têm ~0,78 de altura; com esta escala ficam com ~1,75 m.
+const MODEL_SCALE: float = 2.25
+const MODEL_HEIGHT: float = 1.75
+const COLLISION_RADIUS: float = 0.35
 const AVATAR_SIZE: float = 0.5   # metros
+## Largura máxima do texto de status (quebra em linhas se passar disso).
+const STATUS_MAX_WIDTH: float = 2.2   # metros
 const STATUS_COLOR_PLAYING: Color = Color("8fd66b")
 const STATUS_COLOR_ONLINE: Color = Color("6fb7ff")
 const STATUS_COLOR_AWAY: Color = Color("b0b0b0")
-
-## Largura máxima do texto de status (quebra em linhas se passar disso).
-const STATUS_MAX_WIDTH: float = 2.2   # metros
 
 var friend: SteamFriend
 ## Mostrar o nome do jogo no rótulo? Na porta do próprio jogo é redundante
@@ -47,31 +63,27 @@ func _build_body() -> void:
 	body.collision_mask = 0
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = BODY_RADIUS
-	capsule.height = BODY_HEIGHT + HEAD_RADIUS * 2.0
+	capsule.radius = COLLISION_RADIUS
+	capsule.height = MODEL_HEIGHT
 	shape.shape = capsule
-	shape.position = Vector3(0.0, capsule.height / 2.0, 0.0)
+	shape.position = Vector3(0.0, MODEL_HEIGHT / 2.0, 0.0)
 	body.add_child(shape)
 	add_child(body)
 
-	# Corpo: a cor vem do SteamID, então cada amigo tem sempre a mesma cor.
-	var torso := MeshInstance3D.new()
-	var torso_mesh := CapsuleMesh.new()
-	torso_mesh.radius = BODY_RADIUS
-	torso_mesh.height = BODY_HEIGHT
-	torso.mesh = torso_mesh
-	torso.position = Vector3(0.0, BODY_HEIGHT / 2.0, 0.0)
-	torso.material_override = _make_material(_color_from_id(friend.steam_id))
-	add_child(torso)
+	# O sorteio usa o SteamID como semente: cada amigo tem sempre o mesmo visual.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(friend.steam_id)
+	var model := CHARACTER_MODELS[rng.randi_range(0, CHARACTER_MODELS.size() - 1)].instantiate() as Node3D
+	model.scale = Vector3.ONE * MODEL_SCALE
+	add_child(model)
 
-	var head := MeshInstance3D.new()
-	var head_mesh := SphereMesh.new()
-	head_mesh.radius = HEAD_RADIUS
-	head_mesh.height = HEAD_RADIUS * 2.0
-	head.mesh = head_mesh
-	head.position = Vector3(0.0, BODY_HEIGHT + HEAD_RADIUS - 0.05, 0.0)
-	head.material_override = _make_material(Color("f1d3b3"))
-	add_child(head)
+	var animation := model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if animation != null and animation.has_animation("idle"):
+		# As animações vêm do modelo sem repetir; "idle" precisa ficar em loop.
+		animation.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
+		animation.play("idle")
+		# Cada um começa num ponto diferente, para não "respirarem" juntos.
+		animation.seek(rng.randf() * animation.current_animation_length)
 
 
 func _build_labels() -> void:
@@ -81,7 +93,7 @@ func _build_labels() -> void:
 	var status_label := _make_label(status, 48, 0.004, _status_color())
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_label.width = STATUS_MAX_WIDTH / status_label.pixel_size
-	status_label.position = Vector3(0.0, BODY_HEIGHT + HEAD_RADIUS * 2.0 + AVATAR_SIZE + 0.2, 0.0)
+	status_label.position = Vector3(0.0, MODEL_HEIGHT + AVATAR_SIZE + 0.25, 0.0)
 	add_child(status_label)
 
 	# O nome fica logo acima do status (que pode ter mais de uma linha).
@@ -95,7 +107,7 @@ func _build_avatar() -> void:
 	# Quadrinho com o avatar da Steam, sempre virado para quem olha.
 	_avatar = Sprite3D.new()
 	_avatar.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_avatar.position = Vector3(0.0, BODY_HEIGHT + HEAD_RADIUS * 2.0 + AVATAR_SIZE / 2.0 + 0.1, 0.0)
+	_avatar.position = Vector3(0.0, MODEL_HEIGHT + AVATAR_SIZE / 2.0 + 0.15, 0.0)
 	add_child(_avatar)
 
 	var texture := FriendsService.get_avatar(friend)
@@ -135,18 +147,3 @@ func _make_label(text: String, font_size: int, pixel_size: float, color: Color) 
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	return label
-
-
-## Uma cor viva diferente para cada SteamID (sempre a mesma para o mesmo amigo).
-## O sorteador "embaralha" o número, para IDs parecidos darem cores bem diferentes.
-func _color_from_id(steam_id: String) -> Color:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(steam_id)
-	return Color.from_hsv(rng.randf(), 0.6, 0.85)
-
-
-func _make_material(color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.8
-	return material

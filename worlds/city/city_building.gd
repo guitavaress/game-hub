@@ -24,29 +24,49 @@ const POSTER_SIDE_MARGIN: float = 1.0
 ## Proporção da capa "em pé" da Steam (600x900), usada no placeholder.
 const PORTRAIT_ASPECT: float = 600.0 / 900.0
 
+## Janelas: uma textura com 4x4 janelas cobre 12 m de largura x 14 m de altura
+## das paredes. Ela é "projetada" nas paredes pela posição no mundo (triplanar),
+## então não precisa de coordenadas de textura no modelo.
+const WINDOW_AREA: Vector3 = Vector3(12.0, 14.0, 12.0)
+const WINDOW_GRID: int = 4
+const WINDOW_TEXTURE_SIZE: int = 256
+const WINDOW_GLASS_COLOR: Color = Color(0.32, 0.38, 0.48)
+const WINDOW_LIGHT_COLOR: Color = Color(1.0, 0.8, 0.5)
+## Fração das janelas com luz acesa à noite.
+const WINDOWS_LIT: float = 0.55
+
+## Texturas das janelas: criadas uma vez só e usadas por todos os prédios.
+static var _window_texture: ImageTexture
+static var _window_lights_texture: ImageTexture
+
 var game: SteamGame
 var size: Vector3 = Vector3(10.0, 14.0, 10.0)
 var color: Color = Color.GRAY
+## Categoria do jogo (define o som ambiente da porta).
+var category_id: String = ""
 
 var _poster: MeshInstance3D
 var _poster_frame: MeshInstance3D
 var _poster_material: StandardMaterial3D
 var _poster_label: Label3D
+var _walls_material: StandardMaterial3D
 
 
 func _ready() -> void:
+	# O relógio da cidade (DayNight) acende as janelas de todo mundo nesse grupo.
+	add_to_group("city_night")
 	_build_body()
 	_build_door_decoration()
 	_build_name_sign()
 	_build_poster()
 	_build_portal()
 
+	# Sem capa ainda: fica o placeholder. Continuamos ouvindo o GameArt porque
+	# a capa pode chegar depois, ou chegar uma versão melhor (HD).
+	GameArt.art_ready.connect(_on_art_ready)
 	var texture := GameArt.get_art(game.app_id)
 	if texture != null:
 		_show_art(texture)
-	else:
-		# Ainda não temos a capa: fica o placeholder até o download terminar.
-		GameArt.art_ready.connect(_on_art_ready)
 
 
 func _build_body() -> void:
@@ -59,7 +79,7 @@ func _build_body() -> void:
 	var walls := CSGBox3D.new()
 	walls.size = size
 	walls.position = Vector3(0.0, size.y / 2.0, 0.0)
-	walls.material = _make_material(color)
+	walls.material = _make_walls_material()
 	body.add_child(walls)
 
 	var doorway := CSGBox3D.new()
@@ -164,7 +184,6 @@ func _show_art(texture: Texture2D) -> void:
 func _on_art_ready(app_id: int, texture: Texture2D) -> void:
 	if app_id == game.app_id:
 		_show_art(texture)
-		GameArt.art_ready.disconnect(_on_art_ready)
 
 
 func _build_portal() -> void:
@@ -175,6 +194,60 @@ func _build_portal() -> void:
 	portal.look_size = Vector3(size.x, size.y, 1.0)  # olhar para a fachada inteira mostra o nome
 	portal.position = Vector3(0.0, 0.0, _front_z())
 	add_child(portal)
+
+	# Som ambiente do bairro, saindo da porta.
+	for emitter in CategoryAmbience.create(category_id):
+		emitter.position = Vector3(0.0, 2.0, 0.5)
+		portal.add_child(emitter)
+
+
+## 0 = dia, 1 = noite: à noite, parte das janelas acende.
+func set_night(night: float) -> void:
+	_walls_material.emission_energy_multiplier = 1.3 * smoothstep(0.2, 0.9, night)
+
+
+## Paredes com janelas: a cor do prédio "tinge" a textura de janelas.
+func _make_walls_material() -> StandardMaterial3D:
+	_create_window_textures()
+	_walls_material = _make_material(color)
+	_walls_material.albedo_texture = _window_texture
+	_walls_material.uv1_triplanar = true
+	_walls_material.uv1_world_triplanar = true
+	_walls_material.uv1_scale = Vector3.ONE / WINDOW_AREA
+	_walls_material.emission_enabled = true
+	_walls_material.emission = Color.WHITE
+	# MULTIPLY: brilha só onde a textura das janelas acesas é clara. (O padrão,
+	# ADD, somaria o branco com a textura e a parede inteira brilharia.)
+	_walls_material.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+	_walls_material.emission_texture = _window_lights_texture
+	_walls_material.emission_energy_multiplier = 0.0
+	return _walls_material
+
+
+## Desenha as texturas das janelas (só na primeira vez).
+static func _create_window_textures() -> void:
+	if _window_texture != null:
+		return
+	var walls := Image.create(WINDOW_TEXTURE_SIZE, WINDOW_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	var lights := Image.create(WINDOW_TEXTURE_SIZE, WINDOW_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	walls.fill(Color.WHITE)   # parede (fica com a cor do prédio)
+	lights.fill(Color.BLACK)  # preto = não brilha
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2024  # sempre o mesmo desenho
+	var cell := floori(WINDOW_TEXTURE_SIZE / float(WINDOW_GRID))
+	for column in WINDOW_GRID:
+		for row in WINDOW_GRID:
+			var window := Rect2i(column * cell + int(cell * 0.28), row * cell + int(cell * 0.2),
+					int(cell * 0.44), int(cell * 0.55))
+			walls.fill_rect(window, WINDOW_GLASS_COLOR)
+			if rng.randf() < WINDOWS_LIT:
+				lights.fill_rect(window, WINDOW_LIGHT_COLOR)
+
+	walls.generate_mipmaps()
+	lights.generate_mipmaps()
+	_window_texture = ImageTexture.create_from_image(walls)
+	_window_lights_texture = ImageTexture.create_from_image(lights)
 
 
 ## A fachada (face da frente) fica em z = metade da profundidade.

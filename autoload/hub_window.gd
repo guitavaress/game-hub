@@ -38,6 +38,8 @@ var _did_minimize: bool = false
 func _ready() -> void:
 	# ALWAYS = funciona mesmo com o mundo pausado.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Nós mesmos fechamos o hub (em _notification), para arrumar a casa antes.
+	get_tree().auto_accept_quit = false
 	if _can_control_window():
 		_load_saved_placement()
 
@@ -50,9 +52,23 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _notification(what: int) -> void:
-	# Guardamos onde a janela está quando o hub é fechado (X ou Alt+F4).
-	if what == NOTIFICATION_WM_CLOSE_REQUEST and _can_control_window():
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_close_hub()
+
+
+## Fecha o hub com calma (X ou Alt+F4): guarda onde a janela está, para todos
+## os sons e espera dois quadros antes de sair. Sem essa espera, o servidor de
+## áudio ainda estaria segurando os sons e a Godot reclamaria ao fechar.
+func _close_hub() -> void:
+	if _can_control_window():
 		_save_placement(_placement if is_sleeping else _capture_placement())
+	for sound: Node in get_tree().root.find_children("*", "AudioStreamPlayer3D", true, false):
+		(sound as AudioStreamPlayer3D).stop()
+	for sound: Node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		(sound as AudioStreamPlayer).stop()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().quit()
 
 
 ## O hub "dorme": tela preta com a mensagem, mundo pausado, janela minimizada.

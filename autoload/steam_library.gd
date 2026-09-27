@@ -50,6 +50,17 @@ var _games: Array[SteamGame] = []
 var _games_by_id: Dictionary[int, SteamGame] = {}
 var _games_loaded: bool = false
 
+## Tempo jogado (minutos) e última vez jogado, lidos do localconfig.vdf.
+var _playtime_minutes: Dictionary[int, int] = {}
+var _local_last_played: Dictionary[int, int] = {}
+var _playtimes_loaded: bool = false
+
+
+func _ready() -> void:
+	# Depois de jogar, o tempo jogado muda: relemos quando o hub acorda.
+	# (call_deferred: o HubWindow é criado depois deste autoload.)
+	(func() -> void: HubWindow.woke_up.connect(reload_playtimes)).call_deferred()
+
 
 ## Caminho da pasta da Steam com barras "/" (ex.: "c:/program files (x86)/steam").
 ## Devolve "" se a Steam não estiver instalada.
@@ -123,6 +134,61 @@ func is_installed(app_id: int) -> bool:
 		if FileAccess.file_exists(manifest) and _read_manifest(manifest, folder) != null:
 			return true
 	return false
+
+
+## Minutos jogados nesse app (-1 = não sabemos, por exemplo sem usuário logado).
+func get_playtime_minutes(app_id: int) -> int:
+	if not _playtimes_loaded:
+		_load_playtimes()
+	if _playtime_minutes.is_empty():
+		return -1
+	return _playtime_minutes.get(app_id, 0)
+
+
+## Última vez que o app foi jogado (segundos desde 1970; 0 = nunca).
+func get_last_played(app_id: int) -> int:
+	if not _playtimes_loaded:
+		_load_playtimes()
+	var from_manifest := 0
+	var game := get_game(app_id)
+	if game != null:
+		from_manifest = game.last_played
+	return maxi(from_manifest, _local_last_played.get(app_id, 0))
+
+
+## Esquece o tempo jogado lido (será relido na próxima pergunta).
+func reload_playtimes() -> void:
+	_playtimes_loaded = false
+
+
+## Lê <Steam>/userdata/<conta>/config/localconfig.vdf, onde a Steam guarda,
+## por app, "Playtime" (minutos jogados) e "LastPlayed".
+func _load_playtimes() -> void:
+	_playtimes_loaded = true
+	_playtime_minutes.clear()
+	_local_last_played.clear()
+
+	var steam_id := get_current_steam_id()
+	if steam_id.is_empty() or get_steam_path().is_empty():
+		return
+	var account_id := steam_id.to_int() - STEAM_ID64_BASE
+	var path := "%s/userdata/%d/config/localconfig.vdf" % [get_steam_path(), account_id]
+	if not FileAccess.file_exists(path):
+		return
+
+	var data := Vdf.parse(FileAccess.get_file_as_string(path))
+	var keys: Array[String] = ["UserLocalConfigStore", "Software", "Valve", "Steam", "apps"]
+	var apps := Vdf.get_nested(data, keys)
+	for key: String in apps:
+		var app: Variant = apps[key]
+		if not (key.is_valid_int() and app is Dictionary):
+			continue
+		var app_id := key.to_int()
+		var playtime: Variant = Vdf.get_ignoring_case(app, "Playtime")
+		_playtime_minutes[app_id] = int(playtime) if playtime != null else 0
+		var last_played: Variant = Vdf.get_ignoring_case(app, "LastPlayed")
+		if last_played != null:
+			_local_last_played[app_id] = int(last_played)
 
 
 ## SteamID64 (17 dígitos, em texto) de quem está logado na Steam, ou "" se não souber.

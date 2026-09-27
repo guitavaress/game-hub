@@ -62,11 +62,15 @@ func has_info(app_id: int) -> bool:
 	return _cache.has(str(app_id))
 
 
-## true se não temos informação, ou se ela tem mais de MAX_AGE_DAYS dias.
+## true se não temos informação, se ela tem mais de MAX_AGE_DAYS dias, ou se
+## foi guardada por uma versão antiga do hub (sem o campo "capsule_2x").
 func needs_update(app_id: int) -> bool:
 	if not has_info(app_id):
 		return true
-	var age := int(Time.get_unix_time_from_system()) - int(_cache[str(app_id)].get("fetched", 0))
+	var entry: Dictionary = _cache[str(app_id)]
+	if not entry.has("capsule_2x"):
+		return true
+	var age := int(Time.get_unix_time_from_system()) - int(entry.get("fetched", 0))
 	return age > MAX_AGE_DAYS * SECONDS_PER_DAY
 
 
@@ -82,6 +86,11 @@ func get_tags(app_id: int) -> Array[int]:
 ## Endereço da capa "em pé" (600x900) na loja, ou "" se não souber.
 func get_capsule_url(app_id: int) -> String:
 	return _cache.get(str(app_id), {}).get("capsule", "")
+
+
+## Endereço da capa "em pé" em alta resolução (600x900), ou "" se não souber.
+func get_capsule_hd_url(app_id: int) -> String:
+	return _cache.get(str(app_id), {}).get("capsule_2x", "")
 
 
 ## Endereço da capa "deitada" (460x215) na loja, ou "" se não souber.
@@ -143,6 +152,7 @@ func _read_response(body: PackedByteArray) -> void:
 			"fetched": now,
 			"tags": _read_tags(item),
 			"capsule": _asset_url(item, "library_capsule"),
+			"capsule_2x": _asset_url(item, "library_capsule_2x"),
 			"header": _asset_url(item, "header"),
 		}
 
@@ -150,7 +160,7 @@ func _read_response(body: PackedByteArray) -> void:
 	# "sem informação" para não perguntar de novo toda vez.
 	for app_id in _current_batch:
 		if not app_id in answered:
-			_cache[str(app_id)] = {"fetched": now, "tags": [], "capsule": "", "header": ""}
+			_cache[str(app_id)] = {"fetched": now, "tags": [], "capsule": "", "capsule_2x": "", "header": ""}
 
 
 ## Lista de IDs de tags, ordenada pelo número de votos (maior primeiro).

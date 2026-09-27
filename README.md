@@ -13,7 +13,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com a c
 | 3 | Cidade gerada da biblioteca, com bairros por categoria e capas | ✅ pronta |
 | 4 | Launcher robusto: Steam fechada, jogos abertos por fora, vários monitores | ✅ pronta |
 | 5 | Amigos da Steam como personagens na porta do jogo que estão jogando | ✅ pronta |
-| 6 | Polimento: sons, iluminação, modelos 3D, horas jogadas | ⏳ a fazer |
+| 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
 
 A ideia a longo prazo é reaproveitar os mesmos sistemas num mundo aberto maior. Por exemplo: uma montanha de gelo para o Skyrim, ou uma pista de corrida onde se ouve o motor de longe.
 
@@ -62,6 +62,7 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | Espaço | Pular |
 | Esc | Soltar o mouse (clique na janela para prender de novo) |
 | F11 | Tela cheia |
+| F8 | Adiantar o relógio da cidade em 3 horas (para ver a noite) |
 | Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo |
 | Esc, enquanto o jogo está abrindo | Cancelar a espera |
 
@@ -85,6 +86,12 @@ web_api_key=""
 steam_id=""
 ; false = não mostrar amigos
 friends_enabled=true
+
+[audio]
+; Volumes de 0.0 (mudo) a 1.0 (máximo)
+master_volume=0.8
+effects_volume=1.0
+ambience_volume=0.8
 ```
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).
@@ -108,6 +115,18 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
 **Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
+
+## Detalhes da cidade
+
+- **Horas jogadas:** ao olhar para um prédio, o HUD mostra o tempo jogado e quando foi a última vez (por exemplo, "Balatro — 23 h jogadas · jogado ontem"). O hub lê isso do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
+- **Capas em HD:** o prédio mostra na hora a capa do cache da Steam (300×450) e baixa a versão 600×900 uma vez só.
+- **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
+- **Dia e noite:** seguem o relógio do PC. À noite, os postes e as janelas acendem e as capas brilham.
+
+## Créditos
+
+- Modelos e sons: pacotes da [Kenney](https://kenney.nl), todos **CC0** (domínio público). A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Os pacotes usados são City Kit Roads, Nature Kit, Mini Characters, Impact Sounds, Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles.
+- O vento e os passarinhos são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0.
 
 ## Licença
 

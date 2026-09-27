@@ -27,12 +27,42 @@ signal look_target_changed(text: String)
 ## Limite para olhar para cima/baixo (evita dar cambalhota com a câmera).
 const MAX_PITCH_DEGREES: float = 89.0
 
+## Sons (pacotes CC0 da Kenney).
+const FOOTSTEP_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/kenney/impact-sounds/footstep_concrete_000.ogg"),
+	preload("res://assets/kenney/impact-sounds/footstep_concrete_001.ogg"),
+	preload("res://assets/kenney/impact-sounds/footstep_concrete_002.ogg"),
+	preload("res://assets/kenney/impact-sounds/footstep_concrete_003.ogg"),
+	preload("res://assets/kenney/impact-sounds/footstep_concrete_004.ogg"),
+]
+const JUMP_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/kenney/rpg-audio/cloth1.ogg"),
+	preload("res://assets/kenney/rpg-audio/cloth2.ogg"),
+	preload("res://assets/kenney/rpg-audio/cloth3.ogg"),
+	preload("res://assets/kenney/rpg-audio/cloth4.ogg"),
+]
+const LAND_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/kenney/impact-sounds/impactSoft_heavy_000.ogg"),
+	preload("res://assets/kenney/impact-sounds/impactSoft_heavy_001.ogg"),
+]
+## Distância andada entre um passo e outro (metros), andando e correndo.
+const WALK_STRIDE: float = 2.2
+const SPRINT_STRIDE: float = 3.0
+## Só toca o som de aterrissar se estiver caindo mais rápido que isso (m/s).
+const LAND_SOUND_MIN_SPEED: float = 4.0
+
 @onready var _head: Node3D = $Head
 @onready var _look_ray: RayCast3D = $Head/Camera3D/LookRay
 @onready var _hud: Hud = $HUD
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _current_look_text: String = ""
+
+var _steps_player: AudioStreamPlayer
+var _body_player: AudioStreamPlayer
+## Quanto já andou desde o último passo (metros).
+var _stride_progress: float = 0.0
+var _was_on_floor: bool = true
 
 
 func _ready() -> void:
@@ -41,6 +71,9 @@ func _ready() -> void:
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	look_target_changed.connect(_hud.set_look_text)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+	_steps_player = _make_sound_player(-8.0)
+	_body_player = _make_sound_player(-6.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -66,6 +99,7 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
+		_play_random(_body_player, JUMP_SOUNDS)
 
 	# Direção pedida pelo teclado, convertida para "para onde o jogador está virado".
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -78,8 +112,44 @@ func _physics_process(delta: float) -> void:
 	velocity.x = lerpf(velocity.x, target_velocity.x, blend)
 	velocity.z = lerpf(velocity.z, target_velocity.z, blend)
 
+	var falling_speed := -velocity.y
 	move_and_slide()
+	_update_footsteps(delta, speed, falling_speed)
 	_update_look_target()
+
+
+## Passos: um som a cada "passada" (mais longa correndo); e um "tum" ao cair.
+func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void:
+	var on_floor := is_on_floor()
+	if on_floor and not _was_on_floor and falling_speed > LAND_SOUND_MIN_SPEED:
+		_play_random(_body_player, LAND_SOUNDS)
+	_was_on_floor = on_floor
+
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	var stride := SPRINT_STRIDE if speed > walk_speed else WALK_STRIDE
+	if on_floor and horizontal_speed > 1.0:
+		_stride_progress += horizontal_speed * delta
+		if _stride_progress >= stride:
+			_stride_progress = 0.0
+			_play_random(_steps_player, FOOTSTEP_SOUNDS)
+	else:
+		# Parado: o primeiro passo ao voltar a andar sai logo.
+		_stride_progress = stride * 0.7
+
+
+func _make_sound_player(volume_db: float) -> AudioStreamPlayer:
+	var sound := AudioStreamPlayer.new()
+	sound.bus = &"Efeitos"
+	sound.volume_db = volume_db
+	add_child(sound)
+	return sound
+
+
+## Toca um dos sons da lista, com o tom levemente diferente a cada vez.
+func _play_random(sound: AudioStreamPlayer, streams: Array[AudioStream]) -> void:
+	sound.stream = streams.pick_random()
+	sound.pitch_scale = randf_range(0.9, 1.1)
+	sound.play()
 
 
 ## O HUD do jogador (para o mundo mostrar avisos, por exemplo).

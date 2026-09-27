@@ -10,11 +10,17 @@ const MESSAGE_SECONDS: float = 6.0
 const LOOK_FONT_SIZE: int = 22
 const MESSAGE_FONT_SIZE: int = 20
 
+## Sons (Kenney, CC0).
+const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
+const ERROR_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/error_004.ogg")
+const WELCOME_BACK_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI01.ogg")
+
 var _look_label: Label
 var _message_label: Label
 var _message_timer: Timer
 ## Avisos esperando a vez: [texto, segundos].
 var _message_queue: Array[Array] = []
+var _sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -40,8 +46,14 @@ func _ready() -> void:
 	_message_timer.timeout.connect(_show_next_message)
 	add_child(_message_timer)
 
+	_sound = AudioStreamPlayer.new()
+	_sound.bus = &"Efeitos"
+	_sound.volume_db = -10.0
+	add_child(_sound)
+
 	# O HUD escuta os sistemas para avisar quando algo dá errado.
 	GameLauncher.session_ended.connect(_on_session_ended)
+	HubWindow.woke_up.connect(_play_sound.bind(WELCOME_BACK_SOUND))
 	FriendsService.problem.connect(show_message)
 	if not FriendsService.get_problem().is_empty():
 		show_message(FriendsService.get_problem())  # aviso de antes do HUD existir
@@ -67,6 +79,8 @@ func show_message(text: String, seconds: float = MESSAGE_SECONDS) -> void:
 	if _message_label.text.is_empty():
 		_message_label.text = text
 		_message_timer.start(seconds)
+		if not _sound.playing:  # não atropela a vinheta nem o som de erro
+			_play_sound(MESSAGE_SOUND)
 	else:
 		_message_queue.append([text, seconds])
 
@@ -80,7 +94,13 @@ func _show_next_message() -> void:
 
 func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:
 	if not success and not message.is_empty():
+		_play_sound(ERROR_SOUND)
 		show_message(message)
+
+
+func _play_sound(stream: AudioStream) -> void:
+	_sound.stream = stream
+	_sound.play()
 
 
 func _build_crosshair() -> void:

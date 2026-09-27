@@ -30,6 +30,8 @@ const PLAZA_FRIENDS_PER_RING: int = 10
 
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
+## Relógio de dia e noite (sol, céu, luzes).
+var _day_night: DayNight
 
 
 func _ready() -> void:
@@ -41,19 +43,32 @@ func _ready() -> void:
 
 	var districts := _group_into_districts(games)
 	var cells := _build_districts(districts)
-	_build_ground_and_walls(CityLayout.half_extent(cells))
-	_build_plaza()
+	var half := CityLayout.half_extent(cells)
+	_build_ground_and_walls(half)
+	CityDecor.add_street_markings(self, cells, half)
+	CityDecor.add_plaza(self)
 
 	# Amigos jogando algo da cidade aparecem nos portais (o GamePortal cuida
 	# disso); os outros amigos online ficam aqui na praça.
 	FriendsService.friends_changed.connect(_update_plaza_friends)
 	_update_plaza_friends()
 
+	# Postes e janelas (grupo "city_night") acendem conforme a hora.
+	_day_night.night_changed.connect(_on_night_changed)
+	_on_night_changed(_day_night.get_night())
+
 	var player := _spawn_player()
 	_show_startup_messages(player, games)
+	_day_night.clock_advanced.connect(func(hour: float) -> void:
+		player.get_hud().show_message("Relógio da cidade: %02d:%02d  (F8 adianta 3 horas)" \
+				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], 4.0))
 
 	ScreenFade.set_message("")
 	ScreenFade.fade_in(0.8)
+
+
+func _on_night_changed(night: float) -> void:
+	get_tree().call_group("city_night", "set_night", night)
 
 
 # --- Dados -------------------------------------------------------------------
@@ -116,9 +131,9 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	var category_color := GameCategories.get_category_color(category_id)
 	var center := CityLayout.block_center(cell)
 
-	# Chão do quarteirão na cor do bairro (só visual).
-	_add_pad(center, Vector2(CityLayout.BLOCK_SIZE, CityLayout.BLOCK_SIZE),
-			category_color.darkened(0.45), 0.03)
+	# Calçada em volta e o miolo do quarteirão na cor do bairro; postes nos cantos.
+	CityDecor.add_block_ground(self, center, category_color)
+	CityDecor.add_block_lights(self, center)
 
 	# Placa flutuante com o nome do bairro, sempre virada para quem olha.
 	var district_sign := Label3D.new()
@@ -136,19 +151,21 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	for i in lots.size():
 		var lot := CityLayout.lot_transform(cell, lots[i])
 		if i < block_games.size():
-			_build_game_building(lot, block_games[i], category_color)
+			_build_game_building(lot, block_games[i], category_id)
 		else:
-			_build_park(lot)
+			CityDecor.add_park(self, lot)
 
 
-func _build_game_building(lot: Transform3D, game: SteamGame, category_color: Color) -> void:
+func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> void:
 	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = game.app_id
+	var category_color := GameCategories.get_category_color(category_id)
 
 	var building := CityBuilding.new()
 	building.name = "Building_%d" % game.app_id
 	building.game = game
+	building.category_id = category_id
 	building.size = Vector3(BUILDING_FOOTPRINT,
 			rng.randf_range(BUILDING_MIN_HEIGHT, BUILDING_MAX_HEIGHT), BUILDING_FOOTPRINT)
 	building.color = category_color.lerp(Color.WHITE, rng.randf_range(0.0, 0.3))
@@ -156,41 +173,13 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_color: Col
 	add_child(building)
 
 
-## Terreno vazio: gramado com algumas árvores.
-func _build_park(lot: Transform3D) -> void:
-	_add_pad(lot.origin, Vector2(CityLayout.LOT_SIZE - 2.0, CityLayout.LOT_SIZE - 2.0),
-			Color("4f7a3a"), 0.07)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(lot.origin)
-	for i in 3:
-		var spot := Vector3(rng.randf_range(-4.0, 4.0), 0.0, rng.randf_range(-4.0, 4.0))
-		_add_tree(lot.origin + spot, rng.randf_range(0.8, 1.2))
+# --- Céu, chão e muros -------------------------------------------------------
 
-
-func _add_tree(base: Vector3, scale_factor: float) -> void:
-	var trunk := CSGCylinder3D.new()
-	trunk.radius = 0.25 * scale_factor
-	trunk.height = 2.5 * scale_factor
-	trunk.position = base + Vector3(0.0, trunk.height / 2.0, 0.0)
-	trunk.material = _make_material(Color("6b4a2f"))
-	trunk.use_collision = true
-	add_child(trunk)
-
-	var canopy := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 1.6 * scale_factor
-	sphere.height = 3.2 * scale_factor
-	canopy.mesh = sphere
-	canopy.position = base + Vector3(0.0, 3.2 * scale_factor, 0.0)
-	canopy.material_override = _make_material(Color("3f7d3a"))
-	add_child(canopy)
-
-
-# --- Céu, chão, praça e muros ------------------------------------------------
-
+## Céu, sol e o relógio de dia e noite que controla os dois.
 func _build_environment() -> void:
+	var sky_material := ProceduralSkyMaterial.new()
 	var sky := Sky.new()
-	sky.sky_material = ProceduralSkyMaterial.new()
+	sky.sky_material = sky_material
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
@@ -198,16 +187,22 @@ func _build_environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true  # faz materiais que "brilham" (emissão) ficarem bonitos
+	env.ssao_enabled = true  # sombrinhas nos cantos: dá "peso" aos objetos
 
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50.0, -30.0, 0.0)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)
+
+	_day_night = DayNight.new()
+	_day_night.environment = env
+	_day_night.sky_material = sky_material
+	_day_night.sun = sun
+	add_child(_day_night)
 
 
 func _build_ground_and_walls(half: float) -> void:
@@ -216,7 +211,7 @@ func _build_ground_and_walls(half: float) -> void:
 	ground.name = "Ground"
 	ground.size = Vector3(half * 2.0, 1.0, half * 2.0)
 	ground.position = Vector3(0.0, -0.5, 0.0)
-	ground.material = _make_material(Color("3a3d42"))
+	ground.material = CityDecor.make_material(Color("3a3d42"))
 	ground.use_collision = true
 	add_child(ground)
 
@@ -228,21 +223,6 @@ func _build_ground_and_walls(half: float) -> void:
 	_add_wall(Vector3(0.0, y, half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
 	_add_wall(Vector3(-half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
 	_add_wall(Vector3(half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
-
-
-func _build_plaza() -> void:
-	_add_pad(Vector3.ZERO, Vector2(CityLayout.BLOCK_SIZE, CityLayout.BLOCK_SIZE), Color("b8b2a4"), 0.03)
-
-	# Um "chafariz" no meio da praça, como ponto de referência.
-	var fountain := CSGCylinder3D.new()
-	fountain.name = "Fountain"
-	fountain.radius = 2.0
-	fountain.height = 0.6
-	fountain.sides = 24
-	fountain.position = Vector3(0.0, 0.3, 0.0)
-	fountain.material = _make_material(Color("8a8f99"))
-	fountain.use_collision = true
-	add_child(fountain)
 
 
 # --- Amigos na praça ---------------------------------------------------------
@@ -264,6 +244,8 @@ func _update_plaza_friends() -> void:
 		var npc := FriendNpc.new()
 		npc.friend = plaza_friends[i]
 		npc.position = _plaza_friend_position(i, plaza_friends.size())
+		# Virado para o chafariz, como quem conversa em roda (o personagem olha para +Z).
+		npc.rotation.y = atan2(-npc.position.x, -npc.position.z)
 		add_child(npc)
 		_plaza_friends.append(npc)
 
@@ -315,30 +297,12 @@ func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
 
 # --- Utilidades --------------------------------------------------------------
 
-## Placa fina de chão, só visual (a colisão é do chão de baixo).
-func _add_pad(center: Vector3, pad_size: Vector2, pad_color: Color, height: float) -> void:
-	var pad := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(pad_size.x, height, pad_size.y)
-	pad.mesh = mesh
-	pad.position = center + Vector3(0.0, height / 2.0, 0.0)
-	pad.material_override = _make_material(pad_color)
-	add_child(pad)
-
-
 ## Caixa sólida (com colisão).
 func _add_wall(center: Vector3, wall_size: Vector3, wall_color: Color) -> void:
 	var wall := CSGBox3D.new()
 	wall.name = "Wall"
 	wall.size = wall_size
 	wall.position = center
-	wall.material = _make_material(wall_color)
+	wall.material = CityDecor.make_material(wall_color)
 	wall.use_collision = true
 	add_child(wall, true)  # true = a Godot numera nomes repetidos (Wall2, Wall3...)
-
-
-func _make_material(material_color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = material_color
-	material.roughness = 0.9
-	return material
