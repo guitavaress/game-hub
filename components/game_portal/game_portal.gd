@@ -85,7 +85,9 @@ func _process(delta: float) -> void:
 		return  # ninguém aqui e nada acontecendo: não mexe na tela
 
 	var ratio := _charge / enter_time
-	ScreenFade.set_amount(ratio)
+	# Vinheta que fecha das bordas + anel em volta da mira, na cor do bairro.
+	ScreenFade.set_door_charge(ratio, get_game_name(),
+			GameCategories.get_neon_color(GameCategories.get_category_id(app_id)))
 	_update_charge_sound(ratio)
 	if _charge >= enter_time:
 		_start_game()
@@ -213,6 +215,7 @@ func get_return_transform() -> Transform3D:
 
 func _start_game() -> void:
 	_waiting_for_game = true
+	ScreenFade.set_door_charge(0.0)  # a vinheta já está toda preta: troca pela cortina
 	ScreenFade.set_amount(1.0)
 	_charge_sound.stop()
 	_enter_sound.play()

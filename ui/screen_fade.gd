@@ -4,6 +4,8 @@ extends CanvasLayer
 ## - set_amount(0.0 .. 1.0): 0 = tela normal, 1 = tela toda preta.
 ## - fade_in(segundos): clareia a tela aos poucos, do valor atual até 0.
 ## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
+## - set_door_charge(0..1, nome, cor): espera na porta de um jogo — vinheta
+##   que fecha das bordas + anel em volta da mira (DoorCharge).
 ##
 ## Por cima da cortina fica a TELA DO JOGO (GameScreen): "Abrindo X…" quando um
 ## jogo é pedido e "Jogando X…" quando ele aparece. Ela é "filha" da cortina,
@@ -16,12 +18,17 @@ var _curtain: ColorRect
 var _message: Label
 var _tween: Tween
 var game_screen: GameScreen
+## Vinheta + anel enquanto o jogador espera na porta (fica por baixo da cortina).
+var door_charge: DoorCharge
 
 
 func _ready() -> void:
 	layer = 100
 	# Continua funcionando mesmo com o jogo pausado.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	door_charge = DoorCharge.new()
+	add_child(door_charge)
 
 	_curtain = ColorRect.new()
 	_curtain.color = Color.BLACK
@@ -44,6 +51,11 @@ func _ready() -> void:
 		game_screen.show_opening(app_id))
 	GameLauncher.game_started.connect(func(app_id: int, _source: Node) -> void:
 		game_screen.show_playing(app_id))
+
+
+## Espera na porta: progress 0..1 fecha a vinheta e enche o anel ("0" esconde).
+func set_door_charge(progress: float, game_name: String = "", color: Color = Color.WHITE) -> void:
+	door_charge.set_progress(progress, game_name, color)
 
 
 ## Mostra um texto no meio da cortina ("" apaga).
