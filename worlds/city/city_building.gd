@@ -30,6 +30,10 @@ const POSTER_TOP_MARGIN: float = 1.2
 const POSTER_SIDE_MARGIN: float = 1.2
 ## Proporção da capa "em pé" da Steam (600x900), usada no placeholder.
 const PORTRAIT_ASPECT: float = 600.0 / 900.0
+## Hero (banner 1920x620 da Steam, sem logo): faixa larga no alto da fachada,
+## como um outdoor. Com ele, o logo aparece uma vez só: sobre a porta.
+const HERO_SIZE: Vector2 = Vector2(9.0, 9.0 * 620.0 / 1920.0)
+const HERO_TOP_MARGIN: float = 0.9
 const DARK_METAL: Color = Color(0.07, 0.075, 0.08)
 
 ## Estilos de parede (materiais PBR da ambientCG): pasta, tamanho da repetição
@@ -53,6 +57,8 @@ var _poster_material: StandardMaterial3D
 var _poster_label: Label3D
 var _walls_material: ShaderMaterial
 var _logo: Sprite3D
+## true quando a fachada mostra o hero (e não a capa).
+var _hero_mode: bool = false
 
 
 func _ready() -> void:
@@ -64,12 +70,17 @@ func _ready() -> void:
 	_build_poster()
 	_build_portal()
 
-	# Sem capa ainda: fica o placeholder. Continuamos ouvindo o GameArt porque
-	# a capa pode chegar depois, ou chegar uma versão melhor (HD).
+	# Preferimos o hero; sem ele, a capa. Continuamos ouvindo o GameArt porque
+	# as imagens podem chegar depois (download), ou chegar uma capa melhor (HD).
+	GameArt.hero_ready.connect(_on_hero_ready)
 	GameArt.art_ready.connect(_on_art_ready)
-	var texture := GameArt.get_art(game.app_id)
-	if texture != null:
-		_show_art(texture)
+	var hero := GameArt.get_hero(game.app_id)
+	if hero != null:
+		_show_hero(hero)
+	else:
+		var texture := GameArt.get_art(game.app_id)
+		if texture != null:
+			_show_art(texture)
 
 
 ## Cor viva do néon, a partir da cor do bairro.
@@ -205,16 +216,42 @@ func _resize_poster(aspect: float) -> void:
 	_poster_label.position = Vector3(0.0, 0.0, 0.01)
 
 
+## Capa em pé (quando não há hero). A capa já traz o logo do jogo, então o
+## letreiro de logo sobre a porta some, para não repetir.
 func _show_art(texture: Texture2D) -> void:
+	if _hero_mode:
+		return
 	_poster_material.albedo_texture = texture
 	_poster_material.albedo_color = Color.WHITE
 	_poster_label.visible = false
+	if _logo != null:
+		_logo.visible = false
 	_resize_poster(float(texture.get_width()) / float(texture.get_height()))
+
+
+## Hero: faixa larga no alto da fachada, e o logo (uma vez só) sobre a porta.
+func _show_hero(texture: Texture2D) -> void:
+	_hero_mode = true
+	_poster_material.albedo_texture = texture
+	_poster_material.albedo_color = Color.WHITE
+	_poster_label.visible = false
+	if _logo != null:
+		_logo.visible = true
+	var center := Vector3(0.0, size.y - HERO_TOP_MARGIN - HERO_SIZE.y / 2.0, _front_z() + 0.05)
+	(_poster.mesh as QuadMesh).size = HERO_SIZE
+	_poster.position = center
+	(_poster_frame.mesh as QuadMesh).size = HERO_SIZE + Vector2(0.3, 0.3)
+	_poster_frame.position = center - Vector3(0.0, 0.0, 0.01)
 
 
 func _on_art_ready(app_id: int, texture: Texture2D) -> void:
 	if app_id == game.app_id:
 		_show_art(texture)
+
+
+func _on_hero_ready(app_id: int, texture: Texture2D) -> void:
+	if app_id == game.app_id:
+		_show_hero(texture)
 
 
 func _build_portal() -> void:

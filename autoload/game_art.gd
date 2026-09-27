@@ -15,12 +15,19 @@ extends Node
 ## devolvemos ela na hora e baixamos a versão 600x900 em segundo plano. Quando
 ## ela chega, o sinal art_ready avisa de novo, com a imagem melhor.
 ##
+## Também arranja o HERO (banner largo 1920x620, sem logo, feito pela Steam para
+## ficar ATRÁS do logo) e o LOGO (PNG transparente) de cada jogo.
+##
 ## Uso:
 ##   var textura := GameArt.get_art(app_id)   # null = ainda não temos
 ##   GameArt.art_ready.connect(...)           # chegou uma capa (nova ou melhor)
+##   var hero := GameArt.get_hero(app_id)     # null = ainda não temos (hero_ready avisa)
+##   var logo := GameArt.get_logo(app_id)     # null = o jogo não tem logo
 
 ## Uma capa acabou de chegar (a primeira, ou uma versão melhor).
 signal art_ready(app_id: int, texture: Texture2D)
+## Um hero acabou de chegar (download).
+signal hero_ready(app_id: int, texture: Texture2D)
 
 const CACHE_DIR: String = "user://cache/art"
 const CDN_URL: String = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/%d/%s"
@@ -42,9 +49,11 @@ const STEAM_CACHE_FILES: Array[String] = [
 ]
 
 var _textures: Dictionary[int, Texture2D] = {}
+var _heroes: Dictionary[int, Texture2D] = {}
 ## Logos já procurados (app_id -> textura, ou null se o jogo não tem logo).
 var _logos: Dictionary = {}
-## Downloads esperando a vez. Cada um: {"app_id", "stem", "urls"}.
+## Downloads esperando a vez. Cada um: {"app_id", "stem", "urls", "kind"}.
+## "kind" é "cover" (capa) ou "hero".
 ## "stem" é o nome do arquivo sem extensão: "2379780" ou "2379780_hd".
 var _queue: Array[Dictionary] = []
 ## Downloads em andamento, pelo "stem".
@@ -88,6 +97,23 @@ func get_art(app_id: int) -> Texture2D:
 	return null
 
 
+## Hero do jogo (banner 1920x620), ou null se ainda não tivermos (aí começa o
+## download e o sinal hero_ready avisa quando chegar).
+func get_hero(app_id: int) -> Texture2D:
+	if _heroes.has(app_id):
+		return _heroes[app_id]
+	var path := _cached_file("%d_hero" % app_id)
+	if path.is_empty():
+		path = _find_in_steam_cache(app_id, ["library_hero.jpg"])
+	if not path.is_empty():
+		var texture := _load_texture(path)
+		if texture != null:
+			_heroes[app_id] = texture
+			return texture
+	_queue_download(app_id, "%d_hero" % app_id, _hero_urls(app_id), "hero")
+	return null
+
+
 ## Logo do jogo (PNG com fundo transparente, do cache local da Steam), ou null
 ## se não houver. Serve para letreiros: fica mais bonito que o nome em texto.
 func get_logo(app_id: int) -> Texture2D:
@@ -113,12 +139,13 @@ func _cached_file(stem: String) -> String:
 	return ""
 
 
-func _find_in_steam_cache(app_id: int) -> String:
+## Procura, no cache local da Steam, o primeiro destes nomes de arquivo.
+func _find_in_steam_cache(app_id: int, names: Array[String] = STEAM_CACHE_FILES) -> String:
 	var steam := SteamLibrary.get_steam_path()
 	if steam.is_empty():
 		return ""
 	var files := _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2)
-	for wanted in STEAM_CACHE_FILES:
+	for wanted in names:
 		for file in files:
 			if file.get_file() == wanted:
 				return file
@@ -166,6 +193,13 @@ func _hd_urls(app_id: int) -> Array[String]:
 	])
 
 
+func _hero_urls(app_id: int) -> Array[String]:
+	return _without_empty([
+		StoreInfo.get_hero_url(app_id),
+		CDN_URL % [app_id, "library_hero.jpg"],
+	])
+
+
 func _without_empty(urls: Array) -> Array[String]:
 	var result: Array[String] = []
 	for url: String in urls:
@@ -176,13 +210,13 @@ func _without_empty(urls: Array) -> Array[String]:
 
 # --- Downloads ---------------------------------------------------------------
 
-func _queue_download(app_id: int, stem: String, urls: Array[String]) -> void:
+func _queue_download(app_id: int, stem: String, urls: Array[String], kind: String = "cover") -> void:
 	if urls.is_empty() or _active.has(stem) or _failed_recently(stem):
 		return
 	for job in _queue:
 		if job["stem"] == stem:
 			return
-	_queue.append({"app_id": app_id, "stem": stem, "urls": urls})
+	_queue.append({"app_id": app_id, "stem": stem, "urls": urls, "kind": kind})
 	_start_downloads()
 
 
@@ -233,7 +267,10 @@ func _finish_download(http: HTTPRequest, job: Dictionary, texture: Texture2D) ->
 	var app_id: int = job["app_id"]
 	_active.erase(job["stem"])
 	http.queue_free()
-	if texture != null:
+	if texture != null and job["kind"] == "hero":
+		_heroes[app_id] = texture
+		hero_ready.emit(app_id, texture)
+	elif texture != null:
 		# Só troca se for melhor (ou se ainda não tínhamos nada).
 		var current: Texture2D = _textures.get(app_id)
 		if current == null or texture.get_width() > current.get_width():
