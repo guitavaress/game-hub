@@ -1,0 +1,13 @@
+# Cache e arquivos importados da Godot 4 (a Godot recria sozinha)
+.godot/
+
+# Builds e exportações
+/build/
+/android/
+
+# Arquivos temporários
+*.tmp
+*.translation
+
+# Observação: a chave da Steam Web API (fase 5) fica em user://config.cfg,
+# que mora em %APPDATA%\Godot\app_userdata\Game Hub\, ou seja, FORA deste repositório.
