@@ -1,0 +1,4 @@
+# Prints com capas de jogos (arte das empresas donas): servem só de referência
+# local para o design e NÃO devem ir para o repositório público.
+*
+!.gitignore

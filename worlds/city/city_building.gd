@@ -1,47 +1,49 @@
 class_name CityBuilding
 extends Node3D
 ## Prédio de um jogo na cidade:
-##   - bloco com o vão da porta recortado (CSG), moldura e "porta" brilhante;
-##   - placa com o nome logo acima da porta;
+##   - bloco com o vão da porta recortado (CSG), com fachada realista (concreto
+##     ou tijolo), janelas de vidro e faixas de néon na cor do bairro
+##     (building_facade.gdshader);
+##   - LOGO do jogo como letreiro acima da porta (ou o nome, se não houver logo);
 ##   - a CAPA do jogo num painel grande na fachada (vem do GameArt);
 ##   - um GamePortal no vão da porta.
 ##
 ## A porta fica na face +Z (a "frente"). Para virar o prédio, gire este nó.
-## Preencha "game", "size" e "color" ANTES de adicionar o prédio à cena.
+## Preencha "game", "size", "accent_color" e "category_id" ANTES de adicionar
+## o prédio à cena.
 ##
 ## Isto é DECORAÇÃO da cidade: toda a lógica de abrir o jogo está no GamePortal.
 
 const PORTAL_SCENE: PackedScene = preload("res://components/game_portal/game_portal.tscn")
+const FACADE_SHADER: Shader = preload("res://worlds/city/building_facade.gdshader")
 
 ## Vão da porta (largura, altura, profundidade), em metros.
 const DOOR_WIDTH: float = 2.4
 const DOOR_HEIGHT: float = 3.0
 const DOOR_DEPTH: float = 1.6
-## Onde a capa começa (acima da placa com o nome) e as margens até as bordas.
-const POSTER_BOTTOM: float = 6.0
-const POSTER_TOP_MARGIN: float = 0.8
-const POSTER_SIDE_MARGIN: float = 1.0
+## Letreiro (logo) acima da porta: tamanho máximo.
+const LOGO_MAX_SIZE: Vector2 = Vector2(6.5, 1.8)
+const LOGO_BOTTOM: float = 3.9
+## Onde a capa começa (acima do letreiro) e as margens até as bordas.
+const POSTER_BOTTOM: float = 6.2
+const POSTER_TOP_MARGIN: float = 1.2
+const POSTER_SIDE_MARGIN: float = 1.2
 ## Proporção da capa "em pé" da Steam (600x900), usada no placeholder.
 const PORTRAIT_ASPECT: float = 600.0 / 900.0
+const DARK_METAL: Color = Color(0.07, 0.075, 0.08)
 
-## Janelas: uma textura com 4x4 janelas cobre 12 m de largura x 14 m de altura
-## das paredes. Ela é "projetada" nas paredes pela posição no mundo (triplanar),
-## então não precisa de coordenadas de textura no modelo.
-const WINDOW_AREA: Vector3 = Vector3(12.0, 14.0, 12.0)
-const WINDOW_GRID: int = 4
-const WINDOW_TEXTURE_SIZE: int = 256
-const WINDOW_GLASS_COLOR: Color = Color(0.32, 0.38, 0.48)
-const WINDOW_LIGHT_COLOR: Color = Color(1.0, 0.8, 0.5)
-## Fração das janelas com luz acesa à noite.
-const WINDOWS_LIT: float = 0.55
-
-## Texturas das janelas: criadas uma vez só e usadas por todos os prédios.
-static var _window_texture: ImageTexture
-static var _window_lights_texture: ImageTexture
+## Estilos de parede (materiais PBR da ambientCG): pasta, tamanho da repetição
+## em metros e um tom. Cada jogo sorteia um (sempre o mesmo para o mesmo jogo).
+const WALL_STYLES: Array[Dictionary] = [
+	{"folder": "Concrete034", "meters": 3.0, "tint": Color(0.82, 0.83, 0.85)},
+	{"folder": "Concrete048", "meters": 3.0, "tint": Color(0.95, 0.93, 0.9)},
+	{"folder": "Bricks097", "meters": 2.2, "tint": Color(0.9, 0.88, 0.86)},
+]
 
 var game: SteamGame
 var size: Vector3 = Vector3(10.0, 14.0, 10.0)
-var color: Color = Color.GRAY
+## Cor do bairro: vira o néon e um leve tom na parede.
+var accent_color: Color = Color.GRAY
 ## Categoria do jogo (define o som ambiente da porta).
 var category_id: String = ""
 
@@ -49,7 +51,8 @@ var _poster: MeshInstance3D
 var _poster_frame: MeshInstance3D
 var _poster_material: StandardMaterial3D
 var _poster_label: Label3D
-var _walls_material: StandardMaterial3D
+var _walls_material: ShaderMaterial
+var _logo: Sprite3D
 
 
 func _ready() -> void:
@@ -57,7 +60,7 @@ func _ready() -> void:
 	add_to_group("city_night")
 	_build_body()
 	_build_door_decoration()
-	_build_name_sign()
+	_build_sign()
 	_build_poster()
 	_build_portal()
 
@@ -67,6 +70,11 @@ func _ready() -> void:
 	var texture := GameArt.get_art(game.app_id)
 	if texture != null:
 		_show_art(texture)
+
+
+## Cor viva do néon, a partir da cor do bairro.
+func neon_color() -> Color:
+	return Color.from_hsv(accent_color.h, 0.7, 1.0)
 
 
 func _build_body() -> void:
@@ -87,55 +95,77 @@ func _build_body() -> void:
 	# 10 cm maior para baixo e para fora, para o recorte ficar limpo.
 	doorway.size = Vector3(DOOR_WIDTH, DOOR_HEIGHT + 0.1, DOOR_DEPTH + 0.1)
 	doorway.position = Vector3(0.0, (DOOR_HEIGHT - 0.1) / 2.0, _front_z() - DOOR_DEPTH / 2.0 + 0.05)
-	doorway.material = _make_material(color.darkened(0.35))  # paredes internas do vão
+	doorway.material = CityDecor.pbr_material("Concrete034", 2.0, Color(0.35, 0.36, 0.38))
 	body.add_child(doorway)
 
 
 func _build_door_decoration() -> void:
-	# "Porta" brilhante no fundo do vão.
+	# "Porta" de luz no fundo do vão, na cor do bairro.
 	var door_glow := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(DOOR_WIDTH, DOOR_HEIGHT)
 	door_glow.mesh = quad
 	door_glow.position = Vector3(0.0, DOOR_HEIGHT / 2.0, _front_z() - DOOR_DEPTH + 0.01)
-	door_glow.material_override = _make_glow_material(Color("3fa9f5"), 1.5)
+	door_glow.material_override = _make_glow_material(neon_color().lerp(Color.WHITE, 0.35), 1.6)
 	add_child(door_glow)
 
-	# Moldura: dois pilares e uma viga.
-	var frame_material := _make_glow_material(Color("ffb347"), 0.8)
-	var post_size := Vector3(0.3, DOOR_HEIGHT + 0.3, 0.3)
-	var post_x := DOOR_WIDTH / 2.0 + 0.15
-	var z := _front_z() + 0.1
-	_add_box(Vector3(-post_x, post_size.y / 2.0, z), post_size, frame_material)
-	_add_box(Vector3(post_x, post_size.y / 2.0, z), post_size, frame_material)
-	_add_box(Vector3(0.0, DOOR_HEIGHT + 0.15, z), Vector3(DOOR_WIDTH + 0.9, 0.3, 0.3), frame_material)
+	# Moldura de metal escuro, com um filete de néon por dentro.
+	var metal := _make_metal_material()
+	var neon := _make_glow_material(neon_color(), 2.5)
+	var post_size := Vector3(0.22, DOOR_HEIGHT + 0.22, 0.25)
+	var post_x := DOOR_WIDTH / 2.0 + 0.11
+	var z := _front_z() + 0.08
+	_add_box(Vector3(-post_x, post_size.y / 2.0, z), post_size, metal)
+	_add_box(Vector3(post_x, post_size.y / 2.0, z), post_size, metal)
+	_add_box(Vector3(0.0, DOOR_HEIGHT + 0.11, z), Vector3(DOOR_WIDTH + 0.66, 0.22, 0.25), metal)
+	_add_box(Vector3(-DOOR_WIDTH / 2.0 + 0.02, DOOR_HEIGHT / 2.0, z + 0.02), Vector3(0.04, DOOR_HEIGHT, 0.04), neon)
+	_add_box(Vector3(DOOR_WIDTH / 2.0 - 0.02, DOOR_HEIGHT / 2.0, z + 0.02), Vector3(0.04, DOOR_HEIGHT, 0.04), neon)
+	_add_box(Vector3(0.0, DOOR_HEIGHT - 0.02, z + 0.02), Vector3(DOOR_WIDTH, 0.04, 0.04), neon)
 
 
-func _build_name_sign() -> void:
+## Letreiro acima da porta: o LOGO do jogo (PNG transparente); se o jogo não
+## tiver logo, o nome escrito com a fonte de letreiro.
+func _build_sign() -> void:
+	var logo_texture := GameArt.get_logo(game.app_id)
+	if logo_texture != null:
+		_logo = Sprite3D.new()
+		_logo.name = "Sign"
+		_logo.texture = logo_texture
+		# Cabe dentro de LOGO_MAX_SIZE sem distorcer.
+		var width := float(logo_texture.get_width())
+		var height := float(logo_texture.get_height())
+		_logo.pixel_size = minf(LOGO_MAX_SIZE.x / width, LOGO_MAX_SIZE.y / height)
+		_logo.position = Vector3(0.0, LOGO_BOTTOM + height * _logo.pixel_size / 2.0, _front_z() + 0.06)
+		_logo.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+		add_child(_logo)
+		return
+
 	var name_sign := Label3D.new()
 	name_sign.name = "Sign"
-	name_sign.text = game.name
-	name_sign.font_size = 128      # resolução do texto (mais alto = mais nítido)
-	name_sign.pixel_size = 0.0055  # metros por pixel: 128 x 0,0055 = ~0,7 m de altura
-	name_sign.outline_size = 24
+	name_sign.text = game.name.to_upper()
+	name_sign.font = HubFonts.SIGN
+	name_sign.font_size = 128
+	name_sign.pixel_size = 0.006
+	name_sign.outline_size = 0
 	name_sign.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_sign.width = (size.x - 1.0) / name_sign.pixel_size  # largura máxima, em pixels
+	name_sign.width = LOGO_MAX_SIZE.x / name_sign.pixel_size
 	name_sign.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	name_sign.position = Vector3(0.0, DOOR_HEIGHT + 0.6, _front_z() + 0.05)
+	name_sign.position = Vector3(0.0, LOGO_BOTTOM, _front_z() + 0.06)
 	add_child(name_sign)
 
 
 func _build_poster() -> void:
-	# Moldura escura atrás da capa.
+	# Moldura de metal escuro atrás da capa.
 	_poster_frame = MeshInstance3D.new()
 	_poster_frame.mesh = QuadMesh.new()
-	_poster_frame.material_override = _make_material(Color(0.08, 0.08, 0.1))
+	_poster_frame.material_override = _make_metal_material()
 	add_child(_poster_frame)
 
-	# A capa em si. "Unshaded" = não é afetada por luz e sombra, como um letreiro.
+	# A capa em si. "Unshaded" = não é afetada por luz e sombra, como um painel
+	# iluminado por dentro.
 	_poster_material = StandardMaterial3D.new()
 	_poster_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_poster_material.albedo_color = color.darkened(0.55)
+	_poster_material.albedo_color = Color(0.1, 0.1, 0.12)
 	_poster = MeshInstance3D.new()
 	_poster.name = "Poster"
 	_poster.mesh = QuadMesh.new()
@@ -145,11 +175,12 @@ func _build_poster() -> void:
 	# Placeholder: o nome do jogo escrito no painel, até a capa chegar.
 	_poster_label = Label3D.new()
 	_poster_label.text = game.name
+	_poster_label.font = HubFonts.SIGN
 	_poster_label.font_size = 128
 	_poster_label.pixel_size = 0.006
 	_poster_label.outline_size = 0
 	_poster_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_poster_label.modulate = color.lightened(0.6)
+	_poster_label.modulate = Color(0.85, 0.87, 0.9)
 	_poster.add_child(_poster_label)
 
 	_resize_poster(PORTRAIT_ASPECT)
@@ -164,10 +195,10 @@ func _resize_poster(aspect: float) -> void:
 	if poster_size.y > free_height:
 		poster_size = Vector2(free_height * aspect, free_height)
 
-	var center := Vector3(0.0, POSTER_BOTTOM + free_height / 2.0, _front_z() + 0.03)
+	var center := Vector3(0.0, POSTER_BOTTOM + free_height / 2.0, _front_z() + 0.05)
 	(_poster.mesh as QuadMesh).size = poster_size
 	_poster.position = center
-	(_poster_frame.mesh as QuadMesh).size = poster_size + Vector2(0.4, 0.4)
+	(_poster_frame.mesh as QuadMesh).size = poster_size + Vector2(0.3, 0.3)
 	_poster_frame.position = center - Vector3(0.0, 0.0, 0.01)
 
 	_poster_label.width = (poster_size.x - 0.6) / _poster_label.pixel_size
@@ -201,53 +232,36 @@ func _build_portal() -> void:
 		portal.add_child(emitter)
 
 
-## 0 = dia, 1 = noite: à noite, parte das janelas acende.
+## 0 = dia, 1 = noite: à noite, parte das janelas acende, o néon fica mais
+## forte e o logo brilha um pouco.
 func set_night(night: float) -> void:
-	_walls_material.emission_energy_multiplier = 1.3 * smoothstep(0.2, 0.9, night)
+	_walls_material.set_shader_parameter("night", smoothstep(0.15, 0.85, night))
+	if _logo != null:
+		var glow := 1.0 + 0.6 * night
+		_logo.modulate = Color(glow, glow, glow)
 
 
-## Paredes com janelas: a cor do prédio "tinge" a textura de janelas.
-func _make_walls_material() -> StandardMaterial3D:
-	_create_window_textures()
-	_walls_material = _make_material(color)
-	_walls_material.albedo_texture = _window_texture
-	_walls_material.uv1_triplanar = true
-	_walls_material.uv1_world_triplanar = true
-	_walls_material.uv1_scale = Vector3.ONE / WINDOW_AREA
-	_walls_material.emission_enabled = true
-	_walls_material.emission = Color.WHITE
-	# MULTIPLY: brilha só onde a textura das janelas acesas é clara. (O padrão,
-	# ADD, somaria o branco com a textura e a parede inteira brilharia.)
-	_walls_material.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
-	_walls_material.emission_texture = _window_lights_texture
-	_walls_material.emission_energy_multiplier = 0.0
-	return _walls_material
-
-
-## Desenha as texturas das janelas (só na primeira vez).
-static func _create_window_textures() -> void:
-	if _window_texture != null:
-		return
-	var walls := Image.create(WINDOW_TEXTURE_SIZE, WINDOW_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
-	var lights := Image.create(WINDOW_TEXTURE_SIZE, WINDOW_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
-	walls.fill(Color.WHITE)   # parede (fica com a cor do prédio)
-	lights.fill(Color.BLACK)  # preto = não brilha
-
+## Fachada: material realista sorteado (sempre o mesmo para o mesmo jogo),
+## janelas e néon (tudo no building_facade.gdshader).
+func _make_walls_material() -> ShaderMaterial:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 2024  # sempre o mesmo desenho
-	var cell := floori(WINDOW_TEXTURE_SIZE / float(WINDOW_GRID))
-	for column in WINDOW_GRID:
-		for row in WINDOW_GRID:
-			var window := Rect2i(column * cell + int(cell * 0.28), row * cell + int(cell * 0.2),
-					int(cell * 0.44), int(cell * 0.55))
-			walls.fill_rect(window, WINDOW_GLASS_COLOR)
-			if rng.randf() < WINDOWS_LIT:
-				lights.fill_rect(window, WINDOW_LIGHT_COLOR)
+	rng.seed = game.app_id
+	var style: Dictionary = WALL_STYLES[rng.randi_range(0, WALL_STYLES.size() - 1)]
+	var textures := CityDecor.pbr_textures(style["folder"])
 
-	walls.generate_mipmaps()
-	lights.generate_mipmaps()
-	_window_texture = ImageTexture.create_from_image(walls)
-	_window_lights_texture = ImageTexture.create_from_image(lights)
+	_walls_material = ShaderMaterial.new()
+	_walls_material.shader = FACADE_SHADER
+	_walls_material.set_shader_parameter("wall_albedo", textures["albedo"])
+	_walls_material.set_shader_parameter("wall_normal", textures["normal"])
+	_walls_material.set_shader_parameter("wall_roughness", textures["roughness"])
+	_walls_material.set_shader_parameter("texture_size", style["meters"])
+	# Um toque da cor do bairro na parede (bem de leve).
+	var tint: Color = (style["tint"] as Color).lerp(accent_color, 0.1)
+	_walls_material.set_shader_parameter("wall_tint", tint)
+	_walls_material.set_shader_parameter("neon_color", neon_color())
+	_walls_material.set_shader_parameter("building_height", size.y)
+	_walls_material.set_shader_parameter("seed", float(game.app_id % 997))
+	return _walls_material
 
 
 ## A fachada (face da frente) fica em z = metade da profundidade.
@@ -266,16 +280,18 @@ func _add_box(center: Vector3, box_size: Vector3, material: Material) -> void:
 	add_child(box)
 
 
-func _make_material(material_color: Color) -> StandardMaterial3D:
+func _make_metal_material() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = material_color
-	material.roughness = 0.9
+	material.albedo_color = DARK_METAL
+	material.metallic = 0.8
+	material.roughness = 0.35
 	return material
 
 
 ## Material que "brilha" (emite luz própria).
 func _make_glow_material(glow_color: Color, energy: float) -> StandardMaterial3D:
-	var material := _make_material(glow_color)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = glow_color
 	material.emission_enabled = true
 	material.emission = glow_color
 	material.emission_energy_multiplier = energy

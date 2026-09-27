@@ -42,6 +42,8 @@ const STEAM_CACHE_FILES: Array[String] = [
 ]
 
 var _textures: Dictionary[int, Texture2D] = {}
+## Logos já procurados (app_id -> textura, ou null se o jogo não tem logo).
+var _logos: Dictionary = {}
 ## Downloads esperando a vez. Cada um: {"app_id", "stem", "urls"}.
 ## "stem" é o nome do arquivo sem extensão: "2379780" ou "2379780_hd".
 var _queue: Array[Dictionary] = []
@@ -84,6 +86,22 @@ func get_art(app_id: int) -> Texture2D:
 	# 3) não temos nada: baixa (a normal; se vier pequena, depois vem a HD)
 	_queue_download(app_id, str(app_id), _normal_urls(app_id))
 	return null
+
+
+## Logo do jogo (PNG com fundo transparente, do cache local da Steam), ou null
+## se não houver. Serve para letreiros: fica mais bonito que o nome em texto.
+func get_logo(app_id: int) -> Texture2D:
+	if _logos.has(app_id):
+		return _logos[app_id]
+	var logo: Texture2D = null
+	var steam := SteamLibrary.get_steam_path()
+	if not steam.is_empty():
+		for file in _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2):
+			if file.get_file() == "logo.png":
+				logo = _load_texture(file)
+				break
+	_logos[app_id] = logo
+	return logo
 
 
 ## Arquivo "<stem>.jpg" ou "<stem>.png" no nosso cache ("" = não existe).

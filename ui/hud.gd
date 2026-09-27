@@ -1,45 +1,43 @@
 class_name Hud
 extends CanvasLayer
-## HUD mínimo, montado por código:
+## HUD mínimo e discreto, montado por código:
 ## - mira no centro da tela;
-## - nome do que o jogador está olhando, logo abaixo da mira;
-## - linha de avisos no topo, que some sozinha depois de alguns segundos
-##   (se chegarem vários avisos juntos, eles entram numa fila, um de cada vez).
+## - CARTÃO na parte de baixo com o que o jogador está olhando: o nome em
+##   destaque e os detalhes numa segunda linha ("23 h jogadas · jogado ontem");
+## - AVISOS no topo, num painel escuro com uma barrinha de cor (amarela = info,
+##   vermelha = erro), que somem sozinhos (vários avisos entram numa fila).
+## A fonte (Barlow) vem do tema do projeto (project.godot).
 
 const MESSAGE_SECONDS: float = 6.0
-const LOOK_FONT_SIZE: int = 22
-const MESSAGE_FONT_SIZE: int = 20
+const TITLE_FONT_SIZE: int = 26
+const DETAIL_FONT_SIZE: int = 17
+const MESSAGE_FONT_SIZE: int = 18
+const PANEL_COLOR: Color = Color(0.035, 0.04, 0.05, 0.74)
+const INFO_ACCENT: Color = Color("f2c14e")
+const ERROR_ACCENT: Color = Color("e5534b")
+const DETAIL_COLOR: Color = Color(0.72, 0.75, 0.8)
 
 ## Sons (Kenney, CC0).
 const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
 const ERROR_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/error_004.ogg")
-const WELCOME_BACK_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI01.ogg")
+const WELCOME_BACK_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/confirmation_002.ogg")
 
-var _look_label: Label
+var _look_card: PanelContainer
+var _look_title: Label
+var _look_detail: Label
+var _message_panel: PanelContainer
+var _message_style: StyleBoxFlat
 var _message_label: Label
 var _message_timer: Timer
-## Avisos esperando a vez: [texto, segundos].
+## Avisos esperando a vez: [texto, segundos, é_erro].
 var _message_queue: Array[Array] = []
 var _sound: AudioStreamPlayer
 
 
 func _ready() -> void:
 	_build_crosshair()
-	_look_label = _make_label(LOOK_FONT_SIZE, Color.WHITE)
-	_look_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	# Faixa larga logo abaixo da mira, com o texto centralizado.
-	_look_label.offset_left = -400.0
-	_look_label.offset_right = 400.0
-	_look_label.offset_top = 18.0
-	_look_label.offset_bottom = 50.0
-
-	_message_label = _make_label(MESSAGE_FONT_SIZE, Color(1.0, 0.85, 0.3))
-	_message_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_message_label.offset_left = -500.0
-	_message_label.offset_right = 500.0
-	_message_label.offset_top = 24.0
-	_message_label.offset_bottom = 80.0
-	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_build_look_card()
+	_build_message_panel()
 
 	_message_timer = Timer.new()
 	_message_timer.one_shot = true
@@ -63,14 +61,26 @@ func _ready() -> void:
 				+ "Desative \"Embed Game on Next Play\" na aba Game.", 12.0)
 
 
-## Mostra (ou apaga, com "") o nome do que o jogador está olhando.
+## Mostra (ou esconde, com "") o que o jogador está olhando.
+## "Balatro — 23 h jogadas · jogado ontem" vira título + detalhes.
 func set_look_text(text: String) -> void:
-	_look_label.text = text
+	var parts := text.split(" — ", true, 1)
+	_look_title.text = parts[0]
+	_look_detail.text = parts[1] if parts.size() > 1 else ""
+	_look_detail.visible = not _look_detail.text.is_empty()
+	_look_card.visible = not text.is_empty()
+
+
+## O texto completo do que está sendo olhado (o mesmo que set_look_text recebeu).
+func get_look_text() -> String:
+	if not _look_card.visible:
+		return ""
+	return _look_title.text if _look_detail.text.is_empty() else "%s — %s" % [_look_title.text, _look_detail.text]
 
 
 ## Mostra um aviso no topo da tela por alguns segundos. Se já houver um aviso
 ## na tela, este espera a vez. Avisos repetidos são ignorados.
-func show_message(text: String, seconds: float = MESSAGE_SECONDS) -> void:
+func show_message(text: String, seconds: float = MESSAGE_SECONDS, is_error: bool = false) -> void:
 	if text.is_empty() or text == _message_label.text:
 		return
 	for queued in _message_queue:
@@ -78,24 +88,27 @@ func show_message(text: String, seconds: float = MESSAGE_SECONDS) -> void:
 			return
 	if _message_label.text.is_empty():
 		_message_label.text = text
+		_message_style.border_color = ERROR_ACCENT if is_error else INFO_ACCENT
+		_message_panel.visible = true
 		_message_timer.start(seconds)
 		if not _sound.playing:  # não atropela a vinheta nem o som de erro
 			_play_sound(MESSAGE_SOUND)
 	else:
-		_message_queue.append([text, seconds])
+		_message_queue.append([text, seconds, is_error])
 
 
 func _show_next_message() -> void:
 	_message_label.text = ""
+	_message_panel.visible = false
 	if not _message_queue.is_empty():
 		var next: Array = _message_queue.pop_front()
-		show_message(next[0], next[1])
+		show_message(next[0], next[1], next[2])
 
 
 func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:
 	if not success and not message.is_empty():
 		_play_sound(ERROR_SOUND)
-		show_message(message)
+		show_message(message, MESSAGE_SECONDS, true)
 
 
 func _play_sound(stream: AudioStream) -> void:
@@ -103,24 +116,80 @@ func _play_sound(stream: AudioStream) -> void:
 	_sound.play()
 
 
+# --- Montagem ----------------------------------------------------------------
+
 func _build_crosshair() -> void:
-	# Um quadradinho branco com borda preta, bem no centro.
+	# Um pontinho branco com borda escura, bem no centro.
 	var border := ColorRect.new()
-	border.color = Color(0.0, 0.0, 0.0, 0.7)
+	border.color = Color(0.0, 0.0, 0.0, 0.55)
 	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	border.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	border.offset_left = -3.0
-	border.offset_top = -3.0
-	border.offset_right = 3.0
-	border.offset_bottom = 3.0
+	border.offset_left = -2.5
+	border.offset_top = -2.5
+	border.offset_right = 2.5
+	border.offset_bottom = 2.5
 	add_child(border)
 
 	var dot := ColorRect.new()
-	dot.color = Color.WHITE
+	dot.color = Color(1.0, 1.0, 1.0, 0.9)
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dot.position = Vector2(1.0, 1.0)
-	dot.size = Vector2(4.0, 4.0)
+	dot.size = Vector2(3.0, 3.0)
 	border.add_child(dot)
+
+
+## Cartão de baixo: título (nome) e detalhes, num painel escuro arredondado.
+func _build_look_card() -> void:
+	_look_card = PanelContainer.new()
+	_look_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_look_card.add_theme_stylebox_override("panel", _make_panel_style(0))
+	_look_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_look_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_look_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_look_card.offset_bottom = -48.0
+	_look_card.visible = false
+	add_child(_look_card)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_look_card.add_child(column)
+	_look_title = _make_label(TITLE_FONT_SIZE, Color(0.97, 0.97, 0.98))
+	column.add_child(_look_title)
+	_look_detail = _make_label(DETAIL_FONT_SIZE, DETAIL_COLOR)
+	column.add_child(_look_detail)
+
+
+## Painel de avisos no topo, com uma barrinha colorida à esquerda.
+func _build_message_panel() -> void:
+	_message_panel = PanelContainer.new()
+	_message_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_message_style = _make_panel_style(4)
+	_message_panel.add_theme_stylebox_override("panel", _message_style)
+	_message_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_message_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_message_panel.offset_top = 24.0
+	_message_panel.custom_minimum_size = Vector2(0.0, 0.0)
+	_message_panel.visible = false
+	add_child(_message_panel)
+
+	_message_label = _make_label(MESSAGE_FONT_SIZE, Color(0.94, 0.95, 0.97))
+	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_message_label.custom_minimum_size = Vector2(520.0, 0.0)
+	_message_panel.add_child(_message_label)
+
+
+func _make_panel_style(left_border: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL_COLOR
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 18.0
+	style.content_margin_right = 18.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 10.0
+	style.border_width_left = left_border
+	style.border_color = INFO_ACCENT
+	return style
 
 
 func _make_label(font_size: int, color: Color) -> Label:
@@ -129,8 +198,4 @@ func _make_label(font_size: int, color: Color) -> Label:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	# Contorno preto para ler o texto em qualquer fundo.
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 6)
-	add_child(label)
 	return label

@@ -28,10 +28,20 @@ const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
 const PLAZA_FRIENDS_PER_RING: int = 10
 
+## Céus HDRI (Poly Haven, CC0) misturados pelo relógio (sky_blend.gdshader).
+const SKY_SHADER: Shader = preload("res://worlds/city/sky_blend.gdshader")
+const SKY_DAY: Texture2D = preload("res://assets/polyhaven/hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr")
+const SKY_SUNSET: Texture2D = preload("res://assets/polyhaven/hdri/belfast_sunset_puresky_2k.hdr")
+const SKY_NIGHT: Texture2D = preload("res://assets/polyhaven/hdri/rogland_clear_night_2k.hdr")
+
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
+## Asfalto: fica "molhado" (reflete mais) à noite.
+var _asphalt: StandardMaterial3D
+## Placas dos bairros: o néon fica mais forte à noite.
+var _district_signs: Array[Label3D] = []
 
 
 func _ready() -> void:
@@ -69,6 +79,13 @@ func _ready() -> void:
 
 func _on_night_changed(night: float) -> void:
 	get_tree().call_group("city_night", "set_night", night)
+	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon.
+	if _asphalt != null:
+		_asphalt.roughness = lerpf(1.0, 0.35, night)
+	for district_sign in _district_signs:
+		var color: Color = district_sign.get_meta("neon")
+		var glow := lerpf(0.9, 1.6, night)
+		district_sign.modulate = Color(color.r * glow, color.g * glow, color.b * glow)
 
 
 # --- Dados -------------------------------------------------------------------
@@ -135,16 +152,19 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	CityDecor.add_block_ground(self, center, category_color)
 	CityDecor.add_block_lights(self, center)
 
-	# Placa flutuante com o nome do bairro, sempre virada para quem olha.
+	# Letreiro flutuante com o nome do bairro (em néon), sempre virado para quem olha.
 	var district_sign := Label3D.new()
-	district_sign.text = GameCategories.get_category_name(category_id)
+	district_sign.text = GameCategories.get_category_name(category_id).to_upper()
+	district_sign.font = HubFonts.SIGN
 	district_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	district_sign.font_size = 128
-	district_sign.pixel_size = 0.025
-	district_sign.outline_size = 32
-	district_sign.modulate = category_color.lightened(0.35)
+	district_sign.pixel_size = 0.018
+	district_sign.outline_size = 8
+	district_sign.outline_modulate = Color(0.0, 0.0, 0.0, 0.5)
+	district_sign.set_meta("neon", Color.from_hsv(category_color.h, 0.8, 1.0))
 	district_sign.position = center + Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
 	add_child(district_sign)
+	_district_signs.append(district_sign)
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.
 	var lots := CityLayout.lots_facing_center_first(cell)
@@ -168,16 +188,20 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	building.category_id = category_id
 	building.size = Vector3(BUILDING_FOOTPRINT,
 			rng.randf_range(BUILDING_MIN_HEIGHT, BUILDING_MAX_HEIGHT), BUILDING_FOOTPRINT)
-	building.color = category_color.lerp(Color.WHITE, rng.randf_range(0.0, 0.3))
+	building.accent_color = category_color
 	building.transform = lot
 	add_child(building)
 
 
 # --- Céu, chão e muros -------------------------------------------------------
 
-## Céu, sol e o relógio de dia e noite que controla os dois.
+## Céu (três fotos HDRI misturadas), sol e o relógio de dia e noite.
 func _build_environment() -> void:
-	var sky_material := ProceduralSkyMaterial.new()
+	var sky_material := ShaderMaterial.new()
+	sky_material.shader = SKY_SHADER
+	sky_material.set_shader_parameter("day_sky", SKY_DAY)
+	sky_material.set_shader_parameter("sunset_sky", SKY_SUNSET)
+	sky_material.set_shader_parameter("night_sky", SKY_NIGHT)
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 
@@ -185,9 +209,14 @@ func _build_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.glow_enabled = true  # faz materiais que "brilham" (emissão) ficarem bonitos
-	env.ssao_enabled = true  # sombrinhas nos cantos: dá "peso" aos objetos
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX  # cores mais "de cinema"
+	env.glow_enabled = true      # faz o néon e as luzes brilharem
+	env.glow_hdr_threshold = 1.0
+	env.ssao_enabled = true      # sombrinhas nos cantos: dá "peso" aos objetos
+	env.ssr_enabled = true       # reflexos na tela: vidro e asfalto molhado
+	env.fog_enabled = true       # neblina leve (o DayNight ajusta a densidade)
+	env.fog_sky_affect = 0.15
 
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
@@ -211,13 +240,15 @@ func _build_ground_and_walls(half: float) -> void:
 	ground.name = "Ground"
 	ground.size = Vector3(half * 2.0, 1.0, half * 2.0)
 	ground.position = Vector3(0.0, -0.5, 0.0)
-	ground.material = CityDecor.make_material(Color("3a3d42"))
+	# Asfalto realista (ambientCG, CC0), repetido a cada 6 m.
+	_asphalt = CityDecor.pbr_material("Road012A", 6.0, Color(0.75, 0.75, 0.75))
+	ground.material = _asphalt
 	ground.use_collision = true
 	add_child(ground)
 
 	# Muros nas bordas para ninguém cair do mapa.
 	var y := BORDER_WALL_HEIGHT / 2.0
-	var color := Color("6b625a")
+	var color := Color("3c3d40")
 	var length := half * 2.0
 	_add_wall(Vector3(0.0, y, -half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
 	_add_wall(Vector3(0.0, y, half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)

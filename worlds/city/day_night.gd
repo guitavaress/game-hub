@@ -2,8 +2,9 @@ class_name DayNight
 extends Node
 ## Dia e noite seguindo o RELÓGIO do PC.
 ##
-## A cada segundo, olha a hora e ajusta o sol (posição, cor e força), as cores
-## do céu e a luz ambiente. Quando escurece, avisa pelo sinal night_changed
+## A cada segundo, olha a hora e ajusta o sol (posição, cor e força), o céu
+## (mistura de três fotos HDRI: dia, pôr do sol e noite, veja sky_blend.gdshader),
+## a neblina e a luz ambiente. Quando escurece, avisa pelo sinal night_changed
 ## (0 = dia, 1 = noite), e a cidade acende os postes, as janelas etc.
 ##
 ##   - 06:00 a 07:00: amanhecer (sol baixo e alaranjado)
@@ -21,19 +22,21 @@ signal clock_advanced(hour: float)
 const UPDATE_INTERVAL: float = 1.0
 const HOURS_PER_F8: float = 3.0
 
-# Cores do céu: dia, pôr do sol e noite.
-const DAY_SKY_TOP: Color = Color(0.36, 0.53, 0.84)
-const DAY_SKY_HORIZON: Color = Color(0.66, 0.76, 0.9)
-const SUNSET_SKY_HORIZON: Color = Color(0.98, 0.58, 0.34)
-const NIGHT_SKY_TOP: Color = Color(0.02, 0.03, 0.08)
-const NIGHT_SKY_HORIZON: Color = Color(0.07, 0.09, 0.17)
-const DAY_SUN_COLOR: Color = Color(1.0, 0.97, 0.9)
-const SUNSET_SUN_COLOR: Color = Color(1.0, 0.62, 0.35)
-const MOON_COLOR: Color = Color(0.6, 0.7, 1.0)
+const DAY_SUN_COLOR: Color = Color(1.0, 0.96, 0.9)
+const SUNSET_SUN_COLOR: Color = Color(1.0, 0.6, 0.35)
+const MOON_COLOR: Color = Color(0.55, 0.65, 1.0)
+## Brilho do céu de dia e de noite (a foto da noite já é escura).
+const DAY_SKY_ENERGY: float = 1.0
+const NIGHT_SKY_ENERGY: float = 0.45
+## Neblina: leve de dia, mais densa e azulada à noite (dá "clima" às luzes).
+const DAY_FOG_DENSITY: float = 0.0015
+const NIGHT_FOG_DENSITY: float = 0.006
+const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
+const NIGHT_FOG_COLOR: Color = Color(0.03, 0.04, 0.07)
 
 ## Quem este relógio controla (a cidade preenche antes de adicionar à cena).
 var environment: Environment
-var sky_material: ProceduralSkyMaterial
+var sky_material: ShaderMaterial
 var sun: DirectionalLight3D
 
 ## Horas somadas ao relógio do PC com F8.
@@ -81,8 +84,9 @@ func update_now() -> void:
 	var elevation := deg_to_rad(8.0 + 57.0 * sin(arc * PI))
 	var sun_yaw := lerpf(deg_to_rad(90.0), deg_to_rad(-90.0), arc)
 	# Perto do horizonte (amanhecer/entardecer), a luz fica alaranjada.
+	# "sunset" sobe só na última hora e meia de sol (e na primeira da manhã).
 	var low_sun := 1.0 - sin(arc * PI)
-	var sunset := clampf(low_sun * 1.4, 0.0, 1.0) * daylight
+	var sunset := clampf((low_sun - 0.6) / 0.35, 0.0, 1.0) * daylight
 
 	var moon_elevation := deg_to_rad(50.0)
 	var moon_yaw := deg_to_rad(30.0)
@@ -90,16 +94,22 @@ func update_now() -> void:
 	sun.light_color = MOON_COLOR.lerp(DAY_SUN_COLOR.lerp(SUNSET_SUN_COLOR, sunset), daylight)
 	sun.light_energy = lerpf(0.25, 1.0, daylight)
 
-	# Céu.
-	sky_material.sky_top_color = NIGHT_SKY_TOP.lerp(DAY_SKY_TOP, daylight)
-	var horizon := DAY_SKY_HORIZON.lerp(SUNSET_SKY_HORIZON, sunset)
-	sky_material.sky_horizon_color = NIGHT_SKY_HORIZON.lerp(horizon, daylight)
-	sky_material.ground_horizon_color = sky_material.sky_horizon_color
-	sky_material.ground_bottom_color = Color(0.05, 0.05, 0.06).lerp(Color(0.2, 0.17, 0.13), daylight)
+	# Céu: quanto de cada foto (dia, pôr do sol, noite) aparece agora.
+	# As estrelas só entram quando a noite já está pela metade (senão elas
+	# apareceriam no meio do pôr do sol); o resto fica com o pôr do sol.
+	var day_weight := maxf(daylight - sunset, 0.0)
+	var night_weight := smoothstep(0.5, 1.0, night)
+	var sunset_weight := maxf(1.0 - day_weight - night_weight, 0.0)
+	sky_material.set_shader_parameter("day_weight", day_weight)
+	sky_material.set_shader_parameter("sunset_weight", sunset_weight)
+	sky_material.set_shader_parameter("night_weight", night_weight)
+	sky_material.set_shader_parameter("energy", lerpf(NIGHT_SKY_ENERGY, DAY_SKY_ENERGY, daylight))
 
-	# Luz ambiente mais fraca e brilho (glow) mais forte à noite.
-	environment.ambient_light_energy = lerpf(0.35, 1.0, daylight)
-	environment.glow_intensity = lerpf(1.2, 0.8, daylight)
+	# Neblina, luz ambiente e brilho (glow).
+	environment.fog_density = lerpf(NIGHT_FOG_DENSITY, DAY_FOG_DENSITY, daylight)
+	environment.fog_light_color = NIGHT_FOG_COLOR.lerp(DAY_FOG_COLOR.lerp(SUNSET_SUN_COLOR, sunset * 0.5), daylight)
+	environment.ambient_light_energy = lerpf(0.2, 1.0, daylight)
+	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
 
 	if absf(night - _night) > 0.005:
 		_night = night
