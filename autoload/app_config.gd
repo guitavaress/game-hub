@@ -93,8 +93,9 @@ func _ready() -> void:
 	var error := _config.load(CONFIG_PATH)
 	if error != OK:
 		push_warning("Não consegui ler %s (erro %d). Usando valores padrão." % [CONFIG_PATH, error])
-		load_problem = "O config.cfg tem um erro de digitação (confira aspas e colchetes). " \
-				+ "Por enquanto, estou usando as opções padrão."
+		# Primeira linha = título do aviso; o resto = o que fazer.
+		load_problem = "O config.cfg tem um erro de digitação\n" \
+				+ "Confira aspas e colchetes. Por enquanto, uso as opções padrão."
 		_config.parse(DEFAULT_CONFIG_TEXT)
 	_apply_volumes()
 

@@ -34,8 +34,8 @@ signal launch_started(app_id: int, source: Node)
 ## A Steam confirmou que o jogo está rodando. source = null em sessões externas.
 signal game_started(app_id: int, source: Node)
 ## A sessão desse jogo acabou: fechou (success = true) ou algo deu errado
-## (success = false, com uma mensagem explicando). source = null em sessões
-## externas. Normalmente o hub já acordou quando isso é emitido; a exceção é a
+## (success = false, com uma mensagem explicando: a 1ª linha é o título do
+## aviso, o resto diz o que fazer). source = null em sessões externas. Normalmente o hub já acordou quando isso é emitido; a exceção é a
 ## troca direta de jogo (fechou um e abriu outro), em que ele continua dormindo.
 signal session_ended(app_id: int, source: Node, success: bool, message: String)
 
@@ -153,18 +153,20 @@ func launch(app_id: int, source: Node = null) -> bool:
 ## ele vira uma sessão externa).
 func cancel_launch() -> void:
 	if state == State.LAUNCHING:
-		_end_session(false, "Você cancelou a espera por %s." % _game_name(_app_id))
+		_end_session(false, "Você cancelou a espera por %s\n" % _game_name(_app_id)
+				+ "Se o jogo abrir depois, o hub sai do caminho sozinho.")
 
 
+## Mensagens: 1ª linha = o que houve (título do aviso); 2ª = o que fazer.
 func _check_can_launch(app_id: int) -> String:
 	if is_busy():
-		return "Já existe um jogo sendo aberto ou rodando."
+		return "Já existe um jogo abrindo ou rodando\nEspere ele fechar para abrir outro."
 	if app_id <= 0:
-		return "App ID inválido: %d." % app_id
+		return "App ID inválido: %d\nConfira o número do jogo." % app_id
 	if SteamLibrary.get_steam_path().is_empty():
-		return "Não encontrei a Steam instalada neste PC."
+		return "Não encontrei a Steam neste PC\nInstale a Steam e abra o hub de novo."
 	if not SteamLibrary.is_installed(app_id):
-		return "%s não está mais instalado. Instale pela Steam e abra o hub de novo." % _game_name(app_id)
+		return "%s não está mais instalado\nInstale pela Steam e abra o hub de novo." % _game_name(app_id)
 	return ""
 
 
@@ -214,12 +216,13 @@ func _apply_state(steam: Dictionary) -> void:
 				# Ainda rodando. (Se outro app "tomou" o RunningAppID, como o
 				# Lossless Scaling, confiamos no Apps\<appid>\Running.)
 				if not steam.get("steam_running", true):
-					_end_session(false, "A Steam fechou enquanto %s rodava. Voltei para o hub." % _game_name(_app_id))
+					_end_session(false, "A Steam fechou enquanto %s rodava\n" % _game_name(_app_id)
+							+ "Voltei para o hub. Abra a Steam para jogar de novo.")
 			elif _is_city_game(running_app_id):
 				_switch_to_game(running_app_id)
 			elif not _external and _seconds_since(_running_since_ms) < QUICK_EXIT_SECONDS:
-				_end_session(false, "%s fechou logo depois de abrir. Tente abrir pela Steam para ver se aparece algum erro." \
-						% _game_name(_app_id))
+				_end_session(false, "%s fechou logo depois de abrir\n" % _game_name(_app_id)
+						+ "Tente abrir pela Steam para ver se aparece algum erro.")
 			else:
 				_end_session(true, "")
 
@@ -274,10 +277,12 @@ func _end_session(success: bool, message: String) -> void:
 func _timeout_message(steam: Dictionary) -> String:
 	var game_name := _game_name(_app_id)
 	if not steam.get("steam_running", true):
-		return "A Steam não abriu. Abra a Steam e tente de novo."
+		return "%s não abriu\nA Steam não abriu. Abra a Steam e entre pela porta de novo." % game_name
 	if steam.get("app_updating", false):
-		return "A Steam está atualizando %s. Quando terminar e o jogo abrir, o hub sai do caminho sozinho." % game_name
-	return "%s não abriu em %d s. A Steam mostrou alguma janela ou erro?" % [game_name, int(_launch_timeout)]
+		return "A Steam está atualizando %s\n" % game_name \
+				+ "Quando terminar e o jogo abrir, o hub sai do caminho sozinho."
+	return "%s não abriu em %d s\n" % [game_name, int(_launch_timeout)] \
+			+ "A Steam mostrou alguma janela ou erro? Confira e entre pela porta de novo."
 
 
 ## Lê o estado da Steam no registro. Roda na thread separada!

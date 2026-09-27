@@ -4,18 +4,21 @@ extends CanvasLayer
 ## - mira no centro da tela;
 ## - CARTÃO na parte de baixo com o que o jogador está olhando: o nome em
 ##   destaque e os detalhes numa segunda linha ("23 h jogadas · jogado ontem");
-## - AVISOS no topo, num painel escuro com uma barrinha de cor (amarela = info,
-##   vermelha = erro), que somem sozinhos (vários avisos entram numa fila).
+## - AVISOS no topo (Toast): título + frase de ação, com uma barrinha de cor
+##   (amarela = info, vermelha = erro, verde = sessão). Até 3 empilhados; um
+##   quarto aviso tira o mais antigo. Somem sozinhos.
 ## A fonte (Barlow) vem do tema do projeto (project.godot).
+##
+## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
+## e o resto vira a frase ("Balatro não abriu\nAbra a Steam e entre de novo.").
 
-const MESSAGE_SECONDS: float = 6.0
 const TITLE_FONT_SIZE: int = 26
 const DETAIL_FONT_SIZE: int = 17
-const MESSAGE_FONT_SIZE: int = 18
 const PANEL_COLOR: Color = Color(0.035, 0.04, 0.05, 0.74)
-const INFO_ACCENT: Color = Color("f2c14e")
-const ERROR_ACCENT: Color = Color("e5534b")
 const DETAIL_COLOR: Color = Color(0.72, 0.75, 0.8)
+const MAX_TOASTS: int = 3
+const TOASTS_TOP: float = 12.0
+const TOASTS_GAP: int = 8
 
 ## Sons (Kenney, CC0).
 const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
@@ -25,24 +28,18 @@ const WELCOME_BACK_SOUND: AudioStream = preload("res://assets/kenney/interface-s
 var _look_card: PanelContainer
 var _look_title: Label
 var _look_detail: Label
-var _message_panel: PanelContainer
-var _message_style: StyleBoxFlat
-var _message_label: Label
-var _message_timer: Timer
-## Avisos esperando a vez: [texto, segundos, é_erro].
-var _message_queue: Array[Array] = []
+var _toasts: VBoxContainer
 var _sound: AudioStreamPlayer
+
+## Avisos que só aparecem uma vez enquanto o hub estiver aberto (ex.: amigos).
+## "static": vale para todos os HUDs, mesmo se o mundo for recriado.
+static var _shown_once: Dictionary[String, bool] = {}
 
 
 func _ready() -> void:
 	_build_crosshair()
 	_build_look_card()
-	_build_message_panel()
-
-	_message_timer = Timer.new()
-	_message_timer.one_shot = true
-	_message_timer.timeout.connect(_show_next_message)
-	add_child(_message_timer)
+	_build_toasts()
 
 	_sound = AudioStreamPlayer.new()
 	_sound.bus = &"Efeitos"
@@ -52,13 +49,15 @@ func _ready() -> void:
 	# O HUD escuta os sistemas para avisar quando algo dá errado.
 	GameLauncher.session_ended.connect(_on_session_ended)
 	HubWindow.woke_up.connect(_play_sound.bind(WELCOME_BACK_SOUND))
-	FriendsService.problem.connect(show_message)
+	# Avisos de amigos: cada um aparece uma vez só por execução do hub.
+	FriendsService.problem.connect(show_report_once)
 	if not FriendsService.get_problem().is_empty():
-		show_message(FriendsService.get_problem())  # aviso de antes do HUD existir
+		show_report_once(FriendsService.get_problem())  # aviso de antes do HUD existir
 
 	if Engine.is_embedded_in_editor():
-		show_message("O jogo está rodando DENTRO do editor: o hub não vai minimizar. "
-				+ "Desative \"Embed Game on Next Play\" na aba Game.", 12.0)
+		show_message("O hub está rodando dentro do editor",
+				"Ele não vai minimizar. Desative \"Embed Game on Next Play\" na aba Game.",
+				Toast.Kind.INFO, 12.0)
 
 
 ## Mostra (ou esconde, com "") o que o jogador está olhando.
@@ -78,37 +77,71 @@ func get_look_text() -> String:
 	return _look_title.text if _look_detail.text.is_empty() else "%s — %s" % [_look_title.text, _look_detail.text]
 
 
-## Mostra um aviso no topo da tela por alguns segundos. Se já houver um aviso
-## na tela, este espera a vez. Avisos repetidos são ignorados.
-func show_message(text: String, seconds: float = MESSAGE_SECONDS, is_error: bool = false) -> void:
-	if text.is_empty() or text == _message_label.text:
+## Mostra um aviso no topo: "title" (o que houve) e "text" (o que fazer).
+## "seconds" < 0 usa o tempo do tipo (info 6 s, erro 10 s, sessão 5 s).
+## Um aviso igual a outro que já está na tela é ignorado.
+func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kind.INFO,
+		seconds: float = -1.0) -> void:
+	if title.is_empty():
 		return
-	for queued in _message_queue:
-		if queued[0] == text:
+	var showing := _visible_toasts()
+	for toast in showing:
+		if toast.title == title and toast.text == text:
 			return
-	if _message_label.text.is_empty():
-		_message_label.text = text
-		_message_style.border_color = ERROR_ACCENT if is_error else INFO_ACCENT
-		_message_panel.visible = true
-		_message_timer.start(seconds)
-		if not _sound.playing:  # não atropela a vinheta nem o som de erro
-			_play_sound(MESSAGE_SOUND)
-	else:
-		_message_queue.append([text, seconds, is_error])
+	# Cabem 3: o mais antigo sai para dar lugar ao novo.
+	for i in showing.size() - MAX_TOASTS + 1:
+		showing[i].close()
+
+	_toasts.add_child(Toast.create(title, text, kind, seconds))
+	match kind:
+		Toast.Kind.ERROR:
+			_play_sound(ERROR_SOUND)
+		Toast.Kind.INFO:
+			if not _sound.playing:  # não atropela a vinheta nem o som de erro
+				_play_sound(MESSAGE_SOUND)
 
 
-func _show_next_message() -> void:
-	_message_label.text = ""
-	_message_panel.visible = false
-	if not _message_queue.is_empty():
-		var next: Array = _message_queue.pop_front()
-		show_message(next[0], next[1], next[2])
+## Aviso num texto só: a primeira linha vira o título, o resto vira a frase.
+func show_report(message: String, kind: Toast.Kind = Toast.Kind.INFO, seconds: float = -1.0) -> void:
+	var parts := message.strip_edges().split("\n", true, 1)
+	show_message(parts[0], parts[1] if parts.size() > 1 else "", kind, seconds)
+
+
+## Como show_report, mas o mesmo aviso só aparece uma vez por execução do hub.
+func show_report_once(message: String, kind: Toast.Kind = Toast.Kind.INFO) -> void:
+	if message.is_empty() or _shown_once.has(message):
+		return
+	_shown_once[message] = true
+	show_report(message, kind)
+
+
+## Os avisos na tela, do mais antigo para o mais novo ("título — frase").
+func get_messages() -> PackedStringArray:
+	var result := PackedStringArray()
+	for toast in _visible_toasts():
+		result.append(toast.title if toast.text.is_empty() else "%s — %s" % [toast.title, toast.text])
+	return result
+
+
+## Tira todos os avisos da tela na hora (usado nos prints de teste).
+func clear_messages() -> void:
+	for toast in _toasts.get_children():
+		_toasts.remove_child(toast)
+		toast.queue_free()
+
+
+func _visible_toasts() -> Array[Toast]:
+	var result: Array[Toast] = []
+	for child in _toasts.get_children():
+		var toast := child as Toast
+		if toast != null and not toast.is_closing():
+			result.append(toast)
+	return result
 
 
 func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:
 	if not success and not message.is_empty():
-		_play_sound(ERROR_SOUND)
-		show_message(message, MESSAGE_SECONDS, true)
+		show_report(message, Toast.Kind.ERROR)
 
 
 func _play_sound(stream: AudioStream) -> void:
@@ -160,23 +193,17 @@ func _build_look_card() -> void:
 	column.add_child(_look_detail)
 
 
-## Painel de avisos no topo, com uma barrinha colorida à esquerda.
-func _build_message_panel() -> void:
-	_message_panel = PanelContainer.new()
-	_message_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_message_style = _make_panel_style(4)
-	_message_panel.add_theme_stylebox_override("panel", _message_style)
-	_message_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_message_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_message_panel.offset_top = 24.0
-	_message_panel.custom_minimum_size = Vector2(0.0, 0.0)
-	_message_panel.visible = false
-	add_child(_message_panel)
-
-	_message_label = _make_label(MESSAGE_FONT_SIZE, Color(0.94, 0.95, 0.97))
-	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_message_label.custom_minimum_size = Vector2(520.0, 0.0)
-	_message_panel.add_child(_message_label)
+## Pilha de avisos no topo, centralizada, 500 px de largura.
+func _build_toasts() -> void:
+	_toasts = VBoxContainer.new()
+	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toasts.add_theme_constant_override("separation", TOASTS_GAP)
+	_toasts.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_toasts.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_toasts.offset_left = -Toast.WIDTH / 2.0
+	_toasts.offset_right = Toast.WIDTH / 2.0
+	_toasts.offset_top = TOASTS_TOP
+	add_child(_toasts)
 
 
 func _make_panel_style(left_border: int) -> StyleBoxFlat:
@@ -188,7 +215,6 @@ func _make_panel_style(left_border: int) -> StyleBoxFlat:
 	style.content_margin_top = 8.0
 	style.content_margin_bottom = 10.0
 	style.border_width_left = left_border
-	style.border_color = INFO_ACCENT
 	return style
 
 

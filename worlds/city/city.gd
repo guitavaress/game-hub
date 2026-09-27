@@ -70,8 +70,8 @@ func _ready() -> void:
 	var player := _spawn_player()
 	_show_startup_messages(player, games)
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
-		player.get_hud().show_message("Relógio da cidade: %02d:%02d  (F8 adianta 3 horas)" \
-				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], 4.0))
+		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
+				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
 
 	ScreenFade.set_message("")
 	ScreenFade.fade_in(0.8)
@@ -307,13 +307,16 @@ func _spawn_player() -> Player:
 
 
 func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
+	var hud := player.get_hud()
 	if not AppConfig.load_problem.is_empty():
-		player.get_hud().show_message(AppConfig.load_problem, 10.0)
+		hud.show_report(AppConfig.load_problem, Toast.Kind.ERROR)
 	if SteamLibrary.get_steam_path().is_empty():
-		player.get_hud().show_message("Não encontrei a Steam neste PC.", 10.0)
+		hud.show_message("Não encontrei a Steam neste PC", "Instale a Steam e abra o hub de novo.",
+				Toast.Kind.ERROR)
 		return
 	if games.is_empty():
-		player.get_hud().show_message("Nenhum jogo instalado encontrado na Steam.", 10.0)
+		hud.show_message("Nenhum jogo instalado na Steam",
+				"Instale um jogo pela Steam e abra o hub de novo.", Toast.Kind.INFO, 10.0)
 		return
 
 	var without_info := 0
@@ -321,9 +324,9 @@ func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
 		if not StoreInfo.has_info(game.app_id):
 			without_info += 1
 	if without_info > 0:
-		player.get_hud().show_message(
-				"Não consegui falar com a loja da Steam: %d jogo(s) ficaram no bairro \"Outros\". " % without_info
-				+ "Na próxima vez que abrir o hub, eu tento de novo.", 10.0)
+		hud.show_message("A loja da Steam não respondeu",
+				"%d jogo(s) ficaram no bairro \"Outros\". Na próxima vez, tento de novo." % without_info,
+				Toast.Kind.INFO, 10.0)
 
 
 # --- Utilidades --------------------------------------------------------------

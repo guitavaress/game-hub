@@ -14,7 +14,8 @@ extends Node
 
 ## A lista de amigos (ou o status de algum deles) mudou.
 signal friends_changed
-## Algo deu errado (ou falta configurar), com uma mensagem para o HUD.
+## Algo deu errado (ou falta configurar), com uma mensagem para o HUD
+## (1ª linha = título do aviso, o resto = o que fazer).
 signal problem(message: String)
 ## O avatar de um amigo terminou de baixar.
 signal avatar_ready(steam_id: String, texture: Texture2D)
@@ -77,14 +78,14 @@ func _start() -> void:
 		return
 	_api_key = AppConfig.get_web_api_key()
 	if _api_key.is_empty():
-		_report("Amigos: para ver seus amigos na cidade, coloque sua chave da Steam Web API no config.cfg (veja o README).")
+		_report("Amigos desligados\nColoque a chave da Steam Web API no config.cfg.")
 		return
 
 	_steam_id = AppConfig.get_steam_id_override()
 	if _steam_id.is_empty():
 		_steam_id = SteamLibrary.get_current_steam_id()
 	if not (_steam_id.length() == 17 and _steam_id.is_valid_int()):
-		_report("Amigos: não descobri seu SteamID. Abra a Steam, ou escreva o steam_id no config.cfg.")
+		_report("Amigos: não descobri seu SteamID\nAbra a Steam, ou escreva o steam_id no config.cfg.")
 		return
 
 	_enabled = true
@@ -143,7 +144,8 @@ func _request(kind: String, path: String) -> void:
 	var error := _http.request(API_URL + path)
 	if error != OK:
 		_pending_kind = ""
-		_report("Amigos: não consegui fazer o pedido à Steam (erro %d)." % error)  # sem o endereço: ele tem a chave!
+		# Sem o endereço na mensagem: ele tem a chave!
+		_report("Amigos: não consegui falar com a Steam (erro %d)\nTento de novo em 1 minuto." % error)
 
 
 func _request_summaries() -> void:
@@ -167,26 +169,26 @@ func _on_request_completed(result: int, code: int, _headers: PackedStringArray, 
 	_pending_kind = ""
 
 	if result != HTTPRequest.RESULT_SUCCESS:
-		_report("Amigos: sem conexão com a Steam agora. Tento de novo em 1 minuto.")
+		_report("Amigos: sem conexão com a Steam\nTento de novo em 1 minuto.")
 		return
 	match code:
 		200:
 			pass
 		401:
-			_report("Amigos: a Steam não liberou sua lista de amigos. Em Steam > Perfil > Editar perfil > "
+			_report("Amigos: sua lista de amigos é privada\nNa Steam: Perfil › Editar perfil › "
 					+ "Configurações de privacidade, deixe \"Lista de amigos\" como Pública.")
 			return
 		403:
 			# "Retrying will not help": a chave está errada. Paramos até o hub reabrir.
 			_enabled = false
 			_timer.stop()
-			_report("Amigos: a chave da Steam Web API no config.cfg é inválida. Confira e abra o hub de novo.")
+			_report("Amigos: a chave da Steam Web API é inválida\nConfira a chave no config.cfg e abra o hub de novo.")
 			return
 		429:
-			_report("Amigos: a Steam pediu para esperar um pouco (muitas consultas).")
+			_report("Amigos: a Steam pediu para esperar um pouco\nMuitas consultas; tento de novo em 1 minuto.")
 			return
 		_:
-			_report("Amigos: a Steam respondeu com erro %d. Tento de novo em 1 minuto." % code)
+			_report("Amigos: a Steam respondeu com erro %d\nTento de novo em 1 minuto." % code)
 			return
 
 	var json: Variant = JSON.parse_string(body.get_string_from_utf8())
