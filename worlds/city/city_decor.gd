@@ -9,6 +9,11 @@ extends RefCounted
 
 const AMBIENTCG: String = "res://assets/ambientcg/"
 
+## Emissão de TODO o néon da cidade (faixas, moldura da porta, letreiros):
+## de dia é quase só tinta; à noite brilha e o glow faz o halo.
+const NEON_DAY: float = 0.15
+const NEON_NIGHT: float = 3.2
+
 const TREES: Array[PackedScene] = [
 	preload("res://assets/kenney/nature-kit/tree_detailed.glb"),
 	preload("res://assets/kenney/nature-kit/tree_cone.glb"),
@@ -42,6 +47,12 @@ static var _pbr_textures: Dictionary = {}
 
 
 # --- Materiais realistas (PBR) -----------------------------------------------
+
+
+## Emissão do néon para uma hora do dia (0 = dia, 1 = noite).
+static func neon_energy(night: float) -> float:
+	return lerpf(NEON_DAY, NEON_NIGHT, night)
+
 
 ## As três texturas de um material da ambientCG: cor, relevo e rugosidade.
 static func pbr_textures(folder: String) -> Dictionary:

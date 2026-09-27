@@ -41,7 +41,7 @@ var _day_night: DayNight
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
 ## Placas dos bairros: o néon fica mais forte à noite.
-var _district_signs: Array[Label3D] = []
+var _district_signs: Array[DistrictSign] = []
 
 
 func _ready() -> void:
@@ -83,9 +83,7 @@ func _on_night_changed(night: float) -> void:
 	if _asphalt != null:
 		_asphalt.roughness = lerpf(1.0, 0.35, night)
 	for district_sign in _district_signs:
-		var color: Color = district_sign.get_meta("neon")
-		var glow := lerpf(0.9, 1.6, night)
-		district_sign.modulate = Color(color.r * glow, color.g * glow, color.b * glow)
+		district_sign.set_night(night)
 
 
 # --- Dados -------------------------------------------------------------------
@@ -152,16 +150,12 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	CityDecor.add_block_ground(self, center, category_color)
 	CityDecor.add_block_lights(self, center)
 
-	# Letreiro flutuante com o nome do bairro (em néon), sempre virado para quem olha.
-	var district_sign := Label3D.new()
-	district_sign.text = GameCategories.get_category_name(category_id).to_upper()
-	district_sign.font = HubFonts.SIGN
-	district_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	district_sign.font_size = 128
-	district_sign.pixel_size = 0.018
-	district_sign.outline_size = 8
-	district_sign.outline_modulate = Color(0.0, 0.0, 0.0, 0.5)
-	district_sign.set_meta("neon", Color.from_hsv(category_color.h, 0.8, 1.0))
+	# Letreiro flutuante com o nome do bairro (néon sobre placa escura), sempre
+	# virado para quem olha.
+	var district_sign := DistrictSign.new()
+	district_sign.name = "DistrictSign_%s" % category_id
+	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id))
 	district_sign.position = center + Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
 	add_child(district_sign)
 	_district_signs.append(district_sign)

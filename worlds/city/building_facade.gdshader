@@ -30,8 +30,11 @@ uniform float night = 0.0;
 uniform vec3 window_light : source_color = vec3(1.0, 0.78, 0.5);
 uniform float lit_fraction = 0.45;
 
-// Néon na cor do bairro.
+// Néon na cor do bairro. De dia é quase só tinta (emissão 0,15); à noite,
+// 3,2 (o glow faz o halo). Mesmos valores de CityDecor.NEON_DAY/NEON_NIGHT.
 uniform vec3 neon_color : source_color = vec3(0.2, 0.8, 1.0);
+const float NEON_DAY = 0.15;
+const float NEON_NIGHT = 3.2;
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -68,7 +71,7 @@ void fragment() {
 		if (neon_top || neon_shop) {
 			albedo = neon_color;
 			roughness = 0.3;
-			emission = neon_color * (0.6 + 3.0 * night);
+			emission = neon_color * mix(NEON_DAY, NEON_NIGHT, night);
 		} else if (height > ground_floor_height && height < building_height - 0.8) {
 			// Janelas nos andares de cima.
 			vec2 cell_position = vec2(across, height - ground_floor_height) / window_cell;

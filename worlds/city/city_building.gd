@@ -56,6 +56,8 @@ var _poster_frame: MeshInstance3D
 var _poster_material: StandardMaterial3D
 var _poster_label: Label3D
 var _walls_material: ShaderMaterial
+## Filete de néon da moldura da porta (acompanha o dia e a noite).
+var _door_neon_material: StandardMaterial3D
 var _logo: Sprite3D
 ## true quando a fachada mostra o hero (e não a capa).
 var _hero_mode: bool = false
@@ -122,7 +124,8 @@ func _build_door_decoration() -> void:
 
 	# Moldura de metal escuro, com um filete de néon por dentro.
 	var metal := _make_metal_material()
-	var neon := _make_glow_material(neon_color(), 2.5)
+	var neon := _make_glow_material(neon_color(), CityDecor.NEON_DAY)
+	_door_neon_material = neon
 	var post_size := Vector3(0.22, DOOR_HEIGHT + 0.22, 0.25)
 	var post_x := DOOR_WIDTH / 2.0 + 0.11
 	var z := _front_z() + 0.08
@@ -272,7 +275,11 @@ func _build_portal() -> void:
 ## 0 = dia, 1 = noite: à noite, parte das janelas acende, o néon fica mais
 ## forte e o logo brilha um pouco.
 func set_night(night: float) -> void:
-	_walls_material.set_shader_parameter("night", smoothstep(0.15, 0.85, night))
+	var smooth_night := smoothstep(0.15, 0.85, night)
+	_walls_material.set_shader_parameter("night", smooth_night)
+	# Néon: mesma regra das fachadas e dos letreiros (0,15 de dia, 3,2 à noite).
+	if _door_neon_material != null:
+		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(smooth_night)
 	if _logo != null:
 		var glow := 1.0 + 0.6 * night
 		_logo.modulate = Color(glow, glow, glow)
