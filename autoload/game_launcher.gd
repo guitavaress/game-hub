@@ -106,6 +106,16 @@ func is_busy() -> bool:
 	return state != State.IDLE
 
 
+## Há quantos segundos o jogo atual está rodando (0 se nenhum está).
+func get_session_seconds() -> float:
+	return _seconds_since(_running_since_ms) if state == State.RUNNING else 0.0
+
+
+## O jogo atual foi aberto por fora do hub (pela Steam, ou trocado lá dentro)?
+func is_external_session() -> bool:
+	return state == State.RUNNING and _external
+
+
 ## Pede para abrir o jogo. Devolve true se o pedido foi feito.
 ## Em qualquer caso, a resposta final chega pelo sinal session_ended.
 func launch(app_id: int, source: Node = null) -> bool:

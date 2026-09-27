@@ -6,8 +6,8 @@ extends CanvasLayer
 ## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
 ##
 ## Por cima da cortina fica a TELA DO JOGO (GameScreen): "Abrindo X…" quando um
-## jogo é pedido. Ela é "filha" da cortina, então some junto quando a cortina
-## clareia, e escuta o GameLauncher sozinha.
+## jogo é pedido e "Jogando X…" quando ele aparece. Ela é "filha" da cortina,
+## então some junto quando a cortina clareia, e escuta o GameLauncher sozinha.
 ##
 ## Fica num autoload para funcionar em qualquer mundo, e com layer 100 para
 ## cobrir também o HUD.
@@ -42,6 +42,8 @@ func _ready() -> void:
 	_curtain.add_child(game_screen)
 	GameLauncher.launch_started.connect(func(app_id: int, _source: Node) -> void:
 		game_screen.show_opening(app_id))
+	GameLauncher.game_started.connect(func(app_id: int, _source: Node) -> void:
+		game_screen.show_playing(app_id))
 
 
 ## Mostra um texto no meio da cortina ("" apaga).
