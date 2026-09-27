@@ -1,9 +1,12 @@
 class_name Hud
 extends CanvasLayer
 ## HUD mínimo e discreto, montado por código:
-## - mira no centro da tela;
-## - CARTÃO na parte de baixo com o que o jogador está olhando: o nome em
-##   destaque e os detalhes numa segunda linha ("23 h jogadas · jogado ontem");
+## - mira no centro da tela: um ponto, que vira um anel de 12 px na cor do
+##   bairro quando olhamos para um jogo;
+## - CARTÃO na parte de baixo com o que o jogador está olhando: a categoria
+##   ("CARTAS E TABULEIRO", na cor néon), o nome em destaque, os detalhes
+##   ("23 h jogadas · jogado ontem") e os amigos jogando ("● Ana jogando agora").
+##   Um clique suave toca quando o alvo muda;
 ## - AVISOS no topo (Toast): título + frase de ação, com uma barrinha de cor
 ##   (amarela = info, vermelha = erro, verde = sessão). Até 3 empilhados; um
 ##   quarto aviso tira o mais antigo. Somem sozinhos.
@@ -12,10 +15,14 @@ extends CanvasLayer
 ## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
 ## e o resto vira a frase ("Balatro não abriu\nAbra a Steam e entre de novo.").
 
+const LABEL_FONT_SIZE: int = 14
 const TITLE_FONT_SIZE: int = 26
 const DETAIL_FONT_SIZE: int = 17
-const PANEL_COLOR: Color = Color(0.035, 0.04, 0.05, 0.74)
-const DETAIL_COLOR: Color = Color(0.72, 0.75, 0.8)
+const FRIENDS_FONT_SIZE: int = 15
+const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.78)
+const DETAIL_COLOR: Color = Color("B8BFCC")
+const FRIENDS_COLOR: Color = Color("5FE3A1")
+const RING_SIZE: float = 12.0
 const MAX_TOASTS: int = 3
 const TOASTS_TOP: float = 12.0
 const TOASTS_GAP: int = 8
@@ -24,12 +31,18 @@ const TOASTS_GAP: int = 8
 const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
 const ERROR_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/error_004.ogg")
 const WELCOME_BACK_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/confirmation_002.ogg")
+const LOOK_CLICK_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/click_002.ogg")
 
+var _crosshair_dot: Control
+var _crosshair_ring: Ring
 var _look_card: PanelContainer
+var _look_label: Label
 var _look_title: Label
 var _look_detail: Label
+var _look_friends: Label
 var _toasts: VBoxContainer
 var _sound: AudioStreamPlayer
+var _click: AudioStreamPlayer
 
 ## Avisos que só aparecem uma vez enquanto o hub estiver aberto (ex.: amigos).
 ## "static": vale para todos os HUDs, mesmo se o mundo for recriado.
@@ -45,6 +58,12 @@ func _ready() -> void:
 	_sound.bus = &"Efeitos"
 	_sound.volume_db = -10.0
 	add_child(_sound)
+	# Player separado: o clique de "olhar" não corta os outros sons.
+	_click = AudioStreamPlayer.new()
+	_click.stream = LOOK_CLICK_SOUND
+	_click.bus = &"Efeitos"
+	_click.volume_db = -20.0
+	add_child(_click)
 
 	# O HUD escuta os sistemas para avisar quando algo dá errado.
 	GameLauncher.session_ended.connect(_on_session_ended)
@@ -60,14 +79,49 @@ func _ready() -> void:
 				Toast.Kind.INFO, 12.0)
 
 
-## Mostra (ou esconde, com "") o que o jogador está olhando.
-## "Balatro — 23 h jogadas · jogado ontem" vira título + detalhes.
+## Mostra (ou esconde, com {}) o que o jogador está olhando. Chaves (todas
+## opcionais menos "title"): label, label_color, title, detail, friends, accent.
+func set_look_info(info: Dictionary) -> void:
+	var title: String = info.get("title", "")
+	if not title.is_empty() and title != _look_title.text:
+		_click.play()  # o alvo mudou
+	_look_title.text = title
+	_set_line(_look_label, str(info.get("label", "")))
+	_look_label.add_theme_color_override("font_color", info.get("label_color", DETAIL_COLOR))
+	_set_line(_look_detail, str(info.get("detail", "")))
+	var friends := str(info.get("friends", ""))
+	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
+	_look_card.visible = not title.is_empty()
+
+	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.
+	var has_accent := info.has("accent") and not title.is_empty()
+	_crosshair_ring.visible = has_accent
+	_crosshair_dot.visible = not has_accent
+	if has_accent:
+		_crosshair_ring.color = info["accent"]
+		_crosshair_ring.queue_redraw()
+
+
+## Versão só com texto: "Balatro — 23 h jogadas · jogado ontem" vira título +
+## detalhes.
 func set_look_text(text: String) -> void:
 	var parts := text.split(" — ", true, 1)
-	_look_title.text = parts[0]
-	_look_detail.text = parts[1] if parts.size() > 1 else ""
-	_look_detail.visible = not _look_detail.text.is_empty()
-	_look_card.visible = not text.is_empty()
+	set_look_info({} if text.is_empty() else
+			{"title": parts[0], "detail": parts[1] if parts.size() > 1 else ""})
+
+
+## As linhas extras do cartão (rótulo do bairro e amigos) sobre o que se olha.
+func get_look_extras() -> PackedStringArray:
+	return PackedStringArray([_look_label.text, _look_friends.text])
+
+
+func is_crosshair_ring() -> bool:
+	return _crosshair_ring.visible
+
+
+func _set_line(label: Label, text: String) -> void:
+	label.text = text
+	label.visible = not text.is_empty()
 
 
 ## O texto completo do que está sendo olhado (o mesmo que set_look_text recebeu).
@@ -162,6 +216,7 @@ func _build_crosshair() -> void:
 	border.offset_right = 2.5
 	border.offset_bottom = 2.5
 	add_child(border)
+	_crosshair_dot = border
 
 	var dot := ColorRect.new()
 	dot.color = Color(1.0, 1.0, 1.0, 0.9)
@@ -170,8 +225,19 @@ func _build_crosshair() -> void:
 	dot.size = Vector2(3.0, 3.0)
 	border.add_child(dot)
 
+	# O anel (aparece no lugar do ponto quando olhamos para um jogo).
+	_crosshair_ring = Ring.new()
+	_crosshair_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_crosshair_ring.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_crosshair_ring.offset_left = -RING_SIZE / 2.0
+	_crosshair_ring.offset_top = -RING_SIZE / 2.0
+	_crosshair_ring.offset_right = RING_SIZE / 2.0
+	_crosshair_ring.offset_bottom = RING_SIZE / 2.0
+	_crosshair_ring.visible = false
+	add_child(_crosshair_ring)
 
-## Cartão de baixo: título (nome) e detalhes, num painel escuro arredondado.
+
+## Cartão de baixo: categoria, nome, detalhes e amigos, num painel escuro.
 func _build_look_card() -> void:
 	_look_card = PanelContainer.new()
 	_look_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -187,10 +253,19 @@ func _build_look_card() -> void:
 	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_look_card.add_child(column)
-	_look_title = _make_label(TITLE_FONT_SIZE, Color(0.97, 0.97, 0.98))
+
+	# Rótulo da categoria: Barlow Condensed com 2 px a mais entre as letras.
+	var spaced := FontVariation.new()
+	spaced.base_font = HubFonts.SIGN
+	spaced.spacing_glyph = 2
+	_look_label = _make_label(LABEL_FONT_SIZE, DETAIL_COLOR, spaced)
+	column.add_child(_look_label)
+	_look_title = _make_label(TITLE_FONT_SIZE, Color(0.97, 0.97, 0.98), HubFonts.TEXT)
 	column.add_child(_look_title)
-	_look_detail = _make_label(DETAIL_FONT_SIZE, DETAIL_COLOR)
+	_look_detail = _make_label(DETAIL_FONT_SIZE, DETAIL_COLOR, HubFonts.LIGHT)
 	column.add_child(_look_detail)
+	_look_friends = _make_label(FRIENDS_FONT_SIZE, FRIENDS_COLOR, HubFonts.LIGHT)
+	column.add_child(_look_friends)
 
 
 ## Pilha de avisos no topo, centralizada, 500 px de largura.
@@ -210,18 +285,33 @@ func _make_panel_style(left_border: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_COLOR
 	style.set_corner_radius_all(6)
-	style.content_margin_left = 18.0
-	style.content_margin_right = 18.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 10.0
+	style.content_margin_left = 22.0
+	style.content_margin_right = 22.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 12.0
 	style.border_width_left = left_border
 	return style
 
 
-func _make_label(font_size: int, color: Color) -> Label:
+func _make_label(font_size: int, color: Color, font: Font = null) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if font != null:
+		label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	return label
+
+
+## Anel da mira: um círculo vazado com contorno escuro (aparece em qualquer fundo).
+class Ring:
+	extends Control
+
+	var color: Color = Color.WHITE
+
+	func _draw() -> void:
+		var center := size / 2.0
+		var radius := minf(size.x, size.y) / 2.0 - 1.0
+		draw_arc(center, radius, 0.0, TAU, 32, Color(0.0, 0.0, 0.0, 0.5), 3.5, true)
+		draw_arc(center, radius, 0.0, TAU, 32, color, 2.0, true)

@@ -43,5 +43,18 @@ func status_text() -> String:
 	return "Offline"
 
 
+## Os nomes em texto corrido: "Ana", "Ana e Bruno", "Ana, Bruno e mais 3".
+static func join_names(friends: Array[SteamFriend], max_names: int = 2) -> String:
+	var names := PackedStringArray()
+	for friend in friends.slice(0, max_names):
+		names.append(friend.name)
+	var extra := friends.size() - names.size()
+	if extra > 0:
+		return "%s e mais %d" % [", ".join(names), extra]
+	if names.size() <= 1:
+		return "".join(names)
+	return "%s e %s" % [", ".join(names.slice(0, -1)), names[-1]]
+
+
 func _to_string() -> String:
 	return "%s (%s)" % [name, status_text()]

@@ -7,12 +7,15 @@ extends CharacterBody3D
 ## - Um raio invisível (RayCast3D) sai da câmera. Se ele acertar algo que tenha
 ##   o método get_look_label(), o texto aparece no HUD. É um "contrato" simples:
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
-##   esse método.
+##   esse método. Quem quiser um cartão mais completo (categoria, amigos, cor
+##   da mira) tem get_look_info(), que devolve um dicionário.
 ##
 ## A origem (posição) deste nó fica nos PÉS do jogador.
 
 ## Avisa que o texto do que estamos olhando mudou ("" = nada).
 signal look_target_changed(text: String)
+## Igual, mas com tudo que o alvo sabe dizer (veja GamePortal.get_look_info).
+signal look_info_changed(info: Dictionary)
 
 @export var walk_speed: float = 5.0
 @export var sprint_speed: float = 9.0
@@ -57,6 +60,7 @@ const LAND_SOUND_MIN_SPEED: float = 4.0
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _current_look_text: String = ""
+var _current_look_info: Dictionary = {}
 
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
@@ -69,7 +73,7 @@ func _ready() -> void:
 	# O grupo "player" é como os portais reconhecem o jogador.
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
-	look_target_changed.connect(_hud.set_look_text)
+	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 	_steps_player = _make_sound_player(-8.0)
@@ -170,20 +174,30 @@ func teleport_to(target: Transform3D) -> void:
 
 
 func _update_look_target() -> void:
-	var text := ""
+	var info := {}
 	if _look_ray.is_colliding():
-		text = _find_look_label(_look_ray.get_collider())
-	if text != _current_look_text:
-		_current_look_text = text
-		look_target_changed.emit(text)
+		info = _find_look_info(_look_ray.get_collider())
+	if info != _current_look_info:
+		_current_look_info = info
+		look_info_changed.emit(info)
+		var text: String = info.get("title", "")
+		if not str(info.get("detail", "")).is_empty():
+			text += " — " + str(info["detail"])
+		if text != _current_look_text:
+			_current_look_text = text
+			look_target_changed.emit(text)
 
 
 ## Sobe pela árvore de nós a partir do que o raio acertou, procurando alguém
-## que saiba dizer seu nome (método get_look_label).
-func _find_look_label(hit: Object) -> String:
+## que saiba se descrever: get_look_info() (completo) ou get_look_label()
+## (só o texto "Nome — detalhes", que vira title e detail).
+func _find_look_info(hit: Object) -> Dictionary:
 	var node := hit as Node
 	while node != null:
+		if node.has_method("get_look_info"):
+			return node.get_look_info()
 		if node.has_method("get_look_label"):
-			return node.get_look_label()
+			var parts: PackedStringArray = str(node.get_look_label()).split(" — ", true, 1)
+			return {"title": parts[0], "detail": parts[1] if parts.size() > 1 else ""}
 		node = node.get_parent()
-	return ""
+	return {}

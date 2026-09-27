@@ -139,6 +139,30 @@ func get_look_label() -> String:
 	return get_game_name() if info.is_empty() else "%s — %s" % [get_game_name(), info]
 
 
+## Versão completa do contrato, para o cartão do HUD:
+##   label/label_color: a categoria do jogo ("CARTAS E TABULEIRO", na cor néon);
+##   title/detail: o nome e "24 h jogadas · jogado ontem";
+##   friends: "Ana e Bruno jogando agora" ("" = ninguém);
+##   accent: cor da mira enquanto olha para cá.
+func get_look_info() -> Dictionary:
+	if app_id <= 0:
+		return {"title": "Portal sem jogo configurado"}
+	var category := GameCategories.get_category_id(app_id)
+	var neon := GameCategories.get_neon_color(category)
+	var friends := FriendsService.get_friends_playing(app_id)
+	var friends_text := ""
+	if not friends.is_empty():
+		friends_text = SteamFriend.join_names(friends) + " jogando agora"
+	return {
+		"label": GameCategories.get_category_name(category).to_upper(),
+		"label_color": neon,
+		"title": get_game_name(),
+		"detail": _play_info(),
+		"friends": friends_text,
+		"accent": neon,
+	}
+
+
 ## "24 h jogadas · jogado ontem" (ou "" se a Steam não souber).
 func _play_info() -> String:
 	var minutes := SteamLibrary.get_playtime_minutes(app_id)

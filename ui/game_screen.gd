@@ -174,13 +174,8 @@ func _fill_friends(app_id: int) -> void:
 		avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		_friends_row.add_child(avatar)
 		_friends_row.move_child(avatar, _friends_row.get_child_count() - 2)
-	var names := PackedStringArray()
-	for friend in friends.slice(0, 2):
-		names.append(friend.name)
-	var text := " e ".join(names)
-	if friends.size() > 2:
-		text += " e mais %d" % (friends.size() - 2)
-	_friends_label.text = text + (" também estão jogando" if friends.size() > 1 else " também está jogando")
+	_friends_label.text = SteamFriend.join_names(friends) \
+			+ (" também estão jogando" if friends.size() > 1 else " também está jogando")
 
 
 ## Hero bem desfocado, feito uma vez por jogo: reduz pela metade até ficar
