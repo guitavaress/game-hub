@@ -1,9 +1,11 @@
 extends Node
 ## HubWindow: cuida da JANELA do hub (autoload).
 ##
-##   sleep(mensagem): o hub "dorme" enquanto um jogo roda. Guarda como a janela
-##       está (monitor, posição, tamanho, tela cheia...), escurece a tela, solta
-##       o mouse, pausa o mundo, economiza energia e minimiza.
+##   sleep(minimizar): o hub "dorme" enquanto um jogo abre/roda. Guarda como a
+##       janela está (monitor, posição, tamanho, tela cheia...), cobre a tela
+##       com a cortina, solta o mouse, pausa o mundo, para de desenhar o 3D e
+##       economiza energia. Com minimizar = false, a janela continua visível
+##       (mostrando a tela "Abrindo X…") até alguém chamar minimize_now().
 ##   wake(): desfaz tudo e traz o hub de volta para a frente, NO MESMO MONITOR,
 ##       mesmo que o jogo tenha mudado a resolução da tela.
 ##
@@ -18,8 +20,9 @@ extends Node
 signal woke_up
 
 const PLACEMENT_PATH: String = "user://window.cfg"
-## FPS máximo enquanto dorme (economiza CPU/GPU para o jogo).
+## FPS máximo enquanto dorme: minimizado, e ainda visível (tela "Abrindo X…").
 const SLEEP_MAX_FPS: int = 5
+const COVERED_MAX_FPS: int = 30
 ## Depois de acordar, esperamos isso (s) e, se o Windows não tiver deixado o hub
 ## vir para a frente, piscamos o ícone na barra de tarefas.
 const FOCUS_CHECK_DELAY: float = 0.6
@@ -71,27 +74,40 @@ func _close_hub() -> void:
 	get_tree().quit()
 
 
-## O hub "dorme": tela preta com a mensagem, mundo pausado, janela minimizada.
-func sleep(message: String = "") -> void:
+## O hub "dorme": cortina por cima, mundo pausado, 3D desligado, pouca energia.
+## minimize = true minimiza já; false deixa a janela visível até minimize_now().
+func sleep(minimize: bool = true) -> void:
 	if is_sleeping:
-		ScreenFade.set_message(message)
+		if minimize:
+			minimize_now()
 		return
 	is_sleeping = true
 
 	ScreenFade.set_amount(1.0)
-	ScreenFade.set_message(message)
 
 	_saved_mouse_mode = Input.mouse_mode
 	_saved_max_fps = Engine.max_fps
 	_saved_low_processor = OS.low_processor_usage_mode
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE  # solta o mouse para o jogo
 	get_tree().paused = true
+	# A cortina cobre tudo: não precisa desenhar a cidade (economiza a placa de vídeo).
+	get_viewport().disable_3d = true
 	OS.low_processor_usage_mode = true
-	Engine.max_fps = SLEEP_MAX_FPS
+	Engine.max_fps = COVERED_MAX_FPS
+	if _can_control_window():
+		_placement = _capture_placement()
 
+	if minimize:
+		minimize_now()
+
+
+## Minimiza o hub que já está dormindo (ex.: o jogo acabou de aparecer).
+func minimize_now() -> void:
+	if not is_sleeping or _did_minimize:
+		return
+	Engine.max_fps = SLEEP_MAX_FPS
 	_did_minimize = _can_control_window()
 	if _did_minimize:
-		_placement = _capture_placement()
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
 
 
@@ -104,6 +120,7 @@ func wake() -> void:
 	Engine.max_fps = _saved_max_fps
 	OS.low_processor_usage_mode = _saved_low_processor
 	get_tree().paused = false
+	get_viewport().disable_3d = false
 
 	if _did_minimize:
 		_did_minimize = false

@@ -240,6 +240,12 @@ func get_category_name(category_id: String) -> String:
 	return _find(category_id).get("name", category_id)
 
 
+## Cor de néon da categoria (a cor "de luz" do bairro): mesmo matiz da cor da
+## categoria, saturação 70% e brilho 100%.
+func get_neon_color(category_id: String) -> Color:
+	return Color.from_hsv(get_category_color(category_id).h, 0.7, 1.0)
+
+
 ## Cor da categoria (usada nos bairros da cidade, por exemplo).
 func get_category_color(category_id: String) -> Color:
 	return _find(category_id).get("color", Color.GRAY)

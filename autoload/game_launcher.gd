@@ -5,7 +5,8 @@ extends Node
 ##   1. Alguém chama launch(app_id, origem).
 ##   2. Conferimos se dá para abrir (Steam instalada? jogo ainda instalado?).
 ##   3. Pedimos à Steam para abrir o jogo (steam://rungameid/<appid>) e o hub
-##      "dorme" (HubWindow.sleep): tela preta, mundo pausado, janela minimizada.
+##      "dorme" (HubWindow.sleep): a tela "Abrindo X…" cobre tudo e o mundo
+##      pausa. O hub só MINIMIZA quando o jogo aparece (ou depois de 10 s).
 ##   4. A cada 2 s olhamos o registro do Windows:
 ##        - RunningAppID: o appid do jogo que a Steam diz estar rodando (0 = nenhum);
 ##        - Apps\<appid>: se o NOSSO jogo está rodando ou atualizando;
@@ -50,8 +51,14 @@ const LAUNCH_TIMEOUT: float = 90.0
 const LAUNCH_TIMEOUT_STEAM_CLOSED: float = 180.0
 ## Jogo que fecha antes disso (segundos) provavelmente deu erro ao abrir.
 const QUICK_EXIT_SECONDS: float = 10.0
+## A tela "Abrindo X…" fica visível até o jogo aparecer, mas no máximo isso (s).
+const MINIMIZE_AFTER_SECONDS: float = 10.0
+## Jogo aberto por fora: a tela "abriu pela Steam" aparece por isso (s) antes de minimizar.
+const EXTERNAL_NOTICE_SECONDS: float = 1.5
 
 var state: State = State.IDLE
+## true se a Steam estava fechada quando o jogo foi pedido (ela ainda vai abrir).
+var steam_was_closed: bool = false
 
 ## Quem lê o estado da Steam: func(app_id: int, check_steam: bool) -> Dictionary
 ## com "running_app_id", "steam_running", "app_running" e "app_updating".
@@ -74,6 +81,8 @@ var _last_seen_running: int = -1
 
 var _poll_timer: Timer
 var _poll_task: int = -1
+## Número da sessão atual: um "minimizar depois" de uma sessão velha não vale.
+var _session_number: int = 0
 
 
 func _ready() -> void:
@@ -118,13 +127,14 @@ func launch(app_id: int, source: Node = null) -> bool:
 	_app_id = app_id
 	_source = source
 	_external = false
+	steam_was_closed = not steam_running
 	_launch_started_ms = Time.get_ticks_msec()
 	_set_state(State.LAUNCHING)
 
-	var game_name := _game_name(app_id)
-	var waiting := "Abrindo %s..." % game_name if steam_running \
-			else "Abrindo a Steam e depois %s..." % game_name
-	HubWindow.sleep(waiting + "\n\n(Esc cancela a espera)")
+	# O hub dorme mas continua visível (tela "Abrindo X…"); minimiza quando o
+	# jogo aparecer ou, no máximo, depois de MINIMIZE_AFTER_SECONDS.
+	HubWindow.sleep(false)
+	_minimize_after(MINIMIZE_AFTER_SECONDS)
 	launch_started.emit(app_id, source)
 	return true
 
@@ -184,7 +194,7 @@ func _apply_state(steam: Dictionary) -> void:
 			if running_app_id == _app_id or steam.get("app_running", false):
 				_running_since_ms = Time.get_ticks_msec()
 				_set_state(State.RUNNING)
-				HubWindow.sleep(_playing_message(_app_id))  # só troca a mensagem
+				HubWindow.minimize_now()  # o jogo apareceu: agora sim, minimiza
 				game_started.emit(_app_id, _get_source())
 			elif _seconds_since(_launch_started_ms) >= _launch_timeout:
 				_end_session(false, _timeout_message(steam))
@@ -220,7 +230,9 @@ func _begin_external_session(app_id: int) -> void:
 	_external = true
 	_running_since_ms = Time.get_ticks_msec()
 	_set_state(State.RUNNING)
-	HubWindow.sleep(_playing_message(app_id))
+	# Mostra rapidinho "abriu pela Steam" e depois minimiza.
+	HubWindow.sleep(false)
+	_minimize_after(EXTERNAL_NOTICE_SECONDS)
 	game_started.emit(app_id, null)
 
 
@@ -232,7 +244,6 @@ func _switch_to_game(new_app_id: int) -> void:
 	_source = null
 	_external = true
 	_running_since_ms = Time.get_ticks_msec()
-	HubWindow.sleep(_playing_message(new_app_id))  # só troca a mensagem
 	game_started.emit(new_app_id, null)
 
 
@@ -301,8 +312,14 @@ func _is_city_game(app_id: int) -> bool:
 	return app_id > 0 and SteamLibrary.get_game(app_id) != null
 
 
-func _playing_message(app_id: int) -> String:
-	return "Jogando %s...\n\nO hub volta sozinho quando o jogo fechar." % _game_name(app_id)
+## Minimiza o hub daqui a "seconds" segundos, se esta mesma sessão ainda estiver
+## acontecendo (o timer ignora a pausa do mundo).
+func _minimize_after(seconds: float) -> void:
+	_session_number += 1
+	var session := _session_number
+	get_tree().create_timer(seconds, true).timeout.connect(func() -> void:
+		if session == _session_number and is_busy():
+			HubWindow.minimize_now())
 
 
 func _game_name(app_id: int) -> String:
