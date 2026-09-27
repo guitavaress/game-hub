@@ -1,55 +1,79 @@
 extends Node
-## GameLauncher: abre jogos pela Steam, minimiza o hub e percebe quando o jogo fecha (autoload).
+## GameLauncher: abre jogos pela Steam e percebe quando eles fecham (autoload).
 ##
 ## Como funciona, passo a passo:
 ##   1. Alguém chama launch(app_id, origem).
-##   2. Pedimos à Steam para abrir o jogo (steam://rungameid/<appid>),
-##      minimizamos o hub e pausamos tudo para gastar pouco PC.
-##   3. A cada 2 s olhamos o valor "RunningAppID" no registro do Windows.
-##      A Steam coloca ali o appid do jogo que está rodando (ou 0 se nenhum).
-##        - LAUNCHING: esperando o valor virar o nosso appid (limite: 90 s).
-##        - RUNNING: esperando o valor deixar de ser o nosso appid (= jogo fechou).
-##   4. Quando termina (fechou ou deu errado), restauramos o hub e emitimos
-##      session_ended(...).
+##   2. Conferimos se dá para abrir (Steam instalada? jogo ainda instalado?).
+##   3. Pedimos à Steam para abrir o jogo (steam://rungameid/<appid>) e o hub
+##      "dorme" (HubWindow.sleep): tela preta, mundo pausado, janela minimizada.
+##   4. A cada 2 s olhamos o registro do Windows:
+##        - RunningAppID: o appid do jogo que a Steam diz estar rodando (0 = nenhum);
+##        - Apps\<appid>: se o NOSSO jogo está rodando ou atualizando;
+##        - ActiveProcess\pid: se a Steam está aberta.
+##      Estados: IDLE -> LAUNCHING (esperando abrir) -> RUNNING (jogando) -> IDLE.
+##   5. Quando termina (fechou, deu errado ou foi cancelado), o hub acorda
+##      (HubWindow.wake) e emitimos session_ended(...).
+##
+## Com o hub parado (IDLE), olhamos a cada 5 s se algum jogo da cidade foi aberto
+## POR FORA do hub (pela Steam, por um atalho...). Se foi, o hub dorme do mesmo
+## jeito, e acorda quando o jogo fechar ("sessão externa", sem origem).
 ##
 ## REGRA: sempre que você chama launch(), mais cedo ou mais tarde vem UM
 ## session_ended com a mesma "origem", dando certo ou errado.
 ##
 ## Este sistema NÃO conhece mundos nem portais: a "origem" é qualquer Node, e só
 ## é devolvida no sinal para quem chamou saber que a resposta é para ele.
+##
+## As consultas ao registro rodam numa THREAD separada (cada uma leva de 10 a
+## 70 ms, e isso travaria a imagem do hub se rodasse na thread principal).
 
 signal state_changed(new_state: State)
-## O pedido foi feito à Steam e o hub foi minimizado.
+## O pedido foi feito à Steam e o hub foi dormir.
 signal launch_started(app_id: int, source: Node)
-## A Steam confirmou que o jogo está rodando.
+## A Steam confirmou que o jogo está rodando. source = null em sessões externas.
 signal game_started(app_id: int, source: Node)
-## Acabou: o jogo fechou (success = true) ou algo deu errado (success = false,
-## com uma mensagem explicando). O hub já está restaurado quando isso é emitido.
+## A sessão desse jogo acabou: fechou (success = true) ou algo deu errado
+## (success = false, com uma mensagem explicando). source = null em sessões
+## externas. Normalmente o hub já acordou quando isso é emitido; a exceção é a
+## troca direta de jogo (fechou um e abriu outro), em que ele continua dormindo.
 signal session_ended(app_id: int, source: Node, success: bool, message: String)
 
 enum State { IDLE, LAUNCHING, RUNNING }
 
 const STEAM_REG_KEY: String = "HKCU\\Software\\Valve\\Steam"
-## De quanto em quanto tempo consultamos o registro (segundos).
-const POLL_INTERVAL: float = 2.0
+## De quanto em quanto tempo olhamos o registro (segundos).
+const POLL_INTERVAL_SESSION: float = 2.0
+const POLL_INTERVAL_IDLE: float = 5.0
 ## Quanto esperamos o jogo abrir antes de desistir (segundos).
 const LAUNCH_TIMEOUT: float = 90.0
-## FPS máximo enquanto o hub está minimizado (economiza CPU/GPU para o jogo).
-const MINIMIZED_MAX_FPS: int = 5
+## ...e quanto esperamos se a Steam estava fechada (ela ainda precisa abrir).
+const LAUNCH_TIMEOUT_STEAM_CLOSED: float = 180.0
+## Jogo que fecha antes disso (segundos) provavelmente deu erro ao abrir.
+const QUICK_EXIT_SECONDS: float = 10.0
 
 var state: State = State.IDLE
 
+## Quem lê o estado da Steam: func(app_id: int, check_steam: bool) -> Dictionary
+## com "running_app_id", "steam_running", "app_running" e "app_updating".
+## Os testes trocam isto por um leitor falso (para simular a Steam).
+var state_reader: Callable = _read_steam_state
+## Quem abre o endereço steam://. Os testes trocam para não abrir jogo de verdade.
+var url_opener: Callable = Callable(OS, "shell_open")
+
 var _app_id: int = 0
 var _source: Node = null
+var _external: bool = false
 var _launch_started_ms: int = 0
-var _poll_timer: Timer
+var _running_since_ms: int = 0
+var _launch_timeout: float = LAUNCH_TIMEOUT
+var _last_state: Dictionary = {}
 
-# Como estava o hub antes de minimizar, para restaurar igualzinho depois.
-var _saved_window_mode: DisplayServer.WindowMode = DisplayServer.WINDOW_MODE_WINDOWED
-var _saved_mouse_mode: Input.MouseMode = Input.MOUSE_MODE_VISIBLE
-var _saved_max_fps: int = 0
-var _saved_low_processor: bool = false
-var _did_minimize: bool = false
+## Jogo que estava rodando na última olhada com o hub parado (para perceber
+## quando um jogo NOVO abre por fora). -1 = ainda não olhamos nenhuma vez.
+var _last_seen_running: int = -1
+
+var _poll_timer: Timer
+var _poll_task: int = -1
 
 
 func _ready() -> void:
@@ -57,9 +81,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	_poll_timer = Timer.new()
-	_poll_timer.wait_time = POLL_INTERVAL
-	_poll_timer.timeout.connect(_on_poll_timer_timeout)
+	_poll_timer.wait_time = POLL_INTERVAL_IDLE
+	_poll_timer.timeout.connect(_poll)
 	add_child(_poll_timer)
+	_poll_timer.start()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Se a pessoa voltar ao hub enquanto o jogo ainda está abrindo, Esc cancela.
+	if state == State.LAUNCHING and event.is_action_pressed("ui_cancel"):
+		cancel_launch()
 
 
 func is_busy() -> bool:
@@ -69,100 +100,218 @@ func is_busy() -> bool:
 ## Pede para abrir o jogo. Devolve true se o pedido foi feito.
 ## Em qualquer caso, a resposta final chega pelo sinal session_ended.
 func launch(app_id: int, source: Node = null) -> bool:
-	if is_busy():
-		session_ended.emit(app_id, source, false, "Já existe um jogo sendo aberto ou rodando.")
-		return false
-	if app_id <= 0:
-		session_ended.emit(app_id, source, false, "App ID inválido: %d." % app_id)
+	var problem := _check_can_launch(app_id)
+	if not problem.is_empty():
+		session_ended.emit(app_id, source, false, problem)
 		return false
 
-	var error := OS.shell_open("steam://rungameid/%d" % app_id)
+	# Com a Steam fechada, o pedido abre a Steam primeiro: esperamos mais.
+	var steam_running: bool = state_reader.call(0, true).get("steam_running", true)
+	_launch_timeout = LAUNCH_TIMEOUT if steam_running else LAUNCH_TIMEOUT_STEAM_CLOSED
+
+	var error: int = url_opener.call("steam://rungameid/%d" % app_id)
 	if error != OK:
 		session_ended.emit(app_id, source, false,
-				"Não consegui pedir à Steam para abrir o jogo (erro %d). A Steam está instalada?" % error)
+				"Não consegui pedir à Steam para abrir o jogo (erro %d)." % error)
 		return false
 
 	_app_id = app_id
 	_source = source
+	_external = false
 	_launch_started_ms = Time.get_ticks_msec()
 	_set_state(State.LAUNCHING)
-	_minimize_hub()
-	_poll_timer.start()
+
+	var game_name := _game_name(app_id)
+	var waiting := "Abrindo %s..." % game_name if steam_running \
+			else "Abrindo a Steam e depois %s..." % game_name
+	HubWindow.sleep(waiting + "\n\n(Esc cancela a espera)")
 	launch_started.emit(app_id, source)
 	return true
 
 
-func _on_poll_timer_timeout() -> void:
-	var running_app_id := WinRegistry.read_dword(STEAM_REG_KEY, "RunningAppID", 0)
+## Desiste de esperar o jogo abrir (o jogo pode abrir mesmo assim depois; aí
+## ele vira uma sessão externa).
+func cancel_launch() -> void:
+	if state == State.LAUNCHING:
+		_end_session(false, "Você cancelou a espera por %s." % _game_name(_app_id))
+
+
+func _check_can_launch(app_id: int) -> String:
+	if is_busy():
+		return "Já existe um jogo sendo aberto ou rodando."
+	if app_id <= 0:
+		return "App ID inválido: %d." % app_id
+	if SteamLibrary.get_steam_path().is_empty():
+		return "Não encontrei a Steam instalada neste PC."
+	if not SteamLibrary.is_installed(app_id):
+		return "%s não está mais instalado. Instale pela Steam e abra o hub de novo." % _game_name(app_id)
+	return ""
+
+
+# --- Olhando a Steam ---------------------------------------------------------
+
+## Dispara uma consulta ao registro numa thread separada.
+func _poll() -> void:
+	if _poll_task != -1:
+		return  # a consulta anterior ainda não terminou
+	var app_id := _app_id
+	var check_steam := state != State.IDLE
+	var reader := state_reader
+	_poll_task = WorkerThreadPool.add_task(func() -> void:
+		var result: Dictionary = reader.call(app_id, check_steam)
+		_on_poll_result.call_deferred(result, app_id))
+
+
+## Volta para a thread principal com o resultado da consulta.
+func _on_poll_result(result: Dictionary, polled_app_id: int) -> void:
+	WorkerThreadPool.wait_for_task_completion(_poll_task)
+	_poll_task = -1
+	if polled_app_id != _app_id:
+		return  # a sessão mudou enquanto a consulta rodava: resultado velho
+	_apply_state(result)
+
+
+## Decide o que fazer com o que a Steam disse.
+func _apply_state(steam: Dictionary) -> void:
+	_last_state = steam
+	var running_app_id: int = steam.get("running_app_id", 0)
 
 	match state:
+		State.IDLE:
+			_check_external_game(running_app_id)
+
 		State.LAUNCHING:
-			if running_app_id == _app_id:
+			if running_app_id == _app_id or steam.get("app_running", false):
+				_running_since_ms = Time.get_ticks_msec()
 				_set_state(State.RUNNING)
+				HubWindow.sleep(_playing_message(_app_id))  # só troca a mensagem
 				game_started.emit(_app_id, _get_source())
-			elif _seconds_since_launch() >= LAUNCH_TIMEOUT:
-				_end_session(false, "O jogo não abriu em %d s. A Steam mostrou alguma janela ou erro?" \
-						% int(LAUNCH_TIMEOUT))
+			elif _seconds_since(_launch_started_ms) >= _launch_timeout:
+				_end_session(false, _timeout_message(steam))
+
 		State.RUNNING:
-			if running_app_id != _app_id:
+			if running_app_id == _app_id or (running_app_id != 0 and steam.get("app_running", false)):
+				# Ainda rodando. (Se outro app "tomou" o RunningAppID, como o
+				# Lossless Scaling, confiamos no Apps\<appid>\Running.)
+				if not steam.get("steam_running", true):
+					_end_session(false, "A Steam fechou enquanto %s rodava. Voltei para o hub." % _game_name(_app_id))
+			elif _is_city_game(running_app_id):
+				_switch_to_game(running_app_id)
+			elif not _external and _seconds_since(_running_since_ms) < QUICK_EXIT_SECONDS:
+				_end_session(false, "%s fechou logo depois de abrir. Tente abrir pela Steam para ver se aparece algum erro." \
+						% _game_name(_app_id))
+			else:
 				_end_session(true, "")
 
 
+## Com o hub parado: um jogo da cidade começou a rodar por fora do hub?
+func _check_external_game(running_app_id: int) -> void:
+	var previous := _last_seen_running
+	_last_seen_running = running_app_id
+	if previous == -1:
+		return  # primeira olhada: um jogo que já estava aberto antes do hub não conta
+	if running_app_id != previous and _is_city_game(running_app_id):
+		_begin_external_session(running_app_id)
+
+
+func _begin_external_session(app_id: int) -> void:
+	_app_id = app_id
+	_source = null
+	_external = true
+	_running_since_ms = Time.get_ticks_msec()
+	_set_state(State.RUNNING)
+	HubWindow.sleep(_playing_message(app_id))
+	game_started.emit(app_id, null)
+
+
+## Fechou um jogo e abriu outro direto: encerra a sessão do primeiro, mas o hub
+## continua dormindo e passa a acompanhar o segundo (como sessão externa).
+func _switch_to_game(new_app_id: int) -> void:
+	session_ended.emit(_app_id, _get_source(), true, "")
+	_app_id = new_app_id
+	_source = null
+	_external = true
+	_running_since_ms = Time.get_ticks_msec()
+	HubWindow.sleep(_playing_message(new_app_id))  # só troca a mensagem
+	game_started.emit(new_app_id, null)
+
+
 func _end_session(success: bool, message: String) -> void:
-	_poll_timer.stop()
 	var app_id := _app_id
 	var source := _get_source()
 	_app_id = 0
 	_source = null
-	_restore_hub()
+	_external = false
+	# O que estiver rodando agora não conta como "jogo novo aberto por fora".
+	_last_seen_running = _last_state.get("running_app_id", 0)
 	_set_state(State.IDLE)
+	HubWindow.wake()
 	session_ended.emit(app_id, source, success, message)
 
 
-func _minimize_hub() -> void:
-	_saved_window_mode = DisplayServer.window_get_mode()
-	_saved_mouse_mode = Input.mouse_mode
-	_saved_max_fps = Engine.max_fps
-	_saved_low_processor = OS.low_processor_usage_mode
-
-	# Solta o mouse para o jogo poder usá-lo.
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	# Pausa o mundo e reduz o consumo enquanto o jogo roda.
-	get_tree().paused = true
-	OS.low_processor_usage_mode = true
-	Engine.max_fps = MINIMIZED_MAX_FPS
-
-	# Rodando embutido na aba "Game" do editor, a janela não é nossa para minimizar.
-	_did_minimize = not Engine.is_embedded_in_editor()
-	if _did_minimize:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+## Explica, do jeito mais útil possível, por que o jogo não abriu.
+func _timeout_message(steam: Dictionary) -> String:
+	var game_name := _game_name(_app_id)
+	if not steam.get("steam_running", true):
+		return "A Steam não abriu. Abra a Steam e tente de novo."
+	if steam.get("app_updating", false):
+		return "A Steam está atualizando %s. Quando terminar e o jogo abrir, o hub sai do caminho sozinho." % game_name
+	return "%s não abriu em %d s. A Steam mostrou alguma janela ou erro?" % [game_name, int(_launch_timeout)]
 
 
-func _restore_hub() -> void:
-	Engine.max_fps = _saved_max_fps
-	OS.low_processor_usage_mode = _saved_low_processor
-	get_tree().paused = false
+## Lê o estado da Steam no registro. Roda na thread separada!
+func _read_steam_state(app_id: int, check_steam: bool) -> Dictionary:
+	var result := {
+		"running_app_id": WinRegistry.read_dword(STEAM_REG_KEY, "RunningAppID", 0),
+		"steam_running": true,
+		"app_running": false,
+		"app_updating": false,
+	}
+	if check_steam:
+		var pid := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "pid", 0)
+		result["steam_running"] = pid > 0 and _is_process_alive(pid)
+	if app_id > 0:
+		var app := WinRegistry.read_values("%s\\Apps\\%d" % [STEAM_REG_KEY, app_id])
+		result["app_running"] = app.get("Running", 0) == 1
+		result["app_updating"] = app.get("Updating", 0) == 1
+	return result
 
-	if _did_minimize:
-		var mode := _saved_window_mode
-		if mode == DisplayServer.WINDOW_MODE_MINIMIZED:
-			mode = DisplayServer.WINDOW_MODE_WINDOWED
-		DisplayServer.window_set_mode(mode)
-		DisplayServer.window_move_to_foreground()
-		_did_minimize = false
 
-	Input.mouse_mode = _saved_mouse_mode
+## O processo com esse número está vivo? (Usa o "tasklist" do Windows; o
+## OS.is_process_running da Godot só enxerga processos abertos por ela.)
+func _is_process_alive(pid: int) -> bool:
+	var output: Array = []
+	OS.execute("tasklist", ["/FI", "PID eq %d" % pid, "/NH", "/FO", "CSV"], output)
+	# Formato CSV: "steam.exe","26664",... — procuramos o número entre aspas.
+	return not output.is_empty() and String(output[0]).contains("\"%d\"" % pid)
 
+
+# --- Utilidades --------------------------------------------------------------
 
 func _set_state(new_state: State) -> void:
 	if state == new_state:
 		return
 	state = new_state
+	_poll_timer.wait_time = POLL_INTERVAL_IDLE if new_state == State.IDLE else POLL_INTERVAL_SESSION
+	_poll_timer.start()
 	state_changed.emit(new_state)
 
 
-func _seconds_since_launch() -> float:
-	return (Time.get_ticks_msec() - _launch_started_ms) / 1000.0
+func _is_city_game(app_id: int) -> bool:
+	return app_id > 0 and SteamLibrary.get_game(app_id) != null
+
+
+func _playing_message(app_id: int) -> String:
+	return "Jogando %s...\n\nO hub volta sozinho quando o jogo fechar." % _game_name(app_id)
+
+
+func _game_name(app_id: int) -> String:
+	var game_name := SteamLibrary.get_game_name(app_id)
+	return game_name if not game_name.is_empty() else "o jogo %d" % app_id
+
+
+func _seconds_since(ticks_ms: int) -> float:
+	return (Time.get_ticks_msec() - ticks_ms) / 1000.0
 
 
 ## A origem pode ter sido apagada enquanto o jogo rodava (ex.: troca de mundo).

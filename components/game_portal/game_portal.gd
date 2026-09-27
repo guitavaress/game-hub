@@ -100,15 +100,30 @@ func _start_game() -> void:
 	GameLauncher.launch(app_id, self)
 
 
-func _on_session_ended(_ended_app_id: int, source: Node, _success: bool, _message: String) -> void:
-	if source != self:
-		return  # a resposta é para outro portal
-	_waiting_for_game = false
-	_charge = 0.0
-	# Coloca o jogador na frente da porta (fora da área, para não reabrir o jogo).
-	if _player != null:
-		_player.teleport_to(get_return_transform())
-	ScreenFade.fade_in(RETURN_FADE_TIME)
+func _on_session_ended(ended_app_id: int, source: Node, _success: bool, _message: String) -> void:
+	if source == self:
+		# A sessão que ESTE portal pediu acabou.
+		_waiting_for_game = false
+		_charge = 0.0
+		# Coloca o jogador na frente da porta (fora da área, para não reabrir o jogo).
+		_teleport_player_to_door(_player)
+		# Se o hub nem chegou a dormir (ex.: o jogo não está mais instalado),
+		# quem escureceu a tela foi este portal, então ele mesmo clareia.
+		if not HubWindow.is_sleeping:
+			ScreenFade.fade_in(RETURN_FADE_TIME)
+	elif source == null and ended_app_id == app_id and app_id > 0:
+		# Este jogo foi aberto POR FORA do hub e fechou: o jogador volta na
+		# porta deste portal, como se tivesse entrado por aqui.
+		_teleport_player_to_door(null)
+
+
+## Leva o jogador para o ReturnPoint. Se não soubermos quem é (null), procuramos
+## pelo grupo "player".
+func _teleport_player_to_door(player: Player) -> void:
+	if player == null:
+		player = get_tree().get_first_node_in_group("player") as Player
+	if player != null:
+		player.teleport_to(get_return_transform())
 
 
 func _on_entry_body_entered(body: Node3D) -> void:

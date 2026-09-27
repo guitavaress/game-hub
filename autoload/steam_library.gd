@@ -112,6 +112,16 @@ func get_game_name(app_id: int) -> String:
 	return ""
 
 
+## Confere AGORA (relendo o arquivo) se o app ainda está instalado.
+## Útil antes de abrir um jogo: ele pode ter sido desinstalado com o hub aberto.
+func is_installed(app_id: int) -> bool:
+	for folder in get_library_folders():
+		var manifest := "%s/steamapps/appmanifest_%d.acf" % [folder, app_id]
+		if FileAccess.file_exists(manifest) and _read_manifest(manifest, folder) != null:
+			return true
+	return false
+
+
 ## Esquece o que já foi lido (para ler tudo de novo na próxima pergunta).
 func reload() -> void:
 	_steam_path = ""

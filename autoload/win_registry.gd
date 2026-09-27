@@ -27,6 +27,26 @@ static func read_dword(key: String, value_name: String, fallback: int = -1) -> i
 	return String(result["data"]).hex_to_int()
 
 
+## Lê TODOS os valores de uma chave de uma vez (uma consulta só).
+## Números (REG_DWORD) viram int; o resto vira texto.
+## Ex.: read_values("HKCU\\Software\\Valve\\Steam\\Apps\\2379780")
+##      -> {"Installed": 1, "Updating": 0, "Name": "Balatro", "Running": 0}
+static func read_values(key: String) -> Dictionary:
+	var output: Array = []
+	var exit_code := OS.execute("reg", ["query", key], output)
+	if exit_code != 0 or output.is_empty():
+		return {}
+
+	var result := {}
+	var regex := RegEx.create_from_string("^\\s+(\\S+)\\s+(REG_[A-Z_]+)\\s*(.*?)\\s*$")
+	for line: String in String(output[0]).split("\n"):
+		var found := regex.search(line.strip_edges(false, true))
+		if found:
+			var data := found.get_string(3)
+			result[found.get_string(1)] = data.hex_to_int() if found.get_string(2) == "REG_DWORD" else data
+	return result
+
+
 ## Roda o "reg query" e devolve {"type": "REG_SZ", "data": "..."} ou {} se falhar.
 static func _query(key: String, value_name: String) -> Dictionary:
 	var output: Array = []
