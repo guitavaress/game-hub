@@ -14,7 +14,7 @@ const PLAYER_SCENE: PackedScene = preload("res://player/player.tscn")
 
 const BORDER_WALL_HEIGHT: float = 3.0
 ## Onde o jogador nasce: na praça, virado para o norte (-Z).
-const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 6.0)
+const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 8.0)
 ## Quanto tempo esperamos a loja responder na primeira vez (segundos).
 const STORE_WAIT_SECONDS: float = 8.0
 ## Altura dos prédios (sorteada por jogo, mas sempre igual para o mesmo jogo).
@@ -23,6 +23,13 @@ const BUILDING_MAX_HEIGHT: float = 19.0
 const BUILDING_FOOTPRINT: float = 10.0
 ## Altura da placa flutuante com o nome do bairro.
 const DISTRICT_SIGN_HEIGHT: float = 25.0
+## Amigos na praça: em círculos em volta do chafariz.
+const PLAZA_FRIEND_RADIUS: float = 4.5
+const PLAZA_FRIEND_RING_STEP: float = 2.0
+const PLAZA_FRIENDS_PER_RING: int = 10
+
+## Bonequinhos dos amigos que estão na praça.
+var _plaza_friends: Array[FriendNpc] = []
 
 
 func _ready() -> void:
@@ -36,6 +43,11 @@ func _ready() -> void:
 	var cells := _build_districts(districts)
 	_build_ground_and_walls(CityLayout.half_extent(cells))
 	_build_plaza()
+
+	# Amigos jogando algo da cidade aparecem nos portais (o GamePortal cuida
+	# disso); os outros amigos online ficam aqui na praça.
+	FriendsService.friends_changed.connect(_update_plaza_friends)
+	_update_plaza_friends()
 
 	var player := _spawn_player()
 	_show_startup_messages(player, games)
@@ -233,6 +245,45 @@ func _build_plaza() -> void:
 	add_child(fountain)
 
 
+# --- Amigos na praça ---------------------------------------------------------
+
+## Amigos online que NÃO estão num portal da cidade (sem jogar, ou jogando
+## algo que não está na sua biblioteca) ficam em volta do chafariz.
+func _update_plaza_friends() -> void:
+	for npc in _plaza_friends:
+		npc.queue_free()
+	_plaza_friends.clear()
+
+	var plaza_friends: Array[SteamFriend] = []
+	for friend in FriendsService.get_online_friends():
+		var at_a_portal := friend.game_id > 0 and SteamLibrary.get_game(friend.game_id) != null
+		if not at_a_portal:
+			plaza_friends.append(friend)
+
+	for i in plaza_friends.size():
+		var npc := FriendNpc.new()
+		npc.friend = plaza_friends[i]
+		npc.position = _plaza_friend_position(i, plaza_friends.size())
+		add_child(npc)
+		_plaza_friends.append(npc)
+
+
+## Posição do amigo número "index" em volta do chafariz. O primeiro fica ao
+## norte (de frente para quem nasce na praça) e os seguintes se alternam para
+## os dois lados; o lado sul, perto de onde o jogador nasce, é o último a encher.
+## Se não couber, abre um círculo maior.
+func _plaza_friend_position(index: int, total: int) -> Vector3:
+	var ring := floori(index / float(PLAZA_FRIENDS_PER_RING))
+	var in_ring := index % PLAZA_FRIENDS_PER_RING
+	var count_in_ring := mini(PLAZA_FRIENDS_PER_RING, total - ring * PLAZA_FRIENDS_PER_RING)
+	var step := TAU / float(maxi(count_in_ring, 6))
+	# 0, +1, -1, +2, -2... passos a partir do norte.
+	var steps_from_north := ceili(in_ring / 2.0) * (1 if in_ring % 2 == 1 else -1)
+	var angle := steps_from_north * step
+	var radius := PLAZA_FRIEND_RADIUS + ring * PLAZA_FRIEND_RING_STEP
+	return Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+
+
 # --- Jogador e avisos --------------------------------------------------------
 
 func _spawn_player() -> Player:
@@ -243,6 +294,8 @@ func _spawn_player() -> Player:
 
 
 func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
+	if not AppConfig.load_problem.is_empty():
+		player.get_hud().show_message(AppConfig.load_problem, 10.0)
 	if SteamLibrary.get_steam_path().is_empty():
 		player.get_hud().show_message("Não encontrei a Steam neste PC.", 10.0)
 		return

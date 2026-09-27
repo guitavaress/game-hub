@@ -37,6 +37,9 @@ const EXCLUDED_NAME_PARTS: Array[String] = [
 	"soundtrack",
 ]
 
+## SteamID64 = este número + o "account id" (o número curto da conta).
+const STEAM_ID64_BASE: int = 76561197960265728
+
 ## Bit do StateFlags que significa "instalado" (4). Os outros bits indicam
 ## coisas como "atualização pendente", que não impedem de jogar.
 const STATE_FLAG_INSTALLED: int = 4
@@ -120,6 +123,27 @@ func is_installed(app_id: int) -> bool:
 		if FileAccess.file_exists(manifest) and _read_manifest(manifest, folder) != null:
 			return true
 	return false
+
+
+## SteamID64 (17 dígitos, em texto) de quem está logado na Steam, ou "" se não souber.
+func get_current_steam_id() -> String:
+	# Com a Steam aberta, o registro guarda o "account id" de quem está logado.
+	var account_id := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "ActiveUser", 0)
+	if account_id > 0:
+		return str(STEAM_ID64_BASE + account_id)
+
+	# Com a Steam fechada: o usuário mais recente do loginusers.vdf.
+	var steam := get_steam_path()
+	if steam.is_empty():
+		return ""
+	var data := Vdf.parse(FileAccess.get_file_as_string(steam + "/config/loginusers.vdf"))
+	var users: Variant = data.get("users", {})
+	if users is Dictionary:
+		for steam_id: String in users:
+			var user: Variant = users[steam_id]
+			if user is Dictionary and str(user.get("MostRecent", "0")) == "1":
+				return steam_id
+	return ""
 
 
 ## Esquece o que já foi lido (para ler tudo de novo na próxima pergunta).

@@ -24,6 +24,7 @@ GameCategories="*res://autoload/game_categories.gd"
 GameArt="*res://autoload/game_art.gd"
 HubWindow="*res://autoload/hub_window.gd"
 GameLauncher="*res://autoload/game_launcher.gd"
+FriendsService="*res://autoload/friends_service.gd"
 ScreenFade="*res://ui/screen_fade.gd"
 
 [display]

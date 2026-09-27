@@ -12,7 +12,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com a c
 | 2 | Portal de jogo: entrar, abrir o jogo, voltar na porta | ✅ pronta |
 | 3 | Cidade gerada da biblioteca, com bairros por categoria e capas | ✅ pronta |
 | 4 | Launcher robusto: Steam fechada, jogos abertos por fora, vários monitores | ✅ pronta |
-| 5 | Amigos da Steam como personagens na porta do jogo que estão jogando | ⏳ a fazer |
+| 5 | Amigos da Steam como personagens na porta do jogo que estão jogando | ✅ pronta |
 | 6 | Polimento: sons, iluminação, modelos 3D, horas jogadas | ⏳ a fazer |
 
 A ideia a longo prazo é reaproveitar os mesmos sistemas num mundo aberto maior. Por exemplo: uma montanha de gelo para o Skyrim, ou uma pista de corrida onde se ouve o motor de longe.
@@ -34,6 +34,23 @@ A ideia a longo prazo é reaproveitar os mesmos sistemas num mundo aberto maior.
 4. Aperte **F5**.
 
 Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos. Isso leva alguns segundos e depois fica guardado.
+
+## Amigos na cidade (opcional)
+
+Seus amigos da Steam aparecem como bonequinhos com o avatar e o nome em cima:
+- **jogando algo da sua biblioteca:** ficam ao lado da porta do prédio daquele jogo;
+- **online sem jogar, ou jogando algo que você não tem:** ficam em volta do chafariz da praça;
+- **offline:** não aparecem.
+
+Para isso, o hub precisa de uma **chave da Steam Web API**:
+
+1. Logado na Steam, entre em <https://steamcommunity.com/dev/apikey>. Em "domínio", pode escrever `localhost`. A Steam pode pedir confirmação no app Steam Guard.
+2. Abra o `config.cfg` (veja [Configuração](#configuração)) e cole a chave **entre as aspas** da linha `web_api_key=""`.
+3. Abra o hub de novo.
+
+> ⚠️ **A chave é secreta.** Não mostre para ninguém e não envie para repositórios nem chats. Golpistas usam chaves vazadas para mexer em trocas de itens. Se ela vazar, apague a chave na mesma página. O `config.cfg` fica na pasta de dados do usuário, fora do repositório.
+
+A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como público no perfil. Se não, ele aparece na praça como online. Se o hub avisar que não conseguiu ler sua lista de amigos, deixe **"Lista de amigos"** como pública em Steam → Perfil → Editar perfil → Configurações de privacidade.
 
 ## Controles
 
@@ -60,6 +77,14 @@ excluded_app_ids=[431960, 993090]
 [categories]
 ; Forçar o bairro de um jogo (ex.: Stardew Valley no bairro de RPG)
 overrides={ 413150: "rpg" }
+
+[steam]
+; Chave da Steam Web API (para os amigos). SEGREDO!
+web_api_key=""
+; Seu SteamID64. Vazio = descobrir sozinho pela Steam.
+steam_id=""
+; false = não mostrar amigos
+friends_enabled=true
 ```
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).
@@ -80,8 +105,9 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **GameArt** procura a capa primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
 - **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e acompanha o valor `RunningAppID` no registro do Windows para saber quando ele fechou. Também percebe jogos abertos por fora do hub.
 - **HubWindow** minimiza e pausa o hub enquanto você joga, e depois o traz de volta no mesmo monitor.
+- **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
-**Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
+**Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
 
 ## Licença
 

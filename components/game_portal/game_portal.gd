@@ -31,13 +31,19 @@ extends Node3D
 const CANCEL_SPEED: float = 3.0
 ## Segundos para a tela clarear quando o jogador volta do jogo.
 const RETURN_FADE_TIME: float = 1.0
+## Distância entre amigos lado a lado, e quantos cabem por fileira.
+const FRIEND_SPACING: float = 1.5
+const FRIENDS_PER_ROW: int = 6
 
 @onready var _entry_area: Area3D = $EntryArea
 @onready var _entry_shape: CollisionShape3D = $EntryArea/CollisionShape3D
 @onready var _look_shape: CollisionShape3D = $LookArea/CollisionShape3D
 @onready var _return_point: Marker3D = $ReturnPoint
-## Público: o sistema de amigos (fase 5) vai usar.
+## Onde o primeiro amigo que joga este jogo aparece (os outros se espalham).
 @onready var friend_spot: Marker3D = $FriendSpot
+
+## Bonequinhos dos amigos jogando este jogo agora.
+var _friend_npcs: Array[FriendNpc] = []
 
 ## Quem está parado na porta agora (null = ninguém).
 var _player: Player = null
@@ -52,6 +58,8 @@ func _ready() -> void:
 	_entry_area.body_entered.connect(_on_entry_body_entered)
 	_entry_area.body_exited.connect(_on_entry_body_exited)
 	GameLauncher.session_ended.connect(_on_session_ended)
+	FriendsService.friends_changed.connect(_update_friends)
+	_update_friends()
 
 
 func _process(delta: float) -> void:
@@ -134,6 +142,35 @@ func _on_entry_body_entered(body: Node3D) -> void:
 func _on_entry_body_exited(body: Node3D) -> void:
 	if body == _player:
 		_player = null
+
+
+## Mostra, ao lado da porta, os amigos que estão jogando este jogo agora.
+func _update_friends() -> void:
+	for npc in _friend_npcs:
+		npc.queue_free()
+	_friend_npcs.clear()
+	if app_id <= 0:
+		return
+
+	var friends := FriendsService.get_friends_playing(app_id)
+	for i in friends.size():
+		var npc := FriendNpc.new()
+		npc.friend = friends[i]
+		npc.show_game_name = false  # a placa do prédio já diz qual é o jogo
+		npc.position = _friend_slot(i)
+		add_child(npc)
+		_friend_npcs.append(npc)
+
+
+## Posição do amigo número "index": o primeiro no FriendSpot, os outros se
+## alternando dos dois lados da porta (sem bloquear a entrada), em fileiras.
+func _friend_slot(index: int) -> Vector3:
+	var row := floori(index / float(FRIENDS_PER_ROW))
+	var in_row := index % FRIENDS_PER_ROW
+	var side := 1.0 if in_row % 2 == 0 else -1.0
+	var step := floori(in_row / 2.0)
+	var base := friend_spot.position
+	return Vector3(side * (absf(base.x) + step * FRIEND_SPACING), base.y, base.z + row * FRIEND_SPACING)
 
 
 ## Cada portal ganha formas de colisão próprias com os tamanhos exportados.

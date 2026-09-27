@@ -3,7 +3,8 @@ extends CanvasLayer
 ## HUD mínimo, montado por código:
 ## - mira no centro da tela;
 ## - nome do que o jogador está olhando, logo abaixo da mira;
-## - linha de avisos no topo, que some sozinha depois de alguns segundos.
+## - linha de avisos no topo, que some sozinha depois de alguns segundos
+##   (se chegarem vários avisos juntos, eles entram numa fila, um de cada vez).
 
 const MESSAGE_SECONDS: float = 6.0
 const LOOK_FONT_SIZE: int = 22
@@ -12,6 +13,8 @@ const MESSAGE_FONT_SIZE: int = 20
 var _look_label: Label
 var _message_label: Label
 var _message_timer: Timer
+## Avisos esperando a vez: [texto, segundos].
+var _message_queue: Array[Array] = []
 
 
 func _ready() -> void:
@@ -34,11 +37,14 @@ func _ready() -> void:
 
 	_message_timer = Timer.new()
 	_message_timer.one_shot = true
-	_message_timer.timeout.connect(func() -> void: _message_label.text = "")
+	_message_timer.timeout.connect(_show_next_message)
 	add_child(_message_timer)
 
-	# O HUD escuta o GameLauncher para avisar quando algo dá errado.
+	# O HUD escuta os sistemas para avisar quando algo dá errado.
 	GameLauncher.session_ended.connect(_on_session_ended)
+	FriendsService.problem.connect(show_message)
+	if not FriendsService.get_problem().is_empty():
+		show_message(FriendsService.get_problem())  # aviso de antes do HUD existir
 
 	if Engine.is_embedded_in_editor():
 		show_message("O jogo está rodando DENTRO do editor: o hub não vai minimizar. "
@@ -50,10 +56,26 @@ func set_look_text(text: String) -> void:
 	_look_label.text = text
 
 
-## Mostra um aviso no topo da tela por alguns segundos.
+## Mostra um aviso no topo da tela por alguns segundos. Se já houver um aviso
+## na tela, este espera a vez. Avisos repetidos são ignorados.
 func show_message(text: String, seconds: float = MESSAGE_SECONDS) -> void:
-	_message_label.text = text
-	_message_timer.start(seconds)
+	if text.is_empty() or text == _message_label.text:
+		return
+	for queued in _message_queue:
+		if queued[0] == text:
+			return
+	if _message_label.text.is_empty():
+		_message_label.text = text
+		_message_timer.start(seconds)
+	else:
+		_message_queue.append([text, seconds])
+
+
+func _show_next_message() -> void:
+	_message_label.text = ""
+	if not _message_queue.is_empty():
+		var next: Array = _message_queue.pop_front()
+		show_message(next[0], next[1])
 
 
 func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:

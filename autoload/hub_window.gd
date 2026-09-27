@@ -14,6 +14,9 @@ extends Node
 ##
 ## Não conhece jogos nem mundos: quem decide QUANDO dormir é o GameLauncher.
 
+## O hub acabou de acordar (um jogo fechou).
+signal woke_up
+
 const PLACEMENT_PATH: String = "user://window.cfg"
 ## FPS máximo enquanto dorme (economiza CPU/GPU para o jogo).
 const SLEEP_MAX_FPS: int = 5
@@ -99,6 +102,7 @@ func wake() -> void:
 	Input.mouse_mode = _saved_mouse_mode
 	ScreenFade.set_message("")
 	ScreenFade.fade_in(WAKE_FADE_TIME)
+	woke_up.emit()
 
 
 # --- Posição da janela -------------------------------------------------------
