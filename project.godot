@@ -17,7 +17,11 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
+AppConfig="*res://autoload/app_config.gd"
 SteamLibrary="*res://autoload/steam_library.gd"
+StoreInfo="*res://autoload/store_info.gd"
+GameCategories="*res://autoload/game_categories.gd"
+GameArt="*res://autoload/game_art.gd"
 GameLauncher="*res://autoload/game_launcher.gd"
 ScreenFade="*res://ui/screen_fade.gd"
 

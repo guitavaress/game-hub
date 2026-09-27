@@ -3,11 +3,13 @@ extends CanvasLayer
 ##
 ## - set_amount(0.0 .. 1.0): 0 = tela normal, 1 = tela toda preta.
 ## - fade_in(segundos): clareia a tela aos poucos, do valor atual até 0.
+## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
 ##
 ## Fica num autoload para funcionar em qualquer mundo, e com layer 100 para
 ## cobrir também o HUD.
 
 var _curtain: ColorRect
+var _message: Label
 var _tween: Tween
 
 
@@ -22,6 +24,19 @@ func _ready() -> void:
 	_curtain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_curtain.modulate.a = 0.0
 	add_child(_curtain)
+
+	# O texto é "filho" da cortina, então aparece e some junto com ela.
+	_message = Label.new()
+	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_message.add_theme_font_size_override("font_size", 28)
+	_message.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_curtain.add_child(_message)
+
+
+## Mostra um texto no meio da cortina ("" apaga).
+func set_message(text: String) -> void:
+	_message.text = text
 
 
 func set_amount(amount: float) -> void:

@@ -82,6 +82,11 @@ func _physics_process(delta: float) -> void:
 	_update_look_target()
 
 
+## O HUD do jogador (para o mundo mostrar avisos, por exemplo).
+func get_hud() -> Hud:
+	return _hud
+
+
 ## Coloca o jogador num ponto e o vira para a "frente" (-Z) do transform dado.
 ## Usado pelos portais para reaparecer na porta quando o jogo fecha.
 func teleport_to(target: Transform3D) -> void:

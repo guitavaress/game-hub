@@ -1,42 +1,180 @@
 extends Node3D
-## Mundo 1: a cidade (por enquanto, uma praça cercada de blocos).
+## Mundo 1: a cidade, gerada a partir da biblioteca Steam.
 ##
-## Regra da arquitetura: o mundo só monta o cenário e posiciona portais.
-## Nenhuma lógica de Steam mora aqui.
+## Cada jogo instalado vira um prédio (CityBuilding, com um GamePortal na
+## porta). Os jogos são agrupados em BAIRROS pela categoria (GameCategories):
+## cada bairro ocupa quarteirões inteiros, com o chão na cor dele e uma placa
+## flutuante com o nome. A grade de ruas está em CityLayout.
 ##
-## Tudo é criado por código em _ready(), para a cena (.tscn) ficar simples.
-## Convenção: Y é "para cima"; a praça fica no centro (0, 0, 0).
-
-## >>> TROQUE AQUI o App ID do jogo do prédio de teste. <<<
-## Também dá para trocar no editor: selecione o nó "City" e mude no Inspector.
-## (Para achar o App ID: na loja da Steam, é o número na URL do jogo.)
-@export var portal_app_id: int = 2379780  # Balatro
+## Regra da arquitetura: o mundo só monta cenário e posiciona portais.
+## Quem sabe quais jogos existem e de que categoria são são os sistemas
+## (SteamLibrary, StoreInfo, GameCategories); aqui só perguntamos a eles.
 
 const PLAYER_SCENE: PackedScene = preload("res://player/player.tscn")
-const PORTAL_SCENE: PackedScene = preload("res://components/game_portal/game_portal.tscn")
 
-const GROUND_SIZE: float = 80.0
-const PLAZA_SIZE: float = 24.0
 const BORDER_WALL_HEIGHT: float = 3.0
-## Onde o jogador nasce (um pouco acima do chão para não "enroscar").
+## Onde o jogador nasce: na praça, virado para o norte (-Z).
 const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 6.0)
-
-## Vão da porta do prédio do jogo (largura, altura, profundidade), em metros.
-const DOOR_WIDTH: float = 2.4
-const DOOR_HEIGHT: float = 3.0
-const DOOR_DEPTH: float = 1.6
+## Quanto tempo esperamos a loja responder na primeira vez (segundos).
+const STORE_WAIT_SECONDS: float = 8.0
+## Altura dos prédios (sorteada por jogo, mas sempre igual para o mesmo jogo).
+const BUILDING_MIN_HEIGHT: float = 13.0
+const BUILDING_MAX_HEIGHT: float = 19.0
+const BUILDING_FOOTPRINT: float = 10.0
+## Altura da placa flutuante com o nome do bairro.
+const DISTRICT_SIGN_HEIGHT: float = 25.0
 
 
 func _ready() -> void:
+	ScreenFade.set_amount(1.0)  # tela preta enquanto a cidade é montada
 	_build_environment()
-	_build_ground()
-	_build_border_walls()
-	_build_buildings()
-	_build_game_building(Vector3(0.0, 0.0, -22.0), Vector3(12.0, 10.0, 12.0), Color("4f6d8f"), portal_app_id)
-	_spawn_player()
+
+	var games := SteamLibrary.get_installed_games()
+	await _update_store_info(games)
+
+	var districts := _group_into_districts(games)
+	var cells := _build_districts(districts)
+	_build_ground_and_walls(CityLayout.half_extent(cells))
+	_build_plaza()
+
+	var player := _spawn_player()
+	_show_startup_messages(player, games)
+
+	ScreenFade.set_message("")
+	ScreenFade.fade_in(0.8)
 
 
-# --- Céu e luz ---------------------------------------------------------------
+# --- Dados -------------------------------------------------------------------
+
+## Pede à loja as tags que faltam. Na primeira vez pode demorar um pouco;
+## depois, tudo vem do cache e isto termina na hora.
+func _update_store_info(games: Array[SteamGame]) -> void:
+	var app_ids: Array[int] = []
+	for game in games:
+		app_ids.append(game.app_id)
+	StoreInfo.fetch(app_ids)
+	if not StoreInfo.is_fetching():
+		return
+
+	ScreenFade.set_message("Organizando a cidade...")
+	var waited := 0.0
+	while StoreInfo.is_fetching() and waited < STORE_WAIT_SECONDS:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+
+
+## Agrupa os jogos por categoria, na ordem da tabela de categorias.
+## Devolve uma lista de {"id": "rpg", "games": [SteamGame, ...]} (só bairros com jogos).
+func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
+	var games_by_category: Dictionary[String, Array] = {}
+	for game in games:
+		var category_id := GameCategories.get_category_id(game.app_id)
+		if not games_by_category.has(category_id):
+			games_by_category[category_id] = []
+		games_by_category[category_id].append(game)
+
+	var districts: Array[Dictionary] = []
+	for category_id in GameCategories.get_category_ids():
+		if games_by_category.has(category_id):
+			districts.append({"id": category_id, "games": games_by_category[category_id]})
+	return districts
+
+
+# --- Bairros e prédios -------------------------------------------------------
+
+## Monta todos os bairros. Devolve os quarteirões usados (para medir o mapa).
+func _build_districts(districts: Array[Dictionary]) -> Array[Vector2i]:
+	var block_count := 0
+	for district in districts:
+		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
+	var cells := CityLayout.block_cells(block_count)
+
+	var next_cell := 0
+	for district in districts:
+		var district_games: Array = district["games"]
+		# Cada quarteirão recebe até 4 jogos do bairro.
+		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
+			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
+			_build_block(cells[next_cell], district["id"], block_games)
+			next_cell += 1
+	return cells
+
+
+func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> void:
+	var category_color := GameCategories.get_category_color(category_id)
+	var center := CityLayout.block_center(cell)
+
+	# Chão do quarteirão na cor do bairro (só visual).
+	_add_pad(center, Vector2(CityLayout.BLOCK_SIZE, CityLayout.BLOCK_SIZE),
+			category_color.darkened(0.45), 0.03)
+
+	# Placa flutuante com o nome do bairro, sempre virada para quem olha.
+	var district_sign := Label3D.new()
+	district_sign.text = GameCategories.get_category_name(category_id)
+	district_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	district_sign.font_size = 128
+	district_sign.pixel_size = 0.025
+	district_sign.outline_size = 32
+	district_sign.modulate = category_color.lightened(0.35)
+	district_sign.position = center + Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
+	add_child(district_sign)
+
+	# Prédios nos terrenos; o que sobrar vira pracinha.
+	var lots := CityLayout.lots_facing_center_first(cell)
+	for i in lots.size():
+		var lot := CityLayout.lot_transform(cell, lots[i])
+		if i < block_games.size():
+			_build_game_building(lot, block_games[i], category_color)
+		else:
+			_build_park(lot)
+
+
+func _build_game_building(lot: Transform3D, game: SteamGame, category_color: Color) -> void:
+	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = game.app_id
+
+	var building := CityBuilding.new()
+	building.name = "Building_%d" % game.app_id
+	building.game = game
+	building.size = Vector3(BUILDING_FOOTPRINT,
+			rng.randf_range(BUILDING_MIN_HEIGHT, BUILDING_MAX_HEIGHT), BUILDING_FOOTPRINT)
+	building.color = category_color.lerp(Color.WHITE, rng.randf_range(0.0, 0.3))
+	building.transform = lot
+	add_child(building)
+
+
+## Terreno vazio: gramado com algumas árvores.
+func _build_park(lot: Transform3D) -> void:
+	_add_pad(lot.origin, Vector2(CityLayout.LOT_SIZE - 2.0, CityLayout.LOT_SIZE - 2.0),
+			Color("4f7a3a"), 0.07)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(lot.origin)
+	for i in 3:
+		var spot := Vector3(rng.randf_range(-4.0, 4.0), 0.0, rng.randf_range(-4.0, 4.0))
+		_add_tree(lot.origin + spot, rng.randf_range(0.8, 1.2))
+
+
+func _add_tree(base: Vector3, scale_factor: float) -> void:
+	var trunk := CSGCylinder3D.new()
+	trunk.radius = 0.25 * scale_factor
+	trunk.height = 2.5 * scale_factor
+	trunk.position = base + Vector3(0.0, trunk.height / 2.0, 0.0)
+	trunk.material = _make_material(Color("6b4a2f"))
+	trunk.use_collision = true
+	add_child(trunk)
+
+	var canopy := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.6 * scale_factor
+	sphere.height = 3.2 * scale_factor
+	canopy.mesh = sphere
+	canopy.position = base + Vector3(0.0, 3.2 * scale_factor, 0.0)
+	canopy.material_override = _make_material(Color("3f7d3a"))
+	add_child(canopy)
+
+
+# --- Céu, chão, praça e muros ------------------------------------------------
 
 func _build_environment() -> void:
 	var sky := Sky.new()
@@ -56,31 +194,32 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50.0, -30.0, 0.0)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 90.0
+	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)
 
 
-# --- Chão, praça e muros -----------------------------------------------------
-
-func _build_ground() -> void:
-	# Chão com colisão: uma caixa grande e fina cujo topo fica em y = 0.
+func _build_ground_and_walls(half: float) -> void:
+	# Chão com colisão (cor de asfalto: o que não é quarteirão vira rua).
 	var ground := CSGBox3D.new()
 	ground.name = "Ground"
-	ground.size = Vector3(GROUND_SIZE, 1.0, GROUND_SIZE)
+	ground.size = Vector3(half * 2.0, 1.0, half * 2.0)
 	ground.position = Vector3(0.0, -0.5, 0.0)
-	ground.material = _make_material(Color("5f7a4f"))
+	ground.material = _make_material(Color("3a3d42"))
 	ground.use_collision = true
 	add_child(ground)
 
-	# Piso da praça: só visual (não precisa de colisão, o chão já tem).
-	var plaza := MeshInstance3D.new()
-	plaza.name = "Plaza"
-	var plaza_mesh := PlaneMesh.new()
-	plaza_mesh.size = Vector2(PLAZA_SIZE, PLAZA_SIZE)
-	plaza.mesh = plaza_mesh
-	plaza.position = Vector3(0.0, 0.01, 0.0)
-	plaza.material_override = _make_material(Color("b8b2a4"))
-	add_child(plaza)
+	# Muros nas bordas para ninguém cair do mapa.
+	var y := BORDER_WALL_HEIGHT / 2.0
+	var color := Color("6b625a")
+	var length := half * 2.0
+	_add_wall(Vector3(0.0, y, -half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
+	_add_wall(Vector3(0.0, y, half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
+	_add_wall(Vector3(-half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
+	_add_wall(Vector3(half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
+
+
+func _build_plaza() -> void:
+	_add_pad(Vector3.ZERO, Vector2(CityLayout.BLOCK_SIZE, CityLayout.BLOCK_SIZE), Color("b8b2a4"), 0.03)
 
 	# Um "chafariz" no meio da praça, como ponto de referência.
 	var fountain := CSGCylinder3D.new()
@@ -94,154 +233,59 @@ func _build_ground() -> void:
 	add_child(fountain)
 
 
-func _build_border_walls() -> void:
-	# Quatro muros nas bordas para ninguém cair do mapa.
-	var half := GROUND_SIZE / 2.0
-	var y := BORDER_WALL_HEIGHT / 2.0
-	var color := Color("6b625a")
-	_add_block("WallNorth", Vector3(0.0, y, -half), Vector3(GROUND_SIZE, BORDER_WALL_HEIGHT, 1.0), color)
-	_add_block("WallSouth", Vector3(0.0, y, half), Vector3(GROUND_SIZE, BORDER_WALL_HEIGHT, 1.0), color)
-	_add_block("WallWest", Vector3(-half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, GROUND_SIZE), color)
-	_add_block("WallEast", Vector3(half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, GROUND_SIZE), color)
+# --- Jogador e avisos --------------------------------------------------------
 
-
-# --- Prédios -----------------------------------------------------------------
-
-func _build_buildings() -> void:
-	# Blocos no lugar dos prédios, em volta da praça.
-	# (posição do centro da base no chão, tamanho, cor)
-	_add_building(Vector3(-18.0, 0.0, -22.0), Vector3(8.0, 14.0, 10.0), Color("c77d5a"))
-	_add_building(Vector3(18.0, 0.0, -22.0), Vector3(8.0, 8.0, 10.0), Color("d9b36c"))
-	_add_building(Vector3(-22.0, 0.0, 0.0), Vector3(10.0, 12.0, 14.0), Color("8e6c9e"))
-	_add_building(Vector3(22.0, 0.0, 0.0), Vector3(10.0, 6.0, 14.0), Color("6fa38a"))
-	_add_building(Vector3(-18.0, 0.0, 22.0), Vector3(10.0, 9.0, 8.0), Color("b5655f"))
-	_add_building(Vector3(0.0, 0.0, 24.0), Vector3(12.0, 16.0, 8.0), Color("7a8591"))
-	_add_building(Vector3(18.0, 0.0, 22.0), Vector3(10.0, 11.0, 8.0), Color("c9a27e"))
-
-
-## Prédio de um jogo: bloco com vão de porta, moldura, placa com o nome e um
-## GamePortal no vão. "base" é o centro do prédio no chão; a porta fica na
-## face +Z (virada para a praça). Para virar o prédio, gire o nó "GameBuilding".
-func _build_game_building(base: Vector3, size: Vector3, color: Color, app_id: int) -> void:
-	# Nó raiz do prédio: tudo abaixo dele usa coordenadas locais.
-	var building := Node3D.new()
-	building.name = "GameBuilding"
-	building.position = base
-	add_child(building)
-
-	var front_z := size.z / 2.0  # a fachada (face da frente) fica em z = front_z
-
-	# Corpo do prédio com o vão da porta recortado.
-	# CSG = "somar e subtrair formas": caixa grande MENOS uma caixa no lugar da porta.
-	var body := CSGCombiner3D.new()
-	body.name = "Body"
-	body.use_collision = true
-	building.add_child(body)
-
-	var walls := CSGBox3D.new()
-	walls.size = size
-	walls.position = Vector3(0.0, size.y / 2.0, 0.0)
-	walls.material = _make_material(color)
-	body.add_child(walls)
-
-	var doorway := CSGBox3D.new()
-	doorway.operation = CSGShape3D.OPERATION_SUBTRACTION
-	# 10 cm maior para baixo e para fora, para o recorte ficar limpo.
-	doorway.size = Vector3(DOOR_WIDTH, DOOR_HEIGHT + 0.1, DOOR_DEPTH + 0.1)
-	doorway.position = Vector3(0.0, (DOOR_HEIGHT - 0.1) / 2.0, front_z - DOOR_DEPTH / 2.0 + 0.05)
-	doorway.material = _make_material(color.darkened(0.35))  # paredes internas do vão
-	body.add_child(doorway)
-
-	# "Porta" brilhante no fundo do vão (só visual).
-	var door_glow := MeshInstance3D.new()
-	var quad := QuadMesh.new()
-	quad.size = Vector2(DOOR_WIDTH, DOOR_HEIGHT)
-	door_glow.mesh = quad
-	door_glow.position = Vector3(0.0, DOOR_HEIGHT / 2.0, front_z - DOOR_DEPTH + 0.01)
-	door_glow.material_override = _make_glow_material(Color("3fa9f5"), 1.5)
-	building.add_child(door_glow)
-
-	# Moldura da porta: dois pilares e uma viga (só visual).
-	var frame_material := _make_glow_material(Color("ffb347"), 0.8)
-	var post_size := Vector3(0.3, DOOR_HEIGHT + 0.3, 0.3)
-	var post_x := DOOR_WIDTH / 2.0 + 0.15
-	_add_visual_box(building, Vector3(-post_x, post_size.y / 2.0, front_z + 0.1), post_size, frame_material)
-	_add_visual_box(building, Vector3(post_x, post_size.y / 2.0, front_z + 0.1), post_size, frame_material)
-	_add_visual_box(building, Vector3(0.0, DOOR_HEIGHT + 0.15, front_z + 0.1),
-			Vector3(DOOR_WIDTH + 0.9, 0.3, 0.3), frame_material)
-
-	# O portal propriamente dito, no chão, no meio do vão, com +Z para fora.
-	var portal := PORTAL_SCENE.instantiate() as GamePortal
-	portal.name = "GamePortal"
-	portal.app_id = app_id
-	portal.look_size = Vector3(size.x, size.y, 1.0)  # olhar para a fachada inteira mostra o nome
-	portal.position = Vector3(0.0, 0.0, front_z)
-	building.add_child(portal)
-
-	# Placa com o nome do jogo, acima da porta.
-	var name_sign := Label3D.new()
-	name_sign.name = "Sign"
-	name_sign.text = portal.get_look_label()
-	name_sign.font_size = 128   # resolução do texto (mais alto = mais nítido)
-	name_sign.pixel_size = 0.008  # metros por pixel: 128 px x 0,008 = ~1 m de altura
-	name_sign.outline_size = 24
-	name_sign.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_sign.width = (size.x - 1.0) / name_sign.pixel_size  # largura máxima (em pixels do texto)
-	name_sign.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	name_sign.position = Vector3(0.0, DOOR_HEIGHT + 0.7, front_z + 0.05)
-	building.add_child(name_sign)
-
-
-## Caixa só visual (sem colisão), presa ao nó "parent".
-func _add_visual_box(parent: Node3D, center: Vector3, size: Vector3, material: Material) -> void:
-	var box := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	box.mesh = mesh
-	box.position = center
-	box.material_override = material
-	parent.add_child(box)
-
-
-## Cria um prédio simples. "base" é o centro do prédio no nível do chão.
-func _add_building(base: Vector3, size: Vector3, color: Color) -> void:
-	var center := base + Vector3(0.0, size.y / 2.0, 0.0)
-	_add_block("Building", center, size, color)
-
-
-## Cria uma caixa sólida (com colisão) centrada em "center".
-func _add_block(block_name: String, center: Vector3, size: Vector3, color: Color) -> CSGBox3D:
-	var box := CSGBox3D.new()
-	box.name = block_name
-	box.size = size
-	box.position = center
-	box.material = _make_material(color)
-	box.use_collision = true
-	add_child(box, true)  # true = a Godot numera nomes repetidos (Building2, Building3...)
-	return box
-
-
-# --- Jogador -----------------------------------------------------------------
-
-func _spawn_player() -> void:
+func _spawn_player() -> Player:
 	var player := PLAYER_SCENE.instantiate() as Player
 	player.position = PLAYER_SPAWN
 	add_child(player)
+	return player
+
+
+func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
+	if SteamLibrary.get_steam_path().is_empty():
+		player.get_hud().show_message("Não encontrei a Steam neste PC.", 10.0)
+		return
+	if games.is_empty():
+		player.get_hud().show_message("Nenhum jogo instalado encontrado na Steam.", 10.0)
+		return
+
+	var without_info := 0
+	for game in games:
+		if not StoreInfo.has_info(game.app_id):
+			without_info += 1
+	if without_info > 0:
+		player.get_hud().show_message(
+				"Não consegui falar com a loja da Steam: %d jogo(s) ficaram no bairro \"Outros\". " % without_info
+				+ "Na próxima vez que abrir o hub, eu tento de novo.", 10.0)
 
 
 # --- Utilidades --------------------------------------------------------------
 
-func _make_material(color: Color) -> StandardMaterial3D:
+## Placa fina de chão, só visual (a colisão é do chão de baixo).
+func _add_pad(center: Vector3, pad_size: Vector2, pad_color: Color, height: float) -> void:
+	var pad := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(pad_size.x, height, pad_size.y)
+	pad.mesh = mesh
+	pad.position = center + Vector3(0.0, height / 2.0, 0.0)
+	pad.material_override = _make_material(pad_color)
+	add_child(pad)
+
+
+## Caixa sólida (com colisão).
+func _add_wall(center: Vector3, wall_size: Vector3, wall_color: Color) -> void:
+	var wall := CSGBox3D.new()
+	wall.name = "Wall"
+	wall.size = wall_size
+	wall.position = center
+	wall.material = _make_material(wall_color)
+	wall.use_collision = true
+	add_child(wall, true)  # true = a Godot numera nomes repetidos (Wall2, Wall3...)
+
+
+func _make_material(material_color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = color
+	material.albedo_color = material_color
 	material.roughness = 0.9
-	return material
-
-
-## Material que "brilha" (emite luz própria).
-func _make_glow_material(color: Color, energy: float) -> StandardMaterial3D:
-	var material := _make_material(color)
-	material.emission_enabled = true
-	material.emission = color
-	material.emission_energy_multiplier = energy
 	return material
