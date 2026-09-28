@@ -31,14 +31,15 @@ const INTRO_FADE_SECONDS: float = 0.4
 const INTRO_DESCENT_SECONDS: float = 2.5
 ## Quanto tempo esperamos a loja responder na primeira vez (segundos).
 const STORE_WAIT_SECONDS: float = 8.0
-## Altura dos prédios (sorteada por jogo, mas sempre igual para o mesmo jogo).
-const BUILDING_MIN_HEIGHT: float = 13.0
-const BUILDING_MAX_HEIGHT: float = 19.0
+## Base dos prédios (a altura vem do número de andares: BuildingVariant).
 const BUILDING_FOOTPRINT: float = 10.0
-## Altura da placa flutuante com o nome do bairro.
-const DISTRICT_SIGN_HEIGHT: float = 25.0
-## Distância (m) do pórtico até a quina do quarteirão, para dentro do cruzamento.
-const GATE_SETBACK: float = 2.0
+## Altura da placa flutuante com o nome do bairro (por cima da rua, na frente
+## do bairro; na altura do olhar ficam os pórticos).
+const DISTRICT_SIGN_HEIGHT: float = 17.0
+const DISTRICT_SIGN_TEXT_HEIGHT: float = 1.8
+## Distância (m) da quina do quarteirão até o pórtico, andando pela rua do
+## próprio quarteirão (fica antes do cruzamento, longe do pórtico vizinho).
+const GATE_SETBACK: float = 3.5
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -66,6 +67,8 @@ var _environment: Environment
 ## Tocar a abertura pelo céu? (Nos testes sem janela, pula direto.)
 var play_intro: bool = DisplayServer.get_name() != "headless"
 var _is_ready: bool = false
+## Lugares (x, z) que já têm pórtico.
+var _gate_spots: Dictionary[Vector2, bool] = {}
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
 ## Placas dos bairros: o néon fica mais forte à noite.
@@ -251,16 +254,32 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 ## Pórtico do bairro: por cima da rua das portas do quarteirão (a do lado da
 ## praça), na ponta mais perto do centro. Quem vem da praça passa por baixo.
 func _build_gate(cell: Vector2i, category_id: String) -> void:
+	var sx := _toward_center(cell.x)
+	var center_x := CityLayout.block_center(cell).x
+	# Um pouco antes da quina, sobre a rua do quarteirão: os pilares não
+	# batem no poste da esquina e cada bairro tem o seu trecho de rua.
+	var reach := CityLayout.BLOCK_SIZE / 2.0 - GATE_SETBACK
+	# Lugares possíveis, do melhor para o pior: rua das portas do lado da praça
+	# (ponta perto do centro, depois a outra ponta) e a rua das portas do
+	# outro lado. Quarteirões vizinhos podem disputar a mesma esquina.
+	var candidates: Array[Vector2] = [
+		Vector2(center_x + sx * reach, _door_street_z(cell)),
+		Vector2(center_x - sx * reach, _door_street_z(cell)),
+		Vector2(center_x + sx * reach, _door_street_z(cell, true)),
+	]
+	var spot := Vector2.INF
+	for candidate in candidates:
+		if not _gate_spots.has(candidate):
+			spot = candidate
+			break
+	if spot == Vector2.INF:
+		return
+	_gate_spots[spot] = true
 	var gate := DistrictGate.new()
 	gate.name = "DistrictGate_%s" % category_id
 	gate.setup(GameCategories.get_category_name(category_id).to_upper(),
 			GameCategories.get_neon_color(category_id), CityLayout.STREET_WIDTH / 2.0 + 0.3)
-	var street_z := _door_street_z(cell)
-	var sx := _toward_center(cell.x)
-	# Um pouco para dentro do cruzamento, para os pilares não baterem no poste
-	# da esquina (nem taparem a placa de rua).
-	var edge_x := CityLayout.block_center(cell).x + sx * (CityLayout.BLOCK_SIZE / 2.0 + GATE_SETBACK)
-	gate.position = Vector3(edge_x, 0.0, street_z)
+	gate.position = Vector3(spot.x, 0.0, spot.y)
 	gate.rotation.y = PI / 2.0  # a rua corre de leste a oeste: passa-se por baixo no eixo X
 	add_child(gate)
 
@@ -284,11 +303,12 @@ func _build_street_sign(cell: Vector2i, category_id: String) -> void:
 
 
 ## A rua das portas de um quarteirão mais perto do centro (as portas olham
-## para norte e para sul; empate: a do norte).
-func _door_street_z(cell: Vector2i) -> float:
+## para norte e para sul; empate: a do norte). far = true: a outra.
+func _door_street_z(cell: Vector2i, far: bool = false) -> float:
 	var north := (cell.y - 0.5) * CityLayout.BLOCK_PITCH
 	var south := (cell.y + 0.5) * CityLayout.BLOCK_PITCH
-	return north if absf(north) <= absf(south) else south
+	var near_north := absf(north) <= absf(south)
+	return north if near_north != far else south
 
 
 ## Para que lado (-1 ou +1) fica o centro da cidade nesse eixo (0 = oeste).
@@ -311,8 +331,15 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	var district_sign := DistrictSign.new()
 	district_sign.name = "DistrictSign_%s" % category_id
 	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
-			GameCategories.get_neon_color(category_id))
-	district_sign.position = center + Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
+			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
+	# Por cima da rua ao lado do quarteirão, do lado da praça: nenhum prédio
+	# fica na frente nem atravessa a placa, qualquer que seja a altura dele.
+	# Quarteirões nas diagonais usam a rua norte-sul (senão três letreiros
+	# dividiriam a mesma rua e se encostariam).
+	var toward_plaza := Vector3(0.0, 0.0, _toward_center(cell.y)) if cell.x == 0 \
+			else Vector3(_toward_center(cell.x), 0.0, 0.0)
+	district_sign.position = center + toward_plaza * (CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0) \
+			+ Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
 	add_child(district_sign)
 	_district_signs.append(district_sign)
 	_build_street_sign(cell, category_id)
@@ -328,17 +355,17 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 
 
 func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> void:
-	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio.
-	var rng := RandomNumberGenerator.new()
-	rng.seed = game.app_id
+	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio
+	# (andares, recuo, janelas etc.: veja BuildingVariant).
+	var variant := BuildingVariant.from_app_id(game.app_id)
 	var category_color := GameCategories.get_category_color(category_id)
 
 	var building := CityBuilding.new()
 	building.name = "Building_%d" % game.app_id
 	building.game = game
 	building.category_id = category_id
-	building.size = Vector3(BUILDING_FOOTPRINT,
-			rng.randf_range(BUILDING_MIN_HEIGHT, BUILDING_MAX_HEIGHT), BUILDING_FOOTPRINT)
+	building.variant = variant
+	building.size = Vector3(BUILDING_FOOTPRINT, variant.body_height(), BUILDING_FOOTPRINT)
 	building.accent_color = category_color
 	building.transform = lot
 	add_child(building)

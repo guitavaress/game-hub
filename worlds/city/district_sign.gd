@@ -24,11 +24,12 @@ var _strip_material: StandardMaterial3D
 var _neon: Color = Color.WHITE
 
 
-func setup(text: String, neon: Color) -> void:
+## "text_height": altura das letras (m); a placa acompanha na mesma proporção.
+func setup(text: String, neon: Color, text_height: float = TEXT_HEIGHT) -> void:
 	_neon = neon
-	var pixel_size := TEXT_HEIGHT / FONT_SIZE
+	var pixel_size := text_height / FONT_SIZE
 	var text_width := HubFonts.SIGN.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x * pixel_size
-	var plate_size := Vector3(text_width * PLATE_WIDTH_FACTOR, PLATE_HEIGHT, PLATE_DEPTH)
+	var plate_size := Vector3(text_width * PLATE_WIDTH_FACTOR, PLATE_HEIGHT * text_height / TEXT_HEIGHT, PLATE_DEPTH)
 
 	var plate := MeshInstance3D.new()
 	var box := BoxMesh.new()

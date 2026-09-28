@@ -64,6 +64,9 @@ var size: Vector3 = Vector3(10.0, 14.0, 10.0)
 var accent_color: Color = Color.GRAY
 ## Categoria do jogo (define o som ambiente da porta).
 var category_id: String = ""
+## Andares, recuo, platibanda, marquise, janelas e telhado (sorteados pelo
+## App ID). Se ficar vazio, é sorteado no _ready.
+var variant: BuildingVariant
 
 var _poster: MeshInstance3D
 var _poster_frame: MeshInstance3D
@@ -80,7 +83,11 @@ var _hero_mode: bool = false
 func _ready() -> void:
 	# O relógio da cidade (DayNight) acende as janelas de todo mundo nesse grupo.
 	add_to_group("city_night")
+	if variant == null:
+		variant = BuildingVariant.from_app_id(game.app_id)
 	_build_body()
+	# Recuo, platibanda, marquise e telhado (o que o sorteio deste jogo pedir).
+	variant.build(self, size, _walls_material, _make_metal_material(), neon_color())
 	_build_door_decoration()
 	_build_sign()
 	_build_poster()
@@ -293,11 +300,15 @@ func _build_portal() -> void:
 ## forte e o logo brilha um pouco.
 func set_night(night: float) -> void:
 	var smooth_night := smoothstep(0.15, 0.85, night)
-	_walls_material.set_shader_parameter("night", smooth_night)
 	# Janelas: começam a acender às 17h30 (night > 0) e estão todas acesas às
-	# 18h30, uma a uma (de manhã, apagam no caminho contrário).
+	# 18h30, uma a uma (de manhã, apagam no caminho contrário). Vale para o
+	# corpo e para o recuo (se houver).
 	var all_on := DayNight.night_amount(WINDOWS_ALL_ON_HOUR)
-	_walls_material.set_shader_parameter("windows_on", clampf(night / all_on, 0.0, 1.0))
+	for walls in [_walls_material, variant.top_walls_material]:
+		if walls != null:
+			walls.set_shader_parameter("night", smooth_night)
+			walls.set_shader_parameter("windows_on", clampf(night / all_on, 0.0, 1.0))
+	variant.set_night(night)
 	# Néon: mesma regra das fachadas e dos letreiros (0,15 de dia, 3,2 à noite).
 	if _door_neon_material != null:
 		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(smooth_night)
@@ -335,6 +346,7 @@ func _make_walls_material() -> ShaderMaterial:
 	_walls_material.set_shader_parameter("neon_color", neon_color())
 	_walls_material.set_shader_parameter("building_height", size.y)
 	_walls_material.set_shader_parameter("seed", float(game.app_id % 997))
+	_walls_material.set_shader_parameter("window_fraction", variant.window_fraction())
 	return _walls_material
 
 
