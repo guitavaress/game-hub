@@ -1,3 +1,7 @@
 Céus HDRI da Poly Haven (https://polyhaven.com), licença CC0 1.0 (domínio público).
 Usados (2K): kloofendal_48d_partly_cloudy_puresky (dia), qwantani_dusk_2_puresky (pôr do sol),
 rogland_clear_night (noite).
+
+Árvore: jacaranda_tree (Poly Haven, CC0). O modelo (glTF, ~215 MB) NÃO fica no
+projeto: foi só fotografado em 8 ângulos por tools/make_tree_impostor.gd, e as
+fotos estão em assets/generated/tree_impostor.png (árvores "impostoras").

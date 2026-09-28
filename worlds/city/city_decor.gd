@@ -3,10 +3,10 @@ extends RefCounted
 ## Decoração da cidade: calçadas, faixas das ruas, postes, praças de bolso,
 ## floreiras e o chafariz. Só visual (e um pouco de colisão); nada de lógica.
 ##
-## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Plantas: só
-## arbustos BAIXOS (Kenney Nature Kit, CC0, recoloridos num verde escuro) em
-## floreiras de concreto: abaixo de 1 m o "low-poly" não aparece. As árvores
-## altas saíram (pareciam de brinquedo); voltam como "impostoras" no P2.
+## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Plantas: nas
+## floreiras de concreto, uma árvore "impostora" (a foto de uma jacarandá de
+## verdade, veja TreeImpostor) e arbustos baixos (Kenney Nature Kit, CC0,
+## recoloridos num verde escuro; abaixo de 1 m o "low-poly" não aparece).
 ## Uso:  CityDecor.add_park(self, lote)  — cada função acrescenta nós ao "parent".
 
 const AMBIENTCG: String = "res://assets/ambientcg/"
@@ -20,6 +20,8 @@ const BUSH: PackedScene = preload("res://assets/kenney/nature-kit/plant_bushLarg
 
 ## O arbusto da Nature Kit é pequeno (~0,3): esta escala deixa ele com ~0,7 m.
 const BUSH_SCALE: float = 2.2
+## Altura das árvores das floreiras (sorteada entre os dois valores, em metros).
+const TREE_HEIGHT_RANGE: Vector2 = Vector2(5.0, 6.5)
 ## Onde ficam os arbustos dentro da floreira (a partir do centro, em metros).
 const PLANTER_BUSH_SPOTS: Array[Vector2] = [Vector2(-0.4, -0.35), Vector2(0.42, -0.2), Vector2(-0.05, 0.42)]
 
@@ -130,7 +132,8 @@ static func add_park(parent: Node3D, lot: Transform3D) -> void:
 				Vector3(side * 1.2, 0.0, 0.0)))
 
 
-## Floreira de concreto (com colisão) com três arbustos baixos dentro.
+## Floreira de concreto (com colisão) com uma árvore (impostora: só uma foto,
+## veja TreeImpostor) e três arbustos baixos em volta.
 static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator) -> void:
 	var planter := CSGBox3D.new()
 	planter.size = Vector3(1.8, 0.55, 1.8)
@@ -142,6 +145,11 @@ static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerato
 	for spot in PLANTER_BUSH_SPOTS:
 		add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
 				BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
+	var tree := TreeImpostor.new()
+	tree.height = rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
+	tree.position = base + Vector3(0.0, 0.5, 0.0)
+	tree.rotation.y = rng.randf() * TAU  # cada árvore mostra outro lado
+	parent.add_child(tree)
 
 
 ## Banco simples: base de concreto e assento de madeira escura.
