@@ -111,6 +111,8 @@ func _physics_process(delta: float) -> void:
 
 	# Direção pedida pelo teclado, convertida para "para onde o jogador está virado".
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if input_dir != Vector2.ZERO:
+		_hud.on_player_moved()  # o aviso de volta do jogo pode sair
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	var speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
 	var target_velocity := direction * speed

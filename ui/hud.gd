@@ -24,6 +24,8 @@ const DETAIL_COLOR: Color = Color("B8BFCC")
 const FRIENDS_COLOR: Color = Color("5FE3A1")
 const RING_SIZE: float = 12.0
 const MAX_TOASTS: int = 3
+## O aviso de volta do jogo fica pelo menos isto (s) antes de sumir ao andar.
+const SESSION_MIN_SECONDS: float = 1.5
 const TOASTS_TOP: float = 12.0
 const TOASTS_GAP: int = 8
 
@@ -133,9 +135,10 @@ func get_look_text() -> String:
 
 ## Mostra um aviso no topo: "title" (o que houve) e "text" (o que fazer).
 ## "seconds" < 0 usa o tempo do tipo (info 6 s, erro 10 s, sessão 5 s).
+## "overline" é um rótulo pequeno opcional acima do título.
 ## Um aviso igual a outro que já está na tela é ignorado.
 func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kind.INFO,
-		seconds: float = -1.0) -> void:
+		seconds: float = -1.0, overline: String = "") -> void:
 	if title.is_empty():
 		return
 	var showing := _visible_toasts()
@@ -146,7 +149,7 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 	for i in showing.size() - MAX_TOASTS + 1:
 		showing[i].close()
 
-	_toasts.add_child(Toast.create(title, text, kind, seconds))
+	_toasts.add_child(Toast.create(title, text, kind, seconds, overline))
 	match kind:
 		Toast.Kind.ERROR:
 			_play_sound(ERROR_SOUND)
@@ -193,9 +196,50 @@ func _visible_toasts() -> Array[Toast]:
 	return result
 
 
-func _on_session_ended(_app_id: int, _source: Node, success: bool, message: String) -> void:
+func _on_session_ended(app_id: int, _source: Node, success: bool, message: String) -> void:
 	if not success and not message.is_empty():
 		show_report(message, Toast.Kind.ERROR)
+	elif success and not HubWindow.is_sleeping:
+		# Voltou de um jogo (na troca direta de jogo o hub continua dormindo).
+		_show_session_summary(app_id)
+
+
+## Aviso verde da volta: "BEM-VINDO DE VOLTA · 1 h 12 min de Balatro ·
+## 24 h no total · Bruno ainda está jogando".
+func _show_session_summary(app_id: int) -> void:
+	var session := GameLauncher.get_last_session()
+	if int(session.get("app_id", 0)) != app_id or float(session.get("seconds", 0.0)) <= 0.0:
+		return
+	var minutes := maxi(1, roundi(float(session["seconds"]) / 60.0))
+	var title := "%s de %s" % [format_duration(minutes), SteamLibrary.get_game_name(app_id)]
+	# A Steam às vezes demora para gravar o total novo: no mínimo, o de antes
+	# mais esta sessão.
+	var total := maxi(SteamLibrary.get_playtime_minutes(app_id), int(session.get("playtime_before", 0)) + minutes)
+	var parts := PackedStringArray(["%s no total" % format_duration(total, true)])
+	var friends := FriendsService.get_friends_playing(app_id)
+	if not friends.is_empty():
+		parts.append(SteamFriend.join_names(friends)
+				+ (" ainda estão jogando" if friends.size() > 1 else " ainda está jogando"))
+	show_message(title, " · ".join(parts), Toast.Kind.SESSION, -1.0, "BEM-VINDO DE VOLTA")
+
+
+## "12 min", "1 h 12 min", "2 h" (only_hours: "24 h" a partir de 1 hora).
+static func format_duration(minutes: int, only_hours: bool = false) -> String:
+	if minutes < 60:
+		return "%d min" % minutes
+	var hours := floori(minutes / 60.0)
+	var rest := minutes - hours * 60
+	if only_hours or rest == 0:
+		return "%d h" % hours
+	return "%d h %d min" % [hours, rest]
+
+
+## O jogador começou a andar: o aviso de volta do jogo já cumpriu o papel e
+## sai (se já ficou pelo menos um pouco na tela).
+func on_player_moved() -> void:
+	for toast in _visible_toasts():
+		if toast.kind == Toast.Kind.SESSION and toast.get_age() > SESSION_MIN_SECONDS:
+			toast.close()
 
 
 func _play_sound(stream: AudioStream) -> void:

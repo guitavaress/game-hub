@@ -30,7 +30,7 @@ extends Node3D
 ## Ao sair da porta antes da hora, a tela clareia X vezes mais rápido do que escureceu.
 const CANCEL_SPEED: float = 3.0
 ## Segundos para a tela clarear quando o jogador volta do jogo.
-const RETURN_FADE_TIME: float = 1.0
+const RETURN_FADE_TIME: float = 0.8
 ## Distância entre amigos lado a lado, e quantos cabem por fileira.
 const FRIEND_SPACING: float = 1.5
 const FRIENDS_PER_ROW: int = 6

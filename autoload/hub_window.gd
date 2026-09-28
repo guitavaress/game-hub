@@ -26,7 +26,7 @@ const COVERED_MAX_FPS: int = 30
 ## Depois de acordar, esperamos isso (s) e, se o Windows não tiver deixado o hub
 ## vir para a frente, piscamos o ícone na barra de tarefas.
 const FOCUS_CHECK_DELAY: float = 0.6
-const WAKE_FADE_TIME: float = 1.0
+const WAKE_FADE_TIME: float = 0.8
 
 var is_sleeping: bool = false
 

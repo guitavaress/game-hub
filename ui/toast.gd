@@ -1,7 +1,8 @@
 class_name Toast
 extends Control
 ## Um AVISO do HUD: painel escuro com uma barrinha colorida à esquerda, um
-## título (o que houve) e uma frase (o que fazer). Some sozinho.
+## título (o que houve) e uma frase (o que fazer). Some sozinho. Pode ter um
+## rótulo pequeno acima do título ("BEM-VINDO DE VOLTA").
 ##
 ##   Tipos:  INFO    amarelo, 6 s
 ##           ERROR   vermelho, 10 s
@@ -9,7 +10,7 @@ extends Control
 ##
 ## Entra descendo 12 px e aparecendo em 0,2 s; sai sumindo em 0,2 s.
 ## Quem empilha os avisos é o HUD (um VBoxContainer no topo da tela).
-## Montado por código: Toast (vaga na pilha) › PanelContainer › VBox › 2 Labels.
+## Montado por código: Toast (vaga na pilha) › PanelContainer › VBox › Labels.
 
 ## Avisou que saiu da tela (já pode ser apagado).
 signal closed
@@ -36,20 +37,29 @@ const SLIDE_PIXELS: float = 12.0
 var kind: Kind = Kind.INFO
 var title: String = ""
 var text: String = ""
+## Rótulo pequeno opcional acima do título (ex.: "BEM-VINDO DE VOLTA").
+var overline: String = ""
 
 var _panel: PanelContainer
 var _closing: bool = false
+var _shown_ms: int = 0
 
 
 ## Cria um aviso. "seconds" < 0 usa o tempo padrão do tipo.
 static func create(toast_title: String, toast_text: String, toast_kind: Kind = Kind.INFO,
-		seconds: float = -1.0) -> Toast:
+		seconds: float = -1.0, toast_overline: String = "") -> Toast:
 	var toast := Toast.new()
 	toast.title = toast_title
 	toast.text = toast_text
 	toast.kind = toast_kind
+	toast.overline = toast_overline
 	toast.set_meta("seconds", seconds if seconds > 0.0 else SECONDS[toast_kind])
 	return toast
+
+
+## Há quantos segundos o aviso está na tela.
+func get_age() -> float:
+	return (Time.get_ticks_msec() - _shown_ms) / 1000.0
 
 
 func _ready() -> void:
@@ -64,7 +74,15 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(column)
-	column.add_child(_make_label(title, HubFonts.TEXT, 18, TITLE_COLOR))
+	_shown_ms = Time.get_ticks_msec()
+	if not overline.is_empty():
+		# Rótulo: Barlow Condensed com 2 px a mais entre as letras, na cor do tipo.
+		var spaced := FontVariation.new()
+		spaced.base_font = HubFonts.SIGN
+		spaced.spacing_glyph = 2
+		column.add_child(_make_label(overline, spaced, 14, ACCENTS[kind]))
+	# Sessão: o título (a duração) é um pouco maior.
+	column.add_child(_make_label(title, HubFonts.TEXT, 20 if kind == Kind.SESSION else 18, TITLE_COLOR))
 	if not text.is_empty():
 		column.add_child(_make_label(text, HubFonts.LIGHT, 15, TEXT_COLOR))
 

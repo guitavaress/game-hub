@@ -83,6 +83,10 @@ var _poll_timer: Timer
 var _poll_task: int = -1
 ## Número da sessão atual: um "minimizar depois" de uma sessão velha não vale.
 var _session_number: int = 0
+## Minutos jogados (segundo a Steam) quando o jogo atual começou.
+var _playtime_at_start: int = 0
+## Resumo da última sessão que acabou (veja get_last_session).
+var _last_session: Dictionary = {}
 
 
 func _ready() -> void:
@@ -114,6 +118,18 @@ func get_session_seconds() -> float:
 ## O jogo atual foi aberto por fora do hub (pela Steam, ou trocado lá dentro)?
 func is_external_session() -> bool:
 	return state == State.RUNNING and _external
+
+
+## A última sessão que acabou: {"app_id", "seconds" (tempo jogado agora; 0 se
+## o jogo nem chegou a rodar) e "playtime_before" (minutos que a Steam tinha
+## antes)}. O HUD usa no aviso "Bem-vindo de volta".
+func get_last_session() -> Dictionary:
+	return _last_session
+
+
+func _remember_session(app_id: int) -> void:
+	var seconds := _seconds_since(_running_since_ms) if state == State.RUNNING else 0.0
+	_last_session = {"app_id": app_id, "seconds": seconds, "playtime_before": _playtime_at_start}
 
 
 ## Pede para abrir o jogo. Devolve true se o pedido foi feito.
@@ -205,6 +221,7 @@ func _apply_state(steam: Dictionary) -> void:
 		State.LAUNCHING:
 			if running_app_id == _app_id or steam.get("app_running", false):
 				_running_since_ms = Time.get_ticks_msec()
+				_playtime_at_start = SteamLibrary.get_playtime_minutes(_app_id)
 				_set_state(State.RUNNING)
 				HubWindow.minimize_now()  # o jogo apareceu: agora sim, minimiza
 				game_started.emit(_app_id, _get_source())
@@ -242,6 +259,7 @@ func _begin_external_session(app_id: int) -> void:
 	_source = null
 	_external = true
 	_running_since_ms = Time.get_ticks_msec()
+	_playtime_at_start = SteamLibrary.get_playtime_minutes(app_id)
 	_set_state(State.RUNNING)
 	# Mostra rapidinho "abriu pela Steam" e depois minimiza.
 	HubWindow.sleep(false)
@@ -252,17 +270,20 @@ func _begin_external_session(app_id: int) -> void:
 ## Fechou um jogo e abriu outro direto: encerra a sessão do primeiro, mas o hub
 ## continua dormindo e passa a acompanhar o segundo (como sessão externa).
 func _switch_to_game(new_app_id: int) -> void:
+	_remember_session(_app_id)
 	session_ended.emit(_app_id, _get_source(), true, "")
 	_app_id = new_app_id
 	_source = null
 	_external = true
 	_running_since_ms = Time.get_ticks_msec()
+	_playtime_at_start = SteamLibrary.get_playtime_minutes(new_app_id)
 	game_started.emit(new_app_id, null)
 
 
 func _end_session(success: bool, message: String) -> void:
 	var app_id := _app_id
 	var source := _get_source()
+	_remember_session(app_id)
 	_app_id = 0
 	_source = null
 	_external = false
