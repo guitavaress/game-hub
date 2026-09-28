@@ -34,9 +34,21 @@ const PORTRAIT_ASPECT: float = 600.0 / 900.0
 ## como um outdoor. Com ele, o logo aparece uma vez só: sobre a porta.
 const HERO_SIZE: Vector2 = Vector2(9.0, 9.0 * 620.0 / 1920.0)
 const HERO_TOP_MARGIN: float = 0.9
-const DARK_METAL: Color = Color(0.07, 0.075, 0.08)
+## Metal escuro das molduras e do painel da capa.
+const DARK_METAL: Color = Color("1A1D22")
 ## Hora em que todas as janelas sorteadas já estão acesas.
 const WINDOWS_ALL_ON_HOUR: float = 18.5
+## Térreo: concreto escuro (#3A3D43 depois da tinta).
+const BASE_FOLDER: String = "Concrete048"
+const BASE_TINT: Color = Color(0.37, 0.41, 0.51)
+## Tons de vidro sorteados por prédio: neutro, azulado e bronze.
+const GLASS_COLORS: Array[Color] = [Color("0D1217"), Color("0E1822"), Color("17130E")]
+## Variação de brilho da parede entre prédios (+-6%).
+const WALL_BRIGHTNESS_VARIATION: float = 0.06
+## Painel de luz da porta: cor do bairro embaixo, quase branco no alto.
+const DOOR_GLOW_ENERGY: float = 1.8
+const DOOR_GLOW_TOP_WHITE: float = 0.45
+const DOOR_GLOW_BOTTOM_DIM: float = 0.5
 
 ## Estilos de parede (materiais PBR da ambientCG): pasta, tamanho da repetição
 ## em metros e um tom. Cada jogo sorteia um (sempre o mesmo para o mesmo jogo).
@@ -115,13 +127,14 @@ func _build_body() -> void:
 
 
 func _build_door_decoration() -> void:
-	# "Porta" de luz no fundo do vão, na cor do bairro.
+	# "Porta" de luz no fundo do vão: degradê da cor do bairro (embaixo) até
+	# quase branco (no alto). Antes era uma cor só, e estourava em branco.
 	var door_glow := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(DOOR_WIDTH, DOOR_HEIGHT)
 	door_glow.mesh = quad
 	door_glow.position = Vector3(0.0, DOOR_HEIGHT / 2.0, _front_z() - DOOR_DEPTH + 0.01)
-	door_glow.material_override = _make_glow_material(neon_color().lerp(Color.WHITE, 0.35), 1.6)
+	door_glow.material_override = _make_door_glow_material()
 	add_child(door_glow)
 
 	# Moldura de metal escuro, com um filete de néon por dentro.
@@ -305,9 +318,18 @@ func _make_walls_material() -> ShaderMaterial:
 	_walls_material.set_shader_parameter("wall_normal", textures["normal"])
 	_walls_material.set_shader_parameter("wall_roughness", textures["roughness"])
 	_walls_material.set_shader_parameter("texture_size", style["meters"])
-	# Um toque da cor do bairro na parede (bem de leve).
+	# Um toque da cor do bairro na parede (bem de leve) e um brilho um pouco
+	# diferente em cada prédio, para a rua não parecer "copiada e colada".
 	var tint: Color = (style["tint"] as Color).lerp(accent_color, 0.1)
-	_walls_material.set_shader_parameter("wall_tint", tint)
+	var brightness := 1.0 + rng.randf_range(-WALL_BRIGHTNESS_VARIATION, WALL_BRIGHTNESS_VARIATION)
+	_walls_material.set_shader_parameter("wall_tint", Color(tint.r * brightness, tint.g * brightness, tint.b * brightness))
+	# Térreo em concreto escuro e o tom do vidro deste prédio.
+	var base := CityDecor.pbr_textures(BASE_FOLDER)
+	_walls_material.set_shader_parameter("base_albedo", base["albedo"])
+	_walls_material.set_shader_parameter("base_normal", base["normal"])
+	_walls_material.set_shader_parameter("base_roughness", base["roughness"])
+	_walls_material.set_shader_parameter("base_tint", BASE_TINT)
+	_walls_material.set_shader_parameter("glass_color", GLASS_COLORS[rng.randi_range(0, GLASS_COLORS.size() - 1)])
 	_walls_material.set_shader_parameter("neon_color", neon_color())
 	_walls_material.set_shader_parameter("building_height", size.y)
 	_walls_material.set_shader_parameter("seed", float(game.app_id % 997))
@@ -335,6 +357,28 @@ func _make_metal_material() -> StandardMaterial3D:
 	material.albedo_color = DARK_METAL
 	material.metallic = 0.8
 	material.roughness = 0.35
+	return material
+
+
+## Painel de luz da porta: textura de degradê vertical (a cor e a luz vêm dela),
+## desenhada pixel a pixel (1 x 64): quase branco no alto, cor do bairro embaixo.
+func _make_door_glow_material() -> StandardMaterial3D:
+	var top := neon_color().lerp(Color.WHITE, DOOR_GLOW_TOP_WHITE)
+	var bottom := neon_color().darkened(1.0 - DOOR_GLOW_BOTTOM_DIM)
+	var image := Image.create(1, 64, false, Image.FORMAT_RGB8)
+	for y in 64:
+		image.set_pixel(0, y, top.lerp(bottom, y / 63.0))  # y = 0 é o alto do painel
+	# Superfície preta: toda a cor vem da emissão. (Se a superfície também
+	# recebesse o sol, somaria com a luz própria e o painel estouraria.)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color.BLACK
+	material.emission_enabled = true
+	material.emission = Color.WHITE
+	material.emission_texture = ImageTexture.create_from_image(image)
+	# MULTIPLY: cor x textura. (O padrão, ADD, SOMA o branco à textura e o
+	# painel fica branco de qualquer jeito.)
+	material.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+	material.emission_energy_multiplier = DOOR_GLOW_ENERGY
 	return material
 
 

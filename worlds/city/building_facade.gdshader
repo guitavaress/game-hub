@@ -2,9 +2,13 @@
 // vidro + faixas de néon na cor do bairro. Tudo calculado aqui, pela posição
 // no mundo: o prédio (uma caixa CSG) não precisa de coordenadas de textura.
 //
-//   - Paredes: textura de concreto/tijolo repetida a cada "texture_size" metros.
+//   - Paredes: textura de concreto/tijolo repetida a cada "texture_size" metros,
+//     com um "macro-ruído" de 8 m que quebra a repetição.
+//   - Térreo: faixa de concreto escuro do chão até "ground_floor_height" (é o
+//     que separa "caixa" de "edifício").
 //   - Janelas: uma grade de "window_cell" metros; o vidro reflete o céu.
-//     À noite ("night" = 1), parte delas acende (sorteio fixo por janela).
+//     À noite, parte delas acende (sorteio fixo por janela), uma a uma: luz com
+//     degradê (mais clara no alto), algumas com cortina, em 3 temperaturas.
 //   - Néon: uma faixa no topo do prédio e outra acima do térreo (loja).
 shader_type spatial;
 
@@ -15,10 +19,18 @@ uniform vec3 wall_tint : source_color = vec3(1.0);
 // Tamanho, em metros, de uma repetição da textura da parede.
 uniform float texture_size = 3.0;
 
+// Térreo: outra textura (concreto), tingida de escuro.
+uniform sampler2D base_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D base_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D base_roughness : hint_roughness_g, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform vec3 base_tint : source_color = vec3(0.37, 0.41, 0.51);
+uniform float base_texture_size = 3.0;
+
 // Janelas: tamanho da "célula" (largura, altura) e a parte dela que é vidro.
 uniform vec2 window_cell = vec2(3.0, 3.5);
 uniform vec2 window_fraction = vec2(0.5, 0.56);
-uniform vec3 glass_color : source_color = vec3(0.05, 0.07, 0.09);
+// Tom do vidro (cada prédio sorteia um: neutro, azulado ou bronze).
+uniform vec3 glass_color : source_color = vec3(0.051, 0.071, 0.09);
 // Altura do térreo (sem janelas: fica a porta e a vitrine) e do prédio.
 uniform float ground_floor_height = 3.6;
 uniform float building_height = 15.0;
@@ -30,14 +42,22 @@ uniform float night = 0.0;
 // Janelas: 0 = todas apagadas, 1 = todas as sorteadas acesas (vão acendendo
 // uma a uma no caminho).
 uniform float windows_on = 0.0;
-uniform vec3 window_light : source_color = vec3(1.0, 0.78, 0.5);
-uniform float lit_fraction = 0.45;
+// Parte das janelas que acende à noite, e a força da luz delas.
+uniform float lit_fraction = 0.3;
+uniform float window_energy = 0.9;
+// As três temperaturas de luz das janelas: quente, neutra e fria.
+uniform vec3 warm_light : source_color = vec3(1.0, 0.78, 0.5);    // #FFC780
+uniform vec3 soft_light : source_color = vec3(1.0, 0.89, 0.72);   // #FFE3B8
+uniform vec3 cool_light : source_color = vec3(0.81, 0.89, 1.0);   // #CFE3FF
 
 // Néon na cor do bairro. De dia é quase só tinta (emissão 0,15); à noite,
 // 3,2 (o glow faz o halo). Mesmos valores de CityDecor.NEON_DAY/NEON_NIGHT.
 uniform vec3 neon_color : source_color = vec3(0.2, 0.8, 1.0);
 const float NEON_DAY = 0.15;
 const float NEON_NIGHT = 3.2;
+// Tamanho (m) das manchas do macro-ruído e quanto ele clareia/escurece.
+const float MACRO_SIZE = 8.0;
+const float MACRO_STRENGTH = 0.1;
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -52,22 +72,45 @@ float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
+// Ruído suave (0 a 1): "manchas" grandes que variam devagar.
+float value_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+			mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
 void fragment() {
 	vec3 n = normalize(world_normal);
 	bool is_wall = abs(n.y) < 0.5;
 	// Coordenada "na parede": horizontal (x ou z, conforme a face) e altura.
 	float across = abs(n.x) > abs(n.z) ? world_position.z : world_position.x;
 	vec2 wall_uv = is_wall ? vec2(across, -world_position.y) : world_position.xz;
-	vec2 texture_uv = wall_uv / texture_size;
+	float height = world_position.y;
+	bool is_base = is_wall && height < ground_floor_height;
 
-	vec3 albedo = texture(wall_albedo, texture_uv).rgb * wall_tint;
-	float roughness = texture(wall_roughness, texture_uv).g;
-	vec3 normal_map = texture(wall_normal, texture_uv).rgb;
+	vec3 albedo;
+	float roughness;
+	vec3 normal_map;
+	if (is_base) {
+		vec2 base_uv = wall_uv / base_texture_size;
+		albedo = texture(base_albedo, base_uv).rgb * base_tint;
+		roughness = texture(base_roughness, base_uv).g;
+		normal_map = texture(base_normal, base_uv).rgb;
+	} else {
+		vec2 texture_uv = wall_uv / texture_size;
+		albedo = texture(wall_albedo, texture_uv).rgb * wall_tint;
+		roughness = texture(wall_roughness, texture_uv).g;
+		normal_map = texture(wall_normal, texture_uv).rgb;
+	}
+	// Macro-ruído: a repetição da textura some no meio das manchas.
+	vec2 macro_offset = vec2(fract(seed * 0.618), fract(seed * 0.382)) * 10.0;
+	albedo *= mix(1.0 - MACRO_STRENGTH, 1.0 + MACRO_STRENGTH, value_noise(wall_uv / MACRO_SIZE + macro_offset));
 	float metallic = 0.0;
 	vec3 emission = vec3(0.0);
 
 	if (is_wall) {
-		float height = world_position.y;
 		// Faixas de néon: no topo e logo acima do térreo.
 		bool neon_top = height > building_height - 0.45 && height < building_height - 0.2;
 		bool neon_shop = height > ground_floor_height - 0.25 && height < ground_floor_height - 0.1;
@@ -99,9 +142,18 @@ void fragment() {
 				// (com windows_on = 0 nenhuma acende; com 1, todas as sorteadas)
 				float lit = step(draw, lit_fraction)
 						* smoothstep(turn_on, turn_on + 0.08, windows_on * 1.1);
-				// Luz da janela: umas mais quentes, outras mais frias.
-				vec3 light = mix(window_light, vec3(0.85, 0.82, 0.75), step(0.7, hash(cell.yx + seed)));
-				emission = light * lit * 1.3;
+				// Temperatura da luz: 45% quente, 40% neutra, 15% fria.
+				float pick = hash(cell.yx + seed);
+				vec3 light = pick < 0.45 ? warm_light : (pick < 0.85 ? soft_light : cool_light);
+				// Posição dentro do vidro (0 embaixo, 1 no alto).
+				float glass_y = (inside.y - margin.y) / window_fraction.y;
+				float gradient = mix(0.7, 1.15, glass_y);
+				// Cortina: em 60% das janelas, cobre o alto até 30-70% da altura
+				// (a luz passa mais fraca e mais quente pelo tecido).
+				float curtain_edge = mix(0.3, 0.7, hash(cell + vec2(seed * 0.3, 7.1)));
+				bool has_curtain = hash(cell + vec2(3.3, seed)) < 0.6;
+				vec3 curtain = (has_curtain && glass_y > curtain_edge) ? vec3(0.5, 0.42, 0.34) : vec3(1.0);
+				emission = light * curtain * gradient * lit * window_energy;
 			} else if (in_frame) {
 				albedo = vec3(0.08);
 				roughness = 0.4;

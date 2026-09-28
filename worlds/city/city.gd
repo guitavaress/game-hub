@@ -37,6 +37,9 @@ const SKY_NIGHT: Texture2D = preload("res://assets/polyhaven/hdri/rogland_clear_
 ## (ganho), e o brilho do sol fica em u = 0,607 da foto panorâmica.
 const SKY_SUNSET_GAIN: float = 0.27
 const SKY_SUNSET_GLOW_U: float = 0.607
+## Rugosidade do asfalto: seco de dia, "molhado" (reflete o néon) à noite.
+const ASPHALT_ROUGHNESS_DAY: float = 0.55
+const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
 
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
@@ -85,7 +88,7 @@ func _on_night_changed(night: float) -> void:
 	get_tree().call_group("city_night", "set_night", night)
 	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon.
 	if _asphalt != null:
-		_asphalt.roughness = lerpf(1.0, 0.35, night)
+		_asphalt.roughness = lerpf(ASPHALT_ROUGHNESS_DAY, ASPHALT_ROUGHNESS_NIGHT, night)
 	for district_sign in _district_signs:
 		district_sign.set_night(night)
 

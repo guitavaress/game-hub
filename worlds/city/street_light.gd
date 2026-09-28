@@ -13,7 +13,7 @@ const LIGHT_COLOR: Color = Color(1.0, 0.9, 0.76)
 const LIGHT_ENERGY: float = 14.0
 const LIGHT_RANGE: float = 12.0
 const LIGHT_ANGLE: float = 62.0  # graus
-const METAL_COLOR: Color = Color(0.09, 0.095, 0.1)
+const METAL_COLOR: Color = Color("1A1D22")
 
 var _light: SpotLight3D
 var _led_material: StandardMaterial3D
@@ -25,7 +25,7 @@ func _ready() -> void:
 
 	var metal := StandardMaterial3D.new()
 	metal.albedo_color = METAL_COLOR
-	metal.metallic = 0.85
+	metal.metallic = 0.8
 	metal.roughness = 0.35
 
 	# Haste (um pouco mais fina em cima).

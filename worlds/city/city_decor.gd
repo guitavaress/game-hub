@@ -35,6 +35,8 @@ const PLANT_COLORS: Dictionary[String, Color] = {
 }
 
 const SIDEWALK_WIDTH: float = 1.5
+## Largura da borda de pedra em volta do piso da praça.
+const PLAZA_BORDER: float = 1.0
 const GRASS_COLOR: Color = Color(0.12, 0.2, 0.12)
 const LANE_MARK_COLOR: Color = Color(0.85, 0.83, 0.76)
 const LANE_DASH_LENGTH: float = 2.5
@@ -170,7 +172,11 @@ static func add_bench(parent: Node3D, where: Transform3D) -> void:
 ## Praça: piso de pedra, chafariz de concreto com água, árvores e postes.
 static func add_plaza(parent: Node3D) -> void:
 	var size := CityLayout.BLOCK_SIZE
-	add_pad(parent, Vector3.ZERO, Vector2(size, size), pbr_material("Tiles141", 3.0, Color(0.6, 0.6, 0.59)), 0.04)
+	# Borda de 1 m em outra pedra, e o miolo com placas grandes (a textura
+	# repete a cada 4 m, o dobro da calçada: a repetição quase não aparece).
+	add_pad(parent, Vector3.ZERO, Vector2(size, size), pbr_material("Tiles141", 3.0, Color(0.5, 0.5, 0.49)), 0.04)
+	var inner := size - PLAZA_BORDER * 2.0
+	add_pad(parent, Vector3.ZERO, Vector2(inner, inner), pbr_material("Tiles139", 4.0, Color(0.6, 0.64, 0.72)), 0.045)
 
 	# Chafariz: uma bacia (cilindro MENOS um cilindro menor) com água dentro.
 	var basin := CSGCylinder3D.new()
