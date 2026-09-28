@@ -3,7 +3,7 @@ extends CharacterBody3D
 ## Jogador em primeira pessoa.
 ##
 ## - Mouse gira a visão; W/A/S/D anda; Espaço pula; Shift corre.
-## - Esc solta o mouse; clicar na janela prende de novo.
+## - Esc abre o menu de pausa (PauseMenu, que vem junto, como o HUD).
 ## - Um raio invisível (RayCast3D) sai da câmera. Se ele acertar algo que tenha
 ##   o método get_look_label(), o texto aparece no HUD. É um "contrato" simples:
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
@@ -61,6 +61,7 @@ const LAND_SOUND_MIN_SPEED: float = 4.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _current_look_text: String = ""
 var _current_look_info: Dictionary = {}
+var _pause_menu: PauseMenu
 
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
@@ -75,6 +76,9 @@ func _ready() -> void:
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# O menu de pausa (Esc) vem junto com o jogador, como o HUD.
+	_pause_menu = PauseMenu.new()
+	add_child(_pause_menu)
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -89,10 +93,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_head.rotate_x(-motion.relative.y * mouse_sensitivity)
 		var limit := deg_to_rad(MAX_PITCH_DEGREES)
 		_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
-	elif event.is_action_pressed("release_mouse"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventMouseButton and event.is_pressed() \
 			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		# O Esc agora abre o menu de pausa (que solta o mouse); um clique na
+		# janela prende o mouse de novo.
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -159,6 +163,10 @@ func _play_random(sound: AudioStreamPlayer, streams: Array[AudioStream]) -> void
 ## O HUD do jogador (para o mundo mostrar avisos, por exemplo).
 func get_hud() -> Hud:
 	return _hud
+
+
+func get_pause_menu() -> PauseMenu:
+	return _pause_menu
 
 
 ## Coloca o jogador num ponto e o vira para a "frente" (-Z) do transform dado.

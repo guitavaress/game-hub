@@ -48,10 +48,25 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_fullscreen") and not is_sleeping and _can_control_window():
-		var fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	if event.is_action_pressed("toggle_fullscreen") and not is_sleeping:
+		set_fullscreen(not is_fullscreen())
+
+
+func is_fullscreen() -> bool:
+	return DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+
+
+## Liga/desliga a tela cheia (F11 ou o menu de pausa).
+func set_fullscreen(fullscreen: bool) -> void:
+	if _can_control_window():
 		DisplayServer.window_set_mode(
-				DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
+				DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+
+
+## Fecha o hub (botão "Sair do hub" do menu de pausa), do mesmo jeito calmo
+## que o X da janela.
+func quit_hub() -> void:
+	_close_hub()
 
 
 func _notification(what: int) -> void:

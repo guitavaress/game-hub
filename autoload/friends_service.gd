@@ -1,7 +1,8 @@
 extends Node
 ## FriendsService: descobre quais amigos da Steam estão online e o que jogam (autoload).
 ##
-## Usa a Steam Web API com a chave do usuário (config.cfg, seção [steam]):
+## Usa a Steam Web API com a chave do usuário (menu Esc › Amigos, que grava no
+## config.cfg, seção [steam]):
 ##   - ISteamUser/GetFriendList: quem são os amigos (a cada 10 minutos);
 ##   - ISteamUser/GetPlayerSummaries: nome, status, jogo atual e avatar de cada
 ##     um (a cada 60 segundos, até 100 amigos por pedido).
@@ -78,19 +79,40 @@ func _start() -> void:
 		return
 	_api_key = AppConfig.get_web_api_key()
 	if _api_key.is_empty():
-		_report("Amigos desligados\nColoque a chave da Steam Web API no config.cfg.")
+		_report("Amigos desligados\nColoque a chave da Steam Web API em Esc › Amigos.")
 		return
 
 	_steam_id = AppConfig.get_steam_id_override()
 	if _steam_id.is_empty():
 		_steam_id = SteamLibrary.get_current_steam_id()
 	if not (_steam_id.length() == 17 and _steam_id.is_valid_int()):
-		_report("Amigos: não descobri seu SteamID\nAbra a Steam, ou escreva o steam_id no config.cfg.")
+		_report("Amigos: não descobri seu ID Steam\nAbra a Steam, ou escreva o ID em Esc › Amigos.")
 		return
 
 	_enabled = true
 	_timer.start()
 	refresh()
+
+
+## Recomeça do zero com as opções atuais (o menu de pausa chama depois de
+## salvar uma chave nova).
+func restart() -> void:
+	if not _pending_kind.is_empty():
+		_http.cancel_request()
+		_pending_kind = ""
+	_enabled = false
+	_timer.stop()
+	_problem = ""
+	_friend_ids = PackedStringArray()
+	_friend_list_ms = -1
+	_last_refresh_ms = -1
+	_summary_batches.clear()
+	_collected.clear()
+	var had_friends := not _friends.is_empty()
+	_friends.clear()
+	if had_friends:
+		friends_changed.emit()
+	_start()
 
 
 func is_enabled() -> bool:
@@ -182,7 +204,7 @@ func _on_request_completed(result: int, code: int, _headers: PackedStringArray, 
 			# "Retrying will not help": a chave está errada. Paramos até o hub reabrir.
 			_enabled = false
 			_timer.stop()
-			_report("Amigos: a chave da Steam Web API é inválida\nConfira a chave no config.cfg e abra o hub de novo.")
+			_report("Amigos: a chave da Steam Web API é inválida\nConfira e salve de novo em Esc › Amigos.")
 			return
 		429:
 			_report("Amigos: a Steam pediu para esperar um pouco\nMuitas consultas; tento de novo em 1 minuto.")

@@ -22,6 +22,9 @@ signal clock_advanced(hour: float)
 
 const UPDATE_INTERVAL: float = 1.0
 const HOURS_PER_F8: float = 3.0
+## Horas usadas quando a opção "Hora" é "dia" ou "noite" (menu de pausa).
+const FIXED_DAY_HOUR: float = 14.0
+const FIXED_NIGHT_HOUR: float = 22.0
 
 ## Os três "climas" do dia. Cada valor da cena é uma mistura dos três,
 ## com os mesmos pesos que misturam as fotos do céu.
@@ -71,6 +74,7 @@ func _ready() -> void:
 	timer.timeout.connect(update_now)
 	add_child(timer)
 	timer.start()
+	AppConfig.settings_changed.connect(_on_settings_changed)
 	update_now()
 
 
@@ -81,11 +85,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		clock_advanced.emit(current_hour())
 
 
-## Hora da cidade, de 0.0 a 24.0 (ex.: 18.5 = 18:30).
+## Hora da cidade, de 0.0 a 24.0 (ex.: 18.5 = 18:30). Segue o relógio do PC,
+## ou fica fixa de dia/de noite (menu de pausa, opção "Hora"); F8 soma horas.
 func current_hour() -> float:
-	var now := Time.get_time_dict_from_system()
-	var hour: float = now["hour"] + now["minute"] / 60.0 + now["second"] / 3600.0
+	var hour: float
+	match AppConfig.get_time_of_day():
+		"dia":
+			hour = FIXED_DAY_HOUR
+		"noite":
+			hour = FIXED_NIGHT_HOUR
+		_:
+			var now := Time.get_time_dict_from_system()
+			hour = now["hour"] + now["minute"] / 60.0 + now["second"] / 3600.0
 	return fposmod(hour + hour_offset, 24.0)
+
+
+func _on_settings_changed(section: String, key: String) -> void:
+	if section == "video" and key == "time_of_day":
+		hour_offset = 0.0  # trocou o modo: começa do zero (sem as horas do F8)
+		update_now()
 
 
 ## Quanto está de noite (0 a 1) na hora dada.

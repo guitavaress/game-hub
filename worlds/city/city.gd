@@ -45,6 +45,8 @@ const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
 var _plaza_friends: Array[FriendNpc] = []
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
+## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
+var _environment: Environment
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
 ## Placas dos bairros: o néon fica mais forte à noite.
@@ -82,6 +84,12 @@ func _ready() -> void:
 
 	ScreenFade.set_message("")
 	ScreenFade.fade_in(0.8)
+
+
+## Uma opção mudou no menu de pausa: a qualidade do 3D é da cidade.
+func _on_settings_changed(section: String, key: String) -> void:
+	if section == "video" and key == "quality" and _environment != null:
+		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
 
 
 func _on_night_changed(night: float) -> void:
@@ -219,6 +227,11 @@ func _build_environment() -> void:
 	env.ssr_enabled = true       # reflexos na tela: vidro e asfalto molhado
 	env.fog_enabled = true       # neblina leve (o DayNight ajusta a densidade)
 	env.fog_sky_affect = 0.15
+	# Qualidade escolhida no menu de pausa (Leve/Média/Alta) liga ou desliga
+	# os efeitos caros; troca na hora se o menu mudar.
+	_environment = env
+	GraphicsQuality.apply_to_environment(env, AppConfig.get_quality())
+	AppConfig.settings_changed.connect(_on_settings_changed)
 
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
