@@ -282,6 +282,13 @@ func get_poster_rect() -> Dictionary:
 	return {"center": _poster.position, "size": (_poster.mesh as QuadMesh).size}
 
 
+## Néon que falha (bairro Terror): faixas da fachada (corpo e recuo).
+func set_neon_flicker(on: bool) -> void:
+	for walls in [_walls_material, variant.top_walls_material]:
+		if walls != null:
+			walls.set_shader_parameter("neon_flicker", 1.0 if on else 0.0)
+
+
 ## A imagem do jogo (hero, ou a capa se não houver hero; null se nenhuma).
 func get_art_texture() -> Texture2D:
 	return _poster_material.albedo_texture

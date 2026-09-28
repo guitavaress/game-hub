@@ -2,10 +2,12 @@ class_name GraphicsQuality
 extends RefCounted
 ## As três qualidades do 3D (ajudante estático, NÃO é autoload):
 ##
-##   alta:  tudo ligado (reflexos na tela, sombreamento extra nos cantos).
+##   alta:  tudo ligado (reflexos na tela, sombreamento extra nos cantos,
+##          névoa volumétrica).
 ##   media: sem os reflexos na tela (SSR), que são o efeito mais caro.
-##   leve:  sem reflexos e sem sombreamento extra (SSAO), e o 3D é desenhado
-##          em 50% da resolução e ampliado com FSR. Para PCs fracos.
+##   leve:  sem reflexos, sem sombreamento extra (SSAO) e sem névoa
+##          volumétrica; o 3D é desenhado em 50% da resolução e ampliado com
+##          FSR. Para PCs fracos.
 ##
 ## A neblina e o brilho (glow) ficam em todas: são baratos e fazem o clima.
 ## O AppConfig aplica a parte da janela (resolução do 3D); cada mundo aplica a
@@ -18,6 +20,9 @@ const LOW_3D_SCALE: float = 0.5
 static func apply_to_environment(environment: Environment, level: String) -> void:
 	environment.ssr_enabled = level == "alta"
 	environment.ssao_enabled = level != "leve"
+	# Névoa volumétrica: só onde o mundo pôs um FogVolume (ex.: névoa baixa do
+	# bairro Terror). Na Leve fica desligada.
+	environment.volumetric_fog_enabled = level != "leve"
 
 
 ## Resolução do 3D na janela (o HUD continua nítido: ele não é 3D).

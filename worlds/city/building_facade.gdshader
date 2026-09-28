@@ -55,6 +55,8 @@ uniform vec3 cool_light : source_color = vec3(0.81, 0.89, 1.0);   // #CFE3FF
 uniform vec3 neon_color : source_color = vec3(0.2, 0.8, 1.0);
 const float NEON_DAY = 0.15;
 const float NEON_NIGHT = 3.2;
+// 1 = o néon deste prédio falha (bairro Terror): apaga e pisca em rajadas.
+uniform float neon_flicker = 0.0;
 // Tamanho (m) das manchas do macro-ruído e quanto ele clareia/escurece.
 const float MACRO_SIZE = 8.0;
 const float MACRO_STRENGTH = 0.1;
@@ -131,6 +133,14 @@ void fragment() {
 			albedo = neon_color;
 			roughness = 0.3;
 			emission = neon_color * mix(NEON_DAY, NEON_NIGHT, night);
+			if (neon_flicker > 0.5) {
+				// Rajadas: em ~1 de cada 4 "momentos" (de 2/3 s), o néon pisca
+				// rápido; às vezes a faixa de cima e a da loja falham juntas.
+				float band = neon_top ? 0.0 : 1.0;
+				float slow = hash(vec2(floor(TIME * 1.5), seed + band * 0.5));
+				float fast = hash(vec2(floor(TIME * 18.0), seed + 1.0 + band));
+				emission *= slow < 0.25 ? mix(0.08, 1.0, step(0.5, fast)) : 1.0;
+			}
 		} else if (is_base && height > SHOP_BOTTOM - 0.06 && height < SHOP_TOP + 0.06) {
 			// Vitrines: células de 3,2 m contadas a partir do meio da face
 			// (na frente, a célula do meio é a porta).

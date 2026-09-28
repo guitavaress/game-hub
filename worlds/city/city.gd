@@ -406,6 +406,11 @@ func _build_environment() -> void:
 	env.ssr_enabled = true       # reflexos na tela: vidro e asfalto molhado
 	env.fog_enabled = true       # neblina leve (o DayNight ajusta a densidade)
 	env.fog_sky_affect = 0.15
+	# Névoa volumétrica: densidade 0 no ar; só aparece dentro de FogVolumes
+	# (ex.: névoa baixa do bairro Terror). O céu e as luzes iluminam ela.
+	env.volumetric_fog_density = 0.0
+	env.volumetric_fog_length = 110.0
+	env.volumetric_fog_ambient_inject = 0.8
 	# Qualidade escolhida no menu de pausa (Leve/Média/Alta) liga ou desliga
 	# os efeitos caros; troca na hora se o menu mudar.
 	_environment = env

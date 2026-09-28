@@ -19,9 +19,17 @@ const METAL_COLOR: Color = Color("1A1D22")
 const POOL_DIAMETER: float = 6.0
 const POOL_ENERGY: float = 0.35
 
+## Poste queimado: não acende à noite (o bairro Terror tem um).
+var broken: bool = false:
+	set(value):
+		broken = value
+		if _light != null:
+			set_night(_last_night)
+
 var _light: SpotLight3D
 var _led_material: StandardMaterial3D
 var _pool: Decal
+var _last_night: float = 0.0
 
 static var _shared_pool_texture: Texture2D
 
@@ -103,7 +111,8 @@ func _ready() -> void:
 
 ## 0 = dia (apagado), 1 = noite (aceso).
 func set_night(night: float) -> void:
-	var on := smoothstep(0.3, 0.8, night)
+	_last_night = night
+	var on := 0.0 if broken else smoothstep(0.3, 0.8, night)
 	_light.visible = on > 0.01
 	_light.light_energy = LIGHT_ENERGY * on
 	_led_material.emission_energy_multiplier = 5.0 * on
