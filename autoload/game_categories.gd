@@ -14,12 +14,14 @@ extends Node
 ##
 ## Para mudar os bairros, edite a tabela CATEGORIES. Os números são os IDs das
 ## tags da Steam (o nome em português está no comentário ao lado).
+## Cada categoria tem duas cores: "color" (tom discreto, no chão e na parede)
+## e "neon" (a cor de luz: letreiros, faixas, mira, telas).
 
 const OTHER_ID: String = "outros"
 
 const CATEGORIES: Array[Dictionary] = [
 	{
-		"id": "esportes", "name": "Esportes e Corrida", "color": Color("3f8f5a"),
+		"id": "esportes", "name": "Esportes e Corrida", "color": Color("3f8f5a"), "neon": Color("4CFF88"),
 		"tags": [
 			701,      # Esportes
 			1254546,  # Futebol
@@ -46,7 +48,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "rpg", "name": "RPG e Fantasia", "color": Color("7b5ea7"),
+		"id": "rpg", "name": "RPG e Fantasia", "color": Color("7b5ea7"), "neon": Color("934CFF"),
 		"tags": [
 			122,      # RPG
 			4434,     # JRPG
@@ -62,7 +64,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "sobrevivencia", "name": "Sobrevivência e Terror", "color": Color("8a4b3c"),
+		"id": "sobrevivencia", "name": "Sobrevivência e Terror", "color": Color("8a3c42"), "neon": Color("FF4C5B"),
 		"tags": [
 			1662,     # Sobrevivência
 			1100689,  # Sobrevivência em Mundo Aberto
@@ -74,7 +76,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "simulacao", "name": "Simulação e Construção", "color": Color("c9a24a"),
+		"id": "simulacao", "name": "Simulação e Construção", "color": Color("c9be4a"), "neon": Color("FFF04C"),
 		"tags": [
 			220585,   # Simulador de Colônias
 			7332,     # Construção de Bases
@@ -94,7 +96,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "estrategia", "name": "Estratégia e Tática", "color": Color("4a6fa5"),
+		"id": "estrategia", "name": "Estratégia e Tática", "color": Color("4a6fa5"), "neon": Color("4C95FF"),
 		"tags": [
 			9,        # Estratégia
 			1676,     # Estratégia em Tempo Real (RTS)
@@ -110,7 +112,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "acao", "name": "Ação e Roguelike", "color": Color("c0503a"),
+		"id": "acao", "name": "Ação e Roguelike", "color": Color("c0623a"), "neon": Color("FF824C"),
 		"tags": [
 			42804,    # Roguelike de Ação
 			1716,     # Roguelike
@@ -139,7 +141,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "cartas", "name": "Cartas e Tabuleiro", "color": Color("2f8f8a"),
+		"id": "cartas", "name": "Cartas e Tabuleiro", "color": Color("2f8f8a"), "neon": Color("4CFFF6"),
 		"tags": [
 			1666,     # Cartas
 			32322,    # Montagem de Decks
@@ -155,7 +157,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "aventura", "name": "Aventura e Mistério", "color": Color("d08a3c"),
+		"id": "aventura", "name": "Aventura e Mistério", "color": Color("d09a3c"), "neon": Color("FFBD4C"),
 		"tags": [
 			1664,     # Quebra-Cabeça
 			5716,     # Mistério
@@ -174,7 +176,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": "casual", "name": "Casual e Festa", "color": Color("d27aa0"),
+		"id": "casual", "name": "Casual e Festa", "color": Color("d27aa0"), "neon": Color("FF4C9A"),
 		"tags": [
 			597,      # Casual
 			7178,     # Reúna a Galera
@@ -191,7 +193,7 @@ const CATEGORIES: Array[Dictionary] = [
 		],
 	},
 	{
-		"id": OTHER_ID, "name": "Outros", "color": Color("7d8590"),
+		"id": OTHER_ID, "name": "Outros", "color": Color("7d8590"), "neon": Color("DDE3EA"),
 		"tags": [],
 	},
 ]
@@ -240,9 +242,13 @@ func get_category_name(category_id: String) -> String:
 	return _find(category_id).get("name", category_id)
 
 
-## Cor de néon da categoria (a cor "de luz" do bairro): mesmo matiz da cor da
-## categoria, saturação 70% e brilho 100%.
+## Cor de néon da categoria (a cor "de luz" do bairro). Escolhidas à mão
+## (saturação 70%, brilho 100%) para que dois bairros não fiquem com cores
+## parecidas; "Outros" é um branco frio.
 func get_neon_color(category_id: String) -> Color:
+	var category := _find(category_id)
+	if category.has("neon"):
+		return category["neon"]
 	return Color.from_hsv(get_category_color(category_id).h, 0.7, 1.0)
 
 

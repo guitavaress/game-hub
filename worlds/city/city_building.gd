@@ -99,8 +99,10 @@ func _ready() -> void:
 			_show_art(texture)
 
 
-## Cor viva do néon, a partir da cor do bairro.
+## Cor viva do néon do bairro (a mesma dos letreiros, da mira e das telas).
 func neon_color() -> Color:
+	if not category_id.is_empty():
+		return GameCategories.get_neon_color(category_id)
 	return Color.from_hsv(accent_color.h, 0.7, 1.0)
 
 
@@ -320,7 +322,7 @@ func _make_walls_material() -> ShaderMaterial:
 	_walls_material.set_shader_parameter("texture_size", style["meters"])
 	# Um toque da cor do bairro na parede (bem de leve) e um brilho um pouco
 	# diferente em cada prédio, para a rua não parecer "copiada e colada".
-	var tint: Color = (style["tint"] as Color).lerp(accent_color, 0.1)
+	var tint: Color = (style["tint"] as Color).lerp(neon_color(), 0.1)
 	var brightness := 1.0 + rng.randf_range(-WALL_BRIGHTNESS_VARIATION, WALL_BRIGHTNESS_VARIATION)
 	_walls_material.set_shader_parameter("wall_tint", Color(tint.r * brightness, tint.g * brightness, tint.b * brightness))
 	# Térreo em concreto escuro e o tom do vidro deste prédio.
