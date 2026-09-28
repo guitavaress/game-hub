@@ -19,7 +19,12 @@ signal city_ready
 
 const PLAYER_SCENE: PackedScene = preload("res://player/player.tscn")
 
-const BORDER_WALL_HEIGHT: float = 3.0
+## Borda da cidade: mureta de concreto, grade por cima e, invisível, uma
+## barreira mais alta (o pulo chega a ~1,2 m; a grade é só enfeite).
+const BORDER_WALL_HEIGHT: float = 1.0
+const BORDER_RAILING_HEIGHT: float = 1.1
+const BORDER_RAILING_SPACING: float = 0.25
+const BORDER_BARRIER_HEIGHT: float = 3.0
 ## Onde o jogador nasce: na praça, virado para o norte (-Z).
 const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 8.0)
 ## Abertura: a câmera começa olhando INTRO_PITCH graus para cima; a tela
@@ -431,14 +436,29 @@ func _build_ground_and_walls(half: float) -> void:
 	ground.use_collision = true
 	add_child(ground)
 
-	# Muros nas bordas para ninguém cair do mapa.
+	# Mureta com grade nas bordas (baixa: deixa ver o horizonte) e uma barreira
+	# invisível para ninguém pular para fora do mapa.
 	var y := BORDER_WALL_HEIGHT / 2.0
-	var color := Color("3c3d40")
 	var length := half * 2.0
-	_add_wall(Vector3(0.0, y, -half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
-	_add_wall(Vector3(0.0, y, half), Vector3(length, BORDER_WALL_HEIGHT, 1.0), color)
-	_add_wall(Vector3(-half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
-	_add_wall(Vector3(half, y, 0.0), Vector3(1.0, BORDER_WALL_HEIGHT, length), color)
+	var sides: Array[Array] = [
+		[Vector3(0.0, 0.0, -half), Vector3(length, 0.0, 0.0)],
+		[Vector3(0.0, 0.0, half), Vector3(length, 0.0, 0.0)],
+		[Vector3(-half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
+		[Vector3(half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
+	]
+	for side in sides:
+		var center: Vector3 = side[0]
+		var along: Vector3 = side[1]
+		var wall_size := Vector3(maxf(along.x, 0.6), BORDER_WALL_HEIGHT, maxf(along.z, 0.6))
+		_add_wall(center + Vector3(0.0, y, 0.0), wall_size)
+		_add_barrier(center, Vector3(wall_size.x, BORDER_BARRIER_HEIGHT, wall_size.z))
+	_add_railing(half)
+
+	# O horizonte: anel de silhuetas a 400 m e o chão escuro até lá.
+	var skyline := CitySkyline.new()
+	skyline.name = "Skyline"
+	skyline.environment = _environment
+	add_child(skyline)
 
 
 # --- Amigos na praça ---------------------------------------------------------
@@ -516,12 +536,70 @@ func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
 
 # --- Utilidades --------------------------------------------------------------
 
-## Caixa sólida (com colisão).
-func _add_wall(center: Vector3, wall_size: Vector3, wall_color: Color) -> void:
+## Mureta de concreto (com colisão).
+func _add_wall(center: Vector3, wall_size: Vector3) -> void:
 	var wall := CSGBox3D.new()
 	wall.name = "Wall"
 	wall.size = wall_size
 	wall.position = center
-	wall.material = CityDecor.make_material(wall_color)
+	wall.material = CityDecor.pbr_material("Concrete034", 2.0, Color(0.5, 0.51, 0.53))
 	wall.use_collision = true
 	add_child(wall, true)  # true = a Godot numera nomes repetidos (Wall2, Wall3...)
+
+
+## Parede invisível (só colisão), de "base" até a altura do tamanho.
+func _add_barrier(base: Vector3, barrier_size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Barrier"
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = barrier_size
+	shape.shape = box
+	body.add_child(shape)
+	body.position = base + Vector3(0.0, barrier_size.y / 2.0, 0.0)
+	add_child(body, true)
+
+
+## Grade de metal em cima da mureta: barras finas a cada 25 cm e um corrimão.
+## Todas as barras são UMA MultiMesh (milhares de cópias, um só desenho).
+func _add_railing(half: float) -> void:
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color("1A1D22")
+	metal.metallic = 0.8
+	metal.roughness = 0.35
+	var bar := BoxMesh.new()
+	bar.size = Vector3(0.04, BORDER_RAILING_HEIGHT, 0.04)
+	bar.material = metal
+
+	var per_side := int(half * 2.0 / BORDER_RAILING_SPACING)
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = bar
+	multimesh.instance_count = per_side * 4
+	var y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT / 2.0
+	var index := 0
+	for i in per_side:
+		var t := -half + (i + 0.5) * BORDER_RAILING_SPACING
+		for spot in [Vector3(t, y, -half), Vector3(t, y, half), Vector3(-half, y, t), Vector3(half, y, t)]:
+			multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, spot))
+			index += 1
+	var bars := MultiMeshInstance3D.new()
+	bars.name = "Railing"
+	bars.multimesh = multimesh
+	add_child(bars)
+
+	# Corrimão em cima das barras.
+	var top_y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT
+	for rail_size_center in [
+		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, -half)],
+		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, half)],
+		[Vector3(0.08, 0.06, half * 2.0), Vector3(-half, top_y, 0.0)],
+		[Vector3(0.08, 0.06, half * 2.0), Vector3(half, top_y, 0.0)],
+	]:
+		var rail := MeshInstance3D.new()
+		var rail_mesh := BoxMesh.new()
+		rail_mesh.size = rail_size_center[0]
+		rail.mesh = rail_mesh
+		rail.material_override = metal
+		rail.position = rail_size_center[1]
+		add_child(rail)
