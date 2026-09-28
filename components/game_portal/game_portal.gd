@@ -64,6 +64,8 @@ var _enter_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
+	# O grupo "game_portal" é como a busca (Tab) acha todos os jogos do mundo.
+	add_to_group("game_portal")
 	_apply_sizes()
 	_build_sounds()
 	_entry_area.body_entered.connect(_on_entry_body_entered)

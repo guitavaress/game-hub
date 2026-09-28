@@ -3,7 +3,8 @@ extends CharacterBody3D
 ## Jogador em primeira pessoa.
 ##
 ## - Mouse gira a visão; W/A/S/D anda; Espaço pula; Shift corre.
-## - Esc abre o menu de pausa (PauseMenu, que vem junto, como o HUD).
+## - Esc abre o menu de pausa (PauseMenu) e Tab abre a busca de jogos
+##   (GameSearch); os dois vêm junto com o jogador, como o HUD.
 ## - Um raio invisível (RayCast3D) sai da câmera. Se ele acertar algo que tenha
 ##   o método get_look_label(), o texto aparece no HUD. É um "contrato" simples:
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
@@ -62,6 +63,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _current_look_text: String = ""
 var _current_look_info: Dictionary = {}
 var _pause_menu: PauseMenu
+var _game_search: GameSearch
 ## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
 ## o jogador fica parado e sem controles.
 var in_intro: bool = false
@@ -79,9 +81,12 @@ func _ready() -> void:
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	# O menu de pausa (Esc) vem junto com o jogador, como o HUD.
+	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
+	# como o HUD.
 	_pause_menu = PauseMenu.new()
 	add_child(_pause_menu)
+	_game_search = GameSearch.new()
+	add_child(_game_search)
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -174,6 +179,10 @@ func get_hud() -> Hud:
 
 func get_pause_menu() -> PauseMenu:
 	return _pause_menu
+
+
+func get_game_search() -> GameSearch:
+	return _game_search
 
 
 ## Abertura: parado (sem gravidade: o chão ainda nem existe), sem controles,

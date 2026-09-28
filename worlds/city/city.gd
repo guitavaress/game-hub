@@ -94,6 +94,10 @@ func _ready() -> void:
 	_build_ground_and_walls(half)
 	CityDecor.add_street_markings(self, cells, half)
 	CityDecor.add_plaza(self)
+	# Faixa de luz até a porta de um jogo (busca com Tab).
+	var route_guide := CityRouteGuide.new()
+	route_guide.name = "RouteGuide"
+	add_child(route_guide)
 	ScreenFade.splash.complete_stage("bairros")
 	_watch_friends_stage()
 

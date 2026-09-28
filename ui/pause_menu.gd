@@ -43,6 +43,7 @@ const CONTROL_ROWS: Array[Array] = [
 	["Mouse", "olhar em volta"],
 	["Shift", "correr"],
 	["Espaço", "pular"],
+	["Tab", "achar um jogo (acende o caminho até a porta)"],
 	["F8", "adiantar o relógio da cidade em 3 horas"],
 	["F11", "tela cheia"],
 	["Esc", "pausa (este menu)"],
@@ -133,7 +134,7 @@ func can_open() -> bool:
 	var player := get_parent() as Player
 	return not GameLauncher.is_busy() and not HubWindow.is_sleeping \
 			and not ScreenFade.door_charge.visible and ScreenFade.get_amount() < 0.5 \
-			and not (player != null and player.in_intro)
+			and not (player != null and (player.in_intro or player.get_game_search().is_open()))
 
 
 func open() -> void:
