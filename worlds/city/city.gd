@@ -103,6 +103,7 @@ func _ready() -> void:
 	var half := CityLayout.half_extent(cells)
 	_build_ground_and_walls(half)
 	CityDecor.add_street_markings(self, cells, half)
+	CityDecor.add_puddles(self, half)
 	CityDecor.add_plaza(self)
 	# Faixa de luz até a porta de um jogo (busca com Tab).
 	var route_guide := CityRouteGuide.new()

@@ -38,11 +38,15 @@ const GRASS_COLOR: Color = Color(0.12, 0.2, 0.12)
 const LANE_MARK_COLOR: Color = Color(0.85, 0.83, 0.76)
 const LANE_DASH_LENGTH: float = 2.5
 const LANE_DASH_GAP: float = 3.5
+## Poças: um sorteio a cada PUDDLE_STEP metros de rua, com esta chance.
+const PUDDLE_STEP: float = 12.0
+const PUDDLE_CHANCE: float = 0.4
 
 ## Materiais e texturas já carregados (para não repetir o trabalho).
 static var _fixed_materials: Dictionary = {}
 static var _pbr_materials: Dictionary = {}
 static var _pbr_textures: Dictionary = {}
+static var _puddles: Array = []
 
 
 # --- Materiais realistas (PBR) -----------------------------------------------
@@ -218,6 +222,69 @@ static func add_plaza(parent: Node3D) -> void:
 
 
 # --- Ruas --------------------------------------------------------------------
+
+## Poças nas beiras das ruas: manchas escuras e lisas (rugosidade 0) que
+## refletem o céu, os postes e o néon. São Decals (projeções no chão),
+## sorteadas sempre iguais (semente fixa).
+static func add_puddles(parent: Node3D, half: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 90210
+	var textures := _puddle_textures()
+	var pitch := CityLayout.BLOCK_PITCH
+	var line := -floorf(half / pitch - 0.5) * pitch - pitch / 2.0
+	var lines: Array[float] = []
+	while line < half:
+		if absf(line) < half - 2.0:
+			lines.append(line)
+		line += pitch
+	for street in lines:
+		for along_x in [true, false]:  # ruas leste-oeste e norte-sul
+			var t := -half + PUDDLE_STEP / 2.0
+			while t < half - PUDDLE_STEP / 2.0:
+				if rng.randf() < PUDDLE_CHANCE:
+					var length := rng.randf_range(1.6, 3.6)
+					var width := rng.randf_range(0.9, 1.8)
+					var side := 1.0 if rng.randf() < 0.5 else -1.0
+					var offset := side * (CityLayout.STREET_WIDTH / 2.0 - 0.8 - width / 2.0)
+					var spot := Vector3(t + rng.randf_range(-3.0, 3.0), 0.0, street + offset) if along_x \
+							else Vector3(street + offset, 0.0, t + rng.randf_range(-3.0, 3.0))
+					var puddle := Decal.new()
+					var pair: Array = textures[rng.randi_range(0, textures.size() - 1)]
+					puddle.texture_albedo = pair[0]
+					puddle.texture_orm = pair[1]
+					puddle.albedo_mix = 0.3
+					puddle.normal_fade = 0.9  # só no chão (não no meio-fio)
+					puddle.cull_mask = 1
+					puddle.size = Vector3(length, 1.0, width) if along_x else Vector3(width, 1.0, length)
+					puddle.position = spot + Vector3(0.0, 0.2, 0.0)
+					puddle.rotation.y = rng.randf_range(-0.15, 0.15)
+					parent.add_child(puddle)
+				t += PUDDLE_STEP
+
+
+## Três formatos de poça (manchas irregulares), feitos uma vez: cor (escura,
+## o alfa é o formato) e ORM (rugosidade 0 = lisa como água).
+static func _puddle_textures() -> Array:
+	if not _puddles.is_empty():
+		return _puddles
+	var noise := FastNoiseLite.new()
+	noise.frequency = 0.06
+	for variant in 3:
+		noise.seed = 17 + variant
+		var shape := Image.create(128, 64, false, Image.FORMAT_RGBA8)
+		var orm := Image.create(128, 64, false, Image.FORMAT_RGBA8)
+		for y in 64:
+			for x in 128:
+				# Elipse deformada pelo ruído, com a borda suave.
+				var px := (x + 0.5) / 64.0 - 1.0
+				var py := (y + 0.5) / 32.0 - 1.0
+				var r := sqrt(px * px + py * py) + noise.get_noise_2d(x, y) * 0.45
+				var alpha := 1.0 - smoothstep(0.55, 0.8, r)
+				shape.set_pixel(x, y, Color(0.035, 0.038, 0.045, alpha))
+				orm.set_pixel(x, y, Color(1.0, 0.0, 0.0, 1.0))
+		_puddles.append([ImageTexture.create_from_image(shape), ImageTexture.create_from_image(orm)])
+	return _puddles
+
 
 ## Faixas tracejadas no meio das ruas (sem pintar em cima dos cruzamentos).
 ## Todas as faixas são UMA MultiMesh: milhares de cópias custam quase nada.

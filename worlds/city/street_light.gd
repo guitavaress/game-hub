@@ -15,8 +15,15 @@ const LIGHT_RANGE: float = 12.0
 const LIGHT_ANGLE: float = 62.0  # graus
 const METAL_COLOR: Color = Color("1A1D22")
 
+## Círculo de luz no chão: diâmetro (m) e força.
+const POOL_DIAMETER: float = 6.0
+const POOL_ENERGY: float = 0.35
+
 var _light: SpotLight3D
 var _led_material: StandardMaterial3D
+var _pool: Decal
+
+static var _shared_pool_texture: Texture2D
 
 
 func _ready() -> void:
@@ -79,6 +86,18 @@ func _ready() -> void:
 	_light.position = led.position - Vector3(0.0, 0.05, 0.0)
 	_light.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	add_child(_light)
+
+	# Círculo de luz firme no chão (a luz de verdade é suave demais nas bordas).
+	# É um Decal: uma "projeção" de cima para baixo, sem custo de luz extra.
+	_pool = Decal.new()
+	_pool.size = Vector3(POOL_DIAMETER, 1.0, POOL_DIAMETER)
+	# Só no chão: superfícies em pé (o poste, as paredes) não recebem o círculo.
+	_pool.normal_fade = 0.9
+	_pool.texture_emission = _pool_texture()
+	_pool.modulate = LIGHT_COLOR
+	_pool.cull_mask = 1  # só o mundo (não os hologramas)
+	_pool.position = Vector3(_light.position.x, 0.3, _light.position.z)
+	add_child(_pool)
 	set_night(0.0)
 
 
@@ -88,3 +107,24 @@ func set_night(night: float) -> void:
 	_light.visible = on > 0.01
 	_light.light_energy = LIGHT_ENERGY * on
 	_led_material.emission_energy_multiplier = 5.0 * on
+	_pool.visible = on > 0.01
+	_pool.emission_energy = POOL_ENERGY * on
+
+
+## Textura do círculo (a mesma para todos os postes): claro no meio, uma
+## borda firme e nada fora dele.
+static func _pool_texture() -> Texture2D:
+	if _shared_pool_texture == null:
+		var gradient := Gradient.new()
+		gradient.offsets = PackedFloat32Array([0.0, 0.7, 0.86, 1.0])
+		gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(0.7, 0.7, 0.7, 1),
+				Color(0.45, 0.45, 0.45, 1), Color(0, 0, 0, 1)])
+		var texture := GradientTexture2D.new()
+		texture.gradient = gradient
+		texture.fill = GradientTexture2D.FILL_RADIAL
+		texture.fill_from = Vector2(0.5, 0.5)
+		texture.fill_to = Vector2(1.0, 0.5)
+		texture.width = 128
+		texture.height = 128
+		_shared_pool_texture = texture
+	return _shared_pool_texture

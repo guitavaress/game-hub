@@ -347,6 +347,10 @@ func _make_walls_material() -> ShaderMaterial:
 	_walls_material.set_shader_parameter("building_height", size.y)
 	_walls_material.set_shader_parameter("seed", float(game.app_id % 997))
 	_walls_material.set_shader_parameter("window_fraction", variant.window_fraction())
+	# Vitrines do térreo: o shader precisa saber onde fica o prédio e a porta.
+	_walls_material.set_shader_parameter("building_center", global_position)
+	_walls_material.set_shader_parameter("building_half", size.x / 2.0)
+	_walls_material.set_shader_parameter("door_normal", global_basis.z.normalized())
 	return _walls_material
 
 

@@ -5,7 +5,7 @@
 //   - Paredes: textura de concreto/tijolo repetida a cada "texture_size" metros,
 //     com um "macro-ruído" de 8 m que quebra a repetição.
 //   - Térreo: faixa de concreto escuro do chão até "ground_floor_height" (é o
-//     que separa "caixa" de "edifício").
+//     que separa "caixa" de "edifício"), com vitrines de loja (acesas à noite).
 //   - Janelas: uma grade de "window_cell" metros; o vidro reflete o céu.
 //     À noite, parte delas acende (sorteio fixo por janela), uma a uma: luz com
 //     degradê (mais clara no alto), algumas com cortina, em 3 temperaturas.
@@ -58,6 +58,19 @@ const float NEON_NIGHT = 3.2;
 // Tamanho (m) das manchas do macro-ruído e quanto ele clareia/escurece.
 const float MACRO_SIZE = 8.0;
 const float MACRO_STRENGTH = 0.1;
+
+// Vitrines no térreo: onde fica o prédio e a porta (a vitrine pula a porta e
+// as quinas). O CityBuilding preenche.
+uniform vec3 building_center = vec3(0.0, -1000.0, 0.0);
+uniform float building_half = 5.0;
+uniform vec3 door_normal = vec3(0.0, 0.0, 1.0);
+const float SHOP_BOTTOM = 0.5;
+const float SHOP_TOP = 3.0;
+const float SHOP_CELL = 3.2;
+const float SHOP_GLASS = 0.78;     // parte da célula que é vidro
+const float SHOP_LIT = 0.6;        // parte das lojas acesas à noite
+const float SHOP_ENERGY = 0.5;
+const float SHOP_TRANSOM = 2.35;   // altura da travessa (caixilho horizontal)
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -118,6 +131,43 @@ void fragment() {
 			albedo = neon_color;
 			roughness = 0.3;
 			emission = neon_color * mix(NEON_DAY, NEON_NIGHT, night);
+		} else if (is_base && height > SHOP_BOTTOM - 0.06 && height < SHOP_TOP + 0.06) {
+			// Vitrines: células de 3,2 m contadas a partir do meio da face
+			// (na frente, a célula do meio é a porta).
+			vec3 from_center = world_position - building_center;
+			float along = abs(n.x) > abs(n.z) ? from_center.z : from_center.x;
+			float cell_index = floor(along / SHOP_CELL + 0.5);
+			float inside = along / SHOP_CELL + 0.5 - cell_index;  // 0 a 1 na célula
+			bool front = dot(n, door_normal) > 0.9;
+			bool usable = !(front && cell_index == 0.0) && abs(along) < building_half - 0.6;
+			float glass_half = SHOP_GLASS * 0.5;
+			bool in_glass = abs(inside - 0.5) < glass_half && height > SHOP_BOTTOM && height < SHOP_TOP;
+			bool in_frame = abs(inside - 0.5) < glass_half + 0.03;
+			// Caixilhos: um no meio (vertical) e uma travessa perto do alto.
+			bool mullion = abs(inside - 0.5) < 0.012 || abs(height - SHOP_TRANSOM) < 0.04;
+			if (usable && in_glass && !mullion) {
+				albedo = glass_color * 0.8;
+				roughness = 0.08;
+				metallic = 0.5;
+				normal_map = vec3(0.5, 0.5, 1.0);
+				// "Interior" de loja: manchas borradas de luz, prateleiras e um
+				// degradê (mais claro no alto). Sorteio fixo por loja.
+				vec2 shop = vec2(cell_index, dot(n.xz, vec2(3.0, 7.0))) + seed;
+				float lit = step(hash(shop), SHOP_LIT) * smoothstep(0.0, 0.3, windows_on);
+				float pick = hash(shop.yx + 1.7);
+				vec3 light = pick < 0.5 ? warm_light : (pick < 0.85 ? soft_light : cool_light);
+				// Manchas bem marcadas (objetos e cantos escuros), prateleiras e
+				// o teto da loja mais claro (luminárias).
+				float blobs = value_noise(vec2(along * 1.6, height * 2.0) + shop * 5.0);
+				float interior = 0.12 + 0.88 * blobs * blobs;
+				float shelves = 0.6 + 0.4 * step(0.2, fract(height * 2.2));
+				float ceiling = smoothstep(SHOP_TRANSOM - 0.4, SHOP_TOP, height) * 0.8;
+				emission = light * (interior * shelves + ceiling) * lit * SHOP_ENERGY;
+			} else if (usable && (in_frame || (in_glass && mullion))) {
+				albedo = vec3(0.08);
+				roughness = 0.4;
+				metallic = 0.5;
+			}
 		} else if (height > ground_floor_height && height < building_height - 0.8) {
 			// Janelas nos andares de cima.
 			vec2 cell_position = vec2(across, height - ground_floor_height) / window_cell;
