@@ -62,6 +62,9 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _current_look_text: String = ""
 var _current_look_info: Dictionary = {}
 var _pause_menu: PauseMenu
+## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
+## o jogador fica parado e sem controles.
+var in_intro: bool = false
 
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
@@ -85,6 +88,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if in_intro:
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var motion := event as InputEventMouseMotion
 		# Girar o corpo inteiro para os lados (eixo Y)...
@@ -169,6 +174,28 @@ func get_hud() -> Hud:
 
 func get_pause_menu() -> PauseMenu:
 	return _pause_menu
+
+
+## Abertura: parado (sem gravidade: o chão ainda nem existe), sem controles,
+## sem HUD e olhando "pitch_degrees" para cima (só céu).
+func start_intro(pitch_degrees: float) -> void:
+	in_intro = true
+	set_physics_process(false)
+	_hud.visible = false
+	_head.rotation.x = deg_to_rad(pitch_degrees)
+
+
+## Fim da abertura: a câmera desce até o horizonte em "seconds" segundos e
+## aí o jogador ganha os controles e o HUD. Dá para esperar com await.
+func finish_intro(seconds: float) -> void:
+	var tween := create_tween()
+	tween.tween_property(_head, "rotation:x", 0.0, seconds) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+	in_intro = false
+	set_physics_process(true)
+	_hud.visible = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 ## Coloca o jogador num ponto e o vira para a "frente" (-Z) do transform dado.

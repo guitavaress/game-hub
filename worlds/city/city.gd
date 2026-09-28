@@ -9,12 +9,26 @@ extends Node3D
 ## Regra da arquitetura: o mundo só monta cenário e posiciona portais.
 ## Quem sabe quais jogos existem e de que categoria são são os sistemas
 ## (SteamLibrary, StoreInfo, GameCategories); aqui só perguntamos a eles.
+##
+## ABERTURA: o jogador nasce primeiro, parado e olhando o céu (já na hora
+## certa), com a tela "GAME HUB" por cima mostrando o progresso. Quando a
+## cidade fica pronta, a tela some e a câmera desce até o horizonte.
+
+## A cidade terminou de montar (e a abertura acabou).
+signal city_ready
 
 const PLAYER_SCENE: PackedScene = preload("res://player/player.tscn")
 
 const BORDER_WALL_HEIGHT: float = 3.0
 ## Onde o jogador nasce: na praça, virado para o norte (-Z).
 const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 8.0)
+## Abertura: a câmera começa olhando INTRO_PITCH graus para cima; a tela
+## "GAME HUB" fica pelo menos INTRO_MIN_SECONDS; depois some em
+## INTRO_FADE_SECONDS enquanto a câmera desce em INTRO_DESCENT_SECONDS.
+const INTRO_PITCH: float = 70.0
+const INTRO_MIN_SECONDS: float = 1.2
+const INTRO_FADE_SECONDS: float = 0.4
+const INTRO_DESCENT_SECONDS: float = 2.5
 ## Quanto tempo esperamos a loja responder na primeira vez (segundos).
 const STORE_WAIT_SECONDS: float = 8.0
 ## Altura dos prédios (sorteada por jogo, mas sempre igual para o mesmo jogo).
@@ -47,6 +61,9 @@ var _plaza_friends: Array[FriendNpc] = []
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
+## Tocar a abertura pelo céu? (Nos testes sem janela, pula direto.)
+var play_intro: bool = DisplayServer.get_name() != "headless"
+var _is_ready: bool = false
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
 ## Placas dos bairros: o néon fica mais forte à noite.
@@ -54,18 +71,31 @@ var _district_signs: Array[DistrictSign] = []
 
 
 func _ready() -> void:
-	ScreenFade.set_amount(1.0)  # tela preta enquanto a cidade é montada
 	_build_environment()
+	# O jogador nasce antes da cidade, olhando o céu (na abertura).
+	var player := _spawn_player()
+	var started_ms := Time.get_ticks_msec()
+	if play_intro:
+		player.start_intro(INTRO_PITCH)
+		ScreenFade.show_splash(_clock_text())
+	else:
+		ScreenFade.set_amount(1.0)  # tela preta enquanto a cidade é montada
 
+	_splash_status("Lendo a biblioteca…", 0.05)
 	var games := SteamLibrary.get_installed_games()
+	ScreenFade.splash.complete_stage("biblioteca")
+	_splash_status("Buscando capas e categorias…", 0.12)
 	await _update_store_info(games)
+	ScreenFade.splash.complete_stage("capas")
 
 	var districts := _group_into_districts(games)
-	var cells := _build_districts(districts)
+	var cells := await _build_districts(districts, games.size())
 	var half := CityLayout.half_extent(cells)
 	_build_ground_and_walls(half)
 	CityDecor.add_street_markings(self, cells, half)
 	CityDecor.add_plaza(self)
+	ScreenFade.splash.complete_stage("bairros")
+	_watch_friends_stage()
 
 	# Amigos jogando algo da cidade aparecem nos portais (o GamePortal cuida
 	# disso); os outros amigos online ficam aqui na praça.
@@ -76,14 +106,58 @@ func _ready() -> void:
 	_day_night.night_changed.connect(_on_night_changed)
 	_on_night_changed(_day_night.get_night())
 
-	var player := _spawn_player()
+	if play_intro:
+		_splash_status("Pronto!", 1.0)
+		while (Time.get_ticks_msec() - started_ms) / 1000.0 < INTRO_MIN_SECONDS:
+			await get_tree().process_frame
+		ScreenFade.hide_splash(INTRO_FADE_SECONDS)
+		await player.finish_intro(INTRO_DESCENT_SECONDS)
+	else:
+		ScreenFade.set_message("")
+		ScreenFade.fade_in(0.8)
+
+	# Os avisos só agora: durante a abertura o HUD está escondido.
 	_show_startup_messages(player, games)
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
 		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
+	_is_ready = true
+	city_ready.emit()
 
-	ScreenFade.set_message("")
-	ScreenFade.fade_in(0.8)
+
+func is_city_ready() -> bool:
+	return _is_ready
+
+
+# --- Abertura ----------------------------------------------------------------
+
+## Frase e barra de progresso da abertura (se ela estiver na tela).
+func _splash_status(text: String, progress: float) -> void:
+	if play_intro:
+		ScreenFade.splash.set_status(text)
+		ScreenFade.splash.set_progress(progress)
+
+
+## A etapa "AMIGOS" fica pronta quando a lista de amigos chega (ou na hora,
+## se os amigos estiverem desligados). A abertura não espera por ela.
+func _watch_friends_stage() -> void:
+	if not FriendsService.is_enabled() or not FriendsService.get_online_friends().is_empty():
+		ScreenFade.splash.complete_stage("amigos")
+		return
+	FriendsService.friends_changed.connect(func() -> void:
+		ScreenFade.splash.complete_stage("amigos"), CONNECT_ONE_SHOT)
+
+
+## "22:14 · noite" (a hora da cidade, para o canto da abertura).
+func _clock_text() -> String:
+	var hour := _day_night.current_hour()
+	var night := DayNight.night_amount(hour)
+	var period := "dia"
+	if night > 0.9:
+		period = "noite"
+	elif night > 0.1:
+		period = "pôr do sol" if hour >= 12.0 else "amanhecer"
+	return "%02d:%02d · %s" % [floori(hour), floori(fmod(hour, 1.0) * 60.0), period]
 
 
 ## Uma opção mudou no menu de pausa: a qualidade do 3D é da cidade.
@@ -113,7 +187,8 @@ func _update_store_info(games: Array[SteamGame]) -> void:
 	if not StoreInfo.is_fetching():
 		return
 
-	ScreenFade.set_message("Organizando a cidade...")
+	if not play_intro:
+		ScreenFade.set_message("Organizando a cidade...")
 	var waited := 0.0
 	while StoreInfo.is_fetching() and waited < STORE_WAIT_SECONDS:
 		await get_tree().process_frame
@@ -140,13 +215,15 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 # --- Bairros e prédios -------------------------------------------------------
 
 ## Monta todos os bairros. Devolve os quarteirões usados (para medir o mapa).
-func _build_districts(districts: Array[Dictionary]) -> Array[Vector2i]:
+## Na abertura, monta um quarteirão por quadro, para a barra de progresso andar.
+func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
 	var block_count := 0
 	for district in districts:
 		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
 	var cells := CityLayout.block_cells(block_count)
 
 	var next_cell := 0
+	var built := 0
 	for district in districts:
 		var district_games: Array = district["games"]
 		# Cada quarteirão recebe até 4 jogos do bairro.
@@ -154,6 +231,11 @@ func _build_districts(districts: Array[Dictionary]) -> Array[Vector2i]:
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
 			_build_block(cells[next_cell], district["id"], block_games)
 			next_cell += 1
+			built += block_games.size()
+			if play_intro:
+				_splash_status("Construindo bairros… %d de %d jogos" % [built, total_games],
+						lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
+				await get_tree().process_frame
 	return cells
 
 

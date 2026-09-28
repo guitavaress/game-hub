@@ -43,6 +43,8 @@ var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
 var _toasts: VBoxContainer
+## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
+var _waiting_messages: Array[Array] = []
 var _sound: AudioStreamPlayer
 var _click: AudioStreamPlayer
 
@@ -55,6 +57,7 @@ func _ready() -> void:
 	_build_crosshair()
 	_build_look_card()
 	_build_toasts()
+	visibility_changed.connect(_show_waiting_messages)
 
 	_sound = AudioStreamPlayer.new()
 	_sound.bus = &"Efeitos"
@@ -141,6 +144,14 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 		seconds: float = -1.0, overline: String = "") -> void:
 	if title.is_empty():
 		return
+	# HUD escondido (abertura): o aviso espera o HUD aparecer, senão o tempo
+	# dele passaria sem ninguém ver.
+	if not visible:
+		for waiting in _waiting_messages:
+			if waiting[0] == title and waiting[1] == text:
+				return
+		_waiting_messages.append([title, text, kind, seconds, overline])
+		return
 	var showing := _visible_toasts()
 	for toast in showing:
 		if toast.title == title and toast.text == text:
@@ -156,6 +167,16 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 		Toast.Kind.INFO:
 			if not _sound.playing:  # não atropela a vinheta nem o som de erro
 				_play_sound(MESSAGE_SOUND)
+
+
+## O HUD apareceu: mostra os avisos que estavam esperando.
+func _show_waiting_messages() -> void:
+	if not visible:
+		return
+	var waiting := _waiting_messages.duplicate()
+	_waiting_messages.clear()
+	for message in waiting:
+		show_message(message[0], message[1], message[2], message[3], message[4])
 
 
 ## Aviso num texto só: a primeira linha vira o título, o resto vira a frase.

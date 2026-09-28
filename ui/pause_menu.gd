@@ -128,10 +128,12 @@ func _input(event: InputEvent) -> void:
 
 
 ## Dá para abrir agora? Não durante a espera na porta, nem com o hub dormindo
-## ou um jogo abrindo/rodando, nem com a tela ainda escura (abertura).
+## ou um jogo abrindo/rodando, nem durante a abertura.
 func can_open() -> bool:
+	var player := get_parent() as Player
 	return not GameLauncher.is_busy() and not HubWindow.is_sleeping \
-			and not ScreenFade.door_charge.visible and ScreenFade.get_amount() < 0.5
+			and not ScreenFade.door_charge.visible and ScreenFade.get_amount() < 0.5 \
+			and not (player != null and player.in_intro)
 
 
 func open() -> void:

@@ -6,6 +6,8 @@ extends CanvasLayer
 ## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
 ## - set_door_charge(0..1, nome, cor): espera na porta de um jogo — vinheta
 ##   que fecha das bordas + anel em volta da mira (DoorCharge).
+## - show_splash() / hide_splash(): abertura "GAME HUB" transparente sobre o
+##   céu, com a barra de progresso (SplashScreen).
 ##
 ## Por cima da cortina fica a TELA DO JOGO (GameScreen): "Abrindo X…" quando um
 ## jogo é pedido e "Jogando X…" quando ele aparece. Ela é "filha" da cortina,
@@ -20,6 +22,8 @@ var _tween: Tween
 var game_screen: GameScreen
 ## Vinheta + anel enquanto o jogador espera na porta (fica por baixo da cortina).
 var door_charge: DoorCharge
+## Abertura transparente ("GAME HUB" + progresso), por cima do céu.
+var splash: SplashScreen
 
 
 func _ready() -> void:
@@ -47,10 +51,28 @@ func _ready() -> void:
 
 	game_screen = GameScreen.new()
 	_curtain.add_child(game_screen)
+
+	splash = SplashScreen.new()
+	add_child(splash)
 	GameLauncher.launch_started.connect(func(app_id: int, _source: Node) -> void:
 		game_screen.show_opening(app_id))
 	GameLauncher.game_started.connect(func(app_id: int, _source: Node) -> void:
 		game_screen.show_playing(app_id))
+
+
+## Abertura: a cortina fica transparente (o céu aparece) e a tela "GAME HUB"
+## com o progresso vai por cima. O mundo atualiza pelo "splash".
+func show_splash(clock_text: String = "") -> void:
+	set_amount(0.0)
+	splash.show_splash(clock_text)
+
+
+func hide_splash(seconds: float = 0.4) -> void:
+	splash.hide_splash(seconds)
+
+
+func is_splash_visible() -> bool:
+	return splash.visible
 
 
 ## Espera na porta: progress 0..1 fecha a vinheta e enche o anel ("0" esconde).
