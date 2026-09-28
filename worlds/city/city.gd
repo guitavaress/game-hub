@@ -37,6 +37,8 @@ const BUILDING_MAX_HEIGHT: float = 19.0
 const BUILDING_FOOTPRINT: float = 10.0
 ## Altura da placa flutuante com o nome do bairro.
 const DISTRICT_SIGN_HEIGHT: float = 25.0
+## Distância (m) do pórtico até a quina do quarteirão, para dentro do cruzamento.
+const GATE_SETBACK: float = 2.0
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -234,6 +236,9 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
 			_build_block(cells[next_cell], district["id"], block_games)
+			if first == 0:
+				# O pórtico fica no primeiro quarteirão do bairro (o mais perto da praça).
+				_build_gate(cells[next_cell], district["id"])
 			next_cell += 1
 			built += block_games.size()
 			if play_intro:
@@ -241,6 +246,56 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 						lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
 				await get_tree().process_frame
 	return cells
+
+
+## Pórtico do bairro: por cima da rua das portas do quarteirão (a do lado da
+## praça), na ponta mais perto do centro. Quem vem da praça passa por baixo.
+func _build_gate(cell: Vector2i, category_id: String) -> void:
+	var gate := DistrictGate.new()
+	gate.name = "DistrictGate_%s" % category_id
+	gate.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id), CityLayout.STREET_WIDTH / 2.0 + 0.3)
+	var street_z := _door_street_z(cell)
+	var sx := _toward_center(cell.x)
+	# Um pouco para dentro do cruzamento, para os pilares não baterem no poste
+	# da esquina (nem taparem a placa de rua).
+	var edge_x := CityLayout.block_center(cell).x + sx * (CityLayout.BLOCK_SIZE / 2.0 + GATE_SETBACK)
+	gate.position = Vector3(edge_x, 0.0, street_z)
+	gate.rotation.y = PI / 2.0  # a rua corre de leste a oeste: passa-se por baixo no eixo X
+	add_child(gate)
+
+
+## Placa de rua no poste da esquina do quarteirão mais perto da praça,
+## virada para a rua das portas, com a seta apontando para o quarteirão.
+func _build_street_sign(cell: Vector2i, category_id: String) -> void:
+	var sx := _toward_center(cell.x)
+	var street_z := _door_street_z(cell)
+	var center := CityLayout.block_center(cell)
+	var sz := signf(street_z - center.z)  # de que lado do quarteirão fica essa rua
+	var corner := CityLayout.BLOCK_SIZE / 2.0 - 0.7  # onde ficam os postes
+	var street_sign := StreetSign.new()
+	# Quem lê está na rua (lado sz) olhando para o poste: a direita dele é sz*X.
+	# O quarteirão fica para o lado -sx a partir do poste.
+	street_sign.setup(GameCategories.get_category_name(category_id).split(" e ")[0].to_upper(),
+			GameCategories.get_neon_color(category_id), -sx * sz > 0.0)
+	street_sign.position = center + Vector3(sx * corner, 0.0, sz * (corner + 0.12))
+	street_sign.rotation.y = 0.0 if sz > 0.0 else PI
+	add_child(street_sign)
+
+
+## A rua das portas de um quarteirão mais perto do centro (as portas olham
+## para norte e para sul; empate: a do norte).
+func _door_street_z(cell: Vector2i) -> float:
+	var north := (cell.y - 0.5) * CityLayout.BLOCK_PITCH
+	var south := (cell.y + 0.5) * CityLayout.BLOCK_PITCH
+	return north if absf(north) <= absf(south) else south
+
+
+## Para que lado (-1 ou +1) fica o centro da cidade nesse eixo (0 = oeste).
+static func _toward_center(value: int) -> float:
+	if value > 0:
+		return -1.0
+	return 1.0 if value < 0 else -1.0
 
 
 func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> void:
@@ -260,6 +315,7 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	district_sign.position = center + Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
 	add_child(district_sign)
 	_district_signs.append(district_sign)
+	_build_street_sign(cell, category_id)
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.
 	var lots := CityLayout.lots_facing_center_first(cell)
