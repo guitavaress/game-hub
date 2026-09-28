@@ -1,10 +1,12 @@
 class_name CityDecor
 extends RefCounted
 ## Decoração da cidade: calçadas, faixas das ruas, postes, praças de bolso,
-## árvores e o chafariz. Só visual (e um pouco de colisão); nada de lógica.
+## floreiras e o chafariz. Só visual (e um pouco de colisão); nada de lógica.
 ##
-## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Árvores: Kenney
-## Nature Kit (CC0), recoloridas num verde escuro, em floreiras de concreto.
+## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Plantas: só
+## arbustos BAIXOS (Kenney Nature Kit, CC0, recoloridos num verde escuro) em
+## floreiras de concreto: abaixo de 1 m o "low-poly" não aparece. As árvores
+## altas saíram (pareciam de brinquedo); voltam como "impostoras" no P2.
 ## Uso:  CityDecor.add_park(self, lote)  — cada função acrescenta nós ao "parent".
 
 const AMBIENTCG: String = "res://assets/ambientcg/"
@@ -14,17 +16,12 @@ const AMBIENTCG: String = "res://assets/ambientcg/"
 const NEON_DAY: float = 0.15
 const NEON_NIGHT: float = 3.2
 
-const TREES: Array[PackedScene] = [
-	preload("res://assets/kenney/nature-kit/tree_detailed.glb"),
-	preload("res://assets/kenney/nature-kit/tree_cone.glb"),
-	preload("res://assets/kenney/nature-kit/tree_default.glb"),
-]
 const BUSH: PackedScene = preload("res://assets/kenney/nature-kit/plant_bushLarge.glb")
 
-## Os modelos da Nature Kit são pequenos (árvore ~1,7): esta escala deixa a
-## árvore com ~6 m e o arbusto com ~0,8 m.
-const TREE_SCALE: float = 3.4
-const BUSH_SCALE: float = 2.6
+## O arbusto da Nature Kit é pequeno (~0,3): esta escala deixa ele com ~0,7 m.
+const BUSH_SCALE: float = 2.2
+## Onde ficam os arbustos dentro da floreira (a partir do centro, em metros).
+const PLANTER_BUSH_SPOTS: Array[Vector2] = [Vector2(-0.4, -0.35), Vector2(0.42, -0.2), Vector2(-0.05, 0.42)]
 
 ## A Nature Kit vem com folhas verde-menta e materiais "metálicos". Trocamos por
 ## verdes escuros e naturais e tiramos o metálico. Nome do material -> cor nova.
@@ -114,8 +111,8 @@ static func add_block_lights(parent: Node3D, center: Vector3) -> void:
 			parent.add_child(light)
 
 
-## Terreno vazio: "praça de bolso" com piso, árvores em floreiras de concreto
-## (em grade, bem urbano) e dois bancos.
+## Terreno vazio: "praça de bolso" com piso, floreiras de concreto com
+## arbustos baixos (em grade, bem urbano) e dois bancos.
 static func add_park(parent: Node3D, lot: Transform3D) -> void:
 	var size := CityLayout.LOT_SIZE - 2.0
 	add_pad(parent, lot.origin, Vector2(size, size), pbr_material("Tiles141", 2.5, Color(0.55, 0.55, 0.55)), 0.07)
@@ -123,14 +120,14 @@ static func add_park(parent: Node3D, lot: Transform3D) -> void:
 	rng.seed = hash(lot.origin)
 	for sx in [-1.0, 1.0]:
 		for sz in [-1.0, 1.0]:
-			add_planter_with_tree(parent, lot.origin + Vector3(sx * 3.2, 0.0, sz * 3.2), rng)
+			add_planter(parent, lot.origin + Vector3(sx * 3.2, 0.0, sz * 3.2), rng)
 	for side in [-1.0, 1.0]:
 		add_bench(parent, lot * Transform3D(Basis(Vector3.UP, PI / 2.0 if side > 0 else -PI / 2.0),
 				Vector3(side * 1.2, 0.0, 0.0)))
 
 
-## Floreira de concreto (com colisão) e uma árvore dentro.
-static func add_planter_with_tree(parent: Node3D, base: Vector3, rng: RandomNumberGenerator) -> void:
+## Floreira de concreto (com colisão) com três arbustos baixos dentro.
+static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator) -> void:
 	var planter := CSGBox3D.new()
 	planter.size = Vector3(1.8, 0.55, 1.8)
 	planter.position = base + Vector3(0.0, 0.275, 0.0)
@@ -138,9 +135,9 @@ static func add_planter_with_tree(parent: Node3D, base: Vector3, rng: RandomNumb
 	planter.use_collision = true
 	parent.add_child(planter)
 	add_pad(parent, base + Vector3(0.0, 0.5, 0.0), Vector2(1.6, 1.6), make_material(Color(0.1, 0.08, 0.06)), 0.06)
-	add_model(parent, TREES[rng.randi_range(0, TREES.size() - 1)], base + Vector3(0.0, 0.55, 0.0),
-			TREE_SCALE * rng.randf_range(0.85, 1.1), rng.randf() * TAU)
-	add_model(parent, BUSH, base + Vector3(0.45, 0.55, 0.35), BUSH_SCALE, rng.randf() * TAU)
+	for spot in PLANTER_BUSH_SPOTS:
+		add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
+				BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
 
 
 ## Banco simples: base de concreto e assento de madeira escura.
@@ -169,7 +166,7 @@ static func add_bench(parent: Node3D, where: Transform3D) -> void:
 
 # --- Praça -------------------------------------------------------------------
 
-## Praça: piso de pedra, chafariz de concreto com água, árvores e postes.
+## Praça: piso de pedra, chafariz de concreto com água, floreiras e postes.
 static func add_plaza(parent: Node3D) -> void:
 	var size := CityLayout.BLOCK_SIZE
 	# Borda de 1 m em outra pedra, e o miolo com placas grandes (a textura
@@ -210,13 +207,13 @@ static func add_plaza(parent: Node3D) -> void:
 	water.material_override = water_material
 	parent.add_child(water)
 
-	# Árvores em floreiras nos quatro cantos, e os postes.
+	# Floreiras com arbustos nos quatro cantos, e os postes.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
 	var corner := size / 2.0 - 4.0
 	for sx in [-1.0, 1.0]:
 		for sz in [-1.0, 1.0]:
-			add_planter_with_tree(parent, Vector3(sx * corner, 0.0, sz * corner), rng)
+			add_planter(parent, Vector3(sx * corner, 0.0, sz * corner), rng)
 	add_block_lights(parent, Vector3.ZERO)
 
 
