@@ -2,7 +2,7 @@
 
 Um launcher para a biblioteca Steam em forma de **mundo 3D em primeira pessoa**, feito em [Godot 4](https://godotengine.org).
 
-Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com a capa do jogo na fachada. Os prédios ficam agrupados em **bairros por categoria** (RPG, Sobrevivência e Terror, Cartas e Tabuleiro...). Ao entrar pela porta de um prédio, a tela escurece, o hub se minimiza e o jogo abre pela Steam. Quando você fecha o jogo, o hub volta com você na porta do mesmo prédio.
+Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o banner do jogo no alto da fachada e o logo sobre a porta. Os prédios ficam agrupados em **bairros por categoria** (RPG, Sobrevivência e Terror, Cartas e Tabuleiro...), cada um com a sua cor de néon e o seu jeito. Ao parar na porta de um prédio, um anel enche em volta da mira; aí aparece a tela "Abrindo X…", o jogo abre pela Steam e o hub se minimiza. Quando você fecha o jogo, o hub volta com você na porta do mesmo prédio e um resumo da sessão ("1 h 12 min de Balatro").
 
 ## Situação do projeto
 
@@ -14,6 +14,8 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com a c
 | 4 | Launcher robusto: Steam fechada, jogos abertos por fora, vários monitores | ✅ pronta |
 | 5 | Amigos da Steam como personagens na porta do jogo que estão jogando | ✅ pronta |
 | 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
+| Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
+| Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
 
 A ideia a longo prazo é reaproveitar os mesmos sistemas num mundo aberto maior. Por exemplo: uma montanha de gelo para o Skyrim, ou uma pista de corrida onde se ouve o motor de longe.
 
@@ -37,7 +39,7 @@ Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos.
 
 ## Amigos na cidade (opcional)
 
-Seus amigos da Steam aparecem como bonequinhos com o avatar e o nome em cima:
+Seus amigos da Steam aparecem como hologramas com o avatar e o nome em cima:
 - **jogando algo da sua biblioteca:** ficam ao lado da porta do prédio daquele jogo;
 - **online sem jogar, ou jogando algo que você não tem:** ficam em volta do chafariz da praça;
 - **offline:** não aparecem.
@@ -45,10 +47,9 @@ Seus amigos da Steam aparecem como bonequinhos com o avatar e o nome em cima:
 Para isso, o hub precisa de uma **chave da Steam Web API**:
 
 1. Logado na Steam, entre em <https://steamcommunity.com/dev/apikey>. Em "domínio", pode escrever `localhost`. A Steam pode pedir confirmação no app Steam Guard.
-2. Abra o `config.cfg` (veja [Configuração](#configuração)) e cole a chave **entre as aspas** da linha `web_api_key=""`.
-3. Abra o hub de novo.
+2. No hub, aperte **Esc**, abra a aba **Amigos**, cole a chave e clique em **Salvar e conectar**. (Se preferir, dá para colar a chave direto no `config.cfg`, entre as aspas da linha `web_api_key=""`; veja [Configuração](#configuração).)
 
-> ⚠️ **A chave é secreta.** Não mostre para ninguém e não envie para repositórios nem chats. Golpistas usam chaves vazadas para mexer em trocas de itens. Se ela vazar, apague a chave na mesma página. O `config.cfg` fica na pasta de dados do usuário, fora do repositório.
+> ⚠️ **A chave é secreta.** Não mostre para ninguém e não envie para repositórios nem chats. Golpistas usam chaves vazadas para mexer em trocas de itens. Se ela vazar, apague a chave na mesma página. O hub guarda a chave só no `config.cfg`, na pasta de dados do usuário, fora do repositório; no menu, ela aparece só como bolinhas e nunca é mostrada de volta.
 
 A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como público no perfil. Se não, ele aparece na praça como online. Se o hub avisar que não conseguiu ler sua lista de amigos, deixe **"Lista de amigos"** como pública em Steam → Perfil → Editar perfil → Configurações de privacidade.
 
@@ -60,15 +61,18 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | W A S D | Andar |
 | Shift | Correr |
 | Espaço | Pular |
-| Esc | Soltar o mouse (clique na janela para prender de novo) |
+| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, amigos) |
+| Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
 | F11 | Tela cheia |
 | F8 | Adiantar o relógio da cidade em 3 horas (para ver a noite) |
-| Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo |
+| Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo (recue antes do anel encher para cancelar) |
 | Esc, enquanto o jogo está abrindo | Cancelar a espera |
+
+**PC fraco?** No menu de pausa, em **Qualidade**, escolha **Leve**: desliga os reflexos, o sombreamento extra e a névoa, e desenha o 3D em metade da resolução.
 
 ## Configuração
 
-O hub cria na primeira execução o arquivo `%APPDATA%\Godot\app_userdata\Game Hub\config.cfg`. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção:
+O hub cria na primeira execução o arquivo `%APPDATA%\Godot\app_userdata\Game Hub\config.cfg`. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção. Som, vídeo e amigos também mudam pelo menu de pausa (Esc), que grava no mesmo arquivo e mantém os comentários:
 
 ```ini
 [library]
@@ -92,6 +96,12 @@ friends_enabled=true
 master_volume=0.8
 effects_volume=1.0
 ambience_volume=0.8
+
+[video]
+; Qualidade do 3D: "alta", "media" ou "leve"
+quality="alta"
+; Hora da cidade: "relogio" (relógio do PC), "dia" ou "noite"
+time_of_day="relogio"
 ```
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).
@@ -102,14 +112,14 @@ Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrateg
 autoload/      sistemas globais, que não sabem nada sobre a cidade
 components/    peças reutilizáveis (GamePortal: "este lugar é um jogo")
 player/        controle em primeira pessoa
-ui/            HUD e a "cortina" preta das transições
+ui/            HUD, avisos, menu de pausa, busca, telas "Abrindo"/"Jogando" e abertura
 worlds/city/   a cidade: só monta o cenário e posiciona os portais
 ```
 
 - **SteamLibrary** lê `libraryfolders.vdf` e os `appmanifest_*.acf` de todas as bibliotecas.
 - **StoreInfo** busca as tags e os endereços das capas na API pública da loja (`IStoreBrowseService/GetItems`), sem chave e sem login. O resultado fica guardado por 30 dias.
 - **GameCategories** escolhe o bairro de cada jogo: é a primeira tag, da mais votada para a menos votada, que aparece na tabela de bairros.
-- **GameArt** procura a capa primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
+- **GameArt** procura o banner (hero), a capa e o logo primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
 - **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e acompanha o valor `RunningAppID` no registro do Windows para saber quando ele fechou. Também percebe jogos abertos por fora do hub.
 - **HubWindow** minimiza e pausa o hub enquanto você joga, e depois o traz de volta no mesmo monitor.
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
@@ -118,10 +128,12 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 
 ## Detalhes da cidade
 
-- **Horas jogadas:** ao olhar para um prédio, o HUD mostra o tempo jogado e quando foi a última vez (por exemplo, "Balatro — 23 h jogadas · jogado ontem"). O hub lê isso do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
-- **Capas em HD:** o prédio mostra na hora a capa do cache da Steam (300×450) e baixa a versão 600×900 uma vez só.
+- **Cartão do jogo:** ao olhar para um prédio, o HUD mostra o bairro, o nome, o tempo jogado e quando foi a última vez ("23 h jogadas · jogado ontem") e quais amigos estão jogando. O hub lê as horas do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
+- **Arte da Steam:** o banner largo do jogo (hero) no alto da fachada e o logo sobre a porta; sem banner, a capa em pé.
+- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada e placas nas esquinas. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando e névoa baixa no de Terror.
+- **Prédios variados:** andares, recuo no topo, marquise, tipo de janela e caixa d'água mudam de prédio para prédio (sempre iguais para o mesmo jogo).
 - **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
-- **Dia e noite:** seguem o relógio do PC. À noite, os postes e as janelas acendem e as capas brilham.
+- **Dia e noite:** seguem o relógio do PC (ou ficam fixos, pelo menu). No pôr do sol o céu fica dourado e as janelas acendem uma a uma; à noite acendem os postes, o néon e as vitrines, e as poças refletem as luzes. No horizonte, uma silhueta de cidade.
 
 ## Créditos
 
