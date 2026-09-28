@@ -1,0 +1,4 @@
+Modelos de Quaternius (https://quaternius.com), licença CC0 1.0 (domínio público).
+Usado: "Animated Human" (animated_human.glb), baixado de https://poly.pizza/m/c3Ibh9I3udk
+(~1.600 triângulos, animações Idle, Walk, Run, Jump, Punch, Working e Death).
+No hub, vira o corpo dos hologramas dos amigos (com o shader de holograma por cima).

@@ -2,6 +2,9 @@ class_name SteamFriend
 extends RefCounted
 ## Ficha de um amigo da Steam, como a Web API descreve (GetPlayerSummaries).
 
+## Nome do arquivo do avatar padrão da Steam (o "?" de quem não escolheu um).
+const DEFAULT_AVATAR_HASH: String = "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb"
+
 ## Estados da Steam ("personastate").
 enum Status { OFFLINE, ONLINE, BUSY, AWAY, SNOOZE, LOOKING_TO_TRADE, LOOKING_TO_PLAY }
 
@@ -15,6 +18,12 @@ var game_id: int = 0
 var game_name: String = ""
 ## Endereço do avatar (64x64).
 var avatar_url: String = ""
+
+
+## O amigo tem um avatar próprio? (O avatar padrão da Steam é um "?", e
+## mostrar ele no rosto do holograma só atrapalha.)
+func has_custom_avatar() -> bool:
+	return not avatar_url.is_empty() and not avatar_url.contains(DEFAULT_AVATAR_HASH)
 
 
 func is_online() -> bool:
