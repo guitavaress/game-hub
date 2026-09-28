@@ -14,6 +14,9 @@ extends Node3D
 ##
 ## Isto é DECORAÇÃO da cidade: toda a lógica de abrir o jogo está no GamePortal.
 
+## O painel da fachada mudou de tamanho ou de lugar (chegou o hero ou a capa).
+signal poster_changed
+
 const PORTAL_SCENE: PackedScene = preload("res://components/game_portal/game_portal.tscn")
 const FACADE_SHADER: Shader = preload("res://worlds/city/building_facade.gdshader")
 
@@ -241,6 +244,7 @@ func _resize_poster(aspect: float) -> void:
 
 	_poster_label.width = (poster_size.x - 0.6) / _poster_label.pixel_size
 	_poster_label.position = Vector3(0.0, 0.0, 0.01)
+	poster_changed.emit()
 
 
 ## Capa em pé (quando não há hero). A capa já traz o logo do jogo, então o
@@ -269,6 +273,18 @@ func _show_hero(texture: Texture2D) -> void:
 	_poster.position = center
 	(_poster_frame.mesh as QuadMesh).size = HERO_SIZE + Vector2(0.3, 0.3)
 	_poster_frame.position = center - Vector3(0.0, 0.0, 0.01)
+	poster_changed.emit()
+
+
+## Onde está o painel da fachada (hero ou capa), no espaço do prédio:
+## {"center": Vector3, "size": Vector2}. Enfeites de bairro usam isto.
+func get_poster_rect() -> Dictionary:
+	return {"center": _poster.position, "size": (_poster.mesh as QuadMesh).size}
+
+
+## A imagem do jogo (hero, ou a capa se não houver hero; null se nenhuma).
+func get_art_texture() -> Texture2D:
+	return _poster_material.albedo_texture
 
 
 func _on_art_ready(app_id: int, texture: Texture2D) -> void:

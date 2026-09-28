@@ -352,15 +352,18 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.
 	var lots := CityLayout.lots_facing_center_first(cell)
+	var buildings: Array[CityBuilding] = []
 	for i in lots.size():
 		var lot := CityLayout.lot_transform(cell, lots[i])
 		if i < block_games.size():
-			_build_game_building(lot, block_games[i], category_id)
+			buildings.append(_build_game_building(lot, block_games[i], category_id))
 		else:
 			CityDecor.add_park(self, lot)
+	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
+	DistrictProps.decorate(self, category_id, cell, buildings)
 
 
-func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> void:
+func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> CityBuilding:
 	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
 	var variant := BuildingVariant.from_app_id(game.app_id)
@@ -375,6 +378,7 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	building.accent_color = category_color
 	building.transform = lot
 	add_child(building)
+	return building
 
 
 # --- Céu, chão e muros -------------------------------------------------------
