@@ -8,6 +8,7 @@ extends RefCounted
 ##   cartas  lâmpadas de cassino em volta do painel, com a luz "correndo"
 ##   sobrevivencia  néon falhando, névoa baixa e um poste apagado
 ##   esportes  placar de LED com as horas jogadas e faixa de largada na rua
+##   simulacao  obra: guindaste girando no telhado e tela de andaime na fachada
 ##   (mais bairros entram aqui, um por vez)
 ##
 ## A cidade chama decorate() para cada quarteirão pronto. No mundo aberto do
@@ -26,6 +27,8 @@ static func decorate(parent: Node3D, category_id: String, cell: Vector2i, buildi
 			props = TerrorMood.new()
 		"esportes":
 			props = SportsScoreboard.new()
+		"simulacao":
+			props = ConstructionSite.new()
 	if props == null:
 		return
 	props.name = "DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y]
