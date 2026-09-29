@@ -11,6 +11,7 @@ extends RefCounted
 ##   simulacao  obra: guindaste girando no telhado e tela de andaime na fachada
 ##   estrategia  mesa holográfica no miolo do quarteirão, com uma caixinha por prédio
 ##   casual  varal de lâmpadas coloridas ligando os postes, por cima das ruas
+##   (qualquer outro bairro, inclusive Outros)  totem de endereço com a lista dos jogos
 ##   (mais bairros entram aqui, um por vez)
 ##
 ## A cidade chama decorate() para cada quarteirão pronto. No mundo aberto do
@@ -35,6 +36,8 @@ static func decorate(parent: Node3D, category_id: String, cell: Vector2i, buildi
 			props = StringLights.new()
 		"estrategia":
 			props = StrategyTable.new()
+		_:  # bairro sem enfeite próprio (inclusive Outros)
+			props = AddressTotem.new()
 	if props == null:
 		return
 	props.name = "DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y]
