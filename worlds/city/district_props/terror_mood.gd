@@ -52,13 +52,8 @@ func get_broken_light() -> StreetLight:
 func _find_corner_light(center: Vector3) -> StreetLight:
 	var best: StreetLight = null
 	var best_score := INF
-	for node in get_parent().get_children():
-		var light := node as StreetLight
-		if light == null:
-			continue
+	for light in DistrictProps.lights_in_block(get_parent(), cell):
 		var offset := light.position - center
-		if absf(offset.x) > CityLayout.BLOCK_SIZE / 2.0 or absf(offset.z) > CityLayout.BLOCK_SIZE / 2.0:
-			continue  # poste de outro quarteirão
 		var score := offset.x + offset.z  # o mais a noroeste
 		if score < best_score:
 			best_score = score

@@ -30,3 +30,19 @@ static func decorate(parent: Node3D, category_id: String, cell: Vector2i, buildi
 	if "cell" in props:
 		props.set("cell", cell)
 	parent.add_child(props)
+
+
+## Os postes (StreetLight) do quarteirão, para os bairros que mexem neles.
+## Procura entre os filhos do mundo (parent) os que ficam dentro do quarteirão.
+static func lights_in_block(parent: Node, cell: Vector2i) -> Array[StreetLight]:
+	var center := CityLayout.block_center(cell)
+	var found: Array[StreetLight] = []
+	for node in parent.get_children():
+		var light := node as StreetLight
+		if light == null:
+			continue
+		var offset := light.position - center
+		if absf(offset.x) > CityLayout.BLOCK_SIZE / 2.0 or absf(offset.z) > CityLayout.BLOCK_SIZE / 2.0:
+			continue  # poste de outro quarteirão
+		found.append(light)
+	return found
