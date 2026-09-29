@@ -16,8 +16,11 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
 | Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
 | Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
+| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | 🔜 próxima |
+| 8 | Escala: viagem rápida, bússola, minimapa e transporte entre bairros, para centenas de jogos | 🗓️ planejada |
+| 9 | A casa: um interior onde ficam a biblioteca, os amigos e as configurações | 🗓️ planejada |
 
-A ideia a longo prazo é reaproveitar os mesmos sistemas num mundo aberto maior. Por exemplo: uma montanha de gelo para o Skyrim, ou uma pista de corrida onde se ouve o motor de longe.
+A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. Um dia, o hub também rodaria no Linux. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
 ## Requisitos
 

@@ -5,6 +5,8 @@ Um "launcher" em forma de mundo 3D em primeira pessoa. O jogador caminha por uma
 
 A cidade é a **primeira versão**. No futuro, os mesmos sistemas serão reaproveitados num mundo aberto maior (ex.: montanha de gelo com Skyrim, cidade medieval com Baldur's Gate, pista de corrida com som de motor ouvido de longe). Por isso, **sistemas e cenário devem ficar separados** desde o início.
 
+**O norte de longo prazo:** um **desktop virtual transformado em mundo**, inspirado no PlayStation Home. A casa do jogador é o computador (biblioteca, amigos e configurações ficam dentro dela), sair da casa é "ir jogar", e a biblioteca Steam decide como o mundo é (bairros, biomas, clima, som). Versões V1–V6, fases seguintes e decisões: **[docs/ROADMAP.md](docs/ROADMAP.md)**.
+
 ## Sobre o dono do projeto
 - Tem conhecimento **básico** de programação. Explique as decisões de forma simples e comente o código em português.
 - Vai testar tudo no editor da Godot, no Windows. Sempre termine uma tarefa com um **checklist de teste manual** curto (o que abrir, o que apertar, o que deve acontecer).
@@ -12,7 +14,7 @@ A cidade é a **primeira versão**. No futuro, os mesmos sistemas serão reaprov
 
 ## Stack
 - **Godot 4.x** (versão estável mais recente), **GDScript** com tipagem estática (`var x: int`).
-- **Windows 10**. Steam instalada.
+- **Windows 10** hoje; Linux planejado (Fase Linux do roadmap). Código específico do sistema operacional fica só em arquivos isolados (hoje: `autoload/win_registry.gd` e o `tasklist` no `game_launcher.gd`). Steam instalada.
 - Git desde o primeiro dia; um commit por etapa concluída.
 - Nas fases iniciais, use formas primitivas (CSGBox3D, MeshInstance3D com BoxMesh) em vez de assets. Assets (ex.: kits CC0 da Kenney) entram só na fase de polimento.
 
@@ -37,6 +39,8 @@ res://
 1. **Sistemas não conhecem mundos.** Nada em `autoload/` referencia cenas de `worlds/`. A comunicação é por sinais.
 2. **Mundos só posicionam portais.** Um mundo não contém lógica de Steam; ele instancia `GamePortal`s e os decora.
 3. **GamePortal é genérico.** Hoje fica na porta de um prédio; depois ficará numa caverna, num portão, no boxe de uma pista. Ele não pode depender de ser um prédio.
+4. **Dados de mundo moram em perfis** (a partir da Fase 7, World Profile). O que muda de um bairro/bioma para outro (cores, som, enfeite, clima, arquitetura) é dado num perfil, e não um `match` de id de categoria espalhado pelo código.
+5. **Sistemas não dependem da plataforma.** Eles perguntam "qual jogo está rodando?" ou "onde está a Steam?", e só um arquivo isolado sabe se a resposta vem do registro do Windows ou do `registry.vdf` do Linux.
 
 ### GamePortal (componente-chave)
 - `@export var app_id: int`
@@ -66,10 +70,13 @@ res://
 5. **Amigos como NPCs.** `FriendsService` usa a Steam Web API (`ISteamUser/GetFriendList` e `ISteamUser/GetPlayerSummaries`, campo `gameid`), consultando a cada 1–2 min. Amigo jogando algo da biblioteca → NPC no marcador daquele portal. Online sem jogar → praça central. Offline → não aparece. Rótulo com o nome sobre o NPC.
 6. **Organização e polimento.** Gênero via `store.steampowered.com/api/appdetails` para agrupar prédios em bairros. Áudio 3D por portal (`AudioStreamPlayer3D`). Assets CC0, sons, iluminação, HUD com horas jogadas.
 
-**Futuro (não implementar agora):** mundo aberto com biomas por gênero, portais em pontos de referência visíveis de longe, LOD e carregamento por regiões.
+As fases 1–6 (e o visual v2 que veio depois) estão prontas. **Fases 7 em diante** (World Profile, Escala, A casa, Linux) e o horizonte de longo prazo: **[docs/ROADMAP.md](docs/ROADMAP.md)**. Nada do "Horizonte" deve ser implementado sem virar fase antes.
 
 ## Como trabalhar
 - Uma fase por vez. Antes de programar uma fase, apresente um plano curto e espere aprovação.
+- **Fluxo:** `/model opusplan`. O Opus planeja no modo plan; o Sonnet executa. O plano aprovado de cada fase é salvo em `docs/plans/fase-N.md`, seguindo o modelo de [docs/plans/README.md](docs/plans/README.md): Contexto → Passos (com arquivos) → Verificação → Checklist de teste manual → Mensagem de commit.
+- **Volte ao modo plan quando:** começar uma fase nova, surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas.
+- **Orca é opcional:** serve como painel ou para rodar trabalhadores em paralelo, quando as partes da tarefa forem independentes (cada um no seu worktree).
 - Prefira criar/configurar nós por código quando isso evitar arquivos `.tscn` complexos escritos à mão; quando `.tscn` for necessário, mantenha simples.
 - Se possível, valide scripts com a Godot em modo headless antes de entregar.
 - Ao final de cada fase: resumo do que foi feito, checklist de teste manual, sugestão de mensagem de commit.
