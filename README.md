@@ -40,6 +40,17 @@ A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**
 
 Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos. Isso leva alguns segundos e depois fica guardado.
 
+### Testes automáticos
+
+A pasta `tests/` tem uma bateria que roda sem abrir janela e sem abrir jogo de verdade. Para rodar, use o Git Bash:
+
+```bash
+bash tests/run_tests.sh               # todos
+bash tests/run_tests.sh check_gates   # só um
+```
+
+O script procura a Godot em `C:\Godot`. Se ela estiver em outro lugar, rode com `GODOT=/caminho/da/godot.exe` antes do comando. No fim aparece `RESULTADO GERAL: TUDO OK` ou a lista do que falhou.
+
 ## Amigos na cidade (opcional)
 
 Seus amigos da Steam aparecem como hologramas com o avatar e o nome em cima:

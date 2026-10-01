@@ -78,5 +78,5 @@ As fases 1–6 (e o visual v2 que veio depois) estão prontas. **Fases 7 em dian
 - **Volte ao modo plan quando:** começar uma fase nova, surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas.
 - **Orca é opcional:** serve como painel ou para rodar trabalhadores em paralelo, quando as partes da tarefa forem independentes (cada um no seu worktree).
 - Prefira criar/configurar nós por código quando isso evitar arquivos `.tscn` complexos escritos à mão; quando `.tscn` for necessário, mantenha simples.
-- Se possível, valide scripts com a Godot em modo headless antes de entregar.
+- Se possível, valide scripts com a Godot em modo headless antes de entregar. **Antes de cada commit, rode `bash tests/run_tests.sh`** (precisa terminar com `RESULTADO GERAL: TUDO OK`). Recurso novo ganha um `tests/check_<nome>.gd` no mesmo formato: imprime `[ok]`/`[FALHOU]` e termina com `RESULTADO: TUDO OK`.
 - Ao final de cada fase: resumo do que foi feito, checklist de teste manual, sugestão de mensagem de commit.
