@@ -6,6 +6,7 @@ Como o hub conversa com a Steam e com o sistema operacional. Isto já está impl
 Tudo fica em `autoload/platform/` (Fase Linux L.1):
 - `steam_client.gd` (`SteamClient`): a única porta. `SteamLibrary` e `GameLauncher` perguntam a ele "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?".
 - `steam_client_windows.gd`: a resposta no Windows (registro e `tasklist`, para saber se a Steam ainda está viva).
+- `steam_client_linux.gd`: a resposta no Linux (processos em `/proc`; detalhes no topo do arquivo e em [plans/fase-linux.md](plans/fase-linux.md)).
 - `win_registry.gd`: o único arquivo que lê o registro.
 - `steam_client_backend.gd`: o contrato que cada sistema cumpre.
 

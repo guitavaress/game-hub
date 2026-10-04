@@ -9,9 +9,10 @@ extends RefCounted
 ## "qual jogo está rodando?", sem saber de onde vem a resposta. Quem sabe é o
 ## backend do sistema operacional, escolhido uma vez só, quando o script carrega:
 ##   Windows: SteamClientWindows (registro do Windows);
+##   Linux:   SteamClientLinux (pasta da Steam e processos em /proc);
 ##   outros:  SteamClientBackend (ainda sem suporte: a Steam não é encontrada).
 ##
-## Código de sistema operacional (registro, tasklist...) fica só em
+## Código de sistema operacional (registro, tasklist, /proc...) fica só em
 ## autoload/platform/. Fora dessa pasta, ninguém o usa.
 
 static var _backend: SteamClientBackend = _create_backend()
@@ -39,6 +40,9 @@ static func read_state(app_id: int, check_steam: bool) -> Dictionary:
 
 
 static func _create_backend() -> SteamClientBackend:
-	if OS.get_name() == "Windows":
-		return SteamClientWindows.new()
+	match OS.get_name():
+		"Windows":
+			return SteamClientWindows.new()
+		"Linux":
+			return SteamClientLinux.new()
 	return SteamClientBackend.new()

@@ -9,9 +9,9 @@ extends SceneTree
 ## Não precisa de Steam nem de cidade.
 
 ## Backend esperado em cada sistema (o resto cai no "nenhum").
-const EXPECTED_BACKEND: Dictionary = {"Windows": "windows"}
+const EXPECTED_BACKEND: Dictionary = {"Windows": "windows", "Linux": "linux"}
 ## Pedaços de código que só podem aparecer em autoload/platform/.
-const PLATFORM_ONLY: Array[String] = ["WinRegistry", "tasklist", "OS.execute(\"reg\""]
+const PLATFORM_ONLY: Array[String] = ["WinRegistry", "tasklist", "OS.execute(\"reg\"", "\"/proc"]
 ## Pastas que a varredura pula (os testes citam esses nomes de propósito).
 const SKIP_DIRS: Array[String] = ["res://autoload/platform", "res://tests", "res://.godot"]
 

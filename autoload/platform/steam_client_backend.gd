@@ -4,7 +4,7 @@ extends RefCounted
 ##
 ## Cada sistema tem o seu arquivo, que estende este:
 ##   SteamClientWindows: registro do Windows (reg query) e tasklist.
-##   (Linux: entra na Fase Linux L.2.)
+##   SteamClientLinux:   pasta da Steam e processos em /proc.
 ##
 ## Esta versão base é a de um sistema ainda sem suporte: ela nunca acha a Steam.
 ## Ninguém usa os backends direto; todo mundo passa pelo SteamClient.

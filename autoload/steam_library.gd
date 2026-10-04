@@ -195,18 +195,33 @@ func get_current_steam_id() -> String:
 	if account_id > 0:
 		return str(STEAM_ID64_BASE + account_id)
 
-	# Com a Steam fechada: o usuário mais recente do loginusers.vdf.
+	# Senão (Steam fechada, ou o Linux): o usuário mais recente do loginusers.vdf.
 	var steam := get_steam_path()
 	if steam.is_empty():
 		return ""
-	var data := Vdf.parse(FileAccess.get_file_as_string(steam + "/config/loginusers.vdf"))
-	var users: Variant = data.get("users", {})
-	if users is Dictionary:
-		for steam_id: String in users:
-			var user: Variant = users[steam_id]
-			if user is Dictionary and str(user.get("MostRecent", "0")) == "1":
-				return steam_id
-	return ""
+	return _most_recent_user(FileAccess.get_file_as_string(steam + "/config/loginusers.vdf"))
+
+
+## Quem entrou por último, segundo o texto do loginusers.vdf: quem tem
+## "MostRecent" = 1 ou, se ninguém tiver (a Steam nova não grava mais isso),
+## o maior "Timestamp". Devolve o SteamID64 ou "".
+func _most_recent_user(loginusers_text: String) -> String:
+	var users: Variant = Vdf.get_ignoring_case(Vdf.parse(loginusers_text), "users")
+	if not users is Dictionary:
+		return ""
+	var newest_id := ""
+	var newest_time := -1
+	for steam_id: String in users:
+		var user: Variant = users[steam_id]
+		if not user is Dictionary:
+			continue
+		if str(Vdf.get_ignoring_case(user, "MostRecent")) == "1":
+			return steam_id
+		var timestamp := str(Vdf.get_ignoring_case(user, "Timestamp")).to_int()
+		if timestamp > newest_time:
+			newest_time = timestamp
+			newest_id = steam_id
+	return newest_id
 
 
 ## Esquece o que já foi lido (para ler tudo de novo na próxima pergunta).

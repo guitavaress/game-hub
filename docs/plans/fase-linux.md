@@ -39,17 +39,22 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
   - Arquivos: `docs/plans/fase-linux.md`, `tests/run_tests.sh`.
   - Manual: o dono instala na Steam um jogo pequeno **nativo** e o Balatro (**Proton**).
   - Commit: `Fase Linux L.0: investigação no Omarchy e runner de testes no Linux`
-- [x] **L.1 Interface de plataforma, só Windows** (Sonnet · medium)
+- [x] **L.1 Interface de plataforma, só Windows** (Sonnet · medium) · `465fc6a`
   - Faz: cria `SteamClient` e `steam_client_windows.gd`; `game_launcher.gd` e `steam_library.gd` passam a usá-los. Comportamento idêntico no Windows.
   - Teste: bateria toda; `tests/check_platform.gd` confere o backend escolhido e que nada fora de `autoload/platform/` cita `WinRegistry` ou `tasklist`.
   - Commit: `Fase Linux L.1: interface de plataforma (SteamClient)`
-- [ ] **L.2 Backend Linux da Steam** (Sonnet · medium; Opus se a detecção teimar)
-  - Faz: `steam_client_linux.gd` (caminho, estado, conta ativa, processo vivo) e, se a L.0 mandar, o plano B por `/proc`.
-  - Teste: `tests/check_steam_linux.gd` com `registry.vdf` de exemplo em `tests/fixtures/` (sem nome de usuário real) e uma pasta `/proc` falsa.
-  - Manual: a cidade mostra os jogos do notebook; entrar na porta abre o jogo; fechar o jogo traz o hub de volta.
+- [x] **L.2 Backend Linux da Steam** (Sonnet · medium; Opus se a detecção teimar)
+  - Faz: `steam_client_linux.gd`. Uma varredura de `/proc` dá o jogo rodando (`reaper`, sem `Install=1`) e se a Steam está aberta (processo `steam`). A pasta da Steam vem de `~/.steam/root`, de `~/.local/share/Steam` ou do Flatpak. O `SteamLibrary` passou a achar quem está logado pelo maior `Timestamp` do `loginusers.vdf` quando não há `MostRecent`; a Steam nova não grava mais esse campo, nem aqui nem, provavelmente, no Windows.
+  - Teste: `tests/check_steam_linux.gd` com uma "home" e um `/proc` falsos em `tests/fixtures/linux/` (`.gdignore` na pasta). Ele cobre o `Install=1`, um `bash` e o `steam-launch-wrapper` com o texto `SteamLaunch AppId=` e a escolha do usuário no `loginusers.vdf`.
+  - Bateria no Linux: 17 testes ok e 6 com falha, **todas por jogos que este notebook não tem** (Skyrim 489830, Valheim 892970, Stardew 413150, app 3405690 e um jogo de terror). Veja "Decisões tomadas durante a fase".
+  - Ao vivo, chamando `GameLauncher.launch()` de verdade numa Godot sem janela, com o jogo no monitor externo num workspace vazio:
+    - Undertale (nativo): `RUNNING` em 2 s; ao fechar, `session_ended ok=true`;
+    - Balatro (Proton): `RUNNING` em 8 s; ao fechar, `ok=true`;
+    - Undertale aberto **pela Steam**, por fora do hub: o hub percebeu sozinho e encerrou com `ok=true` ao fechar.
   - Commit: `Fase Linux L.2: backend Linux da Steam`
 - [ ] **L.3 Janela no Hyprland** (Opus · high: é o ponto mais incerto)
   - Antes de codar: responder às perguntas 3 e 4 ao vivo (Wayland × X11; `hyprctl` no Hyprland 0.56.2).
+  - Comportamento pedido pelo dono: ao abrir um jogo, o **jogo abre num workspace novo e vazio no monitor do jogo** (no notebook, o externo `HDMI-A-1`; configurável por máquina, vazio = o mesmo monitor do hub) e o **hub vai para o special workspace**. Quando o jogo fecha, o hub volta ao workspace onde estava, com foco.
   - Faz: `window_host.gd`; `HubWindow` usa o anfitrião; Wayland pula posição e monitor; o driver de vídeo escolhido vai para o `project.godot`.
   - Teste: `tests/check_window_host.gd` com `hyprctl` falso (confere os comandos montados).
   - Manual: abrir jogo → hub some → fechar jogo → hub volta em tela cheia, com foco e mouse preso.
@@ -62,14 +67,19 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 1. ✅ **A Steam do Linux grava o jogo rodando no `registry.vdf`?** **Não.** Com Undertale e Balatro abertos, o arquivo continuou sem `RunningAppID` e sem `Apps`. O plano B virou o plano A: o processo `reaper`.
 2. ✅ **Proton e nativo se comportam igual?** Quase. Os dois sobem um `reaper SteamLaunch AppId=<id> -- ...` que vive enquanto o jogo roda e some ao fechar (Balatro: o `reaper` sumiu no mesmo segundo do `Game process removed` do log da Steam). **Armadilha da primeira abertura no Proton:** antes do jogo, a Steam roda o script de instalação com outro `reaper`, que tem **`Install=1`** na linha de comando, e depois passa ~29 s processando o cache de shaders **sem nenhum `reaper`**. Se o hub contasse o `reaper` do `Install=1`, ele acharia que o jogo abriu e voltaria no meio da abertura. Regra: ignorar `Install=1`. A primeira abertura do Balatro levou 49 s do pedido até o jogo (o limite atual é 90 s).
 3. ⏳ **Godot no Wayland nativo ou no X11 (XWayland)?** Testar mouse capturado, F11, escala 1.5 e monitor misto. Só afeta a L.3; testar no começo dela.
-4. ⏳ **`hyprctl` esconde e devolve a janela da Godot, e o jogo ganha o foco?** O Hyprland é o 0.56.2: conferir a sintaxe ao vivo. Só afeta a L.3; testar no começo dela.
+4. ⏳ **`hyprctl` esconde e devolve a janela da Godot, e o jogo ganha o foco?** Só afeta a L.3. Já descoberto na L.2: **no Hyprland 0.56 o `hyprctl dispatch` é Lua**, e a sintaxe antiga (`dispatch focusmonitor HDMI-A-1`) dá erro. Funcionam:
+   - `hyprctl dispatch 'hl.dsp.focus({ monitor = "HDMI-A-1" })'`;
+   - `hyprctl dispatch 'hl.dsp.focus({ workspace = "empty" })'` (cria/vai para um workspace vazio no monitor focado);
+   - `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`;
+   - `hyprctl dispatch 'hl.dsp.window.close()'` (fecha a janela **ativa**).
+   - Ainda não testado: `hl.dsp.window.move({ workspace = "special:...", follow = false })` (os atalhos do Omarchy usam assim, na janela ativa) e como apontar uma janela específica nele. A API está em `/usr/share/hypr/stubs/hl.meta.lua`.
 5. ✅ **A bateria roda no Linux?** Ela importa o projeto sem erro de script, mas a maioria dos testes falha porque `get_steam_path()` devolve vazio no Linux (o HUD mostra "Não encontrei a Steam neste PC") e a cidade nasce sem prédios. Isso é exatamente o que a L.1/L.2 resolvem. Detalhes que valem para depois:
    - os testes usam a biblioteca **real** e procuram o prédio do Balatro (`Building_2379780`), então o Balatro precisa estar instalado;
    - depois de um `SCRIPT ERROR` o teste não chama `quit()` e fica parado até o `timeout` de 240 s. Uma bateria com muitas falhas leva quase uma hora.
 
 ## Riscos
 - `registry.vdf` com atraso: a L.0 mede; o plano B por `/proc` já está desenhado.
-- `hyprctl` ausente ou com sintaxe diferente: o anfitrião cai no minimizar padrão e avisa no HUD; o comando fica num só lugar.
+- `hyprctl` ausente ou com sintaxe diferente: o anfitrião cai no minimizar padrão e avisa no HUD; o comando fica num só lugar. **Já aconteceu:** o Hyprland 0.56 trocou o `dispatch` por Lua. O anfitrião deve usar a sintaxe Lua e, se receber erro, tentar a antiga, porque o desktop pode estar numa versão diferente.
 - Mexer no `HubWindow` pode quebrar o Windows: a L.3 mantém o caminho do Windows intacto, e o teste manual no Windows acontece antes de juntar na `main`.
 - O notebook é fraco: aqui só avaliamos se funciona, não o desempenho.
 
@@ -86,6 +96,11 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-04: as perguntas 3 e 4 (janela) passam para o começo da L.3, porque só ela depende delas (L.0).
 - 2026-10-04: o contrato é a classe `SteamClientBackend` (`steam_client_backend.gd`), e a versão base dela é a de "sistema sem suporte" (não acha a Steam). O "processo vivo?" ficou dentro de cada backend, fora da interface, porque ninguém de fora precisa dele (L.1).
 - 2026-10-04: sem Windows na viagem, o backend do Windows foi conferido no Linux com `reg` e `tasklist` falsos (caminho, conta, PID vivo, `Apps\<id>\Running`). O teste manual no Windows fica para a volta, antes de juntar na `main` (L.1).
+- 2026-10-04: pedido do dono: o jogo abre num workspace novo no monitor externo e o hub vai para o special workspace (vale para os testes ao vivo e para a L.3).
+- 2026-10-04: "Steam aberta" no Linux = existe um processo chamado `steam` (vem na mesma varredura do `/proc`). Não usamos o `steam.pid`: um arquivo velho ou ausente (Flatpak) daria "Steam fechada" no meio do jogo (L.2).
+- 2026-10-04: `app_updating` é sempre `false` no Linux. Só deixa mais genérica a mensagem de "o jogo não abriu" (L.2).
+- 2026-10-04: as pastas do Flatpak estão no código, mas não foram testadas (não há Flatpak neste notebook) (L.2).
+- **Decisão pendente do dono (L.2):** 6 testes dependem da biblioteca do desktop Windows (Skyrim, Valheim, Stardew, app 3405690, um jogo de terror) e falham num PC sem esses jogos. Opções: (a) uma subetapa nova em que os testes usam uma biblioteca falsa (`tests/fixtures/`), e aí passam em qualquer máquina; (b) pular a conferência quando o jogo não está instalado. Até decidir, a bateria no notebook termina com 6 falhas conhecidas.
 
 ## Checklist de teste manual (fim da fase)
 1. Abrir o projeto na Godot 4.7.2 e apertar F5 (menu Esc → qualidade Leve no notebook).
