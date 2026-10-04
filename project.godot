@@ -31,6 +31,7 @@ ScreenFade="*res://ui/screen_fade.gd"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+display_server/driver.linuxbsd="wayland"
 
 [gui]
 

@@ -43,7 +43,7 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
   - Faz: cria `SteamClient` e `steam_client_windows.gd`; `game_launcher.gd` e `steam_library.gd` passam a usá-los. Comportamento idêntico no Windows.
   - Teste: bateria toda; `tests/check_platform.gd` confere o backend escolhido e que nada fora de `autoload/platform/` cita `WinRegistry` ou `tasklist`.
   - Commit: `Fase Linux L.1: interface de plataforma (SteamClient)`
-- [x] **L.2 Backend Linux da Steam** (Sonnet · medium; Opus se a detecção teimar)
+- [x] **L.2 Backend Linux da Steam** (Sonnet · medium; Opus se a detecção teimar) · `67b2b8b`
   - Faz: `steam_client_linux.gd`. Uma varredura de `/proc` dá o jogo rodando (`reaper`, sem `Install=1`) e se a Steam está aberta (processo `steam`). A pasta da Steam vem de `~/.steam/root`, de `~/.local/share/Steam` ou do Flatpak. O `SteamLibrary` passou a achar quem está logado pelo maior `Timestamp` do `loginusers.vdf` quando não há `MostRecent`; a Steam nova não grava mais esse campo, nem aqui nem, provavelmente, no Windows.
   - Teste: `tests/check_steam_linux.gd` com uma "home" e um `/proc` falsos em `tests/fixtures/linux/` (`.gdignore` na pasta). Ele cobre o `Install=1`, um `bash` e o `steam-launch-wrapper` com o texto `SteamLaunch AppId=` e a escolha do usuário no `loginusers.vdf`.
   - Bateria no Linux: 17 testes ok e 6 com falha, **todas por jogos que este notebook não tem** (Skyrim 489830, Valheim 892970, Stardew 413150, app 3405690 e um jogo de terror). Veja "Decisões tomadas durante a fase".
@@ -52,12 +52,21 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
     - Balatro (Proton): `RUNNING` em 8 s; ao fechar, `ok=true`;
     - Undertale aberto **pela Steam**, por fora do hub: o hub percebeu sozinho e encerrou com `ok=true` ao fechar.
   - Commit: `Fase Linux L.2: backend Linux da Steam`
-- [ ] **L.3 Janela no Hyprland** (Opus · high: é o ponto mais incerto)
-  - Antes de codar: responder às perguntas 3 e 4 ao vivo (Wayland × X11; `hyprctl` no Hyprland 0.56.2).
-  - Comportamento pedido pelo dono: ao abrir um jogo, o **jogo abre num workspace novo e vazio no monitor do jogo** (no notebook, o externo `HDMI-A-1`; configurável por máquina, vazio = o mesmo monitor do hub) e o **hub vai para o special workspace**. Quando o jogo fecha, o hub volta ao workspace onde estava, com foco.
-  - Faz: `window_host.gd`; `HubWindow` usa o anfitrião; Wayland pula posição e monitor; o driver de vídeo escolhido vai para o `project.godot`.
-  - Teste: `tests/check_window_host.gd` com `hyprctl` falso (confere os comandos montados).
-  - Manual: abrir jogo → hub some → fechar jogo → hub volta em tela cheia, com foco e mouse preso.
+- [x] **L.3 Janela no Hyprland** (Opus · high: é o ponto mais incerto)
+  - Antes de codar: responder às perguntas 3 e 4 ao vivo (Wayland × X11; `hyprctl` no Hyprland 0.56.2). Feito: veja as perguntas.
+  - Comportamento pedido pelo dono: ao abrir um jogo, o **jogo abre num workspace vazio no monitor do jogo** (`[window] game_monitor` no `config.cfg`; no notebook, `HDMI-A-1`; vazio ou desligado = o monitor em foco) e o **hub vai para o special workspace**. Quando o jogo fecha, o hub volta ao workspace onde estava, com foco.
+  - Faz:
+    - `autoload/platform/window_host.gd` (`WindowHost`): a versão base é a janela normal da Godot (minimizar), igual ao Windows de antes; `WindowHost.create()` escolhe.
+    - `window_host_hyprland.gd`: os workspaces. Usa a sintaxe Lua e cai na antiga se ela for recusada.
+    - `HubWindow` chama o anfitrião e, no Hyprland, não guarda nem restaura posição.
+    - `GameLauncher.launch()` chama `HubWindow.make_room_for_game()` logo depois de pedir o jogo.
+    - `AppConfig` ganhou a seção `[window]`.
+    - `project.godot` usa o Wayland no Linux.
+  - Teste: `tests/check_window_host.gd` com um `hyprctl` falso (comandos montados, monitor desligado, jogo aberto por fora, Hyprland antigo, janela não encontrada). No Linux, uma conferência extra roda o `OS.execute` de verdade com `tests/fixtures/linux/hyprctl_eco.sh`. O `check_platform` agora também procura `OS.execute("hyprctl"`.
+  - Ao vivo, com o hub de verdade e janela (Wayland), hub num workspace do eDP-1 e jogos no HDMI:
+    - Undertale (HDMI mostrando um workspace vazio): o jogo abriu nele, o hub foi para `special:gamehub` e voltou ao workspace dele, ativo, ao fechar;
+    - Balatro (HDMI mostrando um workspace ocupado): o hub criou o workspace 4 no HDMI, o jogo abriu lá, e o resto igual.
+    - Nos dois, o mouse voltou ao modo capturado.
   - Commit: `Fase Linux L.3: janela no Hyprland`
 - [ ] **L.4 Documentação** (Sonnet · low)
   - Faz: seção Linux no `docs/PLATAFORMA.md`; README (como rodar no Linux, pasta de dados); ROADMAP com a fase marcada como feita; mapa do CLAUDE.md (pasta `platform/`, Godot no Linux).
@@ -66,13 +75,16 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 ## Perguntas abertas (L.0 responde)
 1. ✅ **A Steam do Linux grava o jogo rodando no `registry.vdf`?** **Não.** Com Undertale e Balatro abertos, o arquivo continuou sem `RunningAppID` e sem `Apps`. O plano B virou o plano A: o processo `reaper`.
 2. ✅ **Proton e nativo se comportam igual?** Quase. Os dois sobem um `reaper SteamLaunch AppId=<id> -- ...` que vive enquanto o jogo roda e some ao fechar (Balatro: o `reaper` sumiu no mesmo segundo do `Game process removed` do log da Steam). **Armadilha da primeira abertura no Proton:** antes do jogo, a Steam roda o script de instalação com outro `reaper`, que tem **`Install=1`** na linha de comando, e depois passa ~29 s processando o cache de shaders **sem nenhum `reaper`**. Se o hub contasse o `reaper` do `Install=1`, ele acharia que o jogo abriu e voltaria no meio da abertura. Regra: ignorar `Install=1`. A primeira abertura do Balatro levou 49 s do pedido até o jogo (o limite atual é 90 s).
-3. ⏳ **Godot no Wayland nativo ou no X11 (XWayland)?** Testar mouse capturado, F11, escala 1.5 e monitor misto. Só afeta a L.3; testar no começo dela.
-4. ⏳ **`hyprctl` esconde e devolve a janela da Godot, e o jogo ganha o foco?** Só afeta a L.3. Já descoberto na L.2: **no Hyprland 0.56 o `hyprctl dispatch` é Lua**, e a sintaxe antiga (`dispatch focusmonitor HDMI-A-1`) dá erro. Funcionam:
-   - `hyprctl dispatch 'hl.dsp.focus({ monitor = "HDMI-A-1" })'`;
-   - `hyprctl dispatch 'hl.dsp.focus({ workspace = "empty" })'` (cria/vai para um workspace vazio no monitor focado);
-   - `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`;
-   - `hyprctl dispatch 'hl.dsp.window.close()'` (fecha a janela **ativa**).
-   - Ainda não testado: `hl.dsp.window.move({ workspace = "special:...", follow = false })` (os atalhos do Omarchy usam assim, na janela ativa) e como apontar uma janela específica nele. A API está em `/usr/share/hypr/stubs/hl.meta.lua`.
+3. ✅ **Godot no Wayland nativo ou no X11 (XWayland)?** **Wayland** (`display/display_server/driver.linuxbsd="wayland"`, que só vale no Linux; se o Wayland falhar, a Godot tenta o X11). Nos dois drivers, o Hyprland ignora "minimizar" e "mudar posição", e a imagem sai igual. O Wayland evita a camada XWayland, que costuma ser pior para mouse capturado e para a NVIDIA. Pontos do Wayland: a Godot informa errado o monitor e a escala (disse tela 0 e escala 2.00, quando era o HDMI com 1.25) e diz `window_is_focused() = false` mesmo com o hub ativo. Como o Hyprland cuida da janela, isso não atrapalha. Falta testar à mão: mouse capturado e F11.
+4. ✅ **`hyprctl` esconde e devolve a janela da Godot?** Sim. **No Hyprland 0.56 o `hyprctl dispatch` é Lua**; a sintaxe antiga (`dispatch focusmonitor HDMI-A-1`) responde `error: [string ...`. A API está em `/usr/share/hypr/stubs/hl.meta.lua`. Funcionam (testado):
+   - `hl.dsp.focus({ monitor = 'HDMI-A-1' })` e `hl.dsp.focus({ window = 'address:0x...' })`;
+   - `hl.dsp.focus({ workspace = '7' })`: vai para o 7 e, se ele não existir, cria no monitor em foco;
+   - `hl.dsp.window.move({ workspace = 'special:gamehub', follow = false, window = 'address:0x...' })`: esconde aquela janela (mesmo que outra esteja ativa), sem mostrar o special;
+   - `hl.dsp.window.move({ workspace = '3', window = 'address:0x...' })` e depois `hl.dsp.focus({ window = ... })`: devolve e dá foco;
+   - `hl.dsp.window.close()`: fecha a janela **ativa** (usado só nos testes ao vivo, depois de conferir qual é a ativa).
+   - **Armadilhas:**
+     - `workspace = 'empty'` (e `emptym`, `emptynm`) vai para o primeiro workspace vazio de **qualquer** monitor, por isso o hub escolhe o número sozinho;
+     - **aspas duplas somem** no `OS.execute` da Godot quando ela lê a resposta (ela passa o comando por um shell), por isso o Lua usa aspas simples.
 5. ✅ **A bateria roda no Linux?** Ela importa o projeto sem erro de script, mas a maioria dos testes falha porque `get_steam_path()` devolve vazio no Linux (o HUD mostra "Não encontrei a Steam neste PC") e a cidade nasce sem prédios. Isso é exatamente o que a L.1/L.2 resolvem. Detalhes que valem para depois:
    - os testes usam a biblioteca **real** e procuram o prédio do Balatro (`Building_2379780`), então o Balatro precisa estar instalado;
    - depois de um `SCRIPT ERROR` o teste não chama `quit()` e fica parado até o `timeout` de 240 s. Uma bateria com muitas falhas leva quase uma hora.
@@ -100,11 +112,24 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-04: "Steam aberta" no Linux = existe um processo chamado `steam` (vem na mesma varredura do `/proc`). Não usamos o `steam.pid`: um arquivo velho ou ausente (Flatpak) daria "Steam fechada" no meio do jogo (L.2).
 - 2026-10-04: `app_updating` é sempre `false` no Linux. Só deixa mais genérica a mensagem de "o jogo não abriu" (L.2).
 - 2026-10-04: as pastas do Flatpak estão no código, mas não foram testadas (não há Flatpak neste notebook) (L.2).
+- 2026-10-04: o workspace do jogo é escolhido pelo hub: o que o monitor do jogo já mostra, se estiver vazio; senão, o menor número livre (L.3).
+- 2026-10-04: no Hyprland o hub não guarda nem restaura monitor, posição e tamanho (`user://window.cfg`): quem decide é o Hyprland (L.3).
+- 2026-10-04: se o `hyprctl` falhar, o hub só registra um aviso no log e usa o minimizar da Godot (que o Hyprland ignora). O aviso no HUD que o plano citava ficou de fora, para não crescer a subetapa (L.3).
+- 2026-10-04: Wayland fora do Hyprland (GNOME, KDE) usa a versão base (minimizar e restaurar como no Windows) e **não foi testado** (L.3).
+- 2026-10-04: no `config.cfg` deste notebook ficou `game_monitor="HDMI-A-1"`, a pedido do dono (L.3).
+- 2026-10-04: bateria depois da L.3: os mesmos 6 testes com falha. Dentro do `check_phase4`, uma linha da seção I (Skyrim), "tela continua preta", passou a passar (antes falhava). A bissecção tirou `game_launcher.gd`, `hub_window.gd` e `project.godot` da lista de causas. A linha mede um clarear de 0,8 s com o hub a 5 FPS (quadros de 200 ms), num cenário que já é inválido sem o Skyrim. No desktop, com o Skyrim, esse trecho segue outro caminho (troca de jogo, hub continua dormindo). Conferir na bateria do Windows (L.3).
 - **Decisão pendente do dono (L.2):** 6 testes dependem da biblioteca do desktop Windows (Skyrim, Valheim, Stardew, app 3405690, um jogo de terror) e falham num PC sem esses jogos. Opções: (a) uma subetapa nova em que os testes usam uma biblioteca falsa (`tests/fixtures/`), e aí passam em qualquer máquina; (b) pular a conferência quando o jogo não está instalado. Até decidir, a bateria no notebook termina com 6 falhas conhecidas.
 
 ## Checklist de teste manual (fim da fase)
-1. Abrir o projeto na Godot 4.7.2 e apertar F5 (menu Esc → qualidade Leve no notebook).
-2. Andar até a porta do jogo nativo e entrar.
-3. O jogo abre, o hub some, e ao fechar o jogo o hub volta na mesma porta, com o mouse capturado.
-4. Repetir com o Balatro (Proton).
-5. Configurar a chave da API pelo menu Esc e conferir os hologramas de amigos.
+No notebook (Omarchy):
+1. Abrir o projeto na Godot 4.7.2 (`~/.local/bin/godot --path ~/git/game-hub -e`) e apertar F5. No menu Esc, escolher a qualidade **Leve** (na "alta", o notebook roda a ~9 FPS).
+2. Mover o mouse: a câmera gira e o cursor fica preso (Wayland). Apertar F11: liga e desliga a tela cheia.
+3. Andar até a porta do Undertale e entrar: o jogo abre num workspace vazio do monitor externo e o hub some (vai para o workspace oculto).
+4. Fechar o jogo: o hub volta no workspace onde estava, na mesma porta, ativo. Mexer o mouse: a câmera gira (se não girar, clicar uma vez na janela e anotar).
+5. Repetir com o Balatro (Proton).
+6. Abrir um jogo pela Steam, por fora do hub: o hub some sozinho e volta quando o jogo fecha.
+7. Configurar a chave da API pelo menu Esc e conferir os hologramas de amigos.
+
+No desktop com Windows, antes de juntar na `main`:
+1. F5, entrar num jogo: o hub minimiza; fechar: volta na mesma porta, no mesmo monitor.
+2. `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK`.

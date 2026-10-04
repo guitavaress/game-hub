@@ -157,6 +157,8 @@ func launch(app_id: int, source: Node = null) -> bool:
 	_launch_started_ms = Time.get_ticks_msec()
 	_set_state(State.LAUNCHING)
 
+	# Prepara o lugar do jogo (no Hyprland, um workspace novo; no Windows, nada).
+	HubWindow.make_room_for_game()
 	# O hub dorme mas continua visível (tela "Abrindo X…"); minimiza quando o
 	# jogo aparecer ou, no máximo, depois de MINIMIZE_AFTER_SECONDS.
 	HubWindow.sleep(false)
