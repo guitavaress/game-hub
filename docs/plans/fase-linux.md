@@ -1,6 +1,6 @@
 # Fase Linux: o hub rodando no Omarchy (Hyprland) sem quebrar o Windows
 
-**Status:** em andamento (L.0)
+**Status:** concluída no Linux (L.0–L.4). Falta o checklist no Windows (fim deste arquivo) antes de juntar na `main`, e a decisão pendente sobre os testes que dependem da biblioteca.
 **Branch:** `fase-linux`
 
 ## Contexto
@@ -52,7 +52,7 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
     - Balatro (Proton): `RUNNING` em 8 s; ao fechar, `ok=true`;
     - Undertale aberto **pela Steam**, por fora do hub: o hub percebeu sozinho e encerrou com `ok=true` ao fechar.
   - Commit: `Fase Linux L.2: backend Linux da Steam`
-- [x] **L.3 Janela no Hyprland** (Opus · high: é o ponto mais incerto)
+- [x] **L.3 Janela no Hyprland** (Opus · high: é o ponto mais incerto) · `57b6d3e`
   - Antes de codar: responder às perguntas 3 e 4 ao vivo (Wayland × X11; `hyprctl` no Hyprland 0.56.2). Feito: veja as perguntas.
   - Comportamento pedido pelo dono: ao abrir um jogo, o **jogo abre num workspace vazio no monitor do jogo** (`[window] game_monitor` no `config.cfg`; no notebook, `HDMI-A-1`; vazio ou desligado = o monitor em foco) e o **hub vai para o special workspace**. Quando o jogo fecha, o hub volta ao workspace onde estava, com foco.
   - Faz:
@@ -68,8 +68,8 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
     - Balatro (HDMI mostrando um workspace ocupado): o hub criou o workspace 4 no HDMI, o jogo abriu lá, e o resto igual.
     - Nos dois, o mouse voltou ao modo capturado.
   - Commit: `Fase Linux L.3: janela no Hyprland`
-- [ ] **L.4 Documentação** (Sonnet · low)
-  - Faz: seção Linux no `docs/PLATAFORMA.md`; README (como rodar no Linux, pasta de dados); ROADMAP com a fase marcada como feita; mapa do CLAUDE.md (pasta `platform/`, Godot no Linux).
+- [x] **L.4 Documentação** (Sonnet · low)
+  - Faz: `docs/PLATAFORMA.md` reescrito (Steam comum, Windows, Linux, janela no Hyprland e as armadilhas); README (Linux nos requisitos, como rodar, pasta de dados, `[window]`, como funciona); ROADMAP (fase feita, sem a frase errada sobre o `registry.vdf`); CLAUDE.md (stack, mapa, regra 5); `tests/README.md` (Godot no Linux, testes que dependem da biblioteca, `tests/fixtures/`).
   - Commit: `Fase Linux L.4: documentação`
 
 ## Perguntas abertas (L.0 responde)

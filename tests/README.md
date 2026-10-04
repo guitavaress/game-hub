@@ -9,7 +9,7 @@ bash tests/run_tests.sh                          # todos (alguns minutos)
 bash tests/run_tests.sh check_gates check_trees  # só estes
 ```
 
-Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. Para usar uma Godot fora de `C:\Godot`, rode `GODOT=/caminho/godot.exe bash tests/run_tests.sh`.
+Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. O script acha a Godot em `C:\Godot` (Windows) ou no `PATH`/`~/.local/bin/godot` (Linux); para outra, rode `GODOT=/caminho/godot bash tests/run_tests.sh`.
 
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.
 
@@ -60,3 +60,6 @@ func _check(label: String, ok: bool) -> void:
 - **Arquivos do usuário:** se o teste mexe em `user://config.cfg` ou no cache, guarde uma cópia no começo e devolva no fim (veja `check_pause_menu.gd`).
 - **Nunca** use uma chave ou um ID real. Use valores falsos, como `76561190000000001`.
 - **Capturas de tela** precisam de janela (sem `--headless`). Elas ficam fora deste diretório e fora do repositório, porque mostram capas de jogos.
+- **A biblioteca de verdade importa.** Vários testes montam a cidade com os jogos instalados e procuram prédios específicos (Balatro, Skyrim 489830, Valheim 892970, Stardew 413150...). Num PC sem esses jogos, eles falham por falta do jogo. Decisão pendente: biblioteca falsa para os testes, ou pular a conferência quando o jogo não está instalado (veja `docs/plans/fase-linux.md`).
+- **Depois de um `SCRIPT ERROR`**, o teste não chega ao `quit()` e fica parado até o `timeout` (240 s). Uma bateria com muitas falhas demora.
+- **Testes de plataforma** (`check_platform`, `check_steam_linux`, `check_window_host`) usam pastas e comandos falsos em `tests/fixtures/` (com `.gdignore`, para a Godot não importar nada dali), então rodam igual no Windows e no Linux.

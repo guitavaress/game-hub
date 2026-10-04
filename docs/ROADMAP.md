@@ -27,7 +27,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🗓️ planejada: [Fase 9](#fase-9-a-casa) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](#fase-7-world-profile); biomas em [Depois](#depois) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔭 horizonte |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | 🗓️ [Fase Linux](#fase-linux-quando-precisar) + 🔭 horizonte |
+| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)) + 🔭 horizonte (desktop) |
 | **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔭 horizonte |
 
 ## O que já foi feito
@@ -38,6 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
+- **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
 
@@ -87,18 +88,17 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Pronto quando:** dá para configurar tudo e escolher um jogo sem sair da casa.
 
-### Fase Linux (quando precisar)
+### Fase Linux (feita)
 
-Não tem número fixo: entra quando o hub for usado no Linux.
+Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O desktop vai ter dual boot, então **Windows e Linux são alvos de primeira classe**. Plano e registro: [plans/fase-linux.md](plans/fase-linux.md).
 
-**Objetivo:** Windows e Linux atrás da **mesma interface** de plataforma: caminho da Steam, jogo rodando (`RunningAppID`), "o processo ainda está vivo?" e pasta de dados.
+**O que entregou:**
+- **Mesma interface** em `autoload/platform/`: o `SteamClient` responde "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?"; o `WindowHost` esconde e mostra a janela.
+- **No Linux, o jogo rodando vem do processo `reaper`** que a Steam cria para cada jogo. O `~/.steam/registry.vdf` não guarda isso.
+- **No Hyprland**, o jogo abre num workspace vazio do monitor escolhido, e o hub se esconde num workspace oculto e volta ao fechar o jogo.
+- Detalhes técnicos em [PLATAFORMA](PLATAFORMA.md).
 
-**Onde está a parte do Windows hoje:**
-- `autoload/win_registry.gd`: lê o registro;
-- `autoload/steam_library.gd` e `autoload/game_launcher.gd`: chamam o registro;
-- `autoload/game_launcher.gd`: usa o `tasklist` para ver se o processo está vivo.
-
-**No Linux:** os mesmos valores ficam em `~/.steam/registry.vdf`, que o `autoload/vdf.gd` já sabe ler.
+**Falta:** a conferência no Windows (checklist no fim do plano) e decidir como os testes deixam de depender da biblioteca do desktop (Skyrim, Valheim...).
 
 ## Depois
 
@@ -129,4 +129,4 @@ Ideias guardadas para não se perderem. Nada aqui está planejado.
 ## Regras que já valem
 
 - **Dados de mundo em perfis:** a partir da Fase 7, cores, sons, enfeites e clima novos por categoria entram no perfil, e não em `match` espalhado.
-- **Plataforma isolada:** código específico do Windows (ou do Linux) só em arquivos isolados, como `win_registry.gd`. Os sistemas pedem "qual jogo está rodando?", e não "leia o registro".
+- **Plataforma isolada:** código específico do Windows ou do Linux só em `autoload/platform/` (o `tests/check_platform.gd` confere). Os sistemas pedem "qual jogo está rodando?" ao `SteamClient`, e não "leia o registro".

@@ -5,17 +5,17 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–6 + visual v2 (detalhes no [README](README.md)).
+- **Feito:** fases 1–6, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
 - Tem conhecimento **básico** de programação. Explique as decisões de forma simples, em português, e comente o código em português.
-- Testa no editor da Godot, no Windows. Toda tarefa termina com um **checklist de teste manual** curto: o que abrir, o que apertar, o que deve acontecer.
+- Testa no editor da Godot: no Windows (desktop) e no Linux (notebook com Omarchy). Toda tarefa termina com um **checklist de teste manual** curto: o que abrir, o que apertar, o que deve acontecer.
 - Quando algo precisar ser feito à mão no editor, dê o passo a passo.
 
 ## Stack
-- **Godot 4.7.2** (versão padrão, não .NET), em `C:\Godot\Godot_v4.7.2-stable_win64_console.exe`. **GDScript com tipagem estática** (`var x: int`). Renderer Forward+, física Jolt.
-- **Windows 10** hoje; Linux planejado. Detalhes de Steam e Windows: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
+- **Godot 4.7.2** (versão padrão, não .NET), em `C:\Godot\Godot_v4.7.2-stable_win64_console.exe` no Windows e em `~/.local/bin/godot` no Linux. **GDScript com tipagem estática** (`var x: int`). Renderer Forward+, física Jolt.
+- **Windows 10** e **Linux** (Omarchy: Hyprland 0.56, Wayland). O desktop (Ryzen 5 5600, RTX 4070) terá dual boot; o notebook de viagem é fraco (use a qualidade Leve). Detalhes de Steam, Windows e Linux: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - Git, com um commit por passo concluído e testado.
 
 ## Mapa do projeto
@@ -30,6 +30,7 @@ autoload/      sistemas globais; não conhecem nenhum mundo
   app_config, graphics_quality        user://config.cfg, qualidade gráfica
   platform/                           ÚNICO lugar com código de sistema operacional
     steam_client (+ backends por SO)    "onde está a Steam? qual jogo está rodando?"
+    window_host (+ hyprland)            esconder/mostrar a janela do hub
     win_registry                        lê o registro do Windows
 components/    peças reutilizáveis em qualquer mundo
   game_portal/      a "porta" de um jogo (app_id, área de entrada, marcadores)
@@ -50,7 +51,7 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 2. **Mundos só posicionam e decoram portais.** Lógica de Steam não entra em mundo.
 3. **GamePortal é genérico.** Hoje fica na porta de um prédio; amanhã num arco de pedra ou num boxe de corrida. Ele não pode depender de ser um prédio.
 4. **Dados de mundo moram em perfis** (a partir da Fase 7). Cores, som, enfeite, clima e arquitetura de um bairro são dados, e não um `match` de categoria espalhado pelo código.
-5. **Plataforma isolada.** Os sistemas perguntam "qual jogo está rodando?". Só um arquivo isolado sabe se a resposta vem do registro do Windows ou do `registry.vdf` do Linux.
+5. **Plataforma isolada.** Os sistemas perguntam "qual jogo está rodando?" ao `SteamClient`. Só `autoload/platform/` sabe se a resposta vem do registro do Windows ou dos processos do Linux (o `tests/check_platform.gd` confere).
 6. Prefira criar nós por código a escrever `.tscn` complexos à mão. Quando `.tscn` for necessário, mantenha simples.
 
 ## Segurança e privacidade (sempre)

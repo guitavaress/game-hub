@@ -16,16 +16,17 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
 | Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
 | Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
+| Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta no Linux (falta a conferência final no Windows) |
 | 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | 🔜 próxima |
 | 8 | Escala: viagem rápida, bússola, minimapa e transporte entre bairros, para centenas de jogos | 🗓️ planejada |
 | 9 | A casa: um interior onde ficam a biblioteca, os amigos e as configurações | 🗓️ planejada |
 
-A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. Um dia, o hub também rodaria no Linux. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
+A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
 ## Requisitos
 
-- **Windows 10 ou 11**: o hub lê o registro do Windows para achar a Steam.
-- **Steam** instalada.
+- **Windows 10 ou 11**, ou **Linux** (testado no Omarchy, com Hyprland e Wayland).
+- **Steam** instalada. No Linux, a Steam nativa; a do Flatpak deve funcionar, mas não foi testada.
 - **Godot 4.7** ou mais nova (versão padrão, não a .NET).
 
 ## Como rodar
@@ -40,16 +41,24 @@ A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**
 
 Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos. Isso leva alguns segundos e depois fica guardado.
 
+### No Linux
+
+- **Godot:** baixe o binário oficial (`Godot_v4.7.2-stable_linux.x86_64.zip`, no site da Godot ou no GitHub), descompacte e copie para `~/.local/bin/godot`. Abra o editor com `godot --path ~/git/game-hub -e`.
+- **Janela:** no Linux o hub usa o Wayland. No **Hyprland**, quando um jogo abre, ele vai para um workspace vazio e o hub se esconde num workspace oculto; quando o jogo fecha, o hub volta para onde estava. Para escolher o monitor dos jogos, veja `game_monitor` em [Configuração](#configuração).
+- **PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
+
 ### Testes automáticos
 
-A pasta `tests/` tem uma bateria que roda sem abrir janela e sem abrir jogo de verdade. Para rodar, use o Git Bash:
+A pasta `tests/` tem uma bateria que roda sem abrir janela e sem abrir jogo de verdade. Para rodar, use o Git Bash (no Windows) ou o terminal (no Linux):
 
 ```bash
 bash tests/run_tests.sh               # todos
 bash tests/run_tests.sh check_gates   # só um
 ```
 
-O script procura a Godot em `C:\Godot`. Se ela estiver em outro lugar, rode com `GODOT=/caminho/da/godot.exe` antes do comando. No fim aparece `RESULTADO GERAL: TUDO OK` ou a lista do que falhou.
+O script procura a Godot em `C:\Godot` (Windows), no `PATH` e em `~/.local/bin/godot` (Linux). Se ela estiver em outro lugar, rode com `GODOT=/caminho/da/godot` antes do comando. No fim aparece `RESULTADO GERAL: TUDO OK` ou a lista do que falhou.
+
+Alguns testes usam a biblioteca de verdade e esperam certos jogos instalados (Balatro, Skyrim, Valheim, Stardew Valley...). Num PC sem eles, esses testes falham por falta do jogo, e não por erro no hub.
 
 ## Amigos na cidade (opcional)
 
@@ -86,7 +95,7 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 
 ## Configuração
 
-O hub cria na primeira execução o arquivo `%APPDATA%\Godot\app_userdata\Game Hub\config.cfg`. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção. Som, vídeo e amigos também mudam pelo menu de pausa (Esc), que grava no mesmo arquivo e mantém os comentários:
+O hub cria na primeira execução o arquivo `config.cfg`, em `%APPDATA%\Godot\app_userdata\Game Hub\` no Windows e em `~/.local/share/godot/app_userdata/Game Hub/` no Linux. Cada sistema tem o seu: num PC com dual boot, a chave da API é colada uma vez em cada um. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção. Som, vídeo e amigos também mudam pelo menu de pausa (Esc), que grava no mesmo arquivo e mantém os comentários:
 
 ```ini
 [library]
@@ -116,6 +125,11 @@ ambience_volume=0.8
 quality="alta"
 ; Hora da cidade: "relogio" (relógio do PC), "dia" ou "noite"
 time_of_day="relogio"
+
+[window]
+; Só no Linux com Hyprland: monitor onde os jogos abrem (nome do "hyprctl monitors").
+; Vazio = o monitor em foco.
+game_monitor="HDMI-A-1"
 ```
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).
@@ -124,6 +138,7 @@ Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrateg
 
 ```
 autoload/      sistemas globais, que não sabem nada sobre a cidade
+  platform/    o que muda entre Windows e Linux (Steam, janela)
 components/    peças reutilizáveis (GamePortal: "este lugar é um jogo")
 player/        controle em primeira pessoa
 ui/            HUD, avisos, menu de pausa, busca, telas "Abrindo"/"Jogando" e abertura
@@ -134,8 +149,8 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **StoreInfo** busca as tags e os endereços das capas na API pública da loja (`IStoreBrowseService/GetItems`), sem chave e sem login. O resultado fica guardado por 30 dias.
 - **GameCategories** escolhe o bairro de cada jogo: é a primeira tag, da mais votada para a menos votada, que aparece na tabela de bairros.
 - **GameArt** procura o banner (hero), a capa e o logo primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
-- **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e acompanha o valor `RunningAppID` no registro do Windows para saber quando ele fechou. Também percebe jogos abertos por fora do hub.
-- **HubWindow** minimiza e pausa o hub enquanto você joga, e depois o traz de volta no mesmo monitor.
+- **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e pergunta ao **SteamClient** qual jogo está rodando, para saber quando ele fechou. No Windows, a resposta vem do registro (`RunningAppID`); no Linux, do processo `reaper` que a Steam cria para cada jogo. Também percebe jogos abertos por fora do hub.
+- **HubWindow** esconde e pausa o hub enquanto você joga, e depois o traz de volta. No Windows, ele minimiza e volta no mesmo monitor; no Hyprland, usa um workspace oculto. Os detalhes de cada sistema estão em [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
 **Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
