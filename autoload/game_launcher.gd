@@ -7,10 +7,11 @@ extends Node
 ##   3. Pedimos à Steam para abrir o jogo (steam://rungameid/<appid>) e o hub
 ##      "dorme" (HubWindow.sleep): a tela "Abrindo X…" cobre tudo e o mundo
 ##      pausa. O hub só MINIMIZA quando o jogo aparece (ou depois de 10 s).
-##   4. A cada 2 s olhamos o registro do Windows:
-##        - RunningAppID: o appid do jogo que a Steam diz estar rodando (0 = nenhum);
-##        - Apps\<appid>: se o NOSSO jogo está rodando ou atualizando;
-##        - ActiveProcess\pid: se a Steam está aberta.
+##   4. A cada 2 s perguntamos ao SteamClient (que sabe ler a Steam de cada
+##      sistema operacional):
+##        - running_app_id: o jogo que a Steam diz estar rodando (0 = nenhum);
+##        - app_running / app_updating: se o NOSSO jogo está rodando ou atualizando;
+##        - steam_running: se a Steam está aberta.
 ##      Estados: IDLE -> LAUNCHING (esperando abrir) -> RUNNING (jogando) -> IDLE.
 ##   5. Quando termina (fechou, deu errado ou foi cancelado), o hub acorda
 ##      (HubWindow.wake) e emitimos session_ended(...).
@@ -25,7 +26,7 @@ extends Node
 ## Este sistema NÃO conhece mundos nem portais: a "origem" é qualquer Node, e só
 ## é devolvida no sinal para quem chamou saber que a resposta é para ele.
 ##
-## As consultas ao registro rodam numa THREAD separada (cada uma leva de 10 a
+## As consultas rodam numa THREAD separada (no Windows, cada uma leva de 10 a
 ## 70 ms, e isso travaria a imagem do hub se rodasse na thread principal).
 
 signal state_changed(new_state: State)
@@ -41,8 +42,7 @@ signal session_ended(app_id: int, source: Node, success: bool, message: String)
 
 enum State { IDLE, LAUNCHING, RUNNING }
 
-const STEAM_REG_KEY: String = "HKCU\\Software\\Valve\\Steam"
-## De quanto em quanto tempo olhamos o registro (segundos).
+## De quanto em quanto tempo olhamos a Steam (segundos).
 const POLL_INTERVAL_SESSION: float = 2.0
 const POLL_INTERVAL_IDLE: float = 5.0
 ## Quanto esperamos o jogo abrir antes de desistir (segundos).
@@ -188,7 +188,7 @@ func _check_can_launch(app_id: int) -> String:
 
 # --- Olhando a Steam ---------------------------------------------------------
 
-## Dispara uma consulta ao registro numa thread separada.
+## Dispara uma consulta à Steam numa thread separada.
 func _poll() -> void:
 	if _poll_task != -1:
 		return  # a consulta anterior ainda não terminou
@@ -306,31 +306,9 @@ func _timeout_message(steam: Dictionary) -> String:
 			+ "A Steam mostrou alguma janela ou erro? Confira e entre pela porta de novo."
 
 
-## Lê o estado da Steam no registro. Roda na thread separada!
+## Lê o estado da Steam (o leitor de verdade). Roda na thread separada!
 func _read_steam_state(app_id: int, check_steam: bool) -> Dictionary:
-	var result := {
-		"running_app_id": WinRegistry.read_dword(STEAM_REG_KEY, "RunningAppID", 0),
-		"steam_running": true,
-		"app_running": false,
-		"app_updating": false,
-	}
-	if check_steam:
-		var pid := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "pid", 0)
-		result["steam_running"] = pid > 0 and _is_process_alive(pid)
-	if app_id > 0:
-		var app := WinRegistry.read_values("%s\\Apps\\%d" % [STEAM_REG_KEY, app_id])
-		result["app_running"] = app.get("Running", 0) == 1
-		result["app_updating"] = app.get("Updating", 0) == 1
-	return result
-
-
-## O processo com esse número está vivo? (Usa o "tasklist" do Windows; o
-## OS.is_process_running da Godot só enxerga processos abertos por ela.)
-func _is_process_alive(pid: int) -> bool:
-	var output: Array = []
-	OS.execute("tasklist", ["/FI", "PID eq %d" % pid, "/NH", "/FO", "CSV"], output)
-	# Formato CSV: "steam.exe","26664",... — procuramos o número entre aspas.
-	return not output.is_empty() and String(output[0]).contains("\"%d\"" % pid)
+	return SteamClient.read_state(app_id, check_steam)
 
 
 # --- Utilidades --------------------------------------------------------------

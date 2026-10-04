@@ -3,9 +3,11 @@
 Como o hub conversa com a Steam e com o sistema operacional. Isto já está implementado. O arquivo serve de referência para depurar e para a **Fase Linux** (veja o [ROADMAP](ROADMAP.md)).
 
 ## Onde mora o código específico do Windows
-- `autoload/win_registry.gd`: o único arquivo que lê o registro.
-- `autoload/game_launcher.gd`: usa o `tasklist` para saber se o processo do jogo ainda está vivo.
-- `autoload/steam_library.gd` e `autoload/game_launcher.gd`: pedem os valores ao `win_registry`.
+Tudo fica em `autoload/platform/` (Fase Linux L.1):
+- `steam_client.gd` (`SteamClient`): a única porta. `SteamLibrary` e `GameLauncher` perguntam a ele "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?".
+- `steam_client_windows.gd`: a resposta no Windows (registro e `tasklist`, para saber se a Steam ainda está viva).
+- `win_registry.gd`: o único arquivo que lê o registro.
+- `steam_client_backend.gd`: o contrato que cada sistema cumpre.
 
 No Linux, os mesmos valores ficam em `~/.steam/registry.vdf`, que o `autoload/vdf.gd` já sabe ler.
 

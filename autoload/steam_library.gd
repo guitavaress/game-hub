@@ -2,7 +2,7 @@ extends Node
 ## SteamLibrary: lê os jogos instalados neste PC (autoload).
 ##
 ## Como funciona:
-##   1. O registro do Windows diz onde a Steam está instalada (SteamPath).
+##   1. O SteamClient diz onde a Steam está instalada (no Windows, pelo registro).
 ##   2. <Steam>/steamapps/libraryfolders.vdf lista as bibliotecas (pode haver
 ##      uma por disco).
 ##   3. Em cada biblioteca, cada steamapps/appmanifest_<appid>.acf descreve um
@@ -12,8 +12,6 @@ extends Node
 ##
 ## Só LÊ arquivos da Steam; nunca escreve nada nas pastas dela.
 ## Não conhece nenhum mundo: só responde perguntas.
-
-const STEAM_REG_KEY: String = "HKCU\\Software\\Valve\\Steam"
 
 ## Apps da própria Steam que nunca são jogos.
 const EXCLUDED_APP_IDS: Array[int] = [
@@ -66,8 +64,7 @@ func _ready() -> void:
 ## Devolve "" se a Steam não estiver instalada.
 func get_steam_path() -> String:
 	if _steam_path.is_empty():
-		var raw := WinRegistry.read_string(STEAM_REG_KEY, "SteamPath")
-		_steam_path = raw.replace("\\", "/").trim_suffix("/")
+		_steam_path = SteamClient.steam_path()
 	return _steam_path
 
 
@@ -193,8 +190,8 @@ func _load_playtimes() -> void:
 
 ## SteamID64 (17 dígitos, em texto) de quem está logado na Steam, ou "" se não souber.
 func get_current_steam_id() -> String:
-	# Com a Steam aberta, o registro guarda o "account id" de quem está logado.
-	var account_id := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "ActiveUser", 0)
+	# Com a Steam aberta, ela diz o "account id" de quem está logado.
+	var account_id := SteamClient.active_account_id()
 	if account_id > 0:
 		return str(STEAM_ID64_BASE + account_id)
 

@@ -33,13 +33,13 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - **Dual boot:** uma biblioteca Steam por sistema. Biblioteca Linux em disco NTFS compartilhado costuma quebrar o Proton. O hub lê a Steam do sistema em que está rodando. Sem código.
 
 ## Subetapas
-- [x] **L.0 Preparação e investigação** (modelo: Opus · esforço: high)
+- [x] **L.0 Preparação e investigação** (modelo: Opus · esforço: high) · `44b28f6`
   - Faz: instala a Godot no Linux, ajusta o `tests/run_tests.sh` para achá-la, roda a bateria e responde às perguntas abertas 1, 2 e 5 com testes ao vivo (feito). As perguntas 3 e 4 foram para a L.3. Não muda código do jogo.
   - Teste: a bateria ainda **não** passa no Linux (pergunta 5): a causa é conhecida e é resolvida na L.2.
   - Arquivos: `docs/plans/fase-linux.md`, `tests/run_tests.sh`.
   - Manual: o dono instala na Steam um jogo pequeno **nativo** e o Balatro (**Proton**).
   - Commit: `Fase Linux L.0: investigação no Omarchy e runner de testes no Linux`
-- [ ] **L.1 Interface de plataforma, só Windows** (Sonnet · medium)
+- [x] **L.1 Interface de plataforma, só Windows** (Sonnet · medium)
   - Faz: cria `SteamClient` e `steam_client_windows.gd`; `game_launcher.gd` e `steam_library.gd` passam a usá-los. Comportamento idêntico no Windows.
   - Teste: bateria toda; `tests/check_platform.gd` confere o backend escolhido e que nada fora de `autoload/platform/` cita `WinRegistry` ou `tasklist`.
   - Commit: `Fase Linux L.1: interface de plataforma (SteamClient)`
@@ -84,6 +84,8 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-03: Godot 4.7.2 oficial (zip do GitHub) em `~/.local/bin/godot`, não pelo pacman, para ficar na mesma versão do Windows.
 - 2026-10-04: no Linux, "qual jogo está rodando" vem do processo `reaper` (ignorando `Install=1`), não do `registry.vdf` (L.0, perguntas 1 e 2).
 - 2026-10-04: as perguntas 3 e 4 (janela) passam para o começo da L.3, porque só ela depende delas (L.0).
+- 2026-10-04: o contrato é a classe `SteamClientBackend` (`steam_client_backend.gd`), e a versão base dela é a de "sistema sem suporte" (não acha a Steam). O "processo vivo?" ficou dentro de cada backend, fora da interface, porque ninguém de fora precisa dele (L.1).
+- 2026-10-04: sem Windows na viagem, o backend do Windows foi conferido no Linux com `reg` e `tasklist` falsos (caminho, conta, PID vivo, `Apps\<id>\Running`). O teste manual no Windows fica para a volta, antes de juntar na `main` (L.1).
 
 ## Checklist de teste manual (fim da fase)
 1. Abrir o projeto na Godot 4.7.2 e apertar F5 (menu Esc → qualidade Leve no notebook).

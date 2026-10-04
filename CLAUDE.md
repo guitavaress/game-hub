@@ -28,7 +28,9 @@ autoload/      sistemas globais; não conhecem nenhum mundo
   game_launcher, hub_window           abrir jogo, minimizar/voltar, sessão
   friends_service, steam_friend       amigos pela Steam Web API
   app_config, graphics_quality        user://config.cfg, qualidade gráfica
-  win_registry                        ÚNICO arquivo que lê o registro do Windows
+  platform/                           ÚNICO lugar com código de sistema operacional
+    steam_client (+ backends por SO)    "onde está a Steam? qual jogo está rodando?"
+    win_registry                        lê o registro do Windows
 components/    peças reutilizáveis em qualquer mundo
   game_portal/      a "porta" de um jogo (app_id, área de entrada, marcadores)
   friend_npc/       holograma de amigo
