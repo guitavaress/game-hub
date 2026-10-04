@@ -11,7 +11,16 @@
 # Nenhum teste abre jogo de verdade (a Steam é "falsa" nos testes do launcher).
 # Os que mexem no user://config.cfg ou no cache guardam uma cópia e devolvem no fim.
 
-GODOT="${GODOT:-/c/Godot/Godot_v4.7.2-stable_win64_console.exe}"
+#   No Linux, procura "godot" no PATH e depois em ~/.local/bin/godot.
+if [ -z "$GODOT" ]; then
+	if [ -x "/c/Godot/Godot_v4.7.2-stable_win64_console.exe" ]; then
+		GODOT="/c/Godot/Godot_v4.7.2-stable_win64_console.exe"
+	elif command -v godot >/dev/null 2>&1; then
+		GODOT="$(command -v godot)"
+	else
+		GODOT="$HOME/.local/bin/godot"
+	fi
+fi
 cd "$(dirname "$0")/.." || exit 1
 
 if [ ! -x "$GODOT" ]; then
