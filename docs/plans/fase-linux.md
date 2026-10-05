@@ -1,6 +1,6 @@
 # Fase Linux: o hub rodando no Omarchy (Hyprland) sem quebrar o Windows
 
-**Status:** concluída no Linux (L.0–L.5). Falta o checklist no Windows (fim deste arquivo) antes de juntar na `main`, e a decisão pendente sobre os testes que dependem da biblioteca.
+**Status:** concluída no Linux (L.0–L.6). Falta só o checklist no Windows (fim deste arquivo) antes de juntar na `main`.
 **Branch:** `fase-linux`
 
 ## Contexto
@@ -89,6 +89,11 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
   - Ao vivo: Balatro com o hub no eDP-1: a tela "Abrindo…" ficou à vista até o jogo começar, a Steam não roubou mais o foco, o jogo nasceu num workspace novo do HDMI, e o hub voltou ativo ao fechar.
   - Commit: `Fase Linux L.5: jogo no lugar certo e tela cheia opcional no Hyprland`
 
+- [x] **L.6 Bateria inteira no Linux** (Sonnet · medium)
+  - Faz: depois de instalar Skyrim, Valheim e Stardew, a bateria passou em 23 de 24; o `check_phase6_audio` ainda procurava o prédio do app 3405690 (esportes). Agora ele acha um prédio de esportes pela categoria e, sem nenhum, cria o emissor do bairro pela `CategoryAmbience` e confere do mesmo jeito (loop, tocando, 32 m), avisando na saída. A linha "tela continua preta" do `check_phase4` passa de novo: era o cenário sem Skyrim.
+  - Teste: `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK`.
+  - Commit: `Fase Linux L.6: bateria inteira passa no Linux`
+
 ## Perguntas abertas (L.0 responde)
 1. ✅ **A Steam do Linux grava o jogo rodando no `registry.vdf`?** **Não.** Com Undertale e Balatro abertos, o arquivo continuou sem `RunningAppID` e sem `Apps`. O plano B virou o plano A: o processo `reaper`.
 2. ✅ **Proton e nativo se comportam igual?** Quase. Os dois sobem um `reaper SteamLaunch AppId=<id> -- ...` que vive enquanto o jogo roda e some ao fechar (Balatro: o `reaper` sumiu no mesmo segundo do `Game process removed` do log da Steam). **Armadilha da primeira abertura no Proton:** antes do jogo, a Steam roda o script de instalação com outro `reaper`, que tem **`Install=1`** na linha de comando, e depois passa ~29 s processando o cache de shaders **sem nenhum `reaper`**. Se o hub contasse o `reaper` do `Install=1`, ele acharia que o jogo abriu e voltaria no meio da abertura. Regra: ignorar `Install=1`. A primeira abertura do Balatro levou 49 s do pedido até o jogo (o limite atual é 90 s).
@@ -137,7 +142,7 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-04: bateria depois da L.3: os mesmos 6 testes com falha. Dentro do `check_phase4`, uma linha da seção I (Skyrim), "tela continua preta", passou a passar (antes falhava). A bissecção tirou `game_launcher.gd`, `hub_window.gd` e `project.godot` da lista de causas. A linha mede um clarear de 0,8 s com o hub a 5 FPS (quadros de 200 ms), num cenário que já é inválido sem o Skyrim. No desktop, com o Skyrim, esse trecho segue outro caminho (troca de jogo, hub continua dormindo). Conferir na bateria do Windows (L.3).
 - 2026-10-04: tela cheia forçada pelo hub é opcional e vem desligada: jogos que não mudam de tamanho (Undertale) quebram com ela e também com o tiling. Para esses, a tela cheia do próprio jogo ou o `gamescope` nas opções de inicialização da Steam (o dono preferiu não instalar agora) (L.5).
 - 2026-10-04: as regras da Steam (silenciosa e sem roubar foco) ficam na config do Omarchy do dono, não no projeto: são preferência da máquina (L.5).
-- **Decisão pendente do dono (L.2):** 6 testes dependem da biblioteca do desktop Windows (Skyrim, Valheim, Stardew, app 3405690, um jogo de terror) e falham num PC sem esses jogos. Opções: (a) uma subetapa nova em que os testes usam uma biblioteca falsa (`tests/fixtures/`), e aí passam em qualquer máquina; (b) pular a conferência quando o jogo não está instalado. Até decidir, a bateria no notebook termina com 6 falhas conhecidas.
+- 2026-10-05: a decisão sobre os testes que dependem da biblioteca foi resolvida assim: o dono instalou Skyrim, Valheim e Stardew (sem biblioteca falsa), e o `check_phase6_audio` deixou de exigir o app 3405690: acha um prédio de esportes pela categoria e, se não houver, confere o motor pela tabela do bairro (L.6). Bateria: 24 de 24 testes passam no notebook.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy):

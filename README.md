@@ -60,7 +60,7 @@ bash tests/run_tests.sh check_gates   # só um
 
 O script procura a Godot em `C:\Godot` (Windows), no `PATH` e em `~/.local/bin/godot` (Linux). Se ela estiver em outro lugar, rode com `GODOT=/caminho/da/godot` antes do comando. No fim aparece `RESULTADO GERAL: TUDO OK` ou a lista do que falhou.
 
-Alguns testes usam a biblioteca de verdade e esperam certos jogos instalados (Balatro, Skyrim, Valheim, Stardew Valley...). Num PC sem eles, esses testes falham por falta do jogo, e não por erro no hub.
+Alguns testes usam a biblioteca de verdade e esperam quatro jogos instalados: **Balatro, Skyrim, Valheim e Stardew Valley**. Num PC sem eles, esses testes falham por falta do jogo, e não por erro no hub.
 
 ## Amigos na cidade (opcional)
 
