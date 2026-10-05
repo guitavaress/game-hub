@@ -3,6 +3,12 @@
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_d0gg5"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_h44xl"]
 
+[sub_resource type="Resource" id="Resource_d0gg5"]
+script = ExtResource("1_d0gg5")
+files = PackedStringArray("res://assets/kenney/sci-fi-sounds/laserSmall_000.ogg", "res://assets/kenney/sci-fi-sounds/laserSmall_001.ogg", "res://assets/kenney/sci-fi-sounds/laserSmall_002.ogg", "res://assets/kenney/sci-fi-sounds/laserSmall_003.ogg", "res://assets/kenney/sci-fi-sounds/laserSmall_004.ogg")
+volume_db = -18.0
+interval = Vector2(1.5, 5)
+
 [resource]
 script = ExtResource("2_h44xl")
 id = "acao"
@@ -11,5 +17,6 @@ color = Color(0.7529412, 0.38431373, 0.22745098, 1)
 neon = Color(1, 0.50980395, 0.29803923, 1)
 tags = PackedInt32Array(42804, 1716, 3959, 19, 1774, 1663, 3814, 1646, 4885, 4637, 4758, 4255, 1773, 1743, 4158, 1625, 5379, 3877, 1628, 176981, 3955, 353880, 1680, 1687)
 tag_names = PackedStringArray("Roguelike de Ação", "Roguelike", "Roguelite", "Ação", "Tiro", "Tiro em Primeira Pessoa (FPS)", "Tiro em Terceira Pessoa", "Hack and Slash", "Inferno de Balas", "SHMUP com Visão Superior", "Controle com Alavanca Dupla", "Mandando Bala", "Arcade", "Luta", "Porradaria", "Plataforma", "Plataforma 2D", "Plataforma de Precisão", "Metroidvania", "Battle Royale", "Jogo de Ação Focado em Personagem", "Tiro com Saques", "Assalto", "Furtivo")
+ambience = Array[ExtResource("1_d0gg5")]([SubResource("Resource_d0gg5")])
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

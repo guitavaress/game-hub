@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** em andamento (7.1)
+**Status:** em andamento (7.2)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto
@@ -50,9 +50,10 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Teste: `tests/check_profiles.gd`: os 10 perfis carregam, ids únicos, **mesma ordem, nome, cor, neon e tags do retrato**, API do `GameCategories` igual; todo id do texto do config existe; `get_category_id` com override e `outros`.
   - Feito: as classes têm desde já os campos de todas as subetapas (som, enfeite, clima, casca, pesos de arquitetura, `density` e `landmark_script` reservados), mas só os de identidade (nome, cores, tags) têm dados; assim os `.tres` não mudam de formato a cada passo. Os 10 `.tres` e o `world_profile.tres` foram gerados pela própria Godot (`ResourceSaver`) a partir da tabela antiga, para não errar um dígito de cor à mão. Cada perfil ganhou `tag_names` (o nome de cada tag, tirado dos comentários da tabela antiga), para ler no inspetor. A tabela `CATEGORIES` saiu do `GameCategories`.
   - Commit: `Fase 7.1: perfis de bairro em .tres e GameCategories como fachada`
-- [ ] **7.2 Som vindo do perfil** (Sonnet · medium)
+- [x] **7.2 Som vindo do perfil** (Sonnet · medium)
   - Faz: `CategoryAmbience.create(id)` monta os emissores a partir de `profile.ambience`; some o `match`. Mesma assinatura, **mesma ordem** de emissores.
   - Teste: `check_phase6_audio` (inalterado) + `check_profiles` confere por categoria: tipo (loop/avulsos), volume, distância, intervalo e quantidade, contra o retrato.
+  - Feito: os `AmbienceSpec` foram gravados nos `.tres` pela Godot, a partir do retrato (números exatos). `CategoryAmbience.create` virou `Profiles.district(id).ambience` + `from_spec`; o `match` e os atalhos `_loop` e `_one_shots` saíram.
   - Commit: `Fase 7.2: som ambiente por perfil`
 - [ ] **7.3 Enfeite vindo do perfil** (Sonnet · medium)
   - Faz: `DistrictProps.decorate(..., profile)` cria `props_script`; some o `match`; `rpg_banners`, `sports_scoreboard`, `strategy_table`, `string_lights` leem id/cores do perfil recebido (`string_lights` deixa de procurar `DistrictProps_casual_*` pelo nome fixo).

@@ -81,6 +81,19 @@ func _run() -> void:
 				print("   tag %d não leva a %s" % [tag, old["id"]])
 	_check("cada uma das %d tags leva ao mesmo bairro de antes" % tag_count, tags_ok)
 
+	print("== som ambiente: cada bairro igual ao retrato ==")
+	var ambience: GDScript = load("res://components/ambient_emitter/category_ambience.gd")
+	for old: Dictionary in old_categories:
+		var emitters: Array = ambience.create(old["id"])
+		var expected: Array = old["som"]
+		var sounds_ok := emitters.size() == expected.size()
+		for i in mini(emitters.size(), expected.size()):
+			sounds_ok = sounds_ok and _same_sound(emitters[i], expected[i])
+		_check("%-14s %d som(ns), na mesma ordem e com os mesmos números" % [old["id"], expected.size()], sounds_ok)
+		for emitter in emitters:
+			emitter.free()
+	_check("bairro que não existe: sem som", ambience.create("nao_existe").is_empty())
+
 	print("== config.cfg ==")
 	var config_text: String = root.get_node("AppConfig").DEFAULT_CONFIG_TEXT
 	var missing := old_ids.filter(func(id: String) -> bool: return id != "outros" and not config_text.contains(id))
@@ -89,6 +102,24 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## O emissor tem os mesmos números do retrato? (floats com folga, por causa do JSON)
+func _same_sound(emitter: AmbientEmitter, old: Dictionary) -> bool:
+	var files: Array = []
+	if emitter.loop_stream != null:
+		files.append(emitter.loop_stream.resource_path)
+	for stream in emitter.one_shots:
+		files.append(stream.resource_path)
+	var interval: Array = old["intervalo"]
+	var pitch: Array = old["tom"]
+	return ("loop" if emitter.loop_stream != null else "avulsos") == old["tipo"] \
+			and files == old["arquivos"] \
+			and is_equal_approx(emitter.volume_db, old["volume_db"]) \
+			and is_equal_approx(emitter.max_distance, old["distancia_max"]) \
+			and is_equal_approx(emitter.unit_size, old["unit_size"]) \
+			and is_equal_approx(emitter.interval.x, interval[0]) and is_equal_approx(emitter.interval.y, interval[1]) \
+			and is_equal_approx(emitter.pitch_range.x, pitch[0]) and is_equal_approx(emitter.pitch_range.y, pitch[1])
 
 
 ## O JSON devolve números como decimais (701.0); a comparação é com inteiros.

@@ -3,6 +3,12 @@
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_g2pmr"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_0ki8j"]
 
+[sub_resource type="Resource" id="Resource_g2pmr"]
+script = ExtResource("1_g2pmr")
+files = PackedStringArray("res://assets/kenney/impact-sounds/impactWood_light_000.ogg", "res://assets/kenney/impact-sounds/impactWood_light_001.ogg", "res://assets/kenney/impact-sounds/impactWood_light_002.ogg", "res://assets/kenney/impact-sounds/impactWood_light_003.ogg", "res://assets/kenney/impact-sounds/impactWood_light_004.ogg", "res://assets/kenney/impact-sounds/impactPlank_medium_000.ogg", "res://assets/kenney/impact-sounds/impactPlank_medium_001.ogg", "res://assets/kenney/impact-sounds/impactPlank_medium_002.ogg")
+volume_db = -12.0
+interval = Vector2(0.6, 3)
+
 [resource]
 script = ExtResource("2_0ki8j")
 id = "simulacao"
@@ -11,5 +17,6 @@ color = Color(0.7882353, 0.74509805, 0.2901961, 1)
 neon = Color(1, 0.9411765, 0.29803923, 1)
 tags = PackedInt32Array(220585, 7332, 87918, 10235, 12472, 4328, 1643, 255534, 4695, 22602, 4520, 16598, 15045, 3810, 599)
 tag_names = PackedStringArray("Simulador de Colônias", "Construção de Bases", "Simulador Rural", "Simulador de Vida Real", "Gerenciamento", "Construção de Cidades", "Construção", "Automação", "Economia", "Agricultura", "Rural", "Simulador Espacial", "Voo", "Faça o que Quiser (sandbox)", "Simulação")
+ambience = Array[ExtResource("1_g2pmr")]([SubResource("Resource_g2pmr")])
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

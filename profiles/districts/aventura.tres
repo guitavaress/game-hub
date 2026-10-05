@@ -3,6 +3,13 @@
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_h4utu"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_i2h7m"]
 
+[sub_resource type="Resource" id="Resource_h4utu"]
+script = ExtResource("1_h4utu")
+files = PackedStringArray("res://assets/generated/bird_chirp_1.wav", "res://assets/generated/bird_chirp_2.wav", "res://assets/generated/bird_chirp_3.wav", "res://assets/generated/bird_chirp_4.wav")
+volume_db = -14.0
+interval = Vector2(1, 4)
+pitch_range = Vector2(0.85, 1.25)
+
 [resource]
 script = ExtResource("2_i2h7m")
 id = "aventura"
@@ -11,5 +18,6 @@ color = Color(0.8156863, 0.6039216, 0.23529412, 1)
 neon = Color(1, 0.7411765, 0.29803923, 1)
 tags = PackedInt32Array(1664, 5716, 5613, 8369, 5537, 1698, 5900, 3799, 1738, 769306, 11014, 4486, 21, 3834)
 tag_names = PackedStringArray("Quebra-Cabeça", "Mistério", "Detetive", "Investigação", "Plataforma com Quebra-Cabeça", "Apontar e Clicar", "Simulador de Caminhada", "Romance Visual", "Objetos Ocultos", "Fuja da Sala", "Ficção Interativa", "Escolha a sua Aventura", "Aventura", "Exploração")
+ambience = Array[ExtResource("1_h4utu")]([SubResource("Resource_h4utu")])
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()
