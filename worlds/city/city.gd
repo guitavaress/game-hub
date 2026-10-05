@@ -63,6 +63,12 @@ const SKY_SUNSET_GLOW_U: float = 0.607
 const ASPHALT_ROUGHNESS_DAY: float = 0.55
 const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
 
+## As cascas que a cidade sabe montar, pelo nome que vai no perfil ("shell").
+## (Variável, e não constante: a Godot não aceita classes num dicionário constante.)
+var _shells: Dictionary[String, GDScript] = {
+	"building": CityBuilding,
+	"arch": ArchShell,
+}
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
 ## Relógio de dia e noite (sol, céu, luzes).
@@ -352,33 +358,43 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.
 	var lots := CityLayout.lots_facing_center_first(cell)
+	# Os enfeites só recebem as cascas que são prédios (eles usam a fachada,
+	# o cartaz e o néon do prédio).
 	var buildings: Array[CityBuilding] = []
 	for i in lots.size():
 		var lot := CityLayout.lot_transform(cell, lots[i])
 		if i < block_games.size():
-			buildings.append(_build_game_building(lot, block_games[i], category_id))
+			var shell := _build_game_building(lot, block_games[i], category_id)
+			if shell is CityBuilding:
+				buildings.append(shell)
 		else:
 			CityDecor.add_park(self, lot)
 	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
 	DistrictProps.decorate(self, category_id, cell, buildings)
 
 
-func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> CityBuilding:
+## A porta de um jogo num terreno: a casca que o perfil do bairro pede
+## ("building" = prédio, o padrão; "arch" = arco). O nó se chama sempre
+## Building_<app_id>, qualquer que seja a casca.
+func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> PortalShell:
 	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
 	var variant := BuildingVariant.from_app_id(game.app_id)
-	var category_color := GameCategories.get_category_color(category_id)
+	var profile := Profiles.district(category_id)
+	var kind := profile.shell if profile != null else "building"
+	var shell_script: GDScript = _shells.get(kind, CityBuilding)
 
-	var building := CityBuilding.new()
-	building.name = "Building_%d" % game.app_id
-	building.game = game
-	building.category_id = category_id
-	building.variant = variant
-	building.size = Vector3(BUILDING_FOOTPRINT, variant.body_height(), BUILDING_FOOTPRINT)
-	building.accent_color = category_color
-	building.transform = lot
-	add_child(building)
-	return building
+	var shell := shell_script.new() as PortalShell
+	shell.name = "Building_%d" % game.app_id
+	shell.game = game
+	shell.category_id = category_id
+	shell.size = Vector3(BUILDING_FOOTPRINT, variant.body_height(), BUILDING_FOOTPRINT)
+	shell.accent_color = GameCategories.get_category_color(category_id)
+	if shell is CityBuilding:
+		shell.variant = variant
+	shell.transform = lot
+	add_child(shell)
+	return shell
 
 
 # --- Céu, chão e muros -------------------------------------------------------

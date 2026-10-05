@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** em andamento (7.3)
+**Status:** em andamento (7.4)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto
@@ -60,9 +60,10 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Teste: `check_district_props` (inalterado) + em `check_profiles`, **varredura estática**: nenhum arquivo fora de `profiles/`, `tests/` e do comentário do `app_config` cita os ids dos bairros entre aspas (modelo: `check_platform`).
   - Feito: `props_script` gravado nos 10 perfis (Outros ficou com `address_totem.gd`); `DistrictProps.decorate` carrega o script do perfil (mesma assinatura, mesmo nome de nó, `cell` como antes) e preenche `category_id` nos enfeites que o têm; `rpg_banners`, `sports_scoreboard`, `strategy_table` e `string_lights` leem esse id. A varredura ignora linhas de comentário (`#`) e do modelo do config (`;`). Bairro sem perfil agora fica sem enfeite (antes ganhava o totem), mas `get_category_id` nunca devolve um bairro sem perfil.
   - Commit: `Fase 7.3: enfeite do bairro por perfil`
-- [ ] **7.4 PortalShell** (Opus · high: mexe na hierarquia mais testada)
+- [x] **7.4 PortalShell** (Opus · high: mexe na hierarquia mais testada)
   - Faz: `PortalShell` base; `CityBuilding` a estende; fábrica por `profile.shell`; `ArchShell`; a criação do portal sai de `city_building.gd:307-314` para a base. Nomes de nó e som iguais.
   - Teste: `check_portal_regression`, `door_charge`, `gates`, `search`, `look_card`, `session_summary`, `phase4`, `phase5` (todos inalterados) + `tests/check_portal_shell.gd`: o prédio é um `PortalShell`, o arco também tem `GamePortal` com `get_return_transform`, e entrar pela porta do arco dispara o `GameLauncher` falso.
+  - Feito: `components/portal_shell/portal_shell.gd` (base: jogo, categoria, cor, `size`, `neon_color()`, `portal_position()`, `portal_look_size()`, `build_portal()` com o som do bairro) e `arch_shell.gd` (arco de pedra, pilares e viga sólidos, néon e nome). `CityBuilding` estende a base; a cidade escolhe a casca pelo `shell` do perfil (tabela `_shells` no `city.gd`). Os enfeites só recebem as cascas que são prédios. Nome de nó `Building_<id>/GamePortal` igual. **Pendente:** conferir o visual do arco numa captura (a primeira saiu com a câmera virada para o lado errado).
   - Commit: `Fase 7.4: PortalShell e casca de arco`
 - [ ] **7.5 Arquitetura por perfil** (Sonnet · medium)
   - Faz: `building_variant.gd` e `city_building.gd` leem `floor_weights` e `wall_styles` do perfil (padrão = tabela atual). `density` e `landmark_script` ficam como campos documentados, sem uso.

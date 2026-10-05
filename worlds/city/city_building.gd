@@ -1,23 +1,23 @@
 class_name CityBuilding
-extends Node3D
+extends PortalShell
 ## Prédio de um jogo na cidade:
 ##   - bloco com o vão da porta recortado (CSG), com fachada realista (concreto
 ##     ou tijolo), janelas de vidro e faixas de néon na cor do bairro
 ##     (building_facade.gdshader);
 ##   - LOGO do jogo como letreiro acima da porta (ou o nome, se não houver logo);
 ##   - a CAPA do jogo num painel grande na fachada (vem do GameArt);
-##   - um GamePortal no vão da porta.
+##   - um GamePortal no vão da porta (criado pela base, PortalShell).
 ##
-## A porta fica na face +Z (a "frente"). Para virar o prédio, gire este nó.
-## Preencha "game", "size", "accent_color" e "category_id" ANTES de adicionar
-## o prédio à cena.
+## É a casca padrão de um GamePortal (veja components/portal_shell/): a porta
+## fica na face +Z (a "frente"). Para virar o prédio, gire este nó.
+## Preencha "game", "size", "accent_color" e "category_id" (da PortalShell) e,
+## se quiser, "variant" ANTES de adicionar o prédio à cena.
 ##
 ## Isto é DECORAÇÃO da cidade: toda a lógica de abrir o jogo está no GamePortal.
 
 ## O painel da fachada mudou de tamanho ou de lugar (chegou o hero ou a capa).
 signal poster_changed
 
-const PORTAL_SCENE: PackedScene = preload("res://components/game_portal/game_portal.tscn")
 const FACADE_SHADER: Shader = preload("res://worlds/city/building_facade.gdshader")
 
 ## Vão da porta (largura, altura, profundidade), em metros.
@@ -61,12 +61,6 @@ const WALL_STYLES: Array[Dictionary] = [
 	{"folder": "Bricks097", "meters": 2.2, "tint": Color(0.9, 0.88, 0.86)},
 ]
 
-var game: SteamGame
-var size: Vector3 = Vector3(10.0, 14.0, 10.0)
-## Cor do bairro: vira o néon e um leve tom na parede.
-var accent_color: Color = Color.GRAY
-## Categoria do jogo (define o som ambiente da porta).
-var category_id: String = ""
 ## Andares, recuo, platibanda, marquise, janelas e telhado (sorteados pelo
 ## App ID). Se ficar vazio, é sorteado no _ready.
 var variant: BuildingVariant
@@ -94,7 +88,7 @@ func _ready() -> void:
 	_build_door_decoration()
 	_build_sign()
 	_build_poster()
-	_build_portal()
+	build_portal()
 
 	# Preferimos o hero; sem ele, a capa. Continuamos ouvindo o GameArt porque
 	# as imagens podem chegar depois (download), ou chegar uma capa melhor (HD).
@@ -107,13 +101,6 @@ func _ready() -> void:
 		var texture := GameArt.get_art(game.app_id)
 		if texture != null:
 			_show_art(texture)
-
-
-## Cor viva do néon do bairro (a mesma dos letreiros, da mira e das telas).
-func neon_color() -> Color:
-	if not category_id.is_empty():
-		return GameCategories.get_neon_color(category_id)
-	return Color.from_hsv(accent_color.h, 0.7, 1.0)
 
 
 func _build_body() -> void:
@@ -302,21 +289,6 @@ func _on_art_ready(app_id: int, texture: Texture2D) -> void:
 func _on_hero_ready(app_id: int, texture: Texture2D) -> void:
 	if app_id == game.app_id:
 		_show_hero(texture)
-
-
-func _build_portal() -> void:
-	var portal := PORTAL_SCENE.instantiate() as GamePortal
-	portal.name = "GamePortal"
-	portal.app_id = game.app_id
-	portal.display_name = game.name
-	portal.look_size = Vector3(size.x, size.y, 1.0)  # olhar para a fachada inteira mostra o nome
-	portal.position = Vector3(0.0, 0.0, _front_z())
-	add_child(portal)
-
-	# Som ambiente do bairro, saindo da porta.
-	for emitter in CategoryAmbience.create(category_id):
-		emitter.position = Vector3(0.0, 2.0, 0.5)
-		portal.add_child(emitter)
 
 
 ## 0 = dia, 1 = noite: à noite, parte das janelas acende, o néon fica mais
