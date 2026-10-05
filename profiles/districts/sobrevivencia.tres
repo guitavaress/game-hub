@@ -27,5 +27,6 @@ neon = Color(1, 0.29803923, 0.35686275, 1)
 tags = PackedInt32Array(1662, 1100689, 1667, 3978, 1721, 1659, 7432)
 tag_names = PackedStringArray("Sobrevivência", "Sobrevivência em Mundo Aberto", "Terror", "Terror de Sobrevivência", "Terror Psicológico", "Zumbis", "Lovecraftiano")
 ambience = Array[ExtResource("1_2aogd")]([SubResource("Resource_2aogd"), SubResource("Resource_7fekq")])
+props_script = "res://worlds/city/district_props/terror_mood.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

@@ -19,5 +19,6 @@ neon = Color(1, 0.7411765, 0.29803923, 1)
 tags = PackedInt32Array(1664, 5716, 5613, 8369, 5537, 1698, 5900, 3799, 1738, 769306, 11014, 4486, 21, 3834)
 tag_names = PackedStringArray("Quebra-Cabeça", "Mistério", "Detetive", "Investigação", "Plataforma com Quebra-Cabeça", "Apontar e Clicar", "Simulador de Caminhada", "Romance Visual", "Objetos Ocultos", "Fuja da Sala", "Ficção Interativa", "Escolha a sua Aventura", "Aventura", "Exploração")
 ambience = Array[ExtResource("1_h4utu")]([SubResource("Resource_h4utu")])
+props_script = "res://worlds/city/district_props/adventure_lanterns.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

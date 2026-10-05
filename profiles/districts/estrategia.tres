@@ -18,5 +18,6 @@ neon = Color(0.29803923, 0.58431375, 1, 1)
 tags = PackedInt32Array(9, 1676, 1741, 4364, 1670, 1645, 1708, 4684, 3813, 14139, 1084988)
 tag_names = PackedStringArray("Estratégia", "Estratégia em Tempo Real (RTS)", "Estratégia em Turnos", "Grande Estratégia", "4X", "Defesa de Torres", "Tático", "Jogo de Guerra", "Tática em Tempo Real", "Tática por Turnos", "Batalha Automática")
 ambience = Array[ExtResource("1_5s4ip")]([SubResource("Resource_5s4ip")])
+props_script = "res://worlds/city/district_props/strategy_table.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

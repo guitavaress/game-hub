@@ -94,6 +94,33 @@ func _run() -> void:
 			emitter.free()
 	_check("bairro que não existe: sem som", ambience.create("nao_existe").is_empty())
 
+	print("== enfeite: cada bairro igual ao retrato ==")
+	var props_class: GDScript = load("res://worlds/city/district_props/district_props.gd")
+	var city_building: GDScript = load("res://worlds/city/city_building.gd")
+	for old: Dictionary in old_categories:
+		var parent := Node3D.new()
+		var none := Array([], TYPE_OBJECT, &"Node3D", city_building)
+		props_class.decorate(parent, old["id"], Vector2i(3, 4), none)
+		var expected: Dictionary = old["enfeite"]
+		var made: Node = parent.get_child(0) if parent.get_child_count() > 0 else null
+		var props_ok: bool = made != null and made.get_script().resource_path == expected["script"] \
+				and String(made.name) == expected["nome_do_no"] and ("cell" in made) == expected["tem_cell"] \
+				and ("category_id" not in made or made.category_id == old["id"])
+		_check("%-14s enfeite %s" % [old["id"], str(expected["script"]).get_file()], props_ok)
+		parent.free()
+	var nobody := Node3D.new()
+	props_class.decorate(nobody, "nao_existe", Vector2i.ZERO, Array([], TYPE_OBJECT, &"Node3D", city_building))
+	_check("bairro que não existe: sem enfeite", nobody.get_child_count() == 0)
+	nobody.free()
+
+	print("== nenhum id de bairro fora dos perfis ==")
+	var offenders: Array[String] = []
+	for folder in ["res://autoload", "res://components", "res://worlds", "res://ui", "res://player"]:
+		_scan_ids(folder, old_ids, offenders)
+	for line in offenders:
+		print("   ", line)
+	_check("nenhum arquivo cita o id de um bairro entre aspas (fora de comentários)", offenders.is_empty())
+
 	print("== config.cfg ==")
 	var config_text: String = root.get_node("AppConfig").DEFAULT_CONFIG_TEXT
 	var missing := old_ids.filter(func(id: String) -> bool: return id != "outros" and not config_text.contains(id))
@@ -102,6 +129,26 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## Procura, nos .gd de uma pasta, linhas de código (não comentários) com "<id>"
+## entre aspas. O OTHER_ID do GameCategories é a única exceção.
+func _scan_ids(folder: String, ids: Array[String], offenders: Array[String]) -> void:
+	for file_name in DirAccess.get_files_at(folder):
+		if not file_name.ends_with(".gd"):
+			continue
+		var number := 0
+		for line in FileAccess.get_file_as_string(folder.path_join(file_name)).split("\n"):
+			number += 1
+			var code := line.strip_edges()
+			# Comentário do código (#) ou do modelo do config.cfg (;): não é lógica.
+			if code.begins_with("#") or code.begins_with(";") or code.contains("OTHER_ID"):
+				continue
+			for id in ids:
+				if code.contains('"%s"' % id):
+					offenders.append("%s/%s:%d cita \"%s\"" % [folder, file_name, number, id])
+	for sub in DirAccess.get_directories_at(folder):
+		_scan_ids(folder.path_join(sub), ids, offenders)
 
 
 ## O emissor tem os mesmos números do retrato? (floats com folga, por causa do JSON)

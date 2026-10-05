@@ -17,5 +17,6 @@ neon = Color(0.5764706, 0.29803923, 1, 1)
 tags = PackedInt32Array(122, 4434, 4231, 4474, 10695, 4325, 21725, 17305, 1754, 29482, 1720)
 tag_names = PackedStringArray("RPG", "JRPG", "RPG de Ação", "CRPG", "RPG de Grupos", "Combate em Turnos", "RPG Tático", "RPG de Estratégia", "MMORPG", "Soulslike", "Explorador de Calabouços")
 ambience = Array[ExtResource("1_lpw1u")]([SubResource("Resource_lpw1u")])
+props_script = "res://worlds/city/district_props/rpg_banners.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

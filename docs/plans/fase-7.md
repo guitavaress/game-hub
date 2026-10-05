@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** em andamento (7.2)
+**Status:** em andamento (7.3)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto
@@ -55,9 +55,10 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Teste: `check_phase6_audio` (inalterado) + `check_profiles` confere por categoria: tipo (loop/avulsos), volume, distância, intervalo e quantidade, contra o retrato.
   - Feito: os `AmbienceSpec` foram gravados nos `.tres` pela Godot, a partir do retrato (números exatos). `CategoryAmbience.create` virou `Profiles.district(id).ambience` + `from_spec`; o `match` e os atalhos `_loop` e `_one_shots` saíram.
   - Commit: `Fase 7.2: som ambiente por perfil`
-- [ ] **7.3 Enfeite vindo do perfil** (Sonnet · medium)
+- [x] **7.3 Enfeite vindo do perfil** (Sonnet · medium)
   - Faz: `DistrictProps.decorate(..., profile)` cria `props_script`; some o `match`; `rpg_banners`, `sports_scoreboard`, `strategy_table`, `string_lights` leem id/cores do perfil recebido (`string_lights` deixa de procurar `DistrictProps_casual_*` pelo nome fixo).
   - Teste: `check_district_props` (inalterado) + em `check_profiles`, **varredura estática**: nenhum arquivo fora de `profiles/`, `tests/` e do comentário do `app_config` cita os ids dos bairros entre aspas (modelo: `check_platform`).
+  - Feito: `props_script` gravado nos 10 perfis (Outros ficou com `address_totem.gd`); `DistrictProps.decorate` carrega o script do perfil (mesma assinatura, mesmo nome de nó, `cell` como antes) e preenche `category_id` nos enfeites que o têm; `rpg_banners`, `sports_scoreboard`, `strategy_table` e `string_lights` leem esse id. A varredura ignora linhas de comentário (`#`) e do modelo do config (`;`). Bairro sem perfil agora fica sem enfeite (antes ganhava o totem), mas `get_category_id` nunca devolve um bairro sem perfil.
   - Commit: `Fase 7.3: enfeite do bairro por perfil`
 - [ ] **7.4 PortalShell** (Opus · high: mexe na hierarquia mais testada)
   - Faz: `PortalShell` base; `CityBuilding` a estende; fábrica por `profile.shell`; `ArchShell`; a criação do portal sai de `city_building.gd:307-314` para a base. Nomes de nó e som iguais.

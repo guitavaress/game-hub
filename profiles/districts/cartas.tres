@@ -18,5 +18,6 @@ neon = Color(0.29803923, 1, 0.9647059, 1)
 tags = PackedInt32Array(1666, 32322, 1091588, 791774, 9271, 1770, 17389, 4184, 13070, 7556, 33572)
 tag_names = PackedStringArray("Cartas", "Montagem de Decks", "Montagem de Decks Roguelike", "Batalha com Cartas", "Jogo de Cartas", "Jogo de Tabuleiro", "Jogo de Mesa", "Xadrez", "Solitário", "Dados", "Mahjong")
 ambience = Array[ExtResource("1_gaat1")]([SubResource("Resource_gaat1")])
+props_script = "res://worlds/city/district_props/card_marquee.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

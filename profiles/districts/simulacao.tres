@@ -18,5 +18,6 @@ neon = Color(1, 0.9411765, 0.29803923, 1)
 tags = PackedInt32Array(220585, 7332, 87918, 10235, 12472, 4328, 1643, 255534, 4695, 22602, 4520, 16598, 15045, 3810, 599)
 tag_names = PackedStringArray("Simulador de Colônias", "Construção de Bases", "Simulador Rural", "Simulador de Vida Real", "Gerenciamento", "Construção de Cidades", "Construção", "Automação", "Economia", "Agricultura", "Rural", "Simulador Espacial", "Voo", "Faça o que Quiser (sandbox)", "Simulação")
 ambience = Array[ExtResource("1_g2pmr")]([SubResource("Resource_g2pmr")])
+props_script = "res://worlds/city/district_props/construction_site.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

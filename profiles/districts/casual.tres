@@ -18,5 +18,6 @@ neon = Color(1, 0.29803923, 0.6039216, 1)
 tags = PackedInt32Array(597, 7178, 7108, 1654, 97376, 1752, 1621, 10437, 379975, 615955, 1665, 5350)
 tag_names = PackedStringArray("Casual", "Reúna a Galera", "Em Grupos", "Relaxante", "Aconchegante", "Ritmo", "Música", "Perguntas e Respostas", "Clicker", "Progressão Ociosa", "Combinar 3", "Para Toda a Família")
 ambience = Array[ExtResource("1_6vmj3")]([SubResource("Resource_6vmj3")])
+props_script = "res://worlds/city/district_props/string_lights.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

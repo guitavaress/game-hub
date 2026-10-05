@@ -11,5 +11,6 @@ color = Color(0.49019608, 0.52156866, 0.5647059, 1)
 neon = Color(0.8666667, 0.8901961, 0.91764706, 1)
 tags = PackedInt32Array()
 tag_names = PackedStringArray()
+props_script = "res://worlds/city/district_props/address_totem.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()
