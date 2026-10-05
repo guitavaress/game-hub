@@ -43,6 +43,8 @@ func _run() -> void:
 	_check("bash e steam-launch-wrapper com o texto não contam",
 			state["running_app_id"] == BALATRO and not _games_in(linux).has(99) and not _games_in(linux).has(77))
 	_check("só 1 jogo achado (o Balatro)", _games_in(linux) == [BALATRO])
+	_check("processos do Balatro = o reaper 5000", linux.game_process_ids(BALATRO) == [5000])
+	_check("Install=1 não conta como processo do jogo", linux.game_process_ids(UNDERTALE).is_empty())
 
 	print("== nada rodando ==")
 	var idle = backend_script.new(home, ProjectSettings.globalize_path(FIXTURES + "/proc_vazio"))

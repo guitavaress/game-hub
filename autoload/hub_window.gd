@@ -32,6 +32,11 @@ const COVERED_MAX_FPS: int = 30
 ## vir para a frente, piscamos o ícone na barra de tarefas.
 const FOCUS_CHECK_DELAY: float = 0.6
 const WAKE_FADE_TIME: float = 0.8
+## Procuramos a janela do jogo (para pô-la no lugar e em tela cheia) a cada
+## GAME_WINDOW_CHECK segundos, durante GAME_WINDOW_CHECK_FOR segundos (ela pode
+## demorar a aparecer, e alguns jogos abrem antes um launcher).
+const GAME_WINDOW_CHECK: float = 0.5
+const GAME_WINDOW_CHECK_FOR: float = 90.0
 
 var is_sleeping: bool = false
 
@@ -42,6 +47,10 @@ var _saved_max_fps: int = 0
 var _saved_low_processor: bool = false
 var _did_minimize: bool = false
 var _window_host: WindowHost = WindowHost.create()
+## Processos do jogo atual (para achar a janela dele) e até quando procurar.
+var _game_pids: Array[int] = []
+var _game_window_until_ms: int = 0
+var _game_window_timer: Timer
 
 
 func _ready() -> void:
@@ -51,6 +60,10 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	if _can_place_window():
 		_load_saved_placement()
+	_game_window_timer = Timer.new()
+	_game_window_timer.wait_time = GAME_WINDOW_CHECK
+	_game_window_timer.timeout.connect(_check_game_window)
+	add_child(_game_window_timer)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -129,6 +142,32 @@ func make_room_for_game() -> void:
 		_window_host.make_room_for_game(AppConfig.get_game_monitor())
 
 
+## O jogo está rodando (GameLauncher): no Hyprland, a janela dele vai para um
+## workspace dele no monitor do jogo e para a tela cheia ([window] no
+## config.cfg). game_pids = os processos do jogo; a janela é de um deles ou de
+## um "filho". No Windows, nada.
+func place_game(game_pids: Array[int]) -> void:
+	if not _can_control_window() or game_pids.is_empty():
+		return
+	_game_pids = game_pids
+	_game_window_until_ms = Time.get_ticks_msec() + int(GAME_WINDOW_CHECK_FOR * 1000.0)
+	_check_game_window()
+	_game_window_timer.start()
+
+
+func _check_game_window() -> void:
+	if _game_pids.is_empty() or Time.get_ticks_msec() > _game_window_until_ms:
+		_stop_game_window_checks()
+		return
+	_window_host.place_game_windows(_game_pids, AppConfig.get_game_monitor(), AppConfig.get_game_fullscreen())
+
+
+func _stop_game_window_checks() -> void:
+	_game_pids = []
+	if _game_window_timer:
+		_game_window_timer.stop()
+
+
 ## Minimiza (esconde) o hub que já está dormindo (ex.: o jogo acabou de aparecer).
 func minimize_now() -> void:
 	if not is_sleeping or _did_minimize:
@@ -149,6 +188,7 @@ func wake() -> void:
 	OS.low_processor_usage_mode = _saved_low_processor
 	get_tree().paused = false
 	get_viewport().disable_3d = false
+	_stop_game_window_checks()
 
 	if _can_control_window() and _window_host.manages_placement():
 		# Hyprland: o hub volta ao workspace de antes, com foco. Vale mesmo sem

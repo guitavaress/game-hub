@@ -44,7 +44,9 @@ Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos.
 ### No Linux
 
 - **Godot:** baixe o binário oficial (`Godot_v4.7.2-stable_linux.x86_64.zip`, no site da Godot ou no GitHub), descompacte e copie para `~/.local/bin/godot`. Abra o editor com `godot --path ~/git/game-hub -e`.
-- **Janela:** no Linux o hub usa o Wayland. No **Hyprland**, quando um jogo abre, ele vai para um workspace vazio e o hub se esconde num workspace oculto; quando o jogo fecha, o hub volta para onde estava. Para escolher o monitor dos jogos, veja `game_monitor` em [Configuração](#configuração).
+- **Janela:** no Linux o hub usa o Wayland. No **Hyprland**, quando o jogo começa, ele vai para um workspace vazio (no monitor escolhido em `game_monitor`) e o hub se esconde num workspace oculto; quando o jogo fecha, o hub volta para onde estava.
+- **Tela cheia:** por padrão, o próprio jogo decide. Use a opção de tela cheia do jogo (no Undertale, F4). Dá para o hub forçar com `game_fullscreen=true`, mas jogos antigos que não mudam de tamanho (como o Undertale) ficam desenhados num canto.
+- **Steam no Omarchy:** para a janela da Steam não pular na frente quando um jogo abre, abra a Steam com `steam -silent` (ela fica na bandeja da barra) e impeça as janelas dela de roubar o foco. Veja [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - **PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
 
 ### Testes automáticos
@@ -130,6 +132,8 @@ time_of_day="relogio"
 ; Só no Linux com Hyprland: monitor onde os jogos abrem (nome do "hyprctl monitors").
 ; Vazio = o monitor em foco.
 game_monitor="HDMI-A-1"
+; true = o hub força o jogo para a tela cheia (jogos antigos podem quebrar).
+game_fullscreen=false
 ```
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).

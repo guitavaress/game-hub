@@ -37,6 +37,7 @@ func _run() -> void:
 	for key: String in ["running_app_id", "steam_running", "app_running", "app_updating"]:
 		_check("read_state traz '%s'" % key, state.has(key))
 	_check("running_app_id é número", state.get("running_app_id") is int)
+	_check("game_process_ids devolve uma lista", client.game_process_ids(0) is Array)
 
 	print("== código de sistema só em autoload/platform/ ==")
 	var offenders: Array[String] = []

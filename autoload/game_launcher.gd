@@ -157,8 +157,6 @@ func launch(app_id: int, source: Node = null) -> bool:
 	_launch_started_ms = Time.get_ticks_msec()
 	_set_state(State.LAUNCHING)
 
-	# Prepara o lugar do jogo (no Hyprland, um workspace novo; no Windows, nada).
-	HubWindow.make_room_for_game()
 	# O hub dorme mas continua visível (tela "Abrindo X…"); minimiza quando o
 	# jogo aparecer ou, no máximo, depois de MINIMIZE_AFTER_SECONDS.
 	HubWindow.sleep(false)
@@ -225,7 +223,13 @@ func _apply_state(steam: Dictionary) -> void:
 				_running_since_ms = Time.get_ticks_msec()
 				_playtime_at_start = SteamLibrary.get_playtime_minutes(_app_id)
 				_set_state(State.RUNNING)
-				HubWindow.minimize_now()  # o jogo apareceu: agora sim, minimiza
+				# O jogo começou: agora sim, o lugar dele (no Hyprland, um workspace
+				# vazio no monitor do jogo) e o hub sai da frente. Trocar de
+				# workspace só agora, e não no clique, evita que as janelinhas da
+				# Steam ("Launching...") devolvam o foco ao hub no meio do caminho.
+				HubWindow.make_room_for_game()
+				HubWindow.minimize_now()
+				_place_game_window(_app_id)
 				game_started.emit(_app_id, _get_source())
 			elif _seconds_since(_launch_started_ms) >= _launch_timeout:
 				_end_session(false, _timeout_message(steam))
@@ -266,6 +270,7 @@ func _begin_external_session(app_id: int) -> void:
 	# Mostra rapidinho "abriu pela Steam" e depois minimiza.
 	HubWindow.sleep(false)
 	_minimize_after(EXTERNAL_NOTICE_SECONDS)
+	_place_game_window(app_id)
 	game_started.emit(app_id, null)
 
 
@@ -279,6 +284,7 @@ func _switch_to_game(new_app_id: int) -> void:
 	_external = true
 	_running_since_ms = Time.get_ticks_msec()
 	_playtime_at_start = SteamLibrary.get_playtime_minutes(new_app_id)
+	_place_game_window(new_app_id)
 	game_started.emit(new_app_id, null)
 
 
@@ -336,6 +342,12 @@ func _minimize_after(seconds: float) -> void:
 	get_tree().create_timer(seconds, true).timeout.connect(func() -> void:
 		if session == _session_number and is_busy():
 			HubWindow.minimize_now())
+
+
+## No Hyprland, a janela do jogo vai para um workspace dele e para a tela
+## cheia (no Windows, nada).
+func _place_game_window(app_id: int) -> void:
+	HubWindow.place_game(SteamClient.game_process_ids(app_id))
 
 
 func _game_name(app_id: int) -> String:

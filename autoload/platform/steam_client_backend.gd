@@ -25,6 +25,13 @@ func active_account_id() -> int:
 	return 0
 
 
+## Os processos que a Steam abriu para esse jogo, se o sistema souber dizer
+## (no Linux, os "reaper"; a janela do jogo é de um processo "filho" deles).
+## Aqui: [] (no Windows não precisamos disso).
+func game_process_ids(_app_id: int) -> Array[int]:
+	return [] as Array[int]
+
+
 ## Estado da Steam agora. Roda numa thread separada (não mexa em nós aqui!).
 ##   running_app_id: o jogo que a Steam diz estar rodando (0 = nenhum);
 ##   steam_running:  a Steam está aberta? (só é conferido com check_steam = true);

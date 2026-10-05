@@ -47,17 +47,22 @@ Tudo fica em `autoload/platform/`. Fora dessa pasta, nenhum arquivo executa `reg
 
 ### Hyprland
 O Hyprland não tem minimizar e decide sozinho posição e tamanho, por isso o hub usa workspaces e não guarda o `window.cfg`:
-- **Abrir jogo:** o jogo abre num workspace vazio do **monitor do jogo** (`[window] game_monitor` no `config.cfg`; vazio ou desligado = o monitor em foco). Se o workspace que esse monitor mostra já está vazio, é ele; senão, o hub cria o de menor número livre.
+- **Abrir jogo:** a tela "Abrindo…" fica à vista até o jogo começar (`RUNNING`). Aí a tela vai para um workspace vazio do **monitor do jogo** (`[window] game_monitor` no `config.cfg`; vazio ou desligado = o monitor em foco): se o workspace que esse monitor mostra já está vazio, é ele; senão, o de menor número livre. Trocar só nesse momento, e não no clique, evita a "corrida de foco": quando a janelinha "Launching..." da Steam fecha, o Hyprland devolve o foco à última janela usada (o hub).
+- **Janela do jogo:** quando ela aparece, o hub confere se está sozinha num workspace do monitor do jogo; se não, foca o monitor e move a janela para um vazio, levando a tela junto. A janela do jogo é achada pela árvore de processos: é de um "filho" (ou neto) do `reaper` (`/proc/<pid>/stat`). Janelas flutuantes (launchers, avisos) ficam como estão.
+- **Tela cheia:** opcional (`[window] game_fullscreen`, padrão `false`). **Forçar o tamanho quebra jogos que não se redimensionam** (o Undertale fica desenhado num canto, tanto em tela cheia forçada quanto no tiling). Quando é o próprio jogo que pede tela cheia (F4 no Undertale, opção de vídeo no Balatro), o Hyprland respeita e fica certo. Para jogos antigos que sempre abrem em janela, a saída é o `gamescope` nas opções de inicialização da Steam (ex.: `gamescope -f -F nearest -- %command%`).
 - **Esconder:** o hub vai para o workspace especial `special:gamehub`, sem levar a tela junto.
 - **Voltar:** o hub volta ao workspace onde estava e ganha o foco.
 - **Comandos (Hyprland 0.56, `hyprctl dispatch` em Lua):**
   - `hl.dsp.focus({ monitor = 'HDMI-A-1' })`, `hl.dsp.focus({ workspace = '4' })` (cria o 4 no monitor em foco, se não existir);
   - `hl.dsp.window.move({ workspace = 'special:gamehub', follow = false, window = 'address:0x...' })`;
-  - `hl.dsp.focus({ window = 'address:0x...' })`.
+  - `hl.dsp.focus({ window = 'address:0x...' })`;
+  - `hl.dsp.window.fullscreen_state({ internal = 2, client = 2, window = 'address:0x...' })` **define** tela cheia. Cuidado: `hl.dsp.window.fullscreen(...)` e `hl.dsp.window.float({ window = ... })` **alternam** (chamados duas vezes, desfazem); para flutuar sem alternar, `float({ action = 'set', window = ... })`.
   - A API está em `/usr/share/hypr/stubs/hl.meta.lua`. Se o Lua for recusado, o hub tenta a sintaxe antiga (`movetoworkspacesilent`, `focuswindow`...).
 - **Armadilhas:**
   - **aspas duplas somem:** quando a Godot precisa ler a resposta (`OS.execute` com saída), ela roda o comando por um shell, com cada argumento entre aspas duplas. Uma aspa dupla dentro do argumento some no caminho. Use aspas simples no Lua e só caracteres seguros nos nomes;
   - `workspace = 'empty'` vai para o primeiro workspace vazio de **qualquer** monitor (por isso o hub escolhe o número).
+- **Steam no Omarchy (config da máquina, não do projeto):** o Omarchy liga `misc:focus_on_activate`, e as janelas da Steam puxam o foco e a tela. No notebook ficou, em `~/.config/hypr`: `o.launch_on_start("steam -silent")` (a Steam começa na bandeja da barra, que existe: widget `omarchy.tray`) e `o.window("steam", { suppress_event = "maximize activate activatefocus" })`.
+- **Transparência:** o Omarchy deixa toda janela levemente transparente; a regra dele para `steam.*` tira isso dos jogos Proton (`steam_app_<id>`), mas não dos nativos (o Undertale tem classe vazia).
 - **Driver de vídeo:** Wayland (`display/display_server/driver.linuxbsd` no `project.godot`). No Wayland, a Godot informa errado o monitor e a escala e diz que a janela está sem foco mesmo quando está ativa; como quem cuida da janela é o Hyprland, isso não atrapalha.
 
 ### No editor

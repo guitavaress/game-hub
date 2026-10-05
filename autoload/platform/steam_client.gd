@@ -33,6 +33,11 @@ static func active_account_id() -> int:
 	return _backend.active_account_id()
 
 
+## Os processos do jogo (no Linux, os reapers; no Windows, []).
+static func game_process_ids(app_id: int) -> Array[int]:
+	return _backend.game_process_ids(app_id)
+
+
 ## Estado da Steam agora (veja SteamClientBackend.read_state para as chaves).
 ## Pode rodar numa thread separada.
 static func read_state(app_id: int, check_steam: bool) -> Dictionary:

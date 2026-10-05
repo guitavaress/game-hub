@@ -68,6 +68,11 @@ const WINDOW_SECTION_TEXT: String = """
 ; novo). Use o nome que aparece em "hyprctl monitors", ex.: game_monitor="HDMI-A-1".
 ; Vazio (ou um monitor desligado) = o monitor que estiver em foco.
 game_monitor=""
+; Só no Linux com Hyprland: true = o hub força o jogo para a tela cheia.
+; CUIDADO: jogos antigos que não mudam de tamanho (ex.: Undertale) ficam
+; desenhados num canto. false (padrão) = o próprio jogo decide; use a opção
+; de tela cheia dele (no Undertale, F4).
+game_fullscreen=false
 """
 
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
@@ -194,6 +199,11 @@ func set_time_of_day(mode: String) -> void:
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
 func get_game_monitor() -> String:
 	return str(_config.get_value("window", "game_monitor", "")).strip_edges()
+
+
+## No Hyprland, o hub força o jogo para a tela cheia? (Padrão: não, o jogo decide.)
+func get_game_fullscreen() -> bool:
+	return bool(_config.get_value("window", "game_fullscreen", false))
 
 
 ## Chave da Steam Web API ("" = não configurada). É SEGREDO: nunca imprima.

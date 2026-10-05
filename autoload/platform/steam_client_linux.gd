@@ -77,8 +77,17 @@ func read_state(app_id: int, check_steam: bool) -> Dictionary:
 	}
 
 
+## Os reapers desse jogo (a janela é de um processo "filho" deles).
+func game_process_ids(app_id: int) -> Array[int]:
+	var pids: Dictionary = _scan_processes()["pids"]
+	if not pids.has(app_id):
+		return [] as Array[int]
+	return pids[app_id]
+
+
 ## Uma volta por /proc: {"games": [app ids rodando, do mais novo ao mais
-## velho], "steam": existe um processo "steam"?}
+## velho], "pids": {app id: [pids dos reapers dele]}, "steam": existe um
+## processo "steam"?}
 func _scan_processes() -> Dictionary:
 	var pids: Array[int] = []
 	for entry in DirAccess.get_directories_at(proc_dir):
@@ -88,6 +97,7 @@ func _scan_processes() -> Dictionary:
 	pids.reverse()  # número maior = processo mais novo (quase sempre)
 
 	var games: Array[int] = []
+	var game_pids: Dictionary = {}
 	var steam_seen := false
 	for pid in pids:
 		var command_name := _read_small("%s/%d/comm" % [proc_dir, pid]).get_string_from_utf8().strip_edges()
@@ -95,9 +105,13 @@ func _scan_processes() -> Dictionary:
 			steam_seen = true
 		elif command_name == "reaper":
 			var app := _game_app_id(_split_args(_read_small("%s/%d/cmdline" % [proc_dir, pid])))
-			if app > 0 and not app in games:
+			if app <= 0:
+				continue
+			if not app in games:
 				games.append(app)
-	return {"games": games, "steam": steam_seen}
+				game_pids[app] = [] as Array[int]
+			game_pids[app].append(pid)
+	return {"games": games, "pids": game_pids, "steam": steam_seen}
 
 
 ## O app id de um reaper de jogo, ou 0 se não for jogo (ex.: Install=1).

@@ -36,6 +36,15 @@ func make_room_for_game(_game_monitor: String) -> void:
 	pass
 
 
+## O jogo está rodando: põe a janela dele no lugar (game_monitor) e, se
+## fullscreen = true, em tela cheia. game_pids: os processos do jogo (a janela
+## é de um deles ou de um "filho"). A HubWindow chama isto várias vezes
+## seguidas, porque a janela pode demorar a aparecer.
+## Aqui: nada (no Windows, o próprio jogo decide onde e como abre).
+func place_game_windows(_game_pids: Array[int], _game_monitor: String, _fullscreen: bool) -> void:
+	pass
+
+
 ## Esconde o hub enquanto o jogo roda.
 func hide_hub() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)

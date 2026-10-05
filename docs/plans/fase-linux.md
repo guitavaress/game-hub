@@ -1,6 +1,6 @@
 # Fase Linux: o hub rodando no Omarchy (Hyprland) sem quebrar o Windows
 
-**Status:** concluída no Linux (L.0–L.4). Falta o checklist no Windows (fim deste arquivo) antes de juntar na `main`, e a decisão pendente sobre os testes que dependem da biblioteca.
+**Status:** concluída no Linux (L.0–L.5). Falta o checklist no Windows (fim deste arquivo) antes de juntar na `main`, e a decisão pendente sobre os testes que dependem da biblioteca.
 **Branch:** `fase-linux`
 
 ## Contexto
@@ -72,6 +72,23 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
   - Faz: `docs/PLATAFORMA.md` reescrito (Steam comum, Windows, Linux, janela no Hyprland e as armadilhas); README (Linux nos requisitos, como rodar, pasta de dados, `[window]`, como funciona); ROADMAP (fase feita, sem a frase errada sobre o `registry.vdf`); CLAUDE.md (stack, mapa, regra 5); `tests/README.md` (Godot no Linux, testes que dependem da biblioteca, `tests/fixtures/`).
   - Commit: `Fase Linux L.4: documentação`
 
+- [x] **L.5 O jogo no lugar certo (e tela cheia opcional) no Hyprland** (Opus · high)
+  - Por quê: o dono viu os jogos abrindo no tiling, às vezes no workspace do hub, e a tela "pulando" de monitor. Causas, vistas ao vivo:
+    - o Omarchy liga `focus_on_activate`, e as janelas da Steam ("Launching...", a janela principal) puxam o foco;
+    - quando a "Launching..." fechava, o Hyprland devolvia o foco ao hub, e o jogo nascia no workspace dele;
+    - a troca de workspace no clique deixava a tela vazia durante toda a abertura.
+  - Faz:
+    - `GameLauncher` chama `HubWindow.make_room_for_game()` só quando o jogo começa (`RUNNING`), junto com esconder o hub, e não mais no clique. Até lá, a tela "Abrindo…" continua à vista;
+    - `make_room_for_game` não apaga o "workspace de volta" se o hub já se escondeu antes (pelo timer de 10 s);
+    - `SteamClient.game_process_ids(app_id)`: os reapers do jogo (no Windows, `[]`);
+    - `HubWindow.place_game()`: a cada 0,5 s, por até 90 s, `WindowHost.place_game_windows()`. No Hyprland, acha as janelas do jogo pela árvore de processos (`/proc/<pid>/stat`), garante que cada uma está sozinha num workspace do monitor do jogo (se não, foca o monitor e move para um vazio, levando a tela) e dá foco. Janelas flutuantes (launchers, avisos) ficam como estão; cada janela é tratada uma vez;
+    - **tela cheia forçada é opcional** (`[window] game_fullscreen`, padrão `false`), com `fullscreen_state` (define o estado; o `fullscreen` comum alterna).
+  - Por que a tela cheia não é forçada por padrão: **jogos que não mudam de tamanho quebram**. O Undertale (GameMaker) ficou desenhado no canto, tanto em tela cheia forçada quanto no tiling; com o F4 do próprio jogo, ficou perfeito (captura conferida). O Undertale não guarda o F4 entre aberturas. O Balatro se ajusta bem ao tiling e tem tela cheia nas opções.
+  - Fora do projeto, na config do Omarchy do notebook (`~/.config/hypr`, com backup `*.bak.1791168844`): `steam -silent` no `autostart.lua` (a Steam começa na bandeja) e `o.window("steam", { suppress_event = "maximize activate activatefocus" })` no `hyprland.lua` (as janelas da Steam não roubam o foco). Validado com `hyprctl reload` e `hyprctl configerrors`.
+  - Teste: `tests/check_window_host.gd` (corrida de foco, jogo já no lugar, tela cheia ligada e desligada, launcher flutuante, janela já em tela cheia, hub escondido antes pelo timer) com a árvore `tests/fixtures/linux/proc_arvore/`; `check_steam_linux` (processos do jogo); `check_platform` (contrato).
+  - Ao vivo: Balatro com o hub no eDP-1: a tela "Abrindo…" ficou à vista até o jogo começar, a Steam não roubou mais o foco, o jogo nasceu num workspace novo do HDMI, e o hub voltou ativo ao fechar.
+  - Commit: `Fase Linux L.5: jogo no lugar certo e tela cheia opcional no Hyprland`
+
 ## Perguntas abertas (L.0 responde)
 1. ✅ **A Steam do Linux grava o jogo rodando no `registry.vdf`?** **Não.** Com Undertale e Balatro abertos, o arquivo continuou sem `RunningAppID` e sem `Apps`. O plano B virou o plano A: o processo `reaper`.
 2. ✅ **Proton e nativo se comportam igual?** Quase. Os dois sobem um `reaper SteamLaunch AppId=<id> -- ...` que vive enquanto o jogo roda e some ao fechar (Balatro: o `reaper` sumiu no mesmo segundo do `Game process removed` do log da Steam). **Armadilha da primeira abertura no Proton:** antes do jogo, a Steam roda o script de instalação com outro `reaper`, que tem **`Install=1`** na linha de comando, e depois passa ~29 s processando o cache de shaders **sem nenhum `reaper`**. Se o hub contasse o `reaper` do `Install=1`, ele acharia que o jogo abriu e voltaria no meio da abertura. Regra: ignorar `Install=1`. A primeira abertura do Balatro levou 49 s do pedido até o jogo (o limite atual é 90 s).
@@ -118,13 +135,15 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-04: Wayland fora do Hyprland (GNOME, KDE) usa a versão base (minimizar e restaurar como no Windows) e **não foi testado** (L.3).
 - 2026-10-04: no `config.cfg` deste notebook ficou `game_monitor="HDMI-A-1"`, a pedido do dono (L.3).
 - 2026-10-04: bateria depois da L.3: os mesmos 6 testes com falha. Dentro do `check_phase4`, uma linha da seção I (Skyrim), "tela continua preta", passou a passar (antes falhava). A bissecção tirou `game_launcher.gd`, `hub_window.gd` e `project.godot` da lista de causas. A linha mede um clarear de 0,8 s com o hub a 5 FPS (quadros de 200 ms), num cenário que já é inválido sem o Skyrim. No desktop, com o Skyrim, esse trecho segue outro caminho (troca de jogo, hub continua dormindo). Conferir na bateria do Windows (L.3).
+- 2026-10-04: tela cheia forçada pelo hub é opcional e vem desligada: jogos que não mudam de tamanho (Undertale) quebram com ela e também com o tiling. Para esses, a tela cheia do próprio jogo ou o `gamescope` nas opções de inicialização da Steam (o dono preferiu não instalar agora) (L.5).
+- 2026-10-04: as regras da Steam (silenciosa e sem roubar foco) ficam na config do Omarchy do dono, não no projeto: são preferência da máquina (L.5).
 - **Decisão pendente do dono (L.2):** 6 testes dependem da biblioteca do desktop Windows (Skyrim, Valheim, Stardew, app 3405690, um jogo de terror) e falham num PC sem esses jogos. Opções: (a) uma subetapa nova em que os testes usam uma biblioteca falsa (`tests/fixtures/`), e aí passam em qualquer máquina; (b) pular a conferência quando o jogo não está instalado. Até decidir, a bateria no notebook termina com 6 falhas conhecidas.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy):
 1. Abrir o projeto na Godot 4.7.2 (`~/.local/bin/godot --path ~/git/game-hub -e`) e apertar F5. No menu Esc, escolher a qualidade **Leve** (na "alta", o notebook roda a ~9 FPS).
 2. Mover o mouse: a câmera gira e o cursor fica preso (Wayland). Apertar F11: liga e desliga a tela cheia.
-3. Andar até a porta do Undertale e entrar: o jogo abre num workspace vazio do monitor externo e o hub some (vai para o workspace oculto).
+3. Andar até a porta do Undertale e entrar: a tela "Abrindo…" fica à vista até o jogo começar; aí o jogo abre num workspace vazio do monitor externo e o hub some (vai para o workspace oculto). No Undertale, apertar F4 para a tela cheia do próprio jogo (sem isso ele fica desenhado num canto).
 4. Fechar o jogo: o hub volta no workspace onde estava, na mesma porta, ativo. Mexer o mouse: a câmera gira (se não girar, clicar uma vez na janela e anotar).
 5. Repetir com o Balatro (Proton).
 6. Abrir um jogo pela Steam, por fora do hub: o hub some sozinho e volta quando o jogo fecha.
