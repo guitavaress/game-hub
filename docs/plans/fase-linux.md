@@ -1,6 +1,6 @@
 # Fase Linux: o hub rodando no Omarchy (Hyprland) sem quebrar o Windows
 
-**Status:** concluída no Linux (L.0–L.6). Falta só o checklist no Windows (fim deste arquivo) antes de juntar na `main`.
+**Status:** concluída no Linux (L.0–L.7). Falta só o checklist no Windows (fim deste arquivo) antes de juntar na `main`.
 **Branch:** `fase-linux`
 
 ## Contexto
@@ -93,6 +93,16 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
   - Faz: depois de instalar Skyrim, Valheim e Stardew, a bateria passou em 23 de 24; o `check_phase6_audio` ainda procurava o prédio do app 3405690 (esportes). Agora ele acha um prédio de esportes pela categoria e, sem nenhum, cria o emissor do bairro pela `CategoryAmbience` e confere do mesmo jeito (loop, tocando, 32 m), avisando na saída. A linha "tela continua preta" do `check_phase4` passa de novo: era o cenário sem Skyrim.
   - Teste: `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK`.
   - Commit: `Fase Linux L.6: bateria inteira passa no Linux`
+
+- [x] **L.7 Teste automático no Windows e no Linux (GitHub Actions)** (Sonnet · medium)
+  - Por quê: o dono ficou sem acesso ao Windows durante a viagem, e o plano exige conferir o Windows antes de juntar na `main`.
+  - Faz:
+    - `.github/workflows/testes.yml`: num `windows-latest` e num `ubuntu-latest`, baixa a Godot oficial 4.7.2, **confere o SHA512** publicado pela engine e roda `tests/run_tests.sh check_platform check_steam_linux check_window_host check_steam_windows`. Só os testes que não dependem de jogos instalados. Gatilhos: `push` em `fase-*`, `pull_request` e manual; só leitura no repositório, sem segredos. Se o do Windows falhar, ele reexecuta o teste com a saída completa e mostra se sobrou chave de teste no registro.
+    - `tests/check_steam_windows.gd`: **só no Windows** (nos outros, "pulado"). Cria com o `reg.exe` de verdade a chave `HKCU\Software\GameHubTest\Steam` (caminho com barras normais e um espaço, como a Steam grava; `RunningAppID`; `ActiveProcess\pid` = esta Godot; `ActiveUser`; `Apps\<id>` com `Running`/`Updating`), confere o `SteamClientWindows`, testa o `tasklist` com um PID vivo e um morto, e **apaga a chave no fim**. Seguro no PC do dono: não toca na chave real da Steam.
+    - `SteamClientWindows.reg_key`: a chave virou variável (padrão = a real), só para esse teste trocar.
+  - **Não cobre** (continua sendo teste manual no Windows): abrir um jogo de verdade, a janela (minimizar e voltar no monitor certo) e a bateria completa (precisa de Balatro, Skyrim, Valheim e Stardew).
+  - Conferido aqui: o passo de download rodou de verdade no Linux (baixou, conferiu o SHA512 e rodou `--version`); os 4 testes passam sem as variáveis do Hyprland. **O ramo do Windows do workflow só se valida no próprio GitHub** (as aspas do `reg.exe` via `OS.execute` no Windows são o ponto de maior risco).
+  - Commit: `Fase Linux L.7: teste automático no Windows e no Linux (GitHub Actions)`
 
 ## Perguntas abertas (L.0 responde)
 1. ✅ **A Steam do Linux grava o jogo rodando no `registry.vdf`?** **Não.** Com Undertale e Balatro abertos, o arquivo continuou sem `RunningAppID` e sem `Apps`. O plano B virou o plano A: o processo `reaper`.

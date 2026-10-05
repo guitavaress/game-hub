@@ -11,32 +11,36 @@ extends SteamClientBackend
 
 const STEAM_REG_KEY: String = "HKCU\\Software\\Valve\\Steam"
 
+## A chave que de fato lemos. Só os testes trocam (por uma chave de mentira,
+## para nunca mexer na chave de verdade da Steam).
+var reg_key: String = STEAM_REG_KEY
+
 
 func platform_name() -> String:
 	return "windows"
 
 
 func steam_path() -> String:
-	var raw := WinRegistry.read_string(STEAM_REG_KEY, "SteamPath")
+	var raw := WinRegistry.read_string(reg_key, "SteamPath")
 	return raw.replace("\\", "/").trim_suffix("/")
 
 
 func active_account_id() -> int:
-	return WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "ActiveUser", 0)
+	return WinRegistry.read_dword(reg_key + "\\ActiveProcess", "ActiveUser", 0)
 
 
 func read_state(app_id: int, check_steam: bool) -> Dictionary:
 	var result := {
-		"running_app_id": WinRegistry.read_dword(STEAM_REG_KEY, "RunningAppID", 0),
+		"running_app_id": WinRegistry.read_dword(reg_key, "RunningAppID", 0),
 		"steam_running": true,
 		"app_running": false,
 		"app_updating": false,
 	}
 	if check_steam:
-		var pid := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "pid", 0)
+		var pid := WinRegistry.read_dword(reg_key + "\\ActiveProcess", "pid", 0)
 		result["steam_running"] = pid > 0 and _is_process_alive(pid)
 	if app_id > 0:
-		var app := WinRegistry.read_values("%s\\Apps\\%d" % [STEAM_REG_KEY, app_id])
+		var app := WinRegistry.read_values("%s\\Apps\\%d" % [reg_key, app_id])
 		result["app_running"] = app.get("Running", 0) == 1
 		result["app_updating"] = app.get("Updating", 0) == 1
 	return result
