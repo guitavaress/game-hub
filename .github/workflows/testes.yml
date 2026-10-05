@@ -73,9 +73,11 @@ jobs:
       - name: Testes de plataforma
         run: bash tests/run_tests.sh check_platform check_steam_linux check_window_host check_steam_windows
 
-      - name: Saída completa do teste do Windows (só se algo falhou)
-        if: failure() && runner.os == 'Windows'
+      # Sempre mostra a saída completa: o run_tests.sh só mostra "ok" ou "FALHOU",
+      # e queremos ver que o reg.exe e o tasklist de verdade rodaram.
+      - name: Saída completa do teste do Windows
+        if: always() && runner.os == 'Windows'
         run: |
           "$GODOT" --headless --path . -s res://tests/check_steam_windows.gd 2>&1 | grep -v -E 'friends_service|push_warning|backtrace' || true
-          echo "--- chave de teste que pode ter sobrado:"
+          echo "--- chave de teste que pode ter sobrado (deve dizer que não achou):"
           reg query 'HKCU\Software\GameHubTest' 2>&1 | head -5 || true
