@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_inhqp"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_lwyrw"]
+
+[resource]
+script = ExtResource("2_lwyrw")
+id = "esportes"
+display_name = "Esportes e Corrida"
+color = Color(0.24705882, 0.56078434, 0.3529412, 1)
+neon = Color(0.29803923, 1, 0.53333336, 1)
+tags = PackedInt32Array(701, 1254546, 1254552, 699, 1746, 7038, 22955, 1753, 5914, 5727, 324176, 12190, 47827, 19568, 7309, 28444, 17927, 7328, 1100687, 7622, 15868, 252854)
+tag_names = PackedStringArray("Esportes", "Futebol", "Futebol Americano", "Corrida", "Basquete", "Golfe", "Minigolfe", "Skate", "Tênis", "Beisebol", "Hóquei", "Boxe", "Luta Livre", "Ciclismo", "Esqui", "Snowboard", "Pool (sinuca)", "Boliche", "Simulador Automobilístico", "Estrada de Terra", "Motocross", "BMX")
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

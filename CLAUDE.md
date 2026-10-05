@@ -32,6 +32,8 @@ autoload/      sistemas globais; não conhecem nenhum mundo
     steam_client (+ backends por SO)    "onde está a Steam? qual jogo está rodando?"
     window_host (+ hyprland)            esconder/mostrar a janela do hub
     win_registry                        lê o registro do Windows
+profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
+               a lista do mundo em world_profile.tres; Profiles lê
 components/    peças reutilizáveis em qualquer mundo
   game_portal/      a "porta" de um jogo (app_id, área de entrada, marcadores)
   friend_npc/       holograma de amigo

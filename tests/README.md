@@ -64,4 +64,5 @@ func _check(label: String, ok: bool) -> void:
 - **Depois de um `SCRIPT ERROR`**, o teste não chega ao `quit()` e fica parado até o `timeout` (240 s). Uma bateria com muitas falhas demora.
 - **Testes de plataforma** (`check_platform`, `check_steam_linux`, `check_window_host`) usam pastas e comandos falsos em `tests/fixtures/` (com `.gdignore`, para a Godot não importar nada dali), então rodam igual no Windows e no Linux.
 - **`check_steam_windows`** só roda no Windows (nos outros sistemas, "pulado"): usa o `reg.exe` e o `tasklist` de verdade, mas numa chave de mentira (`HKCU\Software\GameHubTest`) que ele cria e apaga. Não toca na chave real da Steam.
+- **`check_profiles`** (Fase 7) compara os perfis e o `GameCategories` com o retrato do comportamento de antes (`tests/fixtures/profiles_atuais.json`). O JSON devolve números como decimais: compare tags e ids convertendo para `int`.
 - **GitHub Actions** (`.github/workflows/testes.yml`): a cada push em `fase-*` e em cada Pull Request, roda os quatro testes de plataforma num Windows e num Linux do GitHub. A bateria completa **não** roda lá (precisa dos jogos instalados).

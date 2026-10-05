@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WorldProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="1_625kh"]
+[ext_resource type="Resource" path="res://profiles/districts/esportes.tres" id="2_kldj5"]
+[ext_resource type="Resource" path="res://profiles/districts/rpg.tres" id="3_i584e"]
+[ext_resource type="Resource" path="res://profiles/districts/sobrevivencia.tres" id="4_1roev"]
+[ext_resource type="Resource" path="res://profiles/districts/simulacao.tres" id="5_bjlya"]
+[ext_resource type="Resource" path="res://profiles/districts/estrategia.tres" id="6_rw7yd"]
+[ext_resource type="Resource" path="res://profiles/districts/acao.tres" id="7_ilkih"]
+[ext_resource type="Resource" path="res://profiles/districts/cartas.tres" id="8_dhghh"]
+[ext_resource type="Resource" path="res://profiles/districts/aventura.tres" id="9_7c1q6"]
+[ext_resource type="Resource" path="res://profiles/districts/casual.tres" id="10_a6dnv"]
+[ext_resource type="Resource" path="res://profiles/districts/outros.tres" id="11_0p2q1"]
+[ext_resource type="Script" path="res://profiles/world_profile.gd" id="12_gn6yh"]
+
+[resource]
+script = ExtResource("12_gn6yh")
+display_name = "Cidade"
+districts = Array[ExtResource("1_625kh")]([ExtResource("2_kldj5"), ExtResource("3_i584e"), ExtResource("4_1roev"), ExtResource("5_bjlya"), ExtResource("6_rw7yd"), ExtResource("7_ilkih"), ExtResource("8_dhghh"), ExtResource("9_7c1q6"), ExtResource("10_a6dnv"), ExtResource("11_0p2q1")])

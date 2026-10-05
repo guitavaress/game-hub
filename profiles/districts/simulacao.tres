@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_g2pmr"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_0ki8j"]
+
+[resource]
+script = ExtResource("2_0ki8j")
+id = "simulacao"
+display_name = "Simulação e Construção"
+color = Color(0.7882353, 0.74509805, 0.2901961, 1)
+neon = Color(1, 0.9411765, 0.29803923, 1)
+tags = PackedInt32Array(220585, 7332, 87918, 10235, 12472, 4328, 1643, 255534, 4695, 22602, 4520, 16598, 15045, 3810, 599)
+tag_names = PackedStringArray("Simulador de Colônias", "Construção de Bases", "Simulador Rural", "Simulador de Vida Real", "Gerenciamento", "Construção de Cidades", "Construção", "Automação", "Economia", "Agricultura", "Rural", "Simulador Espacial", "Voo", "Faça o que Quiser (sandbox)", "Simulação")
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_2aogd"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_7fekq"]
+
+[resource]
+script = ExtResource("2_7fekq")
+id = "sobrevivencia"
+display_name = "Sobrevivência e Terror"
+color = Color(0.5411765, 0.23529412, 0.25882354, 1)
+neon = Color(1, 0.29803923, 0.35686275, 1)
+tags = PackedInt32Array(1662, 1100689, 1667, 3978, 1721, 1659, 7432)
+tag_names = PackedStringArray("Sobrevivência", "Sobrevivência em Mundo Aberto", "Terror", "Terror de Sobrevivência", "Terror Psicológico", "Zumbis", "Lovecraftiano")
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

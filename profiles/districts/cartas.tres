@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_gaat1"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_r5c1g"]
+
+[resource]
+script = ExtResource("2_r5c1g")
+id = "cartas"
+display_name = "Cartas e Tabuleiro"
+color = Color(0.18431373, 0.56078434, 0.5411765, 1)
+neon = Color(0.29803923, 1, 0.9647059, 1)
+tags = PackedInt32Array(1666, 32322, 1091588, 791774, 9271, 1770, 17389, 4184, 13070, 7556, 33572)
+tag_names = PackedStringArray("Cartas", "Montagem de Decks", "Montagem de Decks Roguelike", "Batalha com Cartas", "Jogo de Cartas", "Jogo de Tabuleiro", "Jogo de Mesa", "Xadrez", "Solitário", "Dados", "Mahjong")
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** em andamento (7.0)
+**Status:** em andamento (7.1)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto
@@ -45,9 +45,10 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Faz: `git checkout -b fase-7` a partir de `fase-linux`; salva este plano como `docs/plans/fase-7.md` (formato de `docs/plans/README.md`); **grava o "retrato" do comportamento de hoje** (tabela, ordem, sons por categoria) em `tests/fixtures/profiles_atuais.json`, rodando um script uma vez sobre o código atual, para os testes das próximas subetapas compararem com ele.
   - Feito: o retrato é gravado por `tools/retrato_perfis.gd` (rodado uma vez, sobre o commit `3b8c3fc`): as 10 categorias em ordem (nome, cor, neon, tags), os sons de cada bairro (tipo, arquivos, volume, distância, intervalo, tom), o enfeite de cada um (script, nome do nó, se tem `cell`) e, para 517 App IDs, os andares e o estilo de parede sorteados. Duas rodadas deram arquivos idênticos, e as cores conferem com o código.
   - Commit: `Fase 7.0: plano e retrato do comportamento atual`
-- [ ] **7.1 Perfis e `GameCategories` lendo deles** (Sonnet · medium)
+- [x] **7.1 Perfis e `GameCategories` lendo deles** (Sonnet · medium)
   - Faz: `DistrictProfile`, `AmbienceSpec`, `WeatherSpec`, `WorldProfile`, `Profiles`; os 10 `.tres` com os dados atuais (cores convertidas do hexa para `Color(r, g, b, 1)`); `GameCategories` vira fachada. Ordem preservada.
   - Teste: `tests/check_profiles.gd`: os 10 perfis carregam, ids únicos, **mesma ordem, nome, cor, neon e tags do retrato**, API do `GameCategories` igual; todo id do texto do config existe; `get_category_id` com override e `outros`.
+  - Feito: as classes têm desde já os campos de todas as subetapas (som, enfeite, clima, casca, pesos de arquitetura, `density` e `landmark_script` reservados), mas só os de identidade (nome, cores, tags) têm dados; assim os `.tres` não mudam de formato a cada passo. Os 10 `.tres` e o `world_profile.tres` foram gerados pela própria Godot (`ResourceSaver`) a partir da tabela antiga, para não errar um dígito de cor à mão. Cada perfil ganhou `tag_names` (o nome de cada tag, tirado dos comentários da tabela antiga), para ler no inspetor. A tabela `CATEGORIES` saiu do `GameCategories`.
   - Commit: `Fase 7.1: perfis de bairro em .tres e GameCategories como fachada`
 - [ ] **7.2 Som vindo do perfil** (Sonnet · medium)
   - Faz: `CategoryAmbience.create(id)` monta os emissores a partir de `profile.ambience`; some o `match`. Mesma assinatura, **mesma ordem** de emissores.
@@ -92,6 +93,7 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
 - 2026-10-05: perfis em `.tres` (dono). Arquitetura agora; densidade e landmark só como campos (dono).
 - 2026-10-05: **na 7.5, os sorteios têm de continuar idênticos** com os perfis padrão. Andares: semente `app_id * 7919 + 13` e `rand_weighted(FLOOR_WEIGHTS)` como 1º sorteio; parede: semente `app_id` e `randi_range(0, 2)` como 1º sorteio. Trocar `randi_range` por um sorteio com pesos mudaria a parede de quase todo prédio; com pesos iguais, o código deve seguir pelo `randi_range` (7.0).
 - 2026-10-05: o enfeite de esportes (`sports_scoreboard`) também tem o campo `cell`; o retrato registra quais têm (7.0).
+- 2026-10-05: o `tools/retrato_perfis.gd` só funciona no código de antes da 7.1 (lia a tabela antiga); para regravar, voltar ao commit `3b8c3fc` (7.1).
 - 2026-10-05: scripts de ferramenta (`-s`) que usam a cidade carregam `CityBuilding`, `DistrictProps` etc. com `load()` depois dos autoloads; citar a classe direto os compila cedo demais e os enfeites que usam `GameCategories` falham (7.0).
 
 ## Checklist de teste manual (fim da fase)

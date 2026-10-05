@@ -8,8 +8,10 @@ extends SceneTree
 ##   godot --headless --path . -s res://tools/retrato_perfis.gd
 ## Saída: res://tests/fixtures/profiles_atuais.json
 ##
-## Não rode de novo depois da Fase 7.1: aí ele retrataria o código novo, e o
-## teste passaria a comparar o código novo com ele mesmo.
+## Só funciona no código de antes da Fase 7.1 (ele lê a tabela antiga
+## GameCategories.CATEGORIES, que deixou de existir). Para regravar, volte ao
+## commit 3b8c3fc. Rodar no código novo também não faria sentido: o teste
+## passaria a comparar o código novo com ele mesmo.
 ##
 ## Os scripts da cidade são carregados com load() DEPOIS que os autoloads
 ## existem: citar CityBuilding ou DistrictProps direto num script -s faz a
