@@ -101,7 +101,8 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
     - `tests/check_steam_windows.gd`: **só no Windows** (nos outros, "pulado"). Cria com o `reg.exe` de verdade a chave `HKCU\Software\GameHubTest\Steam` (caminho com barras normais e um espaço, como a Steam grava; `RunningAppID`; `ActiveProcess\pid` = esta Godot; `ActiveUser`; `Apps\<id>` com `Running`/`Updating`), confere o `SteamClientWindows`, testa o `tasklist` com um PID vivo e um morto, e **apaga a chave no fim**. Seguro no PC do dono: não toca na chave real da Steam.
     - `SteamClientWindows.reg_key`: a chave virou variável (padrão = a real), só para esse teste trocar.
   - **Não cobre** (continua sendo teste manual no Windows): abrir um jogo de verdade, a janela (minimizar e voltar no monitor certo) e a bateria completa (precisa de Balatro, Skyrim, Valheim e Stardew).
-  - Conferido aqui: o passo de download rodou de verdade no Linux (baixou, conferiu o SHA512 e rodou `--version`); os 4 testes passam sem as variáveis do Hyprland. **O ramo do Windows do workflow só se valida no próprio GitHub** (as aspas do `reg.exe` via `OS.execute` no Windows são o ponto de maior risco).
+  - Conferido no notebook: o passo de download rodou de verdade no Linux (baixou, conferiu o SHA512 e rodou `--version`); os 4 testes passam sem as variáveis do Hyprland.
+  - **Conferido no GitHub (2026-10-05, PR #1):** os dois sistemas passaram. No `windows-latest`, o log completo do `check_steam_windows` mostra o `reg.exe` e o `tasklist` de verdade funcionando: o caminho com espaço chegou inteiro (`C:/Game Hub Test/Steam`), `RunningAppID`, `Apps\<id>\Running`, conta e PID vivo/morto saíram certos, e a chave de teste foi apagada. O risco que eu via (aspas do `reg.exe` via `OS.execute`) não se confirmou. O passo da saída completa roda sempre no Windows, para o log provar isso a cada execução.
   - Commit: `Fase Linux L.7: teste automático no Windows e no Linux (GitHub Actions)`
 
 ## Perguntas abertas (L.0 responde)
@@ -164,6 +165,6 @@ No notebook (Omarchy):
 6. Abrir um jogo pela Steam, por fora do hub: o hub some sozinho e volta quando o jogo fecha.
 7. Configurar a chave da API pelo menu Esc e conferir os hologramas de amigos.
 
-No desktop com Windows, antes de juntar na `main`:
+No desktop com Windows, antes de juntar na `main` (o CI já conferiu o backend do Windows com `reg.exe` e `tasklist` de verdade; falta o que ele não cobre: jogo de verdade, janela e bateria completa):
 1. F5, entrar num jogo: o hub minimiza; fechar: volta na mesma porta, no mesmo monitor.
 2. `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK`.

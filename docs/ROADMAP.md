@@ -98,7 +98,7 @@ Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O de
 - **No Hyprland**, o jogo abre num workspace vazio do monitor escolhido, e o hub se esconde num workspace oculto e volta ao fechar o jogo.
 - Detalhes técnicos em [PLATAFORMA](PLATAFORMA.md).
 
-**Falta:** a conferência no Windows (checklist no fim do plano). A bateria passa inteira no Linux (24 testes), com Balatro, Skyrim, Valheim e Stardew instalados.
+**Falta:** a conferência à mão no Windows (checklist no fim do plano). A bateria passa inteira no Linux (25 testes), com Balatro, Skyrim, Valheim e Stardew instalados, e o GitHub Actions já confere o backend do Windows (`reg.exe` e `tasklist` de verdade); falta abrir um jogo de verdade e ver a janela.
 
 ## Depois
 
