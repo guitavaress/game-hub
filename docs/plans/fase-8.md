@@ -1,6 +1,6 @@
 # Fase 8: Escala
 
-**Status:** aprovado (2026-10-05)
+**Status:** feita no Linux (falta medir no desktop e conferir no Windows, a partir de 18/10)
 **Branch:** `fase-8`, criada a partir de `fase-7`. A cadeia é `main` ← `fase-linux` (PR #1) ← `fase-7` ← `fase-8`. Quando cada uma entrar na `main`, a seguinte é rebaseada: `git rebase --onto main fase-7 fase-8`.
 
 ## Contexto
@@ -174,7 +174,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     5. **Placas:** as placas que giram só giram perto.
   - Teste: em `check_scale`, os campos de distância ficam ligados e nada some a menos de 40 m. A bateria inteira passa. Nova medida no notebook, com os números anotados no plano.
   - Commit: `Fase 8.8: desempenho com 200 jogos`
-- [ ] **8.9 Docs** (Sonnet · low)
+- [x] **8.9 Docs** (Sonnet · low)
   - Faz:
     - README: viagem rápida, bússola, mapa, metrô e as teclas novas;
     - ROADMAP: Fase 8 feita;

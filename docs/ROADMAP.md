@@ -66,7 +66,7 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Pronto quando:** criar um bairro novo é escrever um perfil novo, mais um script de enfeite opcional, sem mexer em nenhum `match`.
 
-### Fase 8: Escala
+### Fase 8: Escala ✅ feita (no Linux; falta o desempenho no desktop)
 
 **Objetivo:** o hub continua gostoso com **centenas de jogos**.
 
@@ -76,6 +76,8 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 - **Minimapa** (antigo P3.24): visto de cima, atualizado poucas vezes por segundo.
 - **Transporte entre bairros:** metrô ou bonde, antes de qualquer carro.
 - Teste de desempenho com uma **biblioteca falsa de ~200 jogos**, com ajustes de desenho à distância (LOD) se precisar.
+
+**Feito:** biblioteca falsa de 200 jogos para testes (`tests/fake_library.gd`) e `tools/medir_desempenho.gd`; planta da cidade como dado (`CityMap`); viagem rápida (Shift+Enter na busca); bússola; minimapa e mapa grande (M); metrô (`TransitStop` + `MetroEntrance`, com estações extras nos bairros grandes); capas comprimidas (memória de textura de 1,9 GB para 0,5 GB com 200 jogos). Ficaram para depois, se a medida no desktop pedir: LOD, sons e luzes só de perto. Bonde andando de verdade e clicar no mapa para viajar não entraram.
 
 **Pronto quando:** com 200 jogos, o hub continua leve, e qualquer jogo fica a menos de ~20 s de distância.
 

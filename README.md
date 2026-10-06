@@ -18,7 +18,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
 | Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta no Linux (falta a conferência final no Windows) |
 | 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta no Linux (falta a conferência no Windows) |
-| 8 | Escala: viagem rápida, bússola, minimapa e transporte entre bairros, para centenas de jogos | 🗓️ planejada |
+| 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
 | 9 | A casa: um interior onde ficam a biblioteca, os amigos e as configurações | 🗓️ planejada |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
@@ -47,7 +47,11 @@ Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos.
 - **Janela:** no Linux o hub usa o Wayland. No **Hyprland**, quando o jogo começa, ele vai para um workspace vazio (no monitor escolhido em `game_monitor`) e o hub se esconde num workspace oculto; quando o jogo fecha, o hub volta para onde estava.
 - **Tela cheia:** por padrão, o próprio jogo decide. Use a opção de tela cheia do jogo (no Undertale, F4). Dá para o hub forçar com `game_fullscreen=true`, mas jogos antigos que não mudam de tamanho (como o Undertale) ficam desenhados num canto.
 - **Steam no Omarchy:** para a janela da Steam não pular na frente quando um jogo abre, abra a Steam com `steam -silent` (ela fica na bandeja da barra) e impeça as janelas dela de roubar o foco. Veja [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
-- **PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
+- **Bússola e minimapa:** a faixa no topo mostra para onde você olha e o destino da busca, com a distância. O minimapa no canto mostra o quarteirão e o bairro onde você está. Esc › "Bússola e mapa" desliga os dois.
+
+**Metrô:** há uma estação na praça (a noroeste do chafariz) e uma em cada bairro, no vão entre dois prédios. Bairros grandes ganham mais estações, para nenhuma porta ficar a mais de ~20 s correndo.
+
+**PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
 
 ### Testes automáticos
 
@@ -88,6 +92,9 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | Espaço | Pular |
 | Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, amigos) |
 | Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
+| Shift+Enter (na busca) | Ir direto até a porta do jogo (a tela escurece e você aparece na frente dela; o jogo não abre) |
+| M | Mapa grande da cidade (M ou Esc fecham) |
+| Pisar na escada de uma estação "M" | Metrô: escolha o bairro e viaje (setas ou 1 a 9, Enter; Esc fica) |
 | F11 | Tela cheia |
 | F8 | Adiantar o relógio da cidade em 3 horas (para ver a noite) |
 | Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo (recue antes do anel encher para cancelar) |

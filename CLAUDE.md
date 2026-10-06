@@ -5,7 +5,7 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–7, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Feito:** fases 1–8, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -38,10 +38,11 @@ profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
 components/    peças reutilizáveis em qualquer mundo
   game_portal/      a "porta" de um jogo (app_id, área de entrada, marcadores)
   friend_npc/       holograma de amigo
+  transit_stop/     parada de transporte (lógica do metrô; a aparência é do mundo)
   ambient_emitter/  som ambiente por categoria
-player/        primeira pessoa; cria HUD, menu de pausa (Esc) e busca (Tab)
-ui/            HUD, avisos, telas "Abrindo"/"Jogando", fade, menus
-worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite
+player/        primeira pessoa; cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
+ui/            HUD (bússola, minimapa), avisos, telas "Abrindo"/"Jogando", fade, menus, mapa grande, painel do metrô
+worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)
 tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
