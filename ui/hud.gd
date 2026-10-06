@@ -44,6 +44,7 @@ var _look_label: Label
 var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
+var _look_action: Label
 var _toasts: VBoxContainer
 var _compass: Compass
 var _minimap: MapView
@@ -101,6 +102,8 @@ func set_look_info(info: Dictionary) -> void:
 	_set_line(_look_detail, str(info.get("detail", "")))
 	var friends := str(info.get("friends", ""))
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
+	# Dica de interação ("Segure E para jogar"), só nos alvos que respondem ao E.
+	_set_line(_look_action, str(info.get("action", "")))
 	_look_card.visible = not title.is_empty()
 
 	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.
@@ -121,6 +124,10 @@ func set_look_text(text: String) -> void:
 
 
 ## As linhas extras do cartão (rótulo do bairro e amigos) sobre o que se olha.
+func get_look_action() -> String:
+	return _look_action.text
+
+
 func get_look_extras() -> PackedStringArray:
 	return PackedStringArray([_look_label.text, _look_friends.text])
 
@@ -336,6 +343,8 @@ func _build_look_card() -> void:
 	column.add_child(_look_detail)
 	_look_friends = _make_label(FRIENDS_FONT_SIZE, FRIENDS_COLOR, HubFonts.LIGHT)
 	column.add_child(_look_friends)
+	_look_action = _make_label(FRIENDS_FONT_SIZE, DETAIL_COLOR, HubFonts.TEXT)
+	column.add_child(_look_action)
 
 
 ## Pilha de avisos no topo, centralizada, 500 px de largura.

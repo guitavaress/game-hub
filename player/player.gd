@@ -72,6 +72,13 @@ var in_intro: bool = false
 ## true durante uma viagem rápida (travel_to): sem andar, sem busca, sem menu.
 var _traveling: bool = false
 
+## INTERAGIR (E): quem está sendo olhado e responde ao E, há quanto tempo o E
+## está segurado nele, e se o E já disparou nesta segurada.
+var _interact_target: Node = null
+var _interact_hold: float = 0.0
+var _interact_fired: bool = false
+var _interact_was_pressed: bool = false
+
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
 ## Quanto já andou desde o último passo (metros).
@@ -144,6 +151,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_footsteps(delta, speed, falling_speed)
 	_update_look_target()
+	_update_interact(delta)
 
 
 ## Passos: um som a cada "passada" (mais longa correndo); e um "tum" ao cair.
@@ -280,6 +288,66 @@ func _update_look_target() -> void:
 		if text != _current_look_text:
 			_current_look_text = text
 			look_target_changed.emit(text)
+
+
+## INTERAGIR com E. Contrato de quem quer responder (o jogador sobe pela
+## árvore a partir do que o raio acertou, como no cartão):
+##   interact(player)      : chamado num toque de E (ou quando a segurada enche);
+##   get_hold_seconds()    : opcional; > 0 = precisa SEGURAR o E por esse tempo;
+##   set_hold(ratio)       : opcional; avisa o progresso (0 a 1) da segurada,
+##                           e 0 quando solta ou o jogador olha para outro lado.
+## O cartão mostra a dica pela chave "action" do get_look_info().
+func _update_interact(delta: float) -> void:
+	var pressed := Input.is_action_pressed("interact")
+	var target: Node = null
+	if _can_interact() and _look_ray.is_colliding():
+		target = _find_interactable(_look_ray.get_collider())
+	if target != _interact_target:
+		_reset_interact_hold()
+		_interact_target = target
+	if target != null:
+		var hold_seconds: float = target.get_hold_seconds() if target.has_method("get_hold_seconds") else 0.0
+		if hold_seconds <= 0.0:
+			if pressed and not _interact_was_pressed:
+				target.interact(self)
+		elif pressed:
+			if not _interact_fired:
+				_interact_hold += delta
+				_set_interact_hold(_interact_hold / hold_seconds)
+				if _interact_hold >= hold_seconds:
+					_interact_fired = true
+					_set_interact_hold(0.0)
+					target.interact(self)
+		else:
+			_reset_interact_hold()
+	_interact_was_pressed = pressed
+
+
+## Dá para interagir agora? Não na abertura, em viagem, com painel aberto ou
+## com um jogo abrindo/rodando.
+func _can_interact() -> bool:
+	return not in_intro and not _traveling and not is_overlay_open() and not GameLauncher.is_busy()
+
+
+func _find_interactable(hit: Object) -> Node:
+	var node := hit as Node
+	while node != null:
+		if node.has_method("interact"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _reset_interact_hold() -> void:
+	if _interact_hold > 0.0:
+		_set_interact_hold(0.0)
+	_interact_hold = 0.0
+	_interact_fired = false
+
+
+func _set_interact_hold(ratio: float) -> void:
+	if is_instance_valid(_interact_target) and _interact_target.has_method("set_hold"):
+		_interact_target.set_hold(clampf(ratio, 0.0, 1.0))
 
 
 ## Sobe pela árvore de nós a partir do que o raio acertou, procurando alguém
