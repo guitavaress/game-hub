@@ -134,6 +134,82 @@ func _check_reach(city: Node) -> void:
 		if not space.intersect_shape(query, 1).is_empty():
 			blocked += 1
 	_check("a saída de toda estação está livre (bloqueadas: %d)" % blocked, blocked == 0)
+	_check_clearance(city, stops)
+
+
+## A boca de cada estação não encosta em nada sólido nem em poste, placa,
+## pórtico ou porta; a calçada na frente dela continua livre.
+func _check_clearance(city: Node, stops: Array) -> void:
+	var footprint: Rect2 = load("res://worlds/city/metro_entrance.gd").footprint()
+	var touching := 0
+	var sidewalk_blocked := 0
+	for stop in stops:
+		var own: RID = stop.get_node("Body").get_rid()
+		if _overlaps(stop, footprint, own):
+			touching += 1
+			print("   encosta em algo: ", stop.stop_name)
+		# Calçada na frente da boca: da fachada até a beira da rua (2 m).
+		if _overlaps(stop, Rect2(-1.6, 0.0, 3.2, 2.0), own):
+			sidewalk_blocked += 1
+			print("   calçada bloqueada: ", stop.stop_name)
+	_check("nenhuma boca de estação encosta em algo sólido (%d)" % touching, touching == 0)
+	_check("a calçada na frente de cada estação está livre (%d)" % sidewalk_blocked, sidewalk_blocked == 0)
+
+	# Prédios: pela planta (o tamanho de cada casca), e não pela física, porque a
+	# colisão do prédio é só a casca de fora (uma caixa de teste pode cair entre
+	# as paredes sem tocar nenhuma).
+	var over_buildings := 0
+	for node in get_nodes_in_group("game_portal"):
+		var shell: Node3D = node.get_parent()
+		if not ("size" in shell):
+			continue
+		for stop in stops:
+			var corners: Array[Vector2] = []
+			for corner in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(-1, 0, 1), Vector3(1, 0, 1)]:
+				var world: Vector3 = shell.global_transform * (corner * shell.size / 2.0)
+				var local: Vector3 = stop.global_transform.affine_inverse() * world
+				corners.append(Vector2(local.x, local.z))
+			var rect := Rect2(corners[0], Vector2.ZERO)
+			for corner in corners:
+				rect = rect.expand(corner)
+			if rect.intersects(footprint.grow(0.3)):
+				over_buildings += 1
+				print("   em cima de um prédio: ", stop.stop_name)
+	_check("nenhuma boca de estação a menos de 30 cm de um prédio (%d)" % over_buildings, over_buildings == 0)
+
+	var near := {"StreetLight": 1.5, "StreetSign": 1.5, "DistrictGate": 2.5, "GamePortal": 3.0}
+	var too_close: Array[String] = []
+	for node in city.find_children("*", "Node3D", true, false):
+		var script: Script = node.get_script()
+		if script == null or not near.has(script.get_global_name()):
+			continue
+		for stop in stops:
+			var local: Vector3 = stop.global_transform.affine_inverse() * node.global_position
+			var distance := _rect_distance(footprint, Vector2(local.x, local.z))
+			if distance < near[script.get_global_name()]:
+				too_close.append("%s perto de %s (%.1f m)" % [stop.stop_name, script.get_global_name(), distance])
+	for line in too_close.slice(0, 5):
+		print("   ", line)
+	_check("longe de postes, placas, pórticos e portas (%d)" % too_close.size(), too_close.is_empty())
+
+
+func _overlaps(stop, rect: Rect2, own: RID) -> bool:
+	var query := PhysicsShapeQueryParameters3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(rect.size.x, 1.6, rect.size.y)
+	query.shape = box
+	var center := Vector3(rect.get_center().x, 1.0, rect.get_center().y)
+	query.transform = Transform3D(stop.global_basis, stop.global_transform * center)
+	query.collision_mask = 1
+	query.exclude = [own]
+	return not stop.get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+## Distância de um ponto até um retângulo (0 se estiver dentro).
+static func _rect_distance(rect: Rect2, point: Vector2) -> float:
+	var dx := maxf(maxf(rect.position.x - point.x, 0.0), point.x - rect.end.x)
+	var dy := maxf(maxf(rect.position.y - point.y, 0.0), point.y - rect.end.y)
+	return Vector2(dx, dy).length()
 
 
 func _walk(from: Vector3, portal) -> float:

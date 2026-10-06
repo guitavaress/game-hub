@@ -61,8 +61,10 @@ func _run() -> void:
 	_check("todos no canal Ambiente", engine_bus_ok and wind.bus == &"Ambiente")
 
 	print("\n== passos ==")
-	player.global_position = Vector3(0, 0.1, 10)
-	player.rotation.y = PI  # de costas para o chafariz, rua livre à frente
+	# Atravessa a praça de oeste para leste, ao sul do chafariz: linha livre de
+	# floreiras, postes e da estação de metrô (que fica no vão entre os prédios).
+	player.global_position = Vector3(-13, 0.1, 6)
+	player.rotation.y = -PI / 2.0  # olhando para o leste (+X)
 	for i in 10:
 		await physics_frame
 	var steps := await _count_steps(player, 2.0, false)

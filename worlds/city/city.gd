@@ -45,10 +45,10 @@ const DISTRICT_SIGN_TEXT_HEIGHT: float = 1.8
 ## Distância (m) da quina do quarteirão até o pórtico, andando pela rua do
 ## próprio quarteirão (fica antes do cruzamento, longe do pórtico vizinho).
 const GATE_SETBACK: float = 3.5
-## Metrô: a estação do pórtico fica a isto (m) do pilar, do lado da esquina.
-const METRO_GATE_OFFSET: float = 1.4
-## Estação da praça: ao norte do chafariz, de frente para quem nasce.
-const METRO_CENTRAL_SPOT: Vector3 = Vector3(0.0, 0.0, -7.0)
+## Estação da praça: a noroeste do chafariz, de frente para o sul (a escada
+## desce para o norte). Fica fora do eixo de quem nasce e anda reto para o
+## norte: ninguém cai no painel do metrô sem querer.
+const METRO_CENTRAL_SPOT: Vector3 = Vector3(-6.0, 0.0, -6.0)
 ## Nenhuma porta fica a mais disto (m, pelas ruas) da estação do seu bairro:
 ## 20 s correndo (9 m/s).
 const METRO_MAX_WALK: float = 180.0
@@ -94,8 +94,7 @@ var _asphalt: StandardMaterial3D
 var _map: CityMap
 ## Quarteirões de cada bairro, na ordem em que foram montados.
 var _district_cells: Dictionary[String, Array] = {}
-## Onde ficou o pórtico de cada bairro (x, z).
-var _gate_by_district: Dictionary[String, Vector2] = {}
+
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
 
@@ -310,7 +309,8 @@ func _build_weather(district_cells: Array, category_id: String) -> void:
 
 # --- Metrô ----------------------------------------------------------------------
 
-## Estações de metrô: a "Central" na praça e uma por bairro, junto ao pórtico.
+## Estações de metrô: a "Central" na praça e uma por bairro, no quarteirão
+## do pórtico (o primeiro do bairro, o mais perto da praça).
 ## Se alguma porta do bairro ficar a mais de METRO_MAX_WALK metros (pelas
 ## ruas) da estação mais perto, o bairro ganha outra estação, no quarteirão
 ## dessa porta, até todas ficarem perto.
@@ -334,7 +334,7 @@ func _build_metro(districts: Array[Dictionary]) -> void:
 		var neon := GameCategories.get_neon_color(id)
 		var detail := "%d jogos" % (districts[i]["games"] as Array).size()
 		var stops: Array[TransitStop] = []
-		var first: Array = _gate_station_spot(id, cells[0])
+		var first: Array = _block_station_spot(cells[0])
 		stops.append(_add_metro_stop(stop_name, neon, (i + 1) * 10, detail, first[0], first[1]))
 		var portals: Array = portals_by_district.get(id, [])
 		while stops.size() < METRO_MAX_PER_DISTRICT:
@@ -364,29 +364,16 @@ static func _nearest_stop_walk(stops: Array[TransitStop], portal: GamePortal) ->
 	return best
 
 
-## Lugar da estação junto ao pórtico: na calçada, ao lado do pilar, do lado
-## da esquina; a frente virada para a rua. Sem pórtico: no meio do quarteirão.
-## Devolve [posição, frente].
-func _gate_station_spot(id: String, cell: Vector2i) -> Array:
-	if not _gate_by_district.has(id):
-		return _block_station_spot(cell)
-	var gate: Vector2 = _gate_by_district[id]
-	var center := CityLayout.block_center(cell)
-	var side := signf(center.z - gate.y)  # de que lado da rua fica o quarteirão
-	var toward_corner := signf(gate.x - center.x)
-	var position := Vector3(gate.x + toward_corner * METRO_GATE_OFFSET, 0.0,
-			gate.y + side * (CityLayout.STREET_WIDTH + CityDecor.SIDEWALK_WIDTH) / 2.0)
-	return [position, Vector3(0.0, 0.0, -side)]
-
-
-## Lugar da estação no meio de um quarteirão: na calçada da rua das portas,
-## entre os dois prédios. Devolve [posição, frente].
+## Lugar da estação num quarteirão: no vão de 4 m entre os dois prédios da
+## rua das portas (a do lado da praça), com a frente na linha das fachadas,
+## virada para a rua. A escada desce para dentro do vão: não ocupa a calçada
+## e fica longe das portas, dos postes e do pórtico. Devolve [posição, frente].
 func _block_station_spot(cell: Vector2i) -> Array:
 	var center := CityLayout.block_center(cell)
 	var street_z := _door_street_z(cell)
 	var side := signf(center.z - street_z)
-	var position := Vector3(center.x, 0.0, street_z + side * (CityLayout.STREET_WIDTH + CityDecor.SIDEWALK_WIDTH) / 2.0)
-	return [position, Vector3(0.0, 0.0, -side)]
+	var facade := CityLayout.STREET_WIDTH / 2.0 + (CityLayout.LOT_SIZE - BUILDING_FOOTPRINT) / 2.0
+	return [Vector3(center.x, 0.0, street_z + side * facade), Vector3(0.0, 0.0, -side)]
 
 
 ## Quarteirão onde fica um ponto do mundo.
@@ -434,7 +421,6 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 		return
 	_gate_spots[spot] = true
 	_map.set_gate(category_id, spot)
-	_gate_by_district[category_id] = spot
 	var gate := DistrictGate.new()
 	gate.name = "DistrictGate_%s" % category_id
 	gate.setup(GameCategories.get_category_name(category_id).to_upper(),

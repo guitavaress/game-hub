@@ -160,7 +160,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     - o painel não abre com jogo rodando;
     - com 200 jogos, toda porta fica a ≤ 180 m de uma estação do seu bairro (cria a 2ª estação quando precisar).
   - Commit: `Fase 8.6: metrô entre bairros`
-- [ ] **8.7 Metrô: a boca da estação** (Opus · high: visual e posição)
+- [x] **8.7 Metrô: a boca da estação** (Opus · high: visual e posição)
   - Faz: a aparência do `MetroEntrance` (boca de escada, corrimão, totem "M" em néon que acende à noite pelo grupo `city_night`, nome da estação) e a posição final junto ao pórtico e na praça. As estações aparecem no minimapa.
   - Teste: em `check_metro`, a estação não encosta em poste, placa, pórtico nem terreno, e a passagem pela calçada continua livre. `check_gates`, `check_night_life` e `check_district_props` passam.
   - Manual: capturas de dia e de noite, na praça e num bairro.
@@ -226,6 +226,13 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
   - Com os 7 jogos de verdade são 6 estações, e a porta mais longe fica a 28 m.
   - Os painéis (menu, busca, mapa e metrô) agora perguntam `player.is_overlay_open()`, e só um abre de cada vez.
   - Para a 8.7: o totem provisório fica entre o poste da esquina e o pilar do pórtico (três postes em fila). A boca de escada precisa de outro lugar ou de outro desenho.
+
+- 2026-10-06 (8.7): a boca da estação **saiu da calçada do pórtico** e foi para o **vão de 4 m entre os dois prédios** da rua das portas (a do lado da praça), no 1º quarteirão do bairro. A frente fica na linha das fachadas e a escada desce para dentro do vão.
+  - Motivo: a calçada tem só 1,5 m e, junto ao pórtico, a estação ficava em fila com o poste e o pilar.
+  - No vão ela não toca porta, poste, placa nem pórtico. O teste confere isso pela física e, para os prédios, pela planta: a colisão do prédio é só a casca, e uma caixa de teste dentro dele não acusa nada.
+  - A escada é um **shader de "interior mapping"** (`metro_stairs.gdshader`): um retângulo no chão desenha um poço com 7 degraus, sem cortar o chão nem criar buraco para cair.
+  - A estação da praça ficou em (−6, 0, −6), a noroeste do chafariz, com a escada descendo para o norte. Assim ela fica fora do eixo de quem nasce e anda reto.
+  - O vão entre os prédios era uma passagem e agora é a estação, que só se entra pela frente e abre o painel. O `check_phase6_audio` corria para o sul por esse vão ("rua livre à frente") e caiu no painel. O percurso do teste passou para dentro da praça, de oeste para leste.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

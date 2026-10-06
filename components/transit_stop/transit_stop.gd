@@ -14,11 +14,15 @@ extends Node3D
 ##
 ## Quem cria preenche stop_name, color, order e detail ANTES de adicionar à cena.
 
-## Tamanho da entrada (largura, altura, profundidade) e a distância dela até a parada.
-const ENTRY_SIZE: Vector3 = Vector3(1.6, 2.4, 1.4)
-const ENTRY_OFFSET: float = 1.0
-## O ponto de chegada fica fora da entrada, a esta distância da parada.
-const EXIT_DISTANCE: float = 3.2
+## Tamanho da entrada (largura, altura, profundidade).
+const ENTRY_SIZE: Vector3 = Vector3(1.4, 2.4, 1.4)
+
+## Onde fica o meio da entrada, no eixo Z da parada (+ = à frente). Quem
+## monta a aparência pode trocar ANTES de adicionar à cena (ex.: o topo da
+## escada do metrô).
+var entry_offset: float = 1.0
+## O ponto de chegada fica fora da entrada, a esta distância à frente da parada.
+var exit_distance: float = 3.2
 
 ## Nome da estação ("RPG e Fantasia", "Central"...).
 var stop_name: String = ""
@@ -45,7 +49,7 @@ func _ready() -> void:
 	var box := BoxShape3D.new()
 	box.size = ENTRY_SIZE
 	shape.shape = box
-	shape.position = Vector3(0.0, ENTRY_SIZE.y / 2.0, ENTRY_OFFSET)
+	shape.position = Vector3(0.0, ENTRY_SIZE.y / 2.0, entry_offset)
 	_entry.add_child(shape)
 	add_child(_entry)
 	_entry.body_entered.connect(_on_body_entered)
@@ -71,14 +75,14 @@ func get_exit_transform() -> Transform3D:
 	var front := global_basis.z
 	front.y = 0.0
 	front = front.normalized()
-	var spot := global_position + front * EXIT_DISTANCE
+	var spot := global_position + front * exit_distance
 	# teleport_to vira o jogador para -Z do alvo: -Z = para fora da parada.
 	return Transform3D(Basis.looking_at(front), spot)
 
 
 ## O ponto do meio da entrada (para os testes "pisarem" nela).
 func get_entry_position() -> Vector3:
-	return global_transform * Vector3(0.0, 0.1, ENTRY_OFFSET)
+	return global_transform * Vector3(0.0, 0.1, entry_offset)
 
 
 func is_armed() -> bool:
