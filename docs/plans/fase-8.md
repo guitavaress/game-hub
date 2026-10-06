@@ -111,7 +111,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     - `user://cache` intacto;
     - o tempo de montagem é impresso.
   - Commit: `Fase 8.1: biblioteca falsa e medida de desempenho`
-- [ ] **8.2 Mapa da cidade como dado** (Sonnet · medium)
+- [x] **8.2 Mapa da cidade como dado** (Sonnet · medium)
   - Faz: `CityMap` (grupo `world_map`, com `get_map_data` e `area_name_at`), preenchido por `_build_districts` e `_build_gate`. A faixa de luz ganha `get_target_position()` e `route_changed`. Nada muda na tela.
   - Teste: `tests/check_city_map.gd`, com 7 e com 200 jogos. Cada quarteirão pertence a um só bairro; as áreas não se sobrepõem; `area_name_at` acerta a porta de cada jogo; os limites batem com o `half_extent`; o alvo da faixa é a porta escolhida.
   - Commit: `Fase 8.2: mapa da cidade como dado`

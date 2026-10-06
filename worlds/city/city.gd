@@ -82,6 +82,8 @@ var _is_ready: bool = false
 var _gate_spots: Dictionary[Vector2, bool] = {}
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
+## A planta da cidade (quem ocupa cada quarteirão), para os mapas.
+var _map: CityMap
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
 
@@ -107,6 +109,7 @@ func _ready() -> void:
 	var districts := _group_into_districts(games)
 	var cells := await _build_districts(districts, games.size())
 	var half := CityLayout.half_extent(cells)
+	_map.set_bounds(half)
 	_build_ground_and_walls(half)
 	CityDecor.add_street_markings(self, cells, half)
 	CityDecor.add_puddles(self, half)
@@ -243,6 +246,10 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
 	var cells := CityLayout.block_cells(block_count)
 
+	_map = CityMap.new()
+	_map.name = "CityMap"
+	add_child(_map)
+
 	var next_cell := 0
 	var built := 0
 	for district in districts:
@@ -252,6 +259,7 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
 			_build_block(cells[next_cell], district["id"], block_games)
+			_map.add_block(district["id"], cells[next_cell], block_games.size())
 			if first == 0:
 				# O pórtico fica no primeiro quarteirão do bairro (o mais perto da praça).
 				_build_gate(cells[next_cell], district["id"])
@@ -308,6 +316,7 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 	if spot == Vector2.INF:
 		return
 	_gate_spots[spot] = true
+	_map.set_gate(category_id, spot)
 	var gate := DistrictGate.new()
 	gate.name = "DistrictGate_%s" % category_id
 	gate.setup(GameCategories.get_category_name(category_id).to_upper(),
