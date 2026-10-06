@@ -3,6 +3,33 @@
 **Status:** em andamento (aprovado em 2026-10-06)
 **Branch:** a sessão roda num **worktree do claude-squad**, na branch `guitavares/game-hub` (que hoje aponta para o mesmo commit da `fase-8`, `9136f27`). Os commits da fase vão nessa branch; o checkout principal (`~/git/game-hub`) fica na `fase-8` e não é tocado. No fim da fase, `git branch -f fase-9 HEAD` dá o nome de sempre à branch. A cadeia fica `main` ← `fase-linux` ← `fase-7` ← `fase-8` ← `fase-9`.
 
+### Trabalho com o claude-squad
+- **Trilha principal** (instância "Game Hub", branch `guitavares/game-hub`):
+  - faz as subetapas em ordem;
+  - é a única que marca `[x]` e escreve em "Decisões tomadas durante a fase";
+  - junta as branches paralelas.
+  - "Uma sessão por subetapa" vira um `/clear` (ou uma conversa nova) na mesma instância.
+- **Trilha paralela** (opcional, uma por vez): uma instância nova do cs para uma subetapa que não mexe nos mesmos arquivos da principal naquele momento.
+
+  | Janela | Principal | Paralela |
+  |---|---|---|
+  | 1 (agora) | 9.1 → 9.2 → 9.3 | 9.6 |
+  | 2 (com a 9.3 e a 9.6 juntas) | 9.4 → 9.5 | 9.7 |
+  | 3 (depois da 9.8) | 9.9 | 9.10 |
+
+  A 9.8 e a 9.11 ficam só na principal.
+- **Passo a passo da paralela:**
+  1. No cs, `n` cria a instância com o nome da subetapa (ex.: "9.6 config").
+  2. Ela nasce do HEAD do checkout principal (`fase-8`) e não do nosso. Por isso, a primeira mensagem é: "`git merge --ff-only guitavares/game-hub`; depois execute a subetapa 9.N deste plano, sem marcar o plano; faça o commit com o e-mail noreply e me diga o hash".
+  3. Ela roda só os testes dela. **Nunca rode a bateria em duas instâncias ao mesmo tempo**: o `user://` (com o `config.cfg`, a chave e o cache) é um só para todos os worktrees.
+  4. Para juntar, na principal e entre duas subetapas:
+     - `git merge --no-ff <branch da paralela> -m "Fase 9.N: junta a trilha paralela"`;
+     - `bash tests/run_tests.sh`;
+     - marcar `[x]` com o hash.
+  5. Só depois de juntar, encerrar a instância no cs (`D`).
+  6. Teste no editor: abrir o `project.godot` do worktree (o caminho aparece no cs). Cada worktree reimporta o projeto na primeira vez.
+  7. O atalho de push do cs não é usado sem o dono pedir.
+
 ## Contexto
 A Fase 8 está fechada (8.0–8.9 marcadas, commits até `9136f27`; faltam só as conferências no desktop/Windows, a partir de 18/10). A Fase 9 é o primeiro passo da ideia "a casa é o computador" (V2, [ROADMAP › Fase 9](../ROADMAP.md#fase-9-a-casa)). O jogador passa a **nascer dentro de um loft**, onde o HUD vira coisas físicas:
 - uma **estante** com as capas da biblioteca, de onde se abre um jogo;
@@ -113,8 +140,8 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - Faz:
     - ação `interact` (E) no `project.godot`;
     - no `player.gd`: toque, segurar, `set_hold` e as travas;
-    - no HUD, a linha `"action"` no cartão;
-    - a linha "E interagir" em `CONTROL_ROWS`.
+    - no HUD, a linha `"action"` no cartão.
+    - A linha "E interagir" nas teclas fica para a 9.6, que pode rodar em paralelo e mexe no mesmo lugar.
   - Teste: `tests/check_interact.gd`, com um nó falso na cidade:
     - o toque chama `interact`;
     - segurar enche e chama `interact` uma vez só;
@@ -125,6 +152,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 - [ ] **9.2 A casa e as portas** (Opus · high: ambiente, camadas e luz)
   - Faz:
     - `worlds/home/home.gd`: sala provisória (chão, paredes, teto, luzes), `Environment` próprio, área "em casa" e porta da rua;
+    - os móveis entram por `_build_furniture()`, com uma linha por móvel. É o encaixe da estante, do mural e do computador, para as trilhas paralelas não brigarem em `home.gd`;
     - `components/travel_door/travel_door.gd`;
     - no `player.gd`: `set_indoors`/`is_indoors` (ambiente e alcance da câmera, HUD, filtro no "Ambiente");
     - na cidade: põe a casa em `HOME_ORIGIN`, cria a porta "Casa" provisória na praça e tira a camada do interior do sol.
@@ -173,7 +201,8 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - `check_fast_travel` passa.
   - Commit: `Fase 9.5: mural dos amigos`
 - [ ] **9.6 Configurações separadas do menu** (Sonnet · medium)
-  - Faz: `ui/settings_view.gd` com as três abas. O `PauseMenu` passa a usá-lo, e nada muda na tela.
+  - Faz: `ui/settings_view.gd` com as três abas. O `PauseMenu` passa a usá-lo, e nada muda na tela, exceto a linha nova "E · interagir (porta, estante, mural, computador)" nas teclas.
+  - Pode rodar em paralelo à 9.1–9.3 (janela 1).
   - Teste:
     - `check_pause_menu` passa (ajustando só o caminho até os controles, se precisar);
     - `tests/check_settings_view.gd` monta um `SettingsView` sozinho e confere que mudar a qualidade e o "Bússola e mapa" grava no `config.cfg` (com cópia e devolução).
@@ -231,6 +260,8 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 - **Testes dependem da praça:** com `play_intro = false`, tudo continua como hoje, e só os testes novos ligam a casa.
 - **Abrir jogo da estante e voltar:** a volta copia o que o portal faz (clarear só se o hub não dormiu). O teste cobre os dois casos.
 - **Esc em dobro:** o Esc da tela 3D, do campo de texto e do menu de pausa podem brigar. A ordem é testada na 9.7.
+- **Duas baterias ao mesmo tempo (claude-squad):** o `user://` é compartilhado entre os worktrees, e os testes que guardam e devolvem o `config.cfg` podem apagar a chave ou as opções. Por isso, só uma instância roda testes de cada vez.
+- **Instância nova sem o plano:** ela nasce da `fase-8`. Começar com `git merge --ff-only guitavares/game-hub`.
 
 ## Fora do escopo
 - Avatar visível, personalizar a casa (mover móveis, trocar cores), cabana ou outros temas e estatísticas na parede. Anotar no "Depois" do ROADMAP como "Casa, parte 2".
