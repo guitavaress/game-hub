@@ -53,6 +53,14 @@ const METRO_CENTRAL_SPOT: Vector3 = Vector3(-6.0, 0.0, -6.0)
 ## 20 s correndo (9 m/s).
 const METRO_MAX_WALK: float = 180.0
 const METRO_MAX_PER_DISTRICT: int = 4
+## A CASA (Fase 9): fica longe da cidade (fora de qualquer tamanho de
+## cidade), ao sul. Ninguém a vê de fora: entra-se pela porta "Casa" da praça.
+const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
+## Porta "Casa" na praça (provisória: o visual final vem na 9.10): na beira
+## sul, de frente para o chafariz. Quem sai de casa aparece um pouco à frente
+## dela, olhando para o norte.
+const HOME_DOOR_SPOT: Vector3 = Vector3(0.0, 0.0, 12.5)
+const HOME_DOOR_ARRIVAL: Vector3 = Vector3(0.0, 0.1, 10.5)
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -83,6 +91,11 @@ var _plaza_friends: Array[FriendNpc] = []
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
+## O sol (e a lua) da cidade.
+var _sun: DirectionalLight3D
+## A casa do jogador e a porta "Casa" da praça.
+var _home: Home
+var _home_door: TravelDoor
 ## Tocar a abertura pelo céu? (Nos testes sem janela, pula direto.)
 var play_intro: bool = DisplayServer.get_name() != "headless"
 var _is_ready: bool = false
@@ -101,6 +114,7 @@ var _district_signs: Array[DistrictSign] = []
 
 func _ready() -> void:
 	_build_environment()
+	_build_home()
 	# O jogador nasce antes da cidade, olhando o céu (na abertura).
 	var player := _spawn_player()
 	var started_ms := Time.get_ticks_msec()
@@ -572,9 +586,11 @@ func _build_environment() -> void:
 	add_child(world_env)
 
 	var sun := DirectionalLight3D.new()
+	sun.name = "Sun"
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)
+	_sun = sun
 
 	_day_night = DayNight.new()
 	_day_night.environment = env
@@ -582,6 +598,75 @@ func _build_environment() -> void:
 	_day_night.sun = sun
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	add_child(_day_night)
+
+
+# --- Casa ----------------------------------------------------------------------
+
+## A casa fica longe, em HOME_ORIGIN, e a porta "Casa" fica na praça. As duas
+## portas se ligam: a da praça leva para dentro de casa, e a da casa traz de
+## volta para a frente da porta da praça. O sol da cidade não ilumina dentro.
+func _build_home() -> void:
+	_home = Home.new()
+	_home.name = "Home"
+	_home.position = HOME_ORIGIN
+	add_child(_home)
+	_sun.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+
+	_home_door = TravelDoor.new()
+	_home_door.name = "HomeDoor"
+	_home_door.door_name = "Casa"
+	_home_door.detail = "A sua casa: estante, amigos e configurações"
+	_home_door.travel_message = "Casa"
+	_home_door.position = HOME_DOOR_SPOT
+	_home_door.rotation.y = PI  # a frente (+Z) da porta aponta para o chafariz (norte)
+	add_child(_home_door)
+	_home_door.set_destination(_home.get_spawn_transform())
+	_add_provisional_home_door_frame()
+
+	var front_door := _home.get_front_door()
+	front_door.detail = "Sair para a praça"
+	front_door.travel_message = "Praça"
+	# Chegando na praça: na frente da porta "Casa", olhando para o norte (-Z).
+	front_door.set_destination(Transform3D(Basis.IDENTITY, HOME_DOOR_ARRIVAL))
+
+
+## Moldura provisória da porta "Casa" (dois pilares, a viga e o nome), sem
+## colisão. O visual final é da subetapa 9.10.
+func _add_provisional_home_door_frame() -> void:
+	var frame := Node3D.new()
+	frame.name = "HomeDoorFrame"
+	frame.position = HOME_DOOR_SPOT
+	add_child(frame)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.16, 0.13, 0.11)
+	for piece in [[Vector3(0.12, 2.5, 0.2), Vector3(-0.75, 1.25, 0.0)],
+			[Vector3(0.12, 2.5, 0.2), Vector3(0.75, 1.25, 0.0)],
+			[Vector3(1.62, 0.14, 0.2), Vector3(0.0, 2.55, 0.0)],
+			[Vector3(1.4, 2.4, 0.06), Vector3(0.0, 1.2, 0.05)]]:
+		var mesh := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = piece[0]
+		mesh.mesh = box
+		mesh.material_override = material
+		mesh.position = piece[1]
+		frame.add_child(mesh)
+	var label := Label3D.new()
+	label.text = "CASA"
+	label.font = HubFonts.SIGN
+	label.font_size = 64
+	label.pixel_size = 0.004
+	label.modulate = Color(1.0, 0.85, 0.6)
+	label.position = Vector3(0.0, 2.85, -0.12)
+	label.rotation.y = PI  # o texto lido de quem está na praça (ao norte)
+	frame.add_child(label)
+
+
+func get_home() -> Home:
+	return _home
+
+
+func get_home_door() -> TravelDoor:
+	return _home_door
 
 
 func _build_ground_and_walls(half: float) -> void:

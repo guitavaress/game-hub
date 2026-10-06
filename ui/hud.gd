@@ -45,6 +45,8 @@ var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
 var _look_action: Label
+## Dentro de casa (o jogador avisa): sem bússola e sem minimapa.
+var _indoors: bool = false
 var _toasts: VBoxContainer
 var _compass: Compass
 var _minimap: MapView
@@ -382,8 +384,14 @@ func _build_compass() -> void:
 	_apply_map_visibility()
 
 
+## Em casa a bússola e o minimapa somem (eles falam do mundo lá fora).
+func set_indoors(on: bool) -> void:
+	_indoors = on
+	_apply_map_visibility()
+
+
 func _apply_map_visibility() -> void:
-	var on := AppConfig.get_show_map()
+	var on := AppConfig.get_show_map() and not _indoors
 	_compass.visible = on
 	_minimap.visible = on
 	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)

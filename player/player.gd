@@ -30,6 +30,12 @@ signal look_info_changed(info: Dictionary)
 
 ## Limite para olhar para cima/baixo (evita dar cambalhota com a câmera).
 const MAX_PITCH_DEGREES: float = 89.0
+## Em casa a câmera enxerga só até aqui (m): o mundo lá fora nem é desenhado.
+const INDOOR_CAMERA_FAR: float = 60.0
+## Em casa o som do mundo (canal "Ambiente") fica abafado: só os graves
+## passam (filtro passa-baixa) e o volume cai um pouco.
+const INDOOR_AMBIENCE_CUTOFF_HZ: float = 900.0
+const INDOOR_AMBIENCE_DB: float = -10.0
 
 ## Sons (pacotes CC0 da Kenney).
 const FOOTSTEP_SOUNDS: Array[AudioStream] = [
@@ -56,6 +62,7 @@ const SPRINT_STRIDE: float = 3.0
 const LAND_SOUND_MIN_SPEED: float = 4.0
 
 @onready var _head: Node3D = $Head
+@onready var _camera: Camera3D = $Head/Camera3D
 @onready var _look_ray: RayCast3D = $Head/Camera3D/LookRay
 @onready var _hud: Hud = $HUD
 
@@ -71,6 +78,10 @@ var _transit_panel: TransitPanel
 var in_intro: bool = false
 ## true durante uma viagem rápida (travel_to): sem andar, sem busca, sem menu.
 var _traveling: bool = false
+## Dentro de casa (veja set_indoors).
+var _indoors: bool = false
+## Até onde a câmera enxerga fora de casa (o valor da cena).
+var _outdoor_camera_far: float = 4000.0
 
 ## INTERAGIR (E): quem está sendo olhado e responde ao E, há quanto tempo o E
 ## está segurado nele, e se o E já disparou nesta segurada.
@@ -90,6 +101,7 @@ func _ready() -> void:
 	# O grupo "player" é como os portais reconhecem o jogador.
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
+	_outdoor_camera_far = _camera.far
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
@@ -248,6 +260,53 @@ func teleport_to(target: Transform3D) -> void:
 		rotation.y = atan2(-forward.x, -forward.z)
 	_head.rotation.x = 0.0
 	velocity = Vector3.ZERO
+
+
+## EM CASA: quem cobre um interior (a Home) chama isto quando o jogador entra
+## (com o ambiente de dentro) e quando sai (null). Dentro:
+##   - a câmera usa o ambiente de dentro, e não o do mundo;
+##   - a câmera enxerga só INDOOR_CAMERA_FAR metros (o mundo lá fora fica longe
+##     e nem é desenhado);
+##   - o HUD esconde a bússola e o minimapa;
+##   - o som do mundo fica abafado.
+func set_indoors(environment: Environment) -> void:
+	_indoors = environment != null
+	_camera.environment = environment
+	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
+	_hud.set_indoors(_indoors)
+	_muffle_ambience(_indoors)
+
+
+func is_indoors() -> bool:
+	return _indoors
+
+
+## Liga ou desliga o "abafado" no canal "Ambiente". Os dois efeitos são
+## criados uma vez só e depois só ligados e desligados.
+func _muffle_ambience(on: bool) -> void:
+	var bus := AudioServer.get_bus_index(&"Ambiente")
+	if bus < 0:
+		return
+	var low_pass := -1
+	var quieter := -1
+	for i in AudioServer.get_bus_effect_count(bus):
+		var effect := AudioServer.get_bus_effect(bus, i)
+		if effect is AudioEffectLowPassFilter:
+			low_pass = i
+		elif effect is AudioEffectAmplify:
+			quieter = i
+	if low_pass < 0:
+		var filter := AudioEffectLowPassFilter.new()
+		filter.cutoff_hz = INDOOR_AMBIENCE_CUTOFF_HZ
+		AudioServer.add_bus_effect(bus, filter)
+		low_pass = AudioServer.get_bus_effect_count(bus) - 1
+	if quieter < 0:
+		var amplify := AudioEffectAmplify.new()
+		amplify.volume_db = INDOOR_AMBIENCE_DB
+		AudioServer.add_bus_effect(bus, amplify)
+		quieter = AudioServer.get_bus_effect_count(bus) - 1
+	AudioServer.set_bus_effect_enabled(bus, low_pass, on)
+	AudioServer.set_bus_effect_enabled(bus, quieter, on)
 
 
 func is_traveling() -> bool:
