@@ -67,6 +67,8 @@ var _game_search: GameSearch
 ## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
 ## o jogador fica parado e sem controles.
 var in_intro: bool = false
+## true durante uma viagem rápida (travel_to): sem andar, sem busca, sem menu.
+var _traveling: bool = false
 
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
@@ -115,12 +117,12 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	if Input.is_action_just_pressed("jump") and is_on_floor() and not _traveling:
 		velocity.y = jump_velocity
 		_play_random(_body_player, JUMP_SOUNDS)
 
 	# Direção pedida pelo teclado, convertida para "para onde o jogador está virado".
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input_dir := Vector2.ZERO if _traveling else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input_dir != Vector2.ZERO:
 		_hud.on_player_moved()  # o aviso de volta do jogo pode sair
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
@@ -217,6 +219,31 @@ func teleport_to(target: Transform3D) -> void:
 		rotation.y = atan2(-forward.x, -forward.z)
 	_head.rotation.x = 0.0
 	velocity = Vector3.ZERO
+
+
+func is_traveling() -> bool:
+	return _traveling
+
+
+## VIAGEM RÁPIDA: escurece a tela, leva o jogador até "target" (ele fica
+## virado para a frente do transform, como no teleport_to), apaga a faixa de
+## luz e clareia. Espere com "await". Durante a viagem o jogador não anda e a
+## busca e o menu não abrem. Não abre jogo nenhum.
+func travel_to(target: Transform3D, message: String = "", fade_seconds: float = 0.35, hold_seconds: float = 0.15) -> void:
+	if _traveling:
+		return
+	_traveling = true
+	velocity = Vector3.ZERO
+	ScreenFade.set_message(message)
+	ScreenFade.fade_out(fade_seconds)
+	await get_tree().create_timer(fade_seconds).timeout
+	teleport_to(target)
+	get_tree().call_group("route_guide", "clear_route")
+	await get_tree().create_timer(hold_seconds).timeout
+	ScreenFade.set_message("")
+	ScreenFade.fade_in(fade_seconds)
+	await get_tree().create_timer(fade_seconds).timeout
+	_traveling = false
 
 
 func _update_look_target() -> void:

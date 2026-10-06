@@ -115,7 +115,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
   - Faz: `CityMap` (grupo `world_map`, com `get_map_data` e `area_name_at`), preenchido por `_build_districts` e `_build_gate`. A faixa de luz ganha `get_target_position()` e `route_changed`. Nada muda na tela.
   - Teste: `tests/check_city_map.gd`, com 7 e com 200 jogos. Cada quarteirão pertence a um só bairro; as áreas não se sobrepõem; `area_name_at` acerta a porta de cada jogo; os limites batem com o `half_extent`; o alvo da faixa é a porta escolhida.
   - Commit: `Fase 8.2: mapa da cidade como dado`
-- [ ] **8.3 Viagem rápida pela busca** (Sonnet · medium)
+- [x] **8.3 Viagem rápida pela busca** (Sonnet · medium)
   - Faz:
     - `ScreenFade.fade_out` e `player.travel_to`;
     - na busca, Shift+Enter (ou Shift+clique) viaja até a porta, e a dica da busca mostra "Shift+Enter ir até lá";

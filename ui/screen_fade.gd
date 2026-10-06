@@ -3,6 +3,7 @@ extends CanvasLayer
 ##
 ## - set_amount(0.0 .. 1.0): 0 = tela normal, 1 = tela toda preta.
 ## - fade_in(segundos): clareia a tela aos poucos, do valor atual até 0.
+## - fade_out(segundos): escurece a tela aos poucos, do valor atual até 1.
 ## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
 ## - set_door_charge(0..1, nome, cor): espera na porta de um jogo — vinheta
 ##   que fecha das bordas + anel em volta da mira (DoorCharge).
@@ -104,6 +105,14 @@ func fade_in(duration: float = 1.0) -> void:
 	_tween = create_tween()
 	_tween.tween_property(_curtain, "modulate:a", 0.0, duration)
 	_tween.finished.connect(func() -> void: game_screen.visible = false)
+
+
+## Escurece a tela (transparente -> preto) em "duration" segundos. Usado nas
+## viagens rápidas (Player.travel_to). Não mexe na tela do jogo.
+func fade_out(duration: float = 0.4) -> void:
+	_stop_tween()
+	_tween = create_tween()
+	_tween.tween_property(_curtain, "modulate:a", 1.0, duration)
 
 
 func _stop_tween() -> void:
