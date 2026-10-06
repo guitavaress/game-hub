@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** em andamento (7.4)
+**Status:** feita no Linux (falta conferir no Windows, a partir de 18/10)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto
@@ -75,7 +75,7 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Faz: `DistrictWeather` (Area3D + `GPUParticles3D`, só dentro do bairro e à noite), criado uma vez por bairro com clima no perfil; `weather_amount` no `GraphicsQuality`; o perfil `sobrevivencia` ganha `weather = garoa`. Só o Terror muda de visível.
   - Teste: `tests/check_weather.gd`: só o Terror tem `DistrictWeather`; chove só à noite e só com o jogador dentro; `amount` por qualidade (100/60/25%); não mexe em `environment.fog_*`; trocar a qualidade em jogo atualiza. Captura de tela com janela (fora do repositório), à noite, nas qualidades Alta e Leve, e conferir o FPS no notebook.
   - Commit: `Fase 7.6: garoa por bairro (Terror)`
-- [ ] **7.7 Docs** (Sonnet · low)
+- [x] **7.7 Docs** (Sonnet · low)
   - Faz: README (o que muda para o usuário: garoa no Terror; "como criar um bairro novo"), ROADMAP (Fase 7 feita), CLAUDE.md (mapa: `profiles/`; regra 4 em vigor), `docs/plans/fase-7.md` (marcado) e `tests/README.md` (retrato e testes novos).
   - Commit: `Fase 7.7: documentação`
 

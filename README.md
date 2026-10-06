@@ -17,7 +17,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
 | Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
 | Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta no Linux (falta a conferência final no Windows) |
-| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | 🔜 próxima |
+| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta no Linux (falta a conferência no Windows) |
 | 8 | Escala: viagem rápida, bússola, minimapa e transporte entre bairros, para centenas de jogos | 🗓️ planejada |
 | 9 | A casa: um interior onde ficam a biblioteca, os amigos e as configurações | 🗓️ planejada |
 
@@ -163,10 +163,13 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 
 - **Cartão do jogo:** ao olhar para um prédio, o HUD mostra o bairro, o nome, o tempo jogado e quando foi a última vez ("23 h jogadas · jogado ontem") e quais amigos estão jogando. O hub lê as horas do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
 - **Arte da Steam:** o banner largo do jogo (hero) no alto da fachada e o logo sobre a porta; sem banner, a capa em pé.
-- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada e placas nas esquinas. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando e névoa baixa no de Terror.
+- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada e placas nas esquinas. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando, névoa baixa e garoa à noite no de Terror.
 - **Prédios variados:** andares, recuo no topo, marquise, tipo de janela e caixa d'água mudam de prédio para prédio (sempre iguais para o mesmo jogo).
 - **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
 - **Dia e noite:** seguem o relógio do PC (ou ficam fixos, pelo menu). No pôr do sol o céu fica dourado e as janelas acendem uma a uma; à noite acendem os postes, o néon e as vitrines, e as poças refletem as luzes. No horizonte, uma silhueta de cidade.
+
+### Como criar um bairro novo
+Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para criar um: no editor da Godot, botão direito num `.tres` › Duplicar, ajuste nome, cores, tags da Steam, sons, enfeite, clima e arquitetura no inspetor, e acrescente o arquivo na lista **Districts** de `profiles/world_profile.tres` (a ordem da lista é a ordem dos bairros). Não é preciso mexer em código.
 
 ## Créditos
 

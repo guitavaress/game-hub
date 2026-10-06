@@ -46,7 +46,7 @@ Os detalhes estão no [README](../README.md) e no histórico do git.
 
 A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano dela vai para `docs/plans/fase-N.md` e é aprovado.
 
-### Fase 7: World Profile
+### Fase 7: World Profile ✅ feita (no Linux; falta conferir no Windows)
 
 **Objetivo:** tudo o que muda de um bairro para outro passa a ser **dado num perfil**, e não mais decisão espalhada pelo código. É a base da V3 (biomas) e deixa a lógica do produto independente de engine.
 
@@ -61,6 +61,8 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 - Cidade, sons e enfeites **leem o perfil**.
 - **Clima por bairro:** chuva leve à noite (antigo item P3.25), por exemplo uma garoa no bairro Terror.
 - **PortalShell** (antigo item P3.26): separar o "invólucro" (prédio, arco de pedra, boxe de corrida) do `GamePortal`. O perfil diz qual invólucro usar.
+
+**Feito:** perfis `.tres` em `profiles/`, `GameCategories` como fachada, som, enfeite, pesos de andares e parede e garoa vindos do perfil, `PortalShell` com prédio e arco. Densidade e landmark ficaram como campos reservados, sem efeito (vão para "Depois").
 
 **Pronto quando:** criar um bairro novo é escrever um perfil novo, mais um script de enfeite opcional, sem mexer em nenhum `match`.
 
