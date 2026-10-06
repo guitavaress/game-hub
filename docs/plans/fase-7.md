@@ -70,7 +70,8 @@ Ordem: primeiro o que não muda nada visível, depois o que usa a estrutura, o v
   - Faz: `building_variant.gd` e `city_building.gd` leem `floor_weights` e `wall_styles` do perfil (padrão = tabela atual). `density` e `landmark_script` ficam como campos documentados, sem uso.
   - Teste: `check_variants` (inalterado: 3–7 andares, variedade, mesmo jogo = mesmo prédio) + `check_profiles`: com os 10 perfis padrão, a distribuição de andares e paredes de uma biblioteca de exemplo é **idêntica** à de antes; um perfil de teste com pesos diferentes muda o resultado.
   - Commit: `Fase 7.5: arquitetura por perfil`
-- [ ] **7.6 Clima: garoa no Terror** (Sonnet · medium; Opus se o visual teimar)
+- [x] **7.6 Clima: garoa no Terror** (Sonnet · medium; Opus se o visual teimar)
+  - Feito: `worlds/city/district_weather.gd` (DistrictWeather: uma caixa de gotas que acompanha o jogador dentro da área do bairro e à noite; área por checagem de posição, sem Area3D). `GraphicsQuality.weather_amount` (100/60/25%). Perfil `sobrevivencia` com `weather` (garoa). Teste `check_weather.gd`. Capturas à noite (Alta e Leve) conferidas, fora do repositório.
   - Faz: `DistrictWeather` (Area3D + `GPUParticles3D`, só dentro do bairro e à noite), criado uma vez por bairro com clima no perfil; `weather_amount` no `GraphicsQuality`; o perfil `sobrevivencia` ganha `weather = garoa`. Só o Terror muda de visível.
   - Teste: `tests/check_weather.gd`: só o Terror tem `DistrictWeather`; chove só à noite e só com o jogador dentro; `amount` por qualidade (100/60/25%); não mexe em `environment.fog_*`; trocar a qualidade em jogo atualiza. Captura de tela com janela (fora do repositório), à noite, nas qualidades Alta e Leve, e conferir o FPS no notebook.
   - Commit: `Fase 7.6: garoa por bairro (Terror)`

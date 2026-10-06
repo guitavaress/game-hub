@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_2aogd"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_7fekq"]
+[ext_resource type="Script" path="res://profiles/weather_spec.gd" id="3_rain1"]
 
 [sub_resource type="Resource" id="Resource_2aogd"]
 script = ExtResource("1_2aogd")
@@ -18,6 +19,10 @@ volume_db = -18.0
 interval = Vector2(10, 20)
 pitch_range = Vector2(0.5, 0.7)
 
+[sub_resource type="Resource" id="Resource_rain1"]
+script = ExtResource("3_rain1")
+kind = "garoa"
+
 [resource]
 script = ExtResource("2_7fekq")
 id = "sobrevivencia"
@@ -30,3 +35,4 @@ ambience = Array[ExtResource("1_2aogd")]([SubResource("Resource_2aogd"), SubReso
 props_script = "res://worlds/city/district_props/terror_mood.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()
+weather = SubResource("Resource_rain1")

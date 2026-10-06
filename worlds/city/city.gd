@@ -247,6 +247,7 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	var built := 0
 	for district in districts:
 		var district_games: Array = district["games"]
+		var first_cell := next_cell
 		# Cada quarteirão recebe até 4 jogos do bairro.
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
@@ -260,7 +261,27 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 				_splash_status("Construindo bairros… %d de %d jogos" % [built, total_games],
 						lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
 				await get_tree().process_frame
+		_build_weather(cells.slice(first_cell, next_cell), district["id"])
 	return cells
+
+
+## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; a área
+## cobre todos os quarteirões dele e metade da rua em volta.
+func _build_weather(district_cells: Array, category_id: String) -> void:
+	var profile := Profiles.district(category_id)
+	if profile == null or profile.weather == null or district_cells.is_empty():
+		return
+	var reach := CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0
+	var area := Rect2()
+	for i in district_cells.size():
+		var center := CityLayout.block_center(district_cells[i])
+		var block := Rect2(center.x - reach, center.z - reach, reach * 2.0, reach * 2.0)
+		area = block if i == 0 else area.merge(block)
+	var weather := DistrictWeather.new()
+	weather.name = "DistrictWeather_%s" % category_id
+	weather.spec = profile.weather
+	weather.area = area
+	add_child(weather)
 
 
 ## Pórtico do bairro: por cima da rua das portas do quarteirão (a do lado da
