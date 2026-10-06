@@ -14,6 +14,7 @@ extends Node
 ##    "areas":  [{"id", "name", "color", "neon", "games": int,
 ##                "rects": Array[Rect2],    quarteirões (com meia rua em volta)
 ##                "gate": Vector2}],        pórtico (Vector2.INF = sem)
+##    "gap": float,                         largura das ruas (quem desenha encolhe os retângulos)
 ##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   estações etc.
 
 const PLAZA_NAME: String = "Praça"
@@ -75,7 +76,8 @@ func add_landmark(kind: String, landmark_name: String, position: Vector2, color:
 
 
 func get_map_data() -> Dictionary:
-	return {"bounds": _bounds, "plaza": _plaza, "areas": _areas, "landmarks": _landmarks}
+	return {"bounds": _bounds, "plaza": _plaza, "areas": _areas, "landmarks": _landmarks,
+			"gap": CityLayout.STREET_WIDTH}
 
 
 ## O id do bairro no ponto (x, z) do mundo ("" = praça, rua de fora ou nada).

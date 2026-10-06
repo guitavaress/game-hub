@@ -64,6 +64,7 @@ var _current_look_text: String = ""
 var _current_look_info: Dictionary = {}
 var _pause_menu: PauseMenu
 var _game_search: GameSearch
+var _world_map: WorldMap
 ## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
 ## o jogador fica parado e sem controles.
 var in_intro: bool = false
@@ -89,6 +90,8 @@ func _ready() -> void:
 	add_child(_pause_menu)
 	_game_search = GameSearch.new()
 	add_child(_game_search)
+	_world_map = WorldMap.new()
+	add_child(_world_map)
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -181,6 +184,10 @@ func get_hud() -> Hud:
 
 func get_pause_menu() -> PauseMenu:
 	return _pause_menu
+
+
+func get_world_map() -> WorldMap:
+	return _world_map
 
 
 func get_game_search() -> GameSearch:

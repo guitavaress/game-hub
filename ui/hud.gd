@@ -27,6 +27,8 @@ const MAX_TOASTS: int = 3
 ## O aviso de volta do jogo fica pelo menos isto (s) antes de sumir ao andar.
 const SESSION_MIN_SECONDS: float = 1.5
 const TOASTS_TOP: float = 12.0
+## Minimapa no canto superior direito.
+const MINIMAP_SIZE: Vector2 = Vector2(168.0, 168.0)
 const TOASTS_GAP: int = 8
 
 ## Sons (Kenney, CC0).
@@ -44,6 +46,7 @@ var _look_detail: Label
 var _look_friends: Label
 var _toasts: VBoxContainer
 var _compass: Compass
+var _minimap: MapView
 ## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
 var _waiting_messages: Array[Array] = []
 var _sound: AudioStreamPlayer
@@ -353,6 +356,17 @@ func _build_compass() -> void:
 	_compass = Compass.new()
 	_compass.name = "Compass"
 	add_child(_compass)
+	_minimap = MapView.new()
+	_minimap.name = "Minimap"
+	_minimap.follow_player = true
+	_minimap.show_area_name = true
+	_minimap.custom_minimum_size = MINIMAP_SIZE
+	_minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.offset_left = -MINIMAP_SIZE.x - 12.0
+	_minimap.offset_right = -12.0
+	_minimap.offset_top = 12.0
+	_minimap.offset_bottom = 12.0 + MINIMAP_SIZE.y
+	add_child(_minimap)
 	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
 		if section == "video" and key == "show_map":
 			_apply_map_visibility())
@@ -362,7 +376,12 @@ func _build_compass() -> void:
 func _apply_map_visibility() -> void:
 	var on := AppConfig.get_show_map()
 	_compass.visible = on
+	_minimap.visible = on
 	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)
+
+
+func get_minimap() -> MapView:
+	return _minimap
 
 
 func get_compass() -> Compass:

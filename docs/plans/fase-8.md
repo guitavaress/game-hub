@@ -134,7 +134,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
   - Teste: `tests/check_compass.gd`. O rumo bate com a direção da câmera (N ao olhar para −Z). O marcador do destino aparece só com a faixa acesa, no ângulo certo e com a distância. A opção esconde a bússola. Os avisos não ficam por cima dela. `check_toasts` passa.
   - Manual: captura com janela, de dia e de noite.
   - Commit: `Fase 8.4: bússola`
-- [ ] **8.5 Minimapa e mapa grande** (Sonnet · medium; Opus se o visual teimar)
+- [x] **8.5 Minimapa e mapa grande** (Sonnet · medium; Opus se o visual teimar)
   - Faz: `ui/minimap.gd` (canto superior direito, 5 vezes por segundo) e `ui/world_map.gd` (tecla M, nova ação `open_map`, pausa como a busca). A linha "M mapa" entra em `CONTROL_ROWS`.
   - Teste: `tests/check_minimap.gd`:
     - a seta fica na posição do jogador;
