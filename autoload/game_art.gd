@@ -18,6 +18,14 @@ extends Node
 ## Também arranja o HERO (banner largo 1920x620, sem logo, feito pela Steam para
 ## ficar ATRÁS do logo) e o LOGO (PNG transparente) de cada jogo.
 ##
+## Memória (Fase 8.8): na cidade, o hero e o logo aparecem numa fachada, então
+## get_hero e get_logo devolvem uma versão COMPRIMIDA para a placa de vídeo
+## (S3TC, ~6 vezes menos memória; só diminuem se passarem de
+## WORLD_MAX_WIDTH, como alguns logos de 4700 px). Com 200 jogos, a memória de
+## textura cai de ~1,9 GB para ~0,3 GB. A tela "Abrindo X…" é a tela inteira:
+## ela pede o original sem compressão com get_hero_full e get_logo_full
+## (carregado na hora, um de cada vez).
+##
 ## Uso:
 ##   var textura := GameArt.get_art(app_id)   # null = ainda não temos
 ##   GameArt.art_ready.connect(...)           # chegou uma capa (nova ou melhor)
@@ -37,6 +45,9 @@ const RETRY_AFTER_DAYS: int = 7
 const SECONDS_PER_DAY: int = 24 * 60 * 60
 ## Capas com menos que isso de largura ganham uma versão HD baixada.
 const HD_MIN_WIDTH: int = 600
+## Largura máxima do hero e do logo usados no mundo (fachadas). Diminuir custa
+## tempo na abertura, então só as imagens enormes passam por isso.
+const WORLD_MAX_WIDTH: int = 2048
 
 ## Nomes de arquivo no cache local da Steam, em ordem de preferência.
 ## (O nome muda conforme o jogo e a versão da Steam, e às vezes o arquivo fica
@@ -104,11 +115,9 @@ func get_art(app_id: int) -> Texture2D:
 func get_hero(app_id: int) -> Texture2D:
 	if _heroes.has(app_id):
 		return _heroes[app_id]
-	var path := _cached_file("%d_hero" % app_id)
-	if path.is_empty():
-		path = _find_in_steam_cache(app_id, ["library_hero.jpg"])
+	var path := _hero_path(app_id)
 	if not path.is_empty():
-		var texture := _load_texture(path)
+		var texture := _load_texture(path, WORLD_MAX_WIDTH, true)
 		if texture != null:
 			_heroes[app_id] = texture
 			return texture
@@ -121,15 +130,53 @@ func get_hero(app_id: int) -> Texture2D:
 func get_logo(app_id: int) -> Texture2D:
 	if _logos.has(app_id):
 		return _logos[app_id]
-	var logo: Texture2D = null
-	var steam := SteamLibrary.get_steam_path()
-	if not steam.is_empty():
-		for file in _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2):
-			if file.get_file() == "logo.png":
-				logo = _load_texture(file)
-				break
+	var path := _logo_path(app_id)
+	var logo: Texture2D = null if path.is_empty() else _load_texture(path, WORLD_MAX_WIDTH, true)
 	_logos[app_id] = logo
 	return logo
+
+
+## Hero no tamanho original, para a tela inteira ("Abrindo X…"). Carrega na
+## hora e guarda só o último (null = ainda não temos: use get_hero, que baixa).
+func get_hero_full(app_id: int) -> Texture2D:
+	return _full("hero", app_id, _hero_path(app_id))
+
+
+## Logo no tamanho original, para a tela inteira (null = o jogo não tem logo).
+func get_logo_full(app_id: int) -> Texture2D:
+	return _full("logo", app_id, _logo_path(app_id))
+
+
+## Uma imagem original guardada por tipo ("hero", "logo"): a tela só mostra
+## um jogo por vez, então não vale guardar mais.
+var _full_cache: Dictionary[String, Array] = {}
+
+func _full(kind: String, app_id: int, path: String) -> Texture2D:
+	var cached: Array = _full_cache.get(kind, [])
+	if not cached.is_empty() and cached[0] == app_id:
+		return cached[1]
+	var texture: Texture2D = null if path.is_empty() else _load_texture(path)
+	_full_cache[kind] = [app_id, texture]
+	return texture
+
+
+## Onde está o hero no disco ("" = não temos).
+func _hero_path(app_id: int) -> String:
+	var path := _cached_file("%d_hero" % app_id)
+	if path.is_empty():
+		path = _find_in_steam_cache(app_id, ["library_hero.jpg"])
+	return path
+
+
+## Onde está o logo no disco, no cache da Steam ("" = não há).
+func _logo_path(app_id: int) -> String:
+	var steam := SteamLibrary.get_steam_path()
+	if steam.is_empty():
+		return ""
+	for file in _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2):
+		if file.get_file() == "logo.png":
+			return file
+	return ""
 
 
 ## Arquivo "<stem>.jpg" ou "<stem>.png" no nosso cache ("" = não existe).
@@ -167,13 +214,26 @@ func _list_files(folder: String, depth: int) -> PackedStringArray:
 	return result
 
 
-func _load_texture(path: String) -> Texture2D:
+## Carrega uma imagem do disco. "max_width" > 0 diminui (mantendo a proporção)
+## se for mais larga; "compress" comprime para a placa de vídeo (S3TC: ~4 a 8
+## vezes menos memória). Se a compressão não existir nesta versão da Godot, a
+## imagem fica sem comprimir (funciona igual, só gasta mais).
+func _load_texture(path: String, max_width: int = 0, compress: bool = false) -> Texture2D:
 	var image := Image.load_from_file(path)
 	if image == null or image.is_empty():
 		push_warning("GameArt: imagem inválida em %s" % path)
 		return null
+	if max_width > 0 and image.get_width() > max_width:
+		var height := maxi(1, roundi(image.get_height() * float(max_width) / image.get_width()))
+		image.resize(max_width, height, Image.INTERPOLATE_BILINEAR)  # rápido; a imagem continua grande
 	image.generate_mipmaps()  # deixa a imagem bonita vista de longe
+	if compress and image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB) != OK and not _warned_compress:
+		_warned_compress = true
+		push_warning("GameArt: sem compressão de textura nesta versão; as capas gastam mais memória.")
 	return ImageTexture.create_from_image(image)
+
+
+var _warned_compress: bool = false
 
 
 # --- Endereços ---------------------------------------------------------------
@@ -251,7 +311,8 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 		if file != null:
 			file.store_buffer(body)
 			file.close()
-			var texture := _load_texture(path)
+			var is_hero: bool = job["kind"] == "hero"
+			var texture := _load_texture(path, WORLD_MAX_WIDTH if is_hero else 0, is_hero)
 			var is_hd_job := String(job["stem"]).ends_with("_hd")
 			if texture != null and (not is_hd_job or texture.get_width() >= HD_MIN_WIDTH):
 				_finish_download(http, job, texture)

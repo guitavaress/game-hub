@@ -132,8 +132,12 @@ func get_status() -> String:
 # --- Conteúdo ----------------------------------------------------------------
 
 func _fill_common(app_id: int) -> void:
-	var hero := GameArt.get_hero(app_id)
-	var logo := GameArt.get_logo(app_id)
+	# A tela inteira usa as imagens originais (as do mundo são menores). Se o
+	# original ainda não existe (vai ser baixado), vale a versão do mundo.
+	var hero := GameArt.get_hero_full(app_id)
+	if hero == null:
+		hero = GameArt.get_hero(app_id)
+	var logo := GameArt.get_logo_full(app_id)
 	_hero.texture = hero
 	_hero.visible = hero != null
 	_hero_fade.visible = hero != null

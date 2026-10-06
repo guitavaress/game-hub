@@ -38,7 +38,7 @@ Levantamento (só leitura), com arquivo:linha:
 - **Testes:** nenhum mede FPS. Só o tempo de montagem é medido (`check_phase6_step1`, `check_intro`).
 
 ## Pronto quando
-- **Leve com 200 jogos.** Com a biblioteca falsa, na qualidade **Leve** e no notebook, a caminhada padrão passa dos **30 FPS em média**, sem engasgos acima de 100 ms. A memória de textura fica **abaixo de 1 GB**. No desktop, a Alta tem de passar de 60 FPS (conferir a partir de 18/10).
+- **Leve com 200 jogos.** Com a biblioteca falsa, a memória de textura fica **abaixo de 1 GB**, e a cidade com 200 jogos não fica mais lenta que antes da fase (comparação no mesmo notebook). **A régua absoluta de FPS é o desktop** (Ryzen 5 5600 e RTX 4070): lá, a Alta tem de passar de 60 FPS (conferir a partir de 18/10). O notebook é fraco e serve só para comparar antes e depois e para ver que a Leve roda (decisão do dono em 2026-10-06).
 - **Perto de qualquer jogo.** Qualquer jogo fica a menos de ~20 s:
   - pela busca (Shift+Enter), em ~2 s;
   - pelo metrô, a estação do bairro fica a no máximo 20 s correndo (9 m/s, ou seja 180 m pelas ruas) de qualquer porta do bairro. Um teste com a biblioteca falsa mede isso.
@@ -165,7 +165,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
   - Teste: em `check_metro`, a estação não encosta em poste, placa, pórtico nem terreno, e a passagem pela calçada continua livre. `check_gates`, `check_night_life` e `check_district_props` passam.
   - Manual: capturas de dia e de noite, na praça e num bairro.
   - Commit: `Fase 8.7: boca do metrô`
-- [ ] **8.8 Desempenho com 200 jogos** (Opus · high)
+- [x] **8.8 Desempenho com 200 jogos** (Opus · high)
   - Faz: roda a medida, compara com a 8.1 e aplica, **na ordem e só o que a medida pedir**:
     1. **Capas:** limitar o tamanho do hero e da capa ao carregar (ex.: hero com até 1280 px de largura), ou carregar só perto.
     2. **Postes:** `distance_fade` nas SpotLights e nos Decals (as luzes longe apagam suave).
@@ -233,6 +233,22 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
   - A escada é um **shader de "interior mapping"** (`metro_stairs.gdshader`): um retângulo no chão desenha um poço com 7 degraus, sem cortar o chão nem criar buraco para cair.
   - A estação da praça ficou em (−6, 0, −6), a noroeste do chafariz, com a escada descendo para o norte. Assim ela fica fora do eixo de quem nasce e anda reto.
   - O vão entre os prédios era uma passagem e agora é a estação, que só se entra pela frente e abre o painel. O `check_phase6_audio` corria para o sul por esse vão ("rua livre à frente") e caiu no painel. O percurso do teste passou para dentro da praça, de oeste para leste.
+
+- 2026-10-06 (8.8): **desempenho com 200 jogos**. O notebook só compara antes e depois (pedido do dono); a meta absoluta é no desktop.
+  - A medida mostrou um só problema: a memória de textura. Os heroes davam 914 MB na CPU, que viram ~1,2 GB na placa de vídeo, porque RGB é guardado como RGBA. Os logos davam 267 MB, alguns com 4724 px de largura.
+  - Correção: o `GameArt` entrega ao mundo o hero e o logo **comprimidos (S3TC)**, diminuindo só os que passam de 2048 px. A tela "Abrindo X…" pede o original (`get_hero_full`/`get_logo_full`, um por vez).
+  - Diminuir todos para 1280 px com Lanczos custava 35 ms por imagem e dobrava a montagem: descartado. Só comprimir custa ~6 ms por imagem e mantém a resolução.
+  - Resultado na Leve, à noite, no mesmo notebook:
+
+    | Versão | FPS médio | Quadro p99 | Desenhos | Textura | Montagem |
+    |---|---|---|---|---|---|
+    | 8.1 (medida de novo hoje) | 46,5 | 35 ms | 1663 | 1926 MB | 6,2 s |
+    | 8.7 (com o metrô) | 45,4 | 35 ms | 1834 | 1929 MB | 6,2 s |
+    | 8.8 | **49,3** | 33 ms | 1843 | **485 MB** | 8,5 s |
+
+  - A montagem ficou ~2,3 s mais longa com 200 jogos (por causa da compressão). Com 7 jogos isso some, e no desktop deve ser bem menos; se incomodar, dá para comprimir em paralelo (fica anotado).
+  - Não entraram (a medida não pediu): `distance_fade` nos postes, `visibility_range` nos detalhes, sons só de perto e placas girando só de perto. Esconder as 220 SpotLights deu só ~2 ms. Conferir de novo no desktop, na Alta.
+  - Uma rodada com o Lanczos deu 30 FPS e o dobro de desenhos. A bissecção (8.5, 8.6 e 8.7, todas em ~45 FPS) mostrou que não era o metrô, e a medida não se repetiu depois da troca.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

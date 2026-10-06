@@ -42,6 +42,33 @@ func _run() -> void:
 	_check("todo jogo tem prédio e GamePortal (faltando: %d)" % missing, missing == 0)
 	_check("sem requisição à rede (StoreInfo e GameArt)", not root.get_node("StoreInfo").is_fetching() and not root.get_node("GameArt")._active.size() > 0)
 	_check("user://cache intacto", _cache_snapshot() == cache_before)
+	print("== capas no mundo: comprimidas; na tela inteira: originais ==")
+	var art := root.get_node("GameArt")
+	var heroes := 0
+	var compressed := 0
+	var too_wide := 0
+	for game in games:
+		for texture: Texture2D in [art.get_hero(game.app_id), art.get_logo(game.app_id)]:
+			if texture == null:
+				continue
+			heroes += 1
+			if (texture as ImageTexture).get_format() >= Image.FORMAT_DXT1:
+				compressed += 1
+			if texture.get_width() > art.WORLD_MAX_WIDTH:
+				too_wide += 1
+	print("   %d heroes e logos no mundo, %d comprimidos" % [heroes, compressed])
+	_check("todo hero e logo do mundo comprimido (S3TC)", heroes > 0 and compressed == heroes)
+	_check("nenhum mais largo que %d px" % art.WORLD_MAX_WIDTH, too_wide == 0)
+	var sample: int = -1
+	for game in games:
+		if art.get_hero(game.app_id) != null:
+			sample = game.app_id
+			break
+	var full: Texture2D = art.get_hero_full(sample)
+	_check("a tela inteira recebe o hero original, sem compressão",
+			full != null and (full as ImageTexture).get_format() < Image.FORMAT_DXT1 and full.get_width() >= art.get_hero(sample).get_width())
+	_check("o original fica guardado: pedir de novo devolve o mesmo", art.get_hero_full(sample) == full)
+
 	var half: float = CityLayout.half_extent(CityLayout.block_cells(int(ceil(COUNT / 4.0)) + 9))
 	print("   mapa de cerca de %d m de lado" % int(half * 2.0))
 
