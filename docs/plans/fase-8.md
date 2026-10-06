@@ -212,6 +212,15 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
 
   Leitura: na Leve o FPS já passa de 30 com 200 jogos. O que **reprova** é a **memória de textura (1,9 GB, meta < 1 GB)**, e é o primeiro alvo da 8.8 (limitar o tamanho das capas). Na Alta o custo é de tela (reflexos e névoa volumétrica: 7 e 200 jogos dão quase o mesmo FPS), não de quantidade de prédios. As chamadas de desenho (3,6x mais) ainda não doem na Leve.
 
+- 2026-10-05 (8.5, revisão com Opus): capturas de dia (1600 × 900) mostraram três ajustes no mapa.
+  - A praça era cinza, a mesma cor do bairro "Outros". Agora é cor de pedra clara, com o chafariz em azul e o nome "Praça" no mapa grande.
+  - Os nomes dos bairros eram da cor do bairro e sumiam em cima do próprio quarteirão (ex.: "RPG" roxo no roxo). Agora são claros, com contorno escuro.
+  - A seta do jogador ganhou contorno, para aparecer em cima da praça clara.
+  - Ficaram como estão:
+    - o mapa grande abre com o M mesmo com "Bússola e mapa" desligada, porque é um pedido explícito;
+    - numa janela com menos de ~860 px de largura, os avisos podem encostar no minimapa;
+    - a seta do minimapa gira 5 vezes por segundo, como o plano pede.
+
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
 1. F5. Bússola no topo e minimapa no canto, com o nome do bairro em que você está.

@@ -9,7 +9,12 @@ extends Control
 
 const REFRESH_SECONDS: float = 0.2
 const BACKGROUND: Color = Color(0.05, 0.055, 0.07, 0.86)
-const PLAZA_COLOR: Color = Color(0.55, 0.58, 0.62, 0.8)
+## A praça: cor de pedra clara, diferente de qualquer bairro (o cinza é do
+## bairro "Outros"), com o chafariz no meio.
+const PLAZA_COLOR: Color = Color(0.86, 0.80, 0.68, 0.9)
+const FOUNTAIN_COLOR: Color = Color(0.35, 0.62, 0.85)
+const LABEL_COLOR: Color = Color("F2F4F7")
+const LABEL_OUTLINE: Color = Color(0, 0, 0, 0.9)
 const BORDER_COLOR: Color = Color(1, 1, 1, 0.18)
 const PLAYER_COLOR: Color = Color("FFFFFF")
 const AREA_ALPHA: float = 0.85
@@ -108,7 +113,11 @@ func _draw() -> void:
 	var font := get_theme_default_font()
 
 	var plaza: Rect2 = _data["plaza"]
-	draw_rect(_pixel_rect(plaza.grow(-gap / 2.0)), PLAZA_COLOR)
+	var plaza_px := _pixel_rect(plaza.grow(-gap / 2.0))
+	draw_rect(plaza_px, PLAZA_COLOR)
+	draw_circle(plaza_px.get_center(), maxf(plaza_px.size.x * 0.12, 2.0), FOUNTAIN_COLOR)
+	if show_labels:
+		_draw_label(font, "Praça", plaza_px.get_center() + Vector2(0.0, plaza_px.size.y * 0.3))
 	for area: Dictionary in _data["areas"]:
 		var color: Color = area["color"]
 		color.a = AREA_ALPHA
@@ -124,12 +133,8 @@ func _draw() -> void:
 			for rect: Rect2 in area["rects"]:
 				if rect.get_center().distance_to(mean) < label_rect.get_center().distance_to(mean):
 					label_rect = rect
-			var bounds_px := _pixel_rect(label_rect)
-			var label := String(area["name"]).split(" e ")[0]
-			var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			var neon: Color = area["neon"]
-			draw_string_outline(font, bounds_px.get_center() + Vector2(-width / 2.0, 5.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Color(0, 0, 0, 0.85))
-			draw_string(font, bounds_px.get_center() + Vector2(-width / 2.0, 5.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, neon.lightened(0.15))
+			# Texto claro com contorno escuro: lê bem em cima de qualquer cor de bairro.
+			_draw_label(font, String(area["name"]).split(" e ")[0], _pixel_rect(label_rect).get_center())
 	for landmark: Dictionary in _data["landmarks"]:
 		var at := to_pixel(landmark["pos"])
 		draw_circle(at, 5.0, Color.BLACK)
@@ -145,13 +150,24 @@ func _draw() -> void:
 	var me := _clamp_to_view(to_pixel(_player_xz))
 	var forward := Vector2(sin(_heading), -cos(_heading))
 	var side := Vector2(-forward.y, forward.x)
-	draw_colored_polygon(PackedVector2Array([me + forward * 9.0, me - forward * 6.0 + side * 6.0, me - forward * 3.0, me - forward * 6.0 - side * 6.0]), PLAYER_COLOR)
+	var arrow := PackedVector2Array([me + forward * 9.0, me - forward * 6.0 + side * 6.0, me - forward * 3.0, me - forward * 6.0 - side * 6.0])
+	draw_colored_polygon(arrow, PLAYER_COLOR)
+	arrow.append(arrow[0])
+	draw_polyline(arrow, Color.BLACK, 1.5)  # contorno: aparece até sobre a praça clara
 
 	draw_rect(Rect2(Vector2.ZERO, size), BORDER_COLOR, false, 1.0)
 	if show_area_name and not _area_name.is_empty():
 		var width := font.get_string_size(_area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		draw_rect(Rect2(0.0, size.y - 22.0, size.x, 22.0), Color(0, 0, 0, 0.55))
 		draw_string(font, Vector2((size.x - width) / 2.0, size.y - 7.0), _area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("DDE2EA"))
+
+
+## Nome centrado no ponto, em texto claro com contorno.
+func _draw_label(font: Font, text: String, center: Vector2) -> void:
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	var at := center + Vector2(-width / 2.0, 5.0)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, LABEL_OUTLINE)
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, LABEL_COLOR)
 
 
 func _pixel_rect(world: Rect2) -> Rect2:
