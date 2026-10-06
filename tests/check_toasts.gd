@@ -31,7 +31,7 @@ func _run() -> void:
 	_check("largura 500 px", is_equal_approx(toast.size.x, 500.0) and is_equal_approx(hud._toasts.size.x, 500.0))
 	_check("altura de 2 linhas (40..90 px)", toast.size.y > 40.0 and toast.size.y < 90.0)
 	print("   tamanho: ", toast.size, " topo da pilha: ", hud._toasts.global_position.y)
-	_check("12 px do topo", is_equal_approx(hud._toasts.global_position.y, 12.0))
+	_check("logo abaixo da bússola (12 + 30 + 8 px do topo)", is_equal_approx(hud._toasts.global_position.y, 50.0))
 
 	print("\n== repetido é ignorado ==")
 	hud.show_report("Balatro não abriu\nAbra a Steam e entre de novo.")

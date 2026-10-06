@@ -58,6 +58,8 @@ const VIDEO_SECTION_TEXT: String = """
 quality="alta"
 ; Hora da cidade: "relogio" (segue o relógio do PC), "dia" ou "noite".
 time_of_day="relogio"
+; Bússola e minimapa na tela: true ou false.
+show_map=true
 """
 
 ## Seção da janela (Fase Linux), acrescentada do mesmo jeito.
@@ -194,6 +196,15 @@ func get_time_of_day() -> String:
 func set_time_of_day(mode: String) -> void:
 	if mode in TIME_OF_DAY_MODES:
 		_set_option("video", "time_of_day", mode)
+
+
+## Bússola e minimapa ligados? (Padrão: sim.)
+func get_show_map() -> bool:
+	return bool(_config.get_value("video", "show_map", true))
+
+
+func set_show_map(on: bool) -> void:
+	_set_option("video", "show_map", on)
 
 
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).

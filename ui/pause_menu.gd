@@ -57,6 +57,7 @@ var _volume_values: Dictionary[String, Label] = {}
 var _volume_save_timer: Timer
 var _volumes_changed: bool = false
 var _fullscreen_check: CheckButton
+var _map_check: CheckButton
 var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
 var _time_buttons: Dictionary[String, Button] = {}
@@ -250,6 +251,16 @@ func _build_sound_page() -> Control:
 			HubWindow.set_fullscreen(on))
 	fullscreen_row.add_child(_fullscreen_check)
 	page.add_child(fullscreen_row)
+
+	var map_row := _row("Bússola e mapa")
+	map_row.add_child(_expander())
+	_map_check = CheckButton.new()
+	_map_check.focus_mode = Control.FOCUS_NONE
+	_map_check.toggled.connect(func(on: bool) -> void:
+		if not _refreshing:
+			AppConfig.set_show_map(on))
+	map_row.add_child(_map_check)
+	page.add_child(map_row)
 
 	var quality_row := _row("Qualidade")
 	quality_row.add_child(_segmented(QUALITY_OPTIONS, _quality_buttons, _on_quality_chosen))
@@ -456,6 +467,7 @@ func _refresh() -> void:
 		_volume_sliders[bus].value = roundf(AppConfig.get_volume(bus) * 100.0)
 		_volume_values[bus].text = str(int(_volume_sliders[bus].value))
 	_fullscreen_check.button_pressed = HubWindow.is_fullscreen()
+	_map_check.button_pressed = AppConfig.get_show_map()
 	var quality := AppConfig.get_quality()
 	_choose(_quality_buttons, quality)
 	_quality_hint.text = GraphicsQuality.describe(quality)

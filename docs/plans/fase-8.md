@@ -129,7 +129,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     - Enter continua só acendendo a faixa.
     - `check_search` passa sem mudança.
   - Commit: `Fase 8.3: viagem rápida pela busca`
-- [ ] **8.4 Bússola** (Sonnet · medium)
+- [x] **8.4 Bússola** (Sonnet · medium)
   - Faz: `ui/compass.gd` no HUD, os avisos descem e a opção "Bússola e mapa" no menu de pausa (`config.cfg`, seção `video`).
   - Teste: `tests/check_compass.gd`. O rumo bate com a direção da câmera (N ao olhar para −Z). O marcador do destino aparece só com a faixa acesa, no ângulo certo e com a distância. A opção esconde a bússola. Os avisos não ficam por cima dela. `check_toasts` passa.
   - Manual: captura com janela, de dia e de noite.

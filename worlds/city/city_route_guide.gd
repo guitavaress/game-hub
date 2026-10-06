@@ -27,6 +27,7 @@ const ARRIVAL_DISTANCE: float = 3.0
 
 var _marks: Array[Decal] = []
 var _target: Vector3
+var _target_color: Color = Color.WHITE
 var _player: Node3D
 var _started_ms: int = 0
 var _mark_texture: Texture2D
@@ -60,6 +61,7 @@ func show_route(player: Node3D, portal: GamePortal) -> float:
 			along += MARK_SPACING
 		length += segment
 	_target = portal.global_position
+	_target_color = color
 	_player = player
 	_started_ms = Time.get_ticks_msec()
 	set_process(true)
@@ -79,6 +81,11 @@ func clear_route() -> void:
 
 func has_route() -> bool:
 	return not _marks.is_empty()
+
+
+## A cor do bairro do destino (só vale com has_route()).
+func get_target_color() -> Color:
+	return _target_color
 
 
 ## A porta de destino da faixa acesa (só vale com has_route()).

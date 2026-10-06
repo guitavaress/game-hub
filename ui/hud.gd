@@ -43,6 +43,7 @@ var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
 var _toasts: VBoxContainer
+var _compass: Compass
 ## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
 var _waiting_messages: Array[Array] = []
 var _sound: AudioStreamPlayer
@@ -57,6 +58,7 @@ func _ready() -> void:
 	_build_crosshair()
 	_build_look_card()
 	_build_toasts()
+	_build_compass()
 	visibility_changed.connect(_show_waiting_messages)
 
 	_sound = AudioStreamPlayer.new()
@@ -344,6 +346,27 @@ func _build_toasts() -> void:
 	_toasts.offset_right = Toast.WIDTH / 2.0
 	_toasts.offset_top = TOASTS_TOP
 	add_child(_toasts)
+
+
+## A bússola no topo; os avisos descem para ficar abaixo dela.
+func _build_compass() -> void:
+	_compass = Compass.new()
+	_compass.name = "Compass"
+	add_child(_compass)
+	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
+		if section == "video" and key == "show_map":
+			_apply_map_visibility())
+	_apply_map_visibility()
+
+
+func _apply_map_visibility() -> void:
+	var on := AppConfig.get_show_map()
+	_compass.visible = on
+	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)
+
+
+func get_compass() -> Compass:
+	return _compass
 
 
 func _make_panel_style(left_border: int) -> StyleBoxFlat:
