@@ -146,7 +146,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     - funciona com 200 jogos.
   - Manual: capturas, com 7 e com 200 jogos.
   - Commit: `Fase 8.5: minimapa e mapa grande`
-- [ ] **8.6 Metrô: paradas e painel de linhas** (Opus · high: interação nova)
+- [x] **8.6 Metrô: paradas e painel de linhas** (Opus · high: interação nova)
   - Faz:
     - `TransitStop` e `ui/transit_panel.gd`;
     - viagem pelo `travel_to`, com mensagem e som (`metro_ride.wav` gerado);
@@ -220,6 +220,12 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
     - o mapa grande abre com o M mesmo com "Bússola e mapa" desligada, porque é um pedido explícito;
     - numa janela com menos de ~860 px de largura, os avisos podem encostar no minimapa;
     - a seta do minimapa gira 5 vezes por segundo, como o plano pede.
+
+- 2026-10-06 (8.6): as estações extras de um bairro usam um laço guloso. Enquanto alguma porta passa de 180 m pelas ruas da estação mais perto do bairro, nasce uma estação no quarteirão dela, no meio da calçada, até 4 por bairro.
+  - Com a biblioteca falsa (RPG com 57 jogos) são 16 estações (Central, 10 bairros e 5 extras). A porta mais longe fica a 142 m da estação.
+  - Com os 7 jogos de verdade são 6 estações, e a porta mais longe fica a 28 m.
+  - Os painéis (menu, busca, mapa e metrô) agora perguntam `player.is_overlay_open()`, e só um abre de cada vez.
+  - Para a 8.7: o totem provisório fica entre o poste da esquina e o pilar do pórtico (três postes em fila). A boca de escada precisa de outro lugar ou de outro desenho.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

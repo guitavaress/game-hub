@@ -4,6 +4,7 @@ Rode com:  python assets/generated/make_sounds.py
 Cria, nesta mesma pasta:
   - wind_loop.wav      vento (8 s, emenda sem "pulo" quando repete)
   - bird_chirp_1..4    piados curtos de passarinho
+  - metro_ride.wav     viagem de metrô (3 s): ronco grave + "tac-tac" dos trilhos
 
 Só usa a biblioteca padrão do Python (wave, math, random).
 Estes sons foram feitos para o Game Hub e são CC0 (domínio público).
@@ -77,7 +78,35 @@ def chirp(seed):
     return samples
 
 
+def metro_ride(seconds=3.0):
+    """Viagem de metrô: ronco grave que cresce e some, com o "tac-tac" das
+    rodas passando nas emendas dos trilhos (dois toques a cada 0,45 s)."""
+    random.seed(11)
+    count = int(seconds * RATE)
+    samples = []
+    value = 0.0
+    smooth = 0.0
+    hum_phase = 0.0
+    for i in range(count):
+        t = i / RATE
+        value = (value + random.uniform(-0.03, 0.03)) * 0.997  # ruído grave (motor e ar)
+        smooth += (value - smooth) * 0.05
+        hum_phase += 2 * math.pi * (55 + 8 * math.sin(t * 1.3)) / RATE  # zumbido do motor
+        envelope = min(1.0, t / 0.5) * min(1.0, (seconds - t) / 0.8)  # cresce e some
+        rumble = smooth * 5.0 + 0.18 * math.sin(hum_phase)
+        # "Tac-tac": dois estalos curtos e graves a cada 0,45 s.
+        click = 0.0
+        for start in (0.0, 0.11):
+            k = (t - start) % 0.45
+            if k < 0.03:
+                click += math.exp(-k * 160) * math.sin(2 * math.pi * 140 * k) * 0.9
+        samples.append((rumble + click) * envelope)
+    peak = max(abs(s) for s in samples)
+    return [s * 0.7 / peak for s in samples]
+
+
 if __name__ == "__main__":
     save_wav("wind_loop.wav", wind())
     for n in range(1, 5):
         save_wav("bird_chirp_%d.wav" % n, chirp(n))
+    save_wav("metro_ride.wav", metro_ride())

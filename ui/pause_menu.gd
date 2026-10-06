@@ -137,7 +137,7 @@ func can_open() -> bool:
 	var player := get_parent() as Player
 	return not GameLauncher.is_busy() and not HubWindow.is_sleeping \
 			and not ScreenFade.door_charge.visible and ScreenFade.get_amount() < 0.5 \
-			and not (player != null and (player.in_intro or player.is_traveling() or player.get_game_search().is_open() or player.get_world_map().is_open()))
+			and not (player != null and (player.in_intro or player.is_traveling() or player.is_overlay_open()))
 
 
 func open() -> void:

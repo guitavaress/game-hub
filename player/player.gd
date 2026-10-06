@@ -65,6 +65,7 @@ var _current_look_info: Dictionary = {}
 var _pause_menu: PauseMenu
 var _game_search: GameSearch
 var _world_map: WorldMap
+var _transit_panel: TransitPanel
 ## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
 ## o jogador fica parado e sem controles.
 var in_intro: bool = false
@@ -92,6 +93,8 @@ func _ready() -> void:
 	add_child(_game_search)
 	_world_map = WorldMap.new()
 	add_child(_world_map)
+	_transit_panel = TransitPanel.new()
+	add_child(_transit_panel)
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -184,6 +187,17 @@ func get_hud() -> Hud:
 
 func get_pause_menu() -> PauseMenu:
 	return _pause_menu
+
+
+func get_transit_panel() -> TransitPanel:
+	return _transit_panel
+
+
+## Algum painel por cima do jogo (menu, busca, mapa, metrô) está aberto?
+## Cada painel confere isto antes de abrir: só um de cada vez.
+func is_overlay_open() -> bool:
+	return _pause_menu.is_open() or _game_search.is_open() or _world_map.is_open() \
+			or _transit_panel.is_open()
 
 
 func get_world_map() -> WorldMap:
