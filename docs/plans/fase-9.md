@@ -149,7 +149,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - nada acontece com painel aberto, em viagem ou com o launcher ocupado;
     - a dica aparece no cartão.
   - Commit: `Fase 9.1: interagir com E`
-- [ ] **9.2 A casa e as portas** (Opus · high: ambiente, camadas e luz)
+- [x] **9.2 A casa e as portas** (Opus · high: ambiente, camadas e luz) — 15e14c8
   - Faz:
     - `worlds/home/home.gd`: sala provisória (chão, paredes, teto, luzes), `Environment` próprio, área "em casa" e porta da rua;
     - os móveis entram por `_build_furniture()`, com uma linha por móvel. É o encaixe da estante, do mural e do computador, para as trilhas paralelas não brigarem em `home.gd`;
@@ -272,6 +272,11 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 
 ## Decisões tomadas durante a fase
 - 2026-10-06: interior à parte, interação física com tela clicável, casa na hora com a cidade montando lá fora, loft feito por código (dono).
+- 2026-10-06 (9.2): a casa fica em (0, 0, 1500) e a porta "Casa" provisória fica na beira sul da praça (0, 0, 12.5), de frente para o chafariz.
+  - Quem sai de casa aparece em (0, 0.1, 10.5), olhando para o norte.
+  - A moldura provisória não tem colisão, para não mudar os percursos dos testes; a 9.10 decide o visual e a posição finais.
+  - Em casa, a câmera enxerga 60 m e usa o ambiente da casa.
+  - As capturas (meio-dia e 23 h) mostram o interior igual nas duas horas: nada de sol nem de céu vazando para dentro.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
