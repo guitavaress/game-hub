@@ -48,6 +48,8 @@ const STEAM_CACHE_FILES: Array[String] = [
 	"library_header.jpg",   # capa deitada (nome novo)
 ]
 
+## false = nunca baixa nada (os testes de escala, com jogos inventados, ligam isto).
+var allow_downloads: bool = true
 var _textures: Dictionary[int, Texture2D] = {}
 var _heroes: Dictionary[int, Texture2D] = {}
 ## Logos já procurados (app_id -> textura, ou null se o jogo não tem logo).
@@ -211,7 +213,7 @@ func _without_empty(urls: Array) -> Array[String]:
 # --- Downloads ---------------------------------------------------------------
 
 func _queue_download(app_id: int, stem: String, urls: Array[String], kind: String = "cover") -> void:
-	if urls.is_empty() or _active.has(stem) or _failed_recently(stem):
+	if not allow_downloads or urls.is_empty() or _active.has(stem) or _failed_recently(stem):
 		return
 	for job in _queue:
 		if job["stem"] == stem:

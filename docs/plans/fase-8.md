@@ -103,7 +103,7 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
 - [x] **8.0 Preparação** (Opus · high)
   - Faz: `git checkout -b fase-8` a partir de `fase-7` e salva este plano em `docs/plans/fase-8.md`.
   - Commit: `Fase 8.0: plano`
-- [ ] **8.1 Biblioteca falsa e linha de base** (Sonnet · medium)
+- [x] **8.1 Biblioteca falsa e linha de base** (Sonnet · medium)
   - Faz: `tests/fake_library.gd`, `GameArt.allow_downloads` e `tools/medir_desempenho.gd`. Roda a medida no notebook (Leve e Alta, 7 e 200 jogos) e anota os números em "Decisões tomadas durante a fase".
   - Teste: `tests/check_scale.gd` monta a cidade com 200 jogos falsos e confere:
     - todos os prédios existem, cada um com `GamePortal`;
@@ -200,6 +200,17 @@ Ordem: medir e estruturar primeiro (nada visível), depois a viagem, o HUD, o me
 
 ## Decisões tomadas durante a fase
 - 2026-10-05: metrô com estações; minimapa desenhado pela planta; na busca, Enter = caminho e Shift+Enter = ir até lá (dono).
+
+- 2026-10-05 (8.1): **linha de base no notebook** (Radeon 610M, noite, caminhada da praça à rua mais longe e volta, `tools/medir_desempenho.gd`):
+
+  | Jogos | Qualidade | FPS médio | Quadro p99 | Desenhos | Textura | Montagem |
+  |---|---|---|---|---|---|---|
+  | 7 (real) | Leve | 50,4 | 34 ms | 467 | 230 MB | 1,0 s |
+  | 7 (real) | Alta | 14,3 | 87 ms | 444 | 315 MB | 1,2 s |
+  | 200 (falsa) | Leve | 44,2 | 36 ms | 1666 | **1926 MB** | 6,9 s |
+  | 200 (falsa) | Alta | 12,7 | 107 ms | 1663 | 1972 MB | 6,3 s |
+
+  Leitura: na Leve o FPS já passa de 30 com 200 jogos. O que **reprova** é a **memória de textura (1,9 GB, meta < 1 GB)**, e é o primeiro alvo da 8.8 (limitar o tamanho das capas). Na Alta o custo é de tela (reflexos e névoa volumétrica: 7 e 200 jogos dão quase o mesmo FPS), não de quantidade de prédios. As chamadas de desenho (3,6x mais) ainda não doem na Leve.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
