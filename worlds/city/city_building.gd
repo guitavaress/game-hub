@@ -81,7 +81,7 @@ func _ready() -> void:
 	# O relógio da cidade (DayNight) acende as janelas de todo mundo nesse grupo.
 	add_to_group("city_night")
 	if variant == null:
-		variant = BuildingVariant.from_app_id(game.app_id)
+		variant = BuildingVariant.from_app_id(game.app_id, _profile_weights(false))
 	_build_body()
 	# Recuo, platibanda, marquise e telhado (o que o sorteio deste jogo pedir).
 	variant.build(self, size, _walls_material, _make_metal_material(), neon_color())
@@ -312,12 +312,29 @@ func set_night(night: float) -> void:
 		_logo.modulate = Color(glow, glow, glow)
 
 
+## Pesos de andares (walls = false) ou de paredes (walls = true) do perfil do
+## bairro; vazio = o padrão da cidade.
+func _profile_weights(walls: bool) -> PackedFloat32Array:
+	var profile := Profiles.district(category_id)
+	if profile == null:
+		return PackedFloat32Array()
+	return profile.wall_weights if walls else profile.floor_weights
+
+
+## Qual estilo de parede sai do sorteio. Sem pesos (ou com o tamanho errado):
+## todos com a mesma chance, no mesmo sorteio de sempre (randi_range).
+static func wall_index(rng: RandomNumberGenerator, weights: PackedFloat32Array) -> int:
+	if weights.size() != WALL_STYLES.size():
+		return rng.randi_range(0, WALL_STYLES.size() - 1)
+	return rng.rand_weighted(weights)
+
+
 ## Fachada: material realista sorteado (sempre o mesmo para o mesmo jogo),
 ## janelas e néon (tudo no building_facade.gdshader).
 func _make_walls_material() -> ShaderMaterial:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = game.app_id
-	var style: Dictionary = WALL_STYLES[rng.randi_range(0, WALL_STYLES.size() - 1)]
+	var style: Dictionary = WALL_STYLES[wall_index(rng, _profile_weights(true))]
 	var textures := CityDecor.pbr_textures(style["folder"])
 
 	_walls_material = ShaderMaterial.new()

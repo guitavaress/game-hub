@@ -113,6 +113,36 @@ func _run() -> void:
 	_check("bairro que não existe: sem enfeite", nobody.get_child_count() == 0)
 	nobody.free()
 
+	print("== arquitetura: padrão igual ao retrato (517 prédios) ==")
+	var variant_class: GDScript = load("res://worlds/city/building_variant.gd")
+	var default_ok := true
+	var heavy_floors := 0
+	var heavy_walls := 0
+	var old_buildings: Array = portrait["arquitetura"]["predios"]
+	for old: Dictionary in old_buildings:
+		var app_id := int(old["app_id"])
+		var rng := RandomNumberGenerator.new()
+		rng.seed = app_id
+		var wall: int = city_building.wall_index(rng, PackedFloat32Array())
+		if variant_class.from_app_id(app_id, PackedFloat32Array()).floors != int(old["andares"]) or wall != int(old["parede"]):
+			default_ok = false
+		# Um perfil só com andares altos e só com a última parede muda o sorteio.
+		if variant_class.from_app_id(app_id, PackedFloat32Array([0, 0, 0, 0, 1])).floors == 7:
+			heavy_floors += 1
+		rng.seed = app_id
+		if city_building.wall_index(rng, PackedFloat32Array([0, 0, 1])) == 2:
+			heavy_walls += 1
+	_check("sem pesos: andares e parede iguais ao retrato (%d prédios)" % old_buildings.size(), default_ok)
+	_check("pesos de andares do perfil mudam o resultado (todos com 7)", heavy_floors == old_buildings.size())
+	_check("pesos de parede do perfil mudam o resultado (todos com a 3ª)", heavy_walls == old_buildings.size())
+	_check("pesos com tamanho errado são ignorados",
+			variant_class.from_app_id(2379780, PackedFloat32Array([1])).floors == int(old_buildings[0]["andares"]))
+	var all_default := true
+	for old: Dictionary in old_categories:
+		var profile = profiles.district(old["id"])
+		all_default = all_default and profile.floor_weights.is_empty() and profile.wall_weights.is_empty()
+	_check("os 10 perfis usam o padrão (pesos vazios)", all_default)
+
 	print("== nenhum id de bairro fora dos perfis ==")
 	var offenders: Array[String] = []
 	for folder in ["res://autoload", "res://components", "res://worlds", "res://ui", "res://player"]:

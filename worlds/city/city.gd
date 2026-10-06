@@ -379,8 +379,8 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> PortalShell:
 	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
-	var variant := BuildingVariant.from_app_id(game.app_id)
 	var profile := Profiles.district(category_id)
+	var variant := BuildingVariant.from_app_id(game.app_id, profile.floor_weights if profile != null else PackedFloat32Array())
 	var kind := profile.shell if profile != null else "building"
 	var shell_script: GDScript = _shells.get(kind, CityBuilding)
 
