@@ -136,7 +136,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 - [x] **9.0 Preparação** (Opus · high)
   - Faz: salva este plano em `docs/plans/fase-9.md`, com o status "em andamento".
   - Commit: `Fase 9.0: plano`
-- [ ] **9.1 Interagir com E** (Sonnet · medium)
+- [x] **9.1 Interagir com E** (Sonnet · medium) — 4103e8c
   - Faz:
     - ação `interact` (E) no `project.godot`;
     - no `player.gd`: toque, segurar, `set_hold` e as travas;
