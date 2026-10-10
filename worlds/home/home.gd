@@ -149,7 +149,17 @@ func _build_front_door() -> void:
 
 ## Os móveis, um por linha (cada um é um script em worlds/home/).
 func _build_furniture() -> void:
-	pass  # 9.4: estante (parede oeste) · 9.5: mural (parede leste) · 9.7: computador (perto da janela)
+	_add_shelf()
+	# 9.5: mural (parede leste) · 9.7: computador (perto da janela)
+
+
+## A estante da biblioteca, na parede oeste, de frente para o leste.
+func _add_shelf() -> void:
+	var shelf := LibraryShelf.new()
+	shelf.name = "LibraryShelf"
+	shelf.position = Vector3(-ROOM_SIZE.x / 2.0, 0.0, -0.5)
+	shelf.rotation.y = PI / 2.0  # a frente (+Z) da estante aponta para o leste
+	add_child(shelf)
 
 
 ## Área "em casa": avisa o jogador quando ele entra e quando sai.
