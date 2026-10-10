@@ -109,7 +109,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: capturas `praca_*_chegada` e `bairro_noite_alto`, de dia e de noite.
   - Commit: `Fase 10.6: um letreiro alto por bairro`
 
-- [ ] **10.7 Primeira vez guiada** (Sonnet · medium) — revisão 1.1 + 1.3
+- [x] **10.7 Primeira vez guiada** (Sonnet · medium) — revisão 1.1 + 1.3 — 8c8fad5
   - Faz:
     - `autoload/app_config.gd`: `get_seen_controls_hint()`/`set_seen_controls_hint()` em `[ui] seen_controls_hint` (o `_write_option_to_file` já cria a seção que faltar).
     - `ui/controls_hint.gd` (novo): cartão no pé da tela com as teclas (`GameScreen.make_key_cap`): WASD andar · Shift correr · E usar · Tab buscar · M mapa · Esc menu. Some depois de ~15 s ou no primeiro E; ao sumir, grava "visto".
@@ -157,6 +157,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 - 2026-10-10 (10.3): o app já tratava o clique da tela 3D certo com o stretch (a Godot converte o pixel da janela para a coordenada da UI, e a câmera desfaz a conversão). Quem quebrou foi o `check_screen_3d`, que mandava o clique já na coordenada da UI como se fosse pixel da janela; agora ele converte com `root.get_final_transform()`, como um clique de verdade. Passa sem janela e com janela. Capturas em 720p, 1080p e 1440p: o menu de pausa ocupa 36% da largura nas três (antes, 18% em 1440p); HUD, bússola, minimapa e computador crescem juntos.
 - 2026-10-10 (10.5): feita na trilha principal, em sequência (sem worktree). Os pesos ficaram os da tabela; a captura de cima mostra Estratégia alta e de concreto claro, RPG baixo e de tijolo. O `check_variants` ("mesmo jogo, mesmo prédio") passou a refazer o prédio com os pesos do bairro, como a cidade faz.
 - 2026-10-10 (10.6): a grua da Simulação gira em cima do prédio mais alto de cada quarteirão e chega a ~46 m, acima do "prédio mais alto possível" (35,7 m, `BuildingVariant.max_total_height()`, com recuo e caixa d'água). Para ela não atravessar o letreiro, os enfeites que sobem acima dos telhados dizem até onde vão (`get_top_y()`, hoje só o `ConstructionSite`), e o letreiro fica acima do maior dos dois, com 5 m de folga até o meio da placa. Por isso o letreiro nasce no fim do bairro (junto do clima), e não junto do pórtico: a grua de um quarteirão vizinho alcança a ponta dele. Com 200 jogos falsos: 40,7 m nos bairros sem grua e 51,2 m na Simulação.
+- 2026-10-10 (10.7): o `finish_intro` abre o cartão de controles **antes** de mostrar o HUD; assim, quando o HUD aparece, os avisos que esperavam (o dos amigos) continuam na fila até o cartão sair. O cartão fica 150 px acima do pé da tela, para não encostar no cartão do que se olha. O E é lido com `Input.is_action_just_pressed` no `_process` (e não por `_input`), o que também funciona com o `Input.action_press` dos testes.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
