@@ -54,7 +54,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: capturas de dia da rua longa (`praca_dia_rua`) e das árvores de longe, antes e depois, em `/tmp`.
   - Commit: `Fase 10.1: texturas com mipmaps e compressão`
 
-- [ ] **10.2 Anti-aliasing e Leve mais leve** (Sonnet · medium) — revisão 8.1
+- [x] **10.2 Anti-aliasing e Leve mais leve** (Sonnet · medium) — revisão 8.1 — 83859ad
   - Faz, em `autoload/graphics_quality.gd`:
     - `apply_to_viewport`: Alta = `msaa_3d = MSAA_2X` + `screen_space_aa = SMAA`; Média = SMAA; Leve = FXAA (com o FSR em 50% de sempre). Tamanho do atlas da sombra do sol (`RenderingServer.directional_shadow_atlas_set_size`): 4096 na Alta e na Média, 2048 na Leve.
     - `apply_to_sun(light, level)` novo: distância da sombra 120 m (Alta e Média) e 70 m (Leve).
@@ -153,6 +153,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 - 2026-10-10 (10.1): os 3 céus HDRI também ficam comprimidos (BC6H): a captura do céu de dia, do pôr do sol e da noite ficou igual à de antes, sem faixas. O relevo comprimido (RGTC) e as árvores com mipmap também passaram nas capturas (o asfalto ao longe parou de granular; as árvores a ~70 m não afinaram).
 - 2026-10-10 (10.1): sem janela, `has_mipmaps()` responde sempre `false` (renderizador falso); o `check_textures` lê o número de mipmaps no cabeçalho do `.ctex` importado.
 - 2026-10-10 (10.1): medida (Leve, 200 jogos), **com o notebook ocupado** (Chromium a 50% da CPU), então o FPS não serve de comparação: 22 h 22,4 → 45,4 FPS e 12 h 37,9 → 34,6 FPS (os desenhos pularam entre ~1700 e ~3000 nas duas versões, o mesmo sintoma da revisão 8.3). A memória de textura é confiável: **552 → 470 MB** (22 h) e **531 → 492 MB** (12 h). A comparação de FPS fica para a 10.9, com o notebook parado.
+- 2026-10-10 (10.2): capturas ampliadas da beira da calçada: na Alta (MSAA 2x + SMAA) os degraus sumiram; na Leve (FXAA) a borda fica lisa, e o chuvisco no asfalto é o FSR a 50% (já existia). Medida com o notebook ainda ocupado (Leve, 22 h, 200 jogos): 48,1 FPS, **1392 desenhos** (eram ~1660–3000) e **446 MB** de textura, por causa da sombra mais curta e do atlas de 2048. A Média deu 19,5 FPS no notebook (não é alvo dele). O tamanho do atlas da sombra não tem leitura de volta no `RenderingServer`, então o teste não o confere.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
