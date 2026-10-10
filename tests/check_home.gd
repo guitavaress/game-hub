@@ -79,7 +79,7 @@ func _run() -> void:
 	await _frames(3)
 
 	print("== Praça → casa ==")
-	_check("o cartão da porta tem a dica do E", hud.get_look_action() != "")
+	_check("o cartão da porta tem a dica do E (\"%s\")" % hud.get_look_action(), hud.get_look_action() == "E para entrar")
 	await _press_e()
 	await create_timer(0.2).timeout
 	_check("viajando", player.is_traveling())
@@ -99,6 +99,7 @@ func _run() -> void:
 	player.rotation.y = PI  # vira para a porta da rua (sul)
 	await _frames(3)
 	_check("olhando a porta da rua", hud.get_look_text().begins_with(front_door.door_name))
+	_check("de dentro, a porta diz \"E para sair\"", hud.get_look_action() == "E para sair")
 	await _press_e()
 	await create_timer(1.5).timeout
 	_check("voltou para a praça, na frente da porta Casa",

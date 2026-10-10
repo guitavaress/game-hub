@@ -88,11 +88,14 @@ func _run() -> void:
 	var box = shelf.get_box(app_id)
 	var box_info: Dictionary = box.get_look_info()
 	var portal_info: Dictionary = portal.get_look_info()
+	# Tudo igual, menos a ação: o portal diz "Entre pela porta" e a caixa,
+	# "Segure E" (de propósito).
 	var same := true
 	for key in portal_info:
-		if box_info.get(key) != portal_info[key]:
+		if key != "action" and box_info.get(key) != portal_info[key]:
 			same = false
-	_check("o cartão da caixa é igual ao do portal", same)
+	_check("o cartão da caixa é igual ao do portal (menos a ação)", same)
+	_check("o portal diz como entrar", portal_info.get("action", "") == "Entre pela porta para jogar")
 	_check("a caixa pede para segurar E", box_info.get("action", "") == "Segure E para jogar")
 
 	print("== Olhando a caixa ==")

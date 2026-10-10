@@ -142,11 +142,16 @@ func get_look_label() -> String:
 ##   label/label_color: a categoria do jogo ("CARTAS E TABULEIRO", na cor néon);
 ##   title/detail: o nome e "24 h jogadas · jogado ontem";
 ##   friends: "Ana e Bruno jogando agora" ("" = ninguém);
-##   accent: cor da mira enquanto olha para cá.
+##   accent: cor da mira enquanto olha para cá;
+##   action: como entrar ("Entre pela porta para jogar"). O texto é genérico
+##   (vale para prédio, arco ou o que for a casca). Fica aqui, e não no
+##   GameInfo, porque a estante usa o mesmo cartão com outra ação.
 func get_look_info() -> Dictionary:
 	if app_id <= 0:
 		return {"title": "Portal sem jogo configurado"}
-	return GameInfo.look_info(app_id, get_game_name())
+	var info := GameInfo.look_info(app_id, get_game_name())
+	info["action"] = "Entre pela porta para jogar"
+	return info
 
 
 ## Posição e direção onde o jogador reaparece ao voltar do jogo.
