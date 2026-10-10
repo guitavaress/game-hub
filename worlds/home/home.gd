@@ -151,7 +151,7 @@ func _build_front_door() -> void:
 func _build_furniture() -> void:
 	_add_shelf()
 	_add_friends_wall()
-	# 9.7: computador (perto da janela)
+	_add_computer()
 
 
 ## A estante da biblioteca, na parede oeste, de frente para o leste.
@@ -161,6 +161,26 @@ func _add_shelf() -> void:
 	shelf.position = Vector3(-ROOM_SIZE.x / 2.0, 0.0, -0.5)
 	shelf.rotation.y = PI / 2.0  # a frente (+Z) da estante aponta para o leste
 	add_child(shelf)
+
+
+## O mural dos amigos, na parede leste, de frente para o oeste. Amigo que não
+## joga nada da biblioteca leva até onde a porta da rua leva (a praça).
+func _add_friends_wall() -> void:
+	var wall := FriendsWall.new()
+	wall.name = "FriendsWall"
+	wall.position = Vector3(ROOM_SIZE.x / 2.0, 0.0, -0.5)
+	wall.rotation.y = -PI / 2.0  # a frente (+Z) do mural aponta para o oeste
+	wall.fallback_door = _front_door
+	add_child(wall)
+
+
+## A mesa do computador, encostada na parede norte, à direita da janela, de
+## frente para a sala.
+func _add_computer() -> void:
+	var desk := ComputerDesk.new()
+	desk.name = "ComputerDesk"
+	desk.position = Vector3(3.6, 0.0, -ROOM_SIZE.z / 2.0 + ComputerDesk.DESK_SIZE.z / 2.0 + 0.05)
+	add_child(desk)
 
 
 ## Área "em casa": avisa o jogador quando ele entra e quando sai.
@@ -223,13 +243,3 @@ func _put_on_interior_layer(node: Node) -> void:
 	for child in node.get_children():
 		_put_on_interior_layer(child)
 
-
-## O mural dos amigos, na parede leste, de frente para o oeste. Amigo que não
-## joga nada da biblioteca leva até onde a porta da rua leva (a praça).
-func _add_friends_wall() -> void:
-	var wall := FriendsWall.new()
-	wall.name = "FriendsWall"
-	wall.position = Vector3(ROOM_SIZE.x / 2.0, 0.0, -0.5)
-	wall.rotation.y = -PI / 2.0  # a frente (+Z) do mural aponta para o oeste
-	wall.fallback_door = _front_door
-	add_child(wall)
