@@ -261,10 +261,13 @@ func start_intro() -> void:
 	_hud.visible = false
 
 
-## Fim da abertura: o jogador ganha os controles e o HUD.
+## Fim da abertura: o jogador ganha os controles e o HUD. Na primeira vez,
+## o cartão de controles aparece antes do HUD (os avisos esperam ele sair).
 func finish_intro() -> void:
 	in_intro = false
 	set_physics_process(true)
+	if not AppConfig.get_seen_controls_hint():
+		_hud.show_controls_hint()
 	_hud.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 

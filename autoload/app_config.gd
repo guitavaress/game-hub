@@ -207,6 +207,16 @@ func set_show_map(on: bool) -> void:
 	_set_option("video", "show_map", on)
 
 
+## O cartão de controles da primeira vez já foi visto? (Seção [ui]; ela entra
+## no arquivo na primeira gravação.)
+func get_seen_controls_hint() -> bool:
+	return bool(_config.get_value("ui", "seen_controls_hint", false))
+
+
+func set_seen_controls_hint(seen: bool) -> void:
+	_set_option("ui", "seen_controls_hint", seen)
+
+
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
 func get_game_monitor() -> String:
 	return str(_config.get_value("window", "game_monitor", "")).strip_edges()

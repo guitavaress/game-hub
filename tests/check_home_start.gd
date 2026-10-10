@@ -6,11 +6,16 @@ extends SceneTree
 ##   - a busca e o mapa não abrem enquanto a cidade monta (o menu Esc abre);
 ##   - quando a cidade fica pronta, a porta destranca;
 ##   - imprime o pior quadro durante a montagem, com a biblioteca de verdade
-##     e com 200 jogos falsos (tests/fake_library.gd).
+##     e com 200 jogos falsos (tests/fake_library.gd);
+##   - quando a cidade fica pronta, aparece "A cidade está pronta" (Fase 10.7).
+## Guarda o config.cfg antes e devolve no fim (o cartão de controles da
+## primeira vez fica marcado como visto, para não segurar os avisos).
 
+const CONFIG := "user://config.cfg"
 const FAKE_COUNT := 200
 
 var failures := 0
+var backup := ""
 
 
 func _initialize() -> void:
@@ -18,13 +23,19 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	backup = FileAccess.get_file_as_string(CONFIG)
 	await process_frame
+	root.get_node("AppConfig").set_seen_controls_hint(true)
 	print("\n===== biblioteca de verdade =====")
 	await _start_city()
 	print("\n===== %d jogos falsos =====" % FAKE_COUNT)
 	var library_script: GDScript = load("res://tests/fake_library.gd")
 	library_script.install(root, FAKE_COUNT)
 	await _start_city()
+	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
+	file.store_string(backup)
+	file.close()
+	_check("config.cfg restaurado", FileAccess.get_file_as_string(CONFIG) == backup)
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
@@ -97,6 +108,8 @@ func _start_city() -> void:
 	_check("prédio do Balatro existe (se instalado)", city.has_node("Building_2379780")
 			or root.get_node("SteamLibrary").get_game(2379780) == null)
 	print("   avisos do começo: ", player.get_hud().get_messages())
+	_check("aviso \"A cidade está pronta\"",
+			Array(player.get_hud().get_messages()).any(func(m: String) -> bool: return m.begins_with("A cidade está pronta")))
 	city.queue_free()
 	await process_frame
 	await process_frame

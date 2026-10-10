@@ -50,8 +50,11 @@ var _indoors: bool = false
 var _toasts: VBoxContainer
 var _compass: Compass
 var _minimap: MapView
-## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
+## Avisos que chegaram com o HUD escondido (ou com o cartão de controles na
+## tela): [título, frase, tipo, segundos, rótulo, som].
 var _waiting_messages: Array[Array] = []
+## O cartão de controles da primeira vez (null = fechado).
+var _controls_hint: ControlsHint
 var _sound: AudioStreamPlayer
 var _click: AudioStreamPlayer
 
@@ -153,18 +156,20 @@ func get_look_text() -> String:
 ## Mostra um aviso no topo: "title" (o que houve) e "text" (o que fazer).
 ## "seconds" < 0 usa o tempo do tipo (info 6 s, erro 10 s, sessão 5 s).
 ## "overline" é um rótulo pequeno opcional acima do título.
+## "sound" troca o som do aviso (null = o do tipo).
 ## Um aviso igual a outro que já está na tela é ignorado.
 func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kind.INFO,
-		seconds: float = -1.0, overline: String = "") -> void:
+		seconds: float = -1.0, overline: String = "", sound: AudioStream = null) -> void:
 	if title.is_empty():
 		return
-	# HUD escondido (abertura): o aviso espera o HUD aparecer, senão o tempo
-	# dele passaria sem ninguém ver.
-	if not visible:
+	# HUD escondido (abertura) ou cartão de controles na tela: o aviso espera,
+	# senão o tempo dele passaria sem ninguém ver (ou ele seria a primeira
+	# coisa na tela antes de "como jogar").
+	if not visible or _controls_hint != null:
 		for waiting in _waiting_messages:
 			if waiting[0] == title and waiting[1] == text:
 				return
-		_waiting_messages.append([title, text, kind, seconds, overline])
+		_waiting_messages.append([title, text, kind, seconds, overline, sound])
 		return
 	var showing := _visible_toasts()
 	for toast in showing:
@@ -175,6 +180,9 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 		showing[i].close()
 
 	_toasts.add_child(Toast.create(title, text, kind, seconds, overline))
+	if sound != null:
+		_play_sound(sound)
+		return
 	match kind:
 		Toast.Kind.ERROR:
 			_play_sound(ERROR_SOUND)
@@ -183,14 +191,37 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 				_play_sound(MESSAGE_SOUND)
 
 
-## O HUD apareceu: mostra os avisos que estavam esperando.
+## O HUD apareceu (ou o cartão de controles saiu): mostra os avisos que
+## estavam esperando.
 func _show_waiting_messages() -> void:
-	if not visible:
+	if not visible or _controls_hint != null:
 		return
 	var waiting := _waiting_messages.duplicate()
 	_waiting_messages.clear()
 	for message in waiting:
-		show_message(message[0], message[1], message[2], message[3], message[4])
+		show_message(message[0], message[1], message[2], message[3], message[4], message[5])
+
+
+## PRIMEIRA VEZ: o cartão "como jogar" no pé da tela (ControlsHint). Enquanto
+## ele está aberto, os avisos esperam na fila; quando ele some, eles aparecem.
+func show_controls_hint() -> void:
+	if _controls_hint != null:
+		return
+	_controls_hint = ControlsHint.new()
+	_controls_hint.name = "ControlsHint"
+	_controls_hint.closed.connect(func() -> void:
+		_controls_hint = null
+		_show_waiting_messages())
+	add_child(_controls_hint)
+
+
+func is_controls_hint_open() -> bool:
+	return _controls_hint != null
+
+
+## O cartão de controles (null = fechado), para os testes.
+func get_controls_hint() -> ControlsHint:
+	return _controls_hint
 
 
 ## Aviso num texto só: a primeira linha vira o título, o resto vira a frase.

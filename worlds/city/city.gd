@@ -85,6 +85,8 @@ const SKY_SUNSET_GLOW_U: float = 0.607
 ## Rugosidade do asfalto: seco de dia, "molhado" (reflete o néon) à noite.
 const ASPHALT_ROUGHNESS_DAY: float = 0.55
 const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
+## Som do aviso "A cidade está pronta" (Kenney Music Jingles, CC0).
+const CITY_READY_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI00.ogg")
 
 ## As cascas que a cidade sabe montar, pelo nome que vai no perfil ("shell").
 ## (Variável, e não constante: a Godot não aceita classes num dicionário constante.)
@@ -176,6 +178,8 @@ func _ready() -> void:
 		_report_progress("Pronto!", 1.0)
 		player.world_loading = false
 		_home.get_front_door().locked_reason = ""
+		player.get_hud().show_message("A cidade está pronta", "A porta da rua já abre.",
+				Toast.Kind.INFO, -1.0, "", CITY_READY_SOUND)
 	else:
 		ScreenFade.set_message("")
 		ScreenFade.fade_in(0.8)
