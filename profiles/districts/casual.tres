@@ -19,5 +19,5 @@ tags = PackedInt32Array(597, 7178, 7108, 1654, 97376, 1752, 1621, 10437, 379975,
 tag_names = PackedStringArray("Casual", "Reúna a Galera", "Em Grupos", "Relaxante", "Aconchegante", "Ritmo", "Música", "Perguntas e Respostas", "Clicker", "Progressão Ociosa", "Combinar 3", "Para Toda a Família")
 ambience = Array[ExtResource("1_6vmj3")]([SubResource("Resource_6vmj3")])
 props_script = "res://worlds/city/district_props/string_lights.gd"
-floor_weights = PackedFloat32Array()
-wall_weights = PackedFloat32Array()
+floor_weights = PackedFloat32Array(0.55, 0.35, 0.1, 0, 0)
+wall_weights = PackedFloat32Array(0.1, 0.8, 0.1)

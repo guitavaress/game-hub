@@ -21,5 +21,5 @@ tags = PackedInt32Array(701, 1254546, 1254552, 699, 1746, 7038, 22955, 1753, 591
 tag_names = PackedStringArray("Esportes", "Futebol", "Futebol Americano", "Corrida", "Basquete", "Golfe", "Minigolfe", "Skate", "Tênis", "Beisebol", "Hóquei", "Boxe", "Luta Livre", "Ciclismo", "Esqui", "Snowboard", "Pool (sinuca)", "Boliche", "Simulador Automobilístico", "Estrada de Terra", "Motocross", "BMX")
 ambience = Array[ExtResource("1_inhqp")]([SubResource("Resource_inhqp")])
 props_script = "res://worlds/city/district_props/sports_scoreboard.gd"
-floor_weights = PackedFloat32Array()
-wall_weights = PackedFloat32Array()
+floor_weights = PackedFloat32Array(0.1, 0.3, 0.4, 0.2, 0)
+wall_weights = PackedFloat32Array(0.3, 0.5, 0.2)

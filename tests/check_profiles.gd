@@ -137,11 +137,21 @@ func _run() -> void:
 	_check("pesos de parede do perfil mudam o resultado (todos com a 3ª)", heavy_walls == old_buildings.size())
 	_check("pesos com tamanho errado são ignorados",
 			variant_class.from_app_id(2379780, PackedFloat32Array([1])).floors == int(old_buildings[0]["andares"]))
-	var all_default := true
+	# Fase 10.5: cada bairro (menos "outros") tem a sua arquitetura nos pesos.
+	var bad_weights: Array[String] = []
 	for old: Dictionary in old_categories:
 		var profile = profiles.district(old["id"])
-		all_default = all_default and profile.floor_weights.is_empty() and profile.wall_weights.is_empty()
-	_check("os 10 perfis usam o padrão (pesos vazios)", all_default)
+		if old["id"] == "outros":
+			continue
+		var floors_ok: bool = profile.floor_weights.size() == 5 and _sum(profile.floor_weights) > 0.0
+		var walls_ok: bool = profile.wall_weights.size() == 3 and _sum(profile.wall_weights) > 0.0
+		if not floors_ok or not walls_ok:
+			bad_weights.append(old["id"])
+	_check("9 bairros com pesos de andares (5) e de paredes (3), soma > 0 (errados: %s)" % str(bad_weights),
+			bad_weights.is_empty())
+	var others = profiles.district("outros")
+	_check("\"outros\" continua no padrão (pesos vazios)",
+			others.floor_weights.is_empty() and others.wall_weights.is_empty())
 
 	print("== nenhum id de bairro fora dos perfis ==")
 	var offenders: Array[String] = []
@@ -202,6 +212,13 @@ func _same_sound(emitter: AmbientEmitter, old: Dictionary) -> bool:
 ## O JSON devolve números como decimais (701.0); a comparação é com inteiros.
 func _ints(values: Array) -> Array:
 	return values.map(func(v) -> int: return int(v))
+
+
+func _sum(values: PackedFloat32Array) -> float:
+	var total := 0.0
+	for value in values:
+		total += value
+	return total
 
 
 func _check(label: String, ok: bool) -> void:
