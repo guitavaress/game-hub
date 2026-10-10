@@ -269,6 +269,7 @@ func _clock_text() -> String:
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality" and _environment != null:
 		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
+		GraphicsQuality.apply_to_sun(_sun, AppConfig.get_quality())
 
 
 func _on_night_changed(night: float) -> void:
@@ -653,7 +654,8 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 120.0
+	# Até onde vai a sombra: depende da qualidade (mais curta na Leve).
+	GraphicsQuality.apply_to_sun(sun, AppConfig.get_quality())
 	add_child(sun)
 	_sun = sun
 
