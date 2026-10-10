@@ -93,6 +93,17 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop (Alta, e o pior quadro da montagem ≤ 50 ms). No notebook, em casa, a medida dá 60 FPS na Leve.
 
+### Fase 10: Acabamento 🟡 em andamento
+
+**Objetivo:** fazer o top 5 da [revisão de 2026-10-10](design/revisao-2026-10-10.md), que dá muito resultado com pouco trabalho. Plano e registro: [plans/fase-10.md](plans/fase-10.md).
+
+**Entregas:**
+- Texturas com mipmaps e compressão, e anti-aliasing por qualidade.
+- A UI escala com a tela.
+- O cartão do prédio diz como entrar.
+- Bairros com arquitetura própria e um letreiro alto por bairro.
+- Primeira vez guiada: cartão de controles, nascer virado para a estante e aviso de "cidade pronta".
+
 ### Fase Linux (feita)
 
 Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O desktop vai ter dual boot, então **Windows e Linux são alvos de primeira classe**. Plano e registro: [plans/fase-linux.md](plans/fase-linux.md).
