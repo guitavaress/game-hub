@@ -236,7 +236,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - Texturas: se faltar madeira ou tecido, **peço permissão antes de baixar** do ambientCG, com nome, tamanho e licença, e só entra o que o jogo usa.
   - Teste: `check_home` confere que nada fica fora da sala e que a passagem até cada móvel está livre (física). Manual: capturas de noite e de dia, nas qualidades Leve e Alta.
   - Commit: `Fase 9.9: o loft`
-- [ ] **9.10 A porta "Casa" na praça** (Opus · high: visual e posição)
+- [x] **9.10 A porta "Casa" na praça** (Opus · high: visual e posição) — b941b40 (trilha paralela), junta em 4b52c9a
   - Faz: a fachada da porta "Casa" (moldura, luz e um néon "CASA" que acende à noite) e a posição final na praça. Ela não bate no chafariz, na estação, na roda de amigos nem no caminho de quem anda pela praça. Aparece no minimapa como um marco.
   - Teste: em `check_home`, uma conferência geométrica como a do metrô. `check_metro`, `check_holograms` e `check_phase6_audio` passam.
   - Manual: capturas de dia e de noite.
@@ -305,6 +305,9 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - O ponto de nascer foi para z = 1,5. O sofá fica de costas para quem nasce, virado para a janela.
   - A estante enche primeiro a fileira da altura dos olhos, depois a de cima e por último a de baixo. O nome do filtro virou uma placa no alto da estante.
   - O `check_daynight` deixou de contar a luz do dia da janela (um `SpotLight3D` que acende de dia) como poste.
+- 2026-10-10 (9.10): **a porta "Casa" na praça** (trilha paralela, junta depois da 9.9).
+  - Posição final: (6; 0; 12,2), na beira sul da praça, fora do eixo do chafariz. Quem sai de casa aparece em (6; 0,1; 10), olhando para o norte.
+  - A fachada (`worlds/city/home_door_facade.gd`) tem colisão, um néon "CASA" e uma luz que acendem à noite, e a casa entrou como marco no mapa e no minimapa (`add_landmark`).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
