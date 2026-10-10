@@ -176,7 +176,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - imprime o pior quadro durante a montagem, com 7 e com 200 jogos (biblioteca falsa).
   - Manual: abrir o hub e andar pela casa enquanto a cidade monta.
   - Commit: `Fase 9.3: nascer em casa`
-- [ ] **9.4 Estante da biblioteca** (Sonnet · medium)
+- [x] **9.4 Estante da biblioteca** (Sonnet · medium) — 93d4919
   - Faz:
     - `components/game_portal/game_info.gd`, com o `GamePortal` passando a usá-lo;
     - `worlds/home/library_shelf.gd` (caixas, páginas, filtro, segurar E para jogar, volta para a estante);
