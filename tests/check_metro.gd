@@ -120,7 +120,8 @@ func _check_reach(city: Node) -> void:
 			far += 1
 	print("   %d estações; a porta mais longe fica a %.0f m da estação do bairro" % [stops.size(), worst])
 	_check("toda porta a no máximo %d m de uma estação do bairro (longe: %d)" % [MAX_WALK, far], far == 0)
-	var landmarks: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"]
+	var landmarks: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"] \
+			.filter(func(landmark: Dictionary) -> bool: return landmark["kind"] == "metro")
 	_check("cada estação é um marco no mapa", landmarks.size() == stops.size())
 	var blocked := 0
 	for stop in stops:
