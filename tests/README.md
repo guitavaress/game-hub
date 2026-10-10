@@ -33,7 +33,7 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
-	city.play_intro = false  # pula a descida pelo céu
+	city.play_intro = false  # sem janela: tela preta, jogador na praça e montagem direta
 	root.add_child(city)
 	while not city.is_city_ready():
 		await process_frame
@@ -68,7 +68,8 @@ func _check(label: String, ok: bool) -> void:
 - **`check_steam_windows`** só roda no Windows (nos outros sistemas, "pulado"): usa o `reg.exe` e o `tasklist` de verdade, mas numa chave de mentira (`HKCU\Software\GameHubTest`) que ele cria e apaga. Não toca na chave real da Steam.
 - **`check_weather`** (Fase 7.6) confere a garoa: só o Terror, só à noite e dentro do bairro, e a quantidade por qualidade. **`check_portal_shell`** confere o prédio e o arco como cascas de portal.
 - **Biblioteca falsa (Fase 8):** `tests/fake_library.gd` monta N jogos falsos só na memória (com capas reais da cache da Steam, sem rede) e desliga os downloads do `GameArt`. `check_scale`, `check_city_map`, `check_minimap` e `check_metro` a usam. Instale-a **antes** de criar a cidade e use `root.get_node("...")` para os autoloads (o script de teste não os enxerga direto).
-- **Desempenho:** nenhum teste mede FPS. `tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>` roda **com janela** e imprime uma linha `MEDIDA`. O notebook só serve para comparar antes e depois; a régua absoluta é o desktop.
+- **`play_intro` (Fase 9):** ligado (padrão com janela), o jogador nasce em casa e a cidade monta por orçamento de tempo; desligado, tudo fica como antes da Fase 9 (jogador na praça). Quase todos os testes desligam; só o `check_home_start` liga. Os testes da casa (`check_home`, `check_shelf`, `check_friends_wall`, `check_screen_3d`, `check_home_overlays`, `check_settings_view`) levam o jogador para dentro com `player.teleport_to(home.get_spawn_transform())` e `player.set_indoors(home.get_environment())`.
+- **Desempenho:** nenhum teste mede FPS. `tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>` roda **com janela** e imprime uma linha `MEDIDA` (a caminhada) e uma `MEDIDA_CASA` (girando dentro de casa). O notebook só serve para comparar antes e depois; a régua absoluta é o desktop.
 - **Painéis (menu, busca, mapa, metrô):** só um abre de cada vez, pelo `player.is_overlay_open()`. Um teste que corre por um vão entre prédios pode cair numa estação de metrô.
 - **`check_profiles`** (Fase 7) compara os perfis e o `GameCategories` com o retrato do comportamento de antes (`tests/fixtures/profiles_atuais.json`). O JSON devolve números como decimais: compare tags e ids convertendo para `int`.
 - **GitHub Actions** (`.github/workflows/testes.yml`): a cada push em `fase-*` e em cada Pull Request, roda os quatro testes de plataforma num Windows e num Linux do GitHub. A bateria completa **não** roda lá (precisa dos jogos instalados).

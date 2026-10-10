@@ -19,7 +19,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta no Linux (falta a conferência final no Windows) |
 | 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta no Linux (falta a conferência no Windows) |
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
-| 9 | A casa: um interior onde ficam a biblioteca, os amigos e as configurações | 🗓️ planejada |
+| 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
@@ -90,7 +90,8 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | W A S D | Andar |
 | Shift | Correr |
 | Espaço | Pular |
-| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, amigos) |
+| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, amigos). Em casa, também devolve a câmera do computador |
+| E | Interagir: porta (casa e praça), estante (segurar para jogar), mural dos amigos e computador |
 | Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
 | Shift+Enter (na busca) | Ir direto até a porta do jogo (a tela escurece e você aparece na frente dela; o jogo não abre) |
 | M | Mapa grande da cidade (M ou Esc fecham) |
@@ -165,6 +166,15 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
 **Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
+
+## A casa
+
+Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela) e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
+
+- **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
+- **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
+- **Computador:** E aproxima a câmera da tela, que mostra as mesmas abas do menu de pausa (som e vídeo, controles, amigos), clicáveis, com o campo da chave. Esc devolve a câmera.
+- **Portas:** E na porta do loft leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
 
 ## Detalhes da cidade
 

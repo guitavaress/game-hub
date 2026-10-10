@@ -24,7 +24,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | Versão | O que é | Situação |
 |---|---|---|
 | **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
-| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🗓️ planejada: [Fase 9](#fase-9-a-casa) |
+| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🟡 primeiro passo feito na [Fase 9](#fase-9-a-casa); avatar e casa personalizável em [Depois](#depois) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](#fase-7-world-profile); biomas em [Depois](#depois) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔭 horizonte |
 | **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)) + 🔭 horizonte (desktop) |
@@ -81,16 +81,17 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Pronto quando:** com 200 jogos, o hub continua leve, e qualquer jogo fica a menos de ~20 s de distância.
 
-### Fase 9: A casa
+### Fase 9: A casa ✅ feita (no Linux; falta a conferência no desktop)
 
-**Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2).
+**Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2). Plano e registro: [plans/fase-9.md](plans/fase-9.md).
 
-**Entregas:**
-- Um **interior** onde o jogador nasce.
-- O HUD em **forma física**: estante com a biblioteca, mural dos amigos e painel de configurações.
-- O menu de pausa (Esc) continua existindo como atalho.
+**O que entregou:**
+- Um **loft** onde o jogador nasce em ~1 s, com a cidade montando em segundo plano; a abertura pelo céu saiu.
+- O HUD em **forma física**: estante com a biblioteca (páginas e filtro por bairro), mural dos amigos e um computador cuja tela é o menu de configurações, clicável.
+- **E para interagir**, também nas portas: a do loft e a "Casa" da praça.
+- O menu de pausa (Esc), a busca e o mapa continuam funcionando em casa.
 
-**Pronto quando:** dá para configurar tudo e escolher um jogo sem sair da casa.
+**Falta:** a conferência no desktop (Alta, e o pior quadro da montagem ≤ 50 ms). No notebook, em casa, a medida dá 60 FPS na Leve.
 
 ### Fase Linux (feita)
 
@@ -105,6 +106,8 @@ Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O de
 **Falta:** a conferência à mão no Windows (checklist no fim do plano). A bateria passa inteira no Linux (25 testes), com Balatro, Skyrim, Valheim e Stardew instalados, e o GitHub Actions já confere o backend do Windows (`reg.exe` e `tasklist` de verdade); falta abrir um jogo de verdade e ver a janela.
 
 ## Depois
+
+- **Casa, parte 2:** avatar visível, personalizar a casa (mover móveis, trocar cores), outros temas (cabana...) e estatísticas na parede.
 
 - **Primeiro bioma** (antigo P3.27): uma montanha de gelo, com HDRI próprio, terreno e o mesmo HUD. Usa o World Profile.
 - **Biomas gerados por código** a partir da biblioteca: RPG vira floresta ou castelo, corrida vira pista e garagens, terror vira neblina e abandono.

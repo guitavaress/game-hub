@@ -1,6 +1,6 @@
 # Fase 9: A casa
 
-**Status:** em andamento (aprovado em 2026-10-06)
+**Status:** feita no Linux (aprovado em 2026-10-06); falta a conferência no desktop
 **Branch:** `fase-9`, no checkout principal (`~/git/game-hub`), aberto como projeto no **Nimbalyst**. Até 9.3 e 9.6 a fase rodou num worktree do claude-squad (branch `guitavares/game-hub`); na migração (2026-10-10), a `fase-9` nasceu dela, em `08fcd02`. A cadeia fica `main` ← `fase-linux` ← `fase-7` ← `fase-8` ← `fase-9`.
 
 ### Trabalho com o Nimbalyst
@@ -241,7 +241,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - Teste: em `check_home`, uma conferência geométrica como a do metrô. `check_metro`, `check_holograms` e `check_phase6_audio` passam.
   - Manual: capturas de dia e de noite.
   - Commit: `Fase 9.10: porta de casa na praça`
-- [ ] **9.11 Desempenho e docs** (Sonnet · low; Opus se a medida pedir ajuste)
+- [x] **9.11 Desempenho e docs** (Sonnet · low; Opus se a medida pedir ajuste)
   - Faz:
     - `tools/medir_desempenho.gd` ganha um trecho dentro de casa; roda no notebook (comparação relativa) e anota;
     - README: a casa, o E, a estante, o mural e o computador;
@@ -308,6 +308,10 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 - 2026-10-10 (9.10): **a porta "Casa" na praça** (trilha paralela, junta depois da 9.9).
   - Posição final: (6; 0; 12,2), na beira sul da praça, fora do eixo do chafariz. Quem sai de casa aparece em (6; 0,1; 10), olhando para o norte.
   - A fachada (`worlds/city/home_door_facade.gd`) tem colisão, um néon "CASA" e uma luz que acendem à noite, e a casa entrou como marco no mapa e no minimapa (`add_landmark`).
+- 2026-10-10 (9.11): **medida no notebook** (Leve, 22 h, com janela).
+  - 7 jogos: caminhada 41,5 FPS, pior quadro 49 ms; em casa **60,0 FPS, pior 20 ms**, 101 desenhos.
+  - 200 jogos: caminhada 36,9 FPS, pior 59 ms; em casa **60,0 FPS, pior 20 ms**, 114 desenhos.
+  - A casa não pesa: nenhum ajuste foi preciso. O pior quadro de ~70 ms da montagem (9.3) e a meta de ≤ 50 ms continuam para conferir no desktop.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

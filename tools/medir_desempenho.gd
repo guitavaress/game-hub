@@ -10,6 +10,9 @@ extends SceneTree
 ## A caminhada é sempre a mesma: da praça até a rua mais longe do mapa e de
 ## volta, a 9 m/s (correndo), olhando para onde anda. Imprime uma linha com o
 ## FPS médio, o pior quadro, as chamadas de desenho e a memória de textura.
+## Depois da caminhada, um segundo trecho mede DENTRO DE CASA (Fase 9): o
+## jogador gira no lugar por ~3 s olhando a sala, e sai uma segunda linha
+## MEDIDA_CASA com o mesmo formato.
 ## A qualidade escolhida é só para a medida: a do usuário é devolvida no fim.
 
 const SPEED: float = 9.0
@@ -78,6 +81,36 @@ func _run() -> void:
 			draw_calls += int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 			samples += 1
 
+	_report("MEDIDA", games, quality, hour, build_ms, deltas, draw_calls, samples)
+
+	# Trecho dentro de casa: gira no lugar, uma volta completa em ~3 s.
+	var home = city.get_home()
+	player.teleport_to(home.get_spawn_transform())
+	player.set_indoors(home.get_environment())
+	for i in WARMUP_FRAMES:
+		await process_frame
+	var home_deltas: Array[float] = []
+	var home_draws := 0
+	var home_samples := 0
+	var turned := 0.0
+	last_ms = Time.get_ticks_usec()
+	while turned < TAU:
+		await process_frame
+		var now_home := Time.get_ticks_usec()
+		var step_seconds := (now_home - last_ms) / 1000000.0
+		last_ms = now_home
+		home_deltas.append(step_seconds)
+		turned += step_seconds * TAU / 3.0
+		player.rotation.y = -turned
+		if home_deltas.size() % 10 == 0:
+			home_draws += int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+			home_samples += 1
+	_report("MEDIDA_CASA", games, quality, hour, build_ms, home_deltas, home_draws, home_samples)
+	config.set_quality(original_quality)
+	quit()
+
+
+func _report(label: String, games: int, quality: String, hour: float, build_ms: int, deltas: Array[float], draw_calls: int, samples: int) -> void:
 	var total := 0.0
 	var worst := 0.0
 	for d in deltas:
@@ -88,11 +121,9 @@ func _run() -> void:
 	var p99: float = sorted[int(sorted.size() * 0.99)]
 	var texture_mb := Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0
 	var memory_mb := OS.get_static_memory_usage() / 1048576.0
-	print("MEDIDA jogos=%d qualidade=%s hora=%.0f | montagem=%d ms | fps_medio=%.1f | quadro_p99=%.0f ms | pior=%.0f ms | desenhos=%d | textura=%.0f MB | memoria=%.0f MB | quadros=%d" % [
-		games, quality, hour, build_ms, deltas.size() / total, p99 * 1000.0, worst * 1000.0,
+	print("%s jogos=%d qualidade=%s hora=%.0f | montagem=%d ms | fps_medio=%.1f | quadro_p99=%.0f ms | pior=%.0f ms | desenhos=%d | textura=%.0f MB | memoria=%.0f MB | quadros=%d" % [
+		label, games, quality, hour, build_ms, deltas.size() / total, p99 * 1000.0, worst * 1000.0,
 		draw_calls / maxi(samples, 1), texture_mb, memory_mb, deltas.size()])
-	config.set_quality(original_quality)
-	quit()
 
 
 ## Rua mais longe do mapa (a de fora, entre o último anel e a borda).
