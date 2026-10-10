@@ -207,7 +207,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - `check_pause_menu` passa (ajustando só o caminho até os controles, se precisar);
     - `tests/check_settings_view.gd` monta um `SettingsView` sozinho e confere que mudar a qualidade e o "Bússola e mapa" grava no `config.cfg` (com cópia e devolução).
   - Commit: `Fase 9.6: configurações separadas do menu`
-- [ ] **9.7 Tela 3D e o computador** (Opus · high: entrada do mouse em 3D)
+- [x] **9.7 Tela 3D e o computador** (Opus · high: entrada do mouse em 3D) — ffd07a7 (trilha paralela), junta em 9227b59
   - Faz:
     - `components/screen_3d/screen_3d.gd`;
     - no `player.gd`: `focus_on`/`leave_focus`;
@@ -293,6 +293,11 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - A `fase-9` nasceu da `guitavares/game-hub` em `08fcd02` (9.3, 9.6 e a trava da bateria juntas) e fica no checkout principal.
   - A paralela usa New Worktree, que parte da branch atual: acabou o `git merge --ff-only` da primeira mensagem.
   - Motivos: ver os diffs e o plano de forma visual, e o cs fazia commits automáticos com o e-mail pessoal.
+- 2026-10-10 (9.7): **tela 3D e computador** (trilha paralela, junta depois da 9.5).
+  - A pose da câmera é calculada pelo `Screen3D` (`get_camera_pose`, a partir do campo de visão e da proporção da janela), em vez de ficar num `Marker3D`.
+  - O conteúdo da tela tem 1152×648 e ocupa 94% da janela com o foco.
+  - Sem janela (testes), o modo do mouse não muda, então o `check_screen_3d` só avisa nessas conferências.
+  - A mesa fica encostada na parede norte, em x = 3,6, à direita da janela; a estante e o mural continuam nas paredes oeste e leste.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
