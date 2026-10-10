@@ -42,11 +42,11 @@ Ordem: o que não muda o desenho da tela primeiro (importação, qualidade), dep
 
 Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria, `[x]` com os dois hashes; **apagar o worktree antes do chat**.
 
-- [ ] **10.0 Preparação** (Sonnet · low)
+- [x] **10.0 Preparação** (Sonnet · low) — 36515da
   - Faz: cria a branch `fase-10` a partir da `fase-9`, salva este plano em `docs/plans/fase-10.md` e põe a "Fase 10: Acabamento" no ROADMAP (em andamento).
   - Commit: `Fase 10.0: plano`
 
-- [ ] **10.1 Texturas nítidas** (Sonnet · medium) — revisão 7.1
+- [x] **10.1 Texturas nítidas** (Sonnet · medium) — revisão 7.1 — ca68231
   - Faz: nos 21 `.import` de `assets/ambientcg/*/` e no `assets/generated/tree_impostor.png.import`: `compress/mode=2` (VRAM) e `mipmaps/generate=true`; nos `*_NormalGL.jpg.import`, também `compress/normal_map=1`. Os shaders já pedem mipmap (`building_facade.gdshader`, `tree_impostor.gdshader`) e o relevo já usa `hint_normal`.
   - HDRIs (`assets/polyhaven/hdri/*.import`): testar VRAM (BPTC) e ficar com ela só se o céu não ganhar faixas na captura; senão ficam como estão.
   - Teste: `tests/check_textures.gd` lê cada `.import` (`ConfigFile`) e confere modo e mipmaps; carrega uma textura de cada pasta e confere `get_format()` comprimido e `has_mipmaps()`. Impede que alguém volte o import sem querer.
@@ -150,6 +150,9 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 
 ## Decisões tomadas durante a fase
 - 2026-10-10: fase própria "Acabamento" e entrar no prédio continua sendo ficar no vão (dono).
+- 2026-10-10 (10.1): os 3 céus HDRI também ficam comprimidos (BC6H): a captura do céu de dia, do pôr do sol e da noite ficou igual à de antes, sem faixas. O relevo comprimido (RGTC) e as árvores com mipmap também passaram nas capturas (o asfalto ao longe parou de granular; as árvores a ~70 m não afinaram).
+- 2026-10-10 (10.1): sem janela, `has_mipmaps()` responde sempre `false` (renderizador falso); o `check_textures` lê o número de mipmaps no cabeçalho do `.ctex` importado.
+- 2026-10-10 (10.1): medida (Leve, 200 jogos), **com o notebook ocupado** (Chromium a 50% da CPU), então o FPS não serve de comparação: 22 h 22,4 → 45,4 FPS e 12 h 37,9 → 34,6 FPS (os desenhos pularam entre ~1700 e ~3000 nas duas versões, o mesmo sintoma da revisão 8.3). A memória de textura é confiável: **552 → 470 MB** (22 h) e **531 → 492 MB** (12 h). A comparação de FPS fica para a 10.9, com o notebook parado.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
