@@ -125,7 +125,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: captura `casa_noite_nascer`.
   - Commit: `Fase 10.8: nascer virado para a estante`
 
-- [ ] **10.9 Medida e docs** (Sonnet · low)
+- [x] **10.9 Medida e docs** (Sonnet · low) — d3f76b7
   - Faz:
     - medida final no notebook, **parado**, `fase-9` × `fase-10` lado a lado (Leve, 22 h, 200 jogos; e 30 jogos ao meio-dia), anotada em "Decisões";
     - no topo do `tools/medir_desempenho.gd`, a nota "medir com o notebook parado e comparar lado a lado no mesmo dia" (revisão 8.3);
