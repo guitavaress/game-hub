@@ -154,6 +154,12 @@ func get_return_transform() -> Transform3D:
 	return _return_point.global_transform
 
 
+## Na frente da porta, virado PARA ela (o ReturnPoint olha para a rua). É o
+## destino da busca (Shift+Enter) e do mural de amigos da casa.
+func get_arrival_transform() -> Transform3D:
+	return Transform3D(global_basis, _return_point.global_position)
+
+
 func _start_game() -> void:
 	_waiting_for_game = true
 	ScreenFade.set_door_charge(0.0)  # a vinheta já está toda preta: troca pela cortina

@@ -294,10 +294,7 @@ func _travel(index: int) -> void:
 	if player == null or GameLauncher.is_busy():
 		return
 	_sound.play()
-	var spot := portal.get_return_transform().origin
-	# O ponto de retorno olha para a rua; na viagem o jogador olha para a porta.
-	var target := Transform3D(portal.global_basis, spot)
-	player.travel_to(target, portal.get_game_name())
+	player.travel_to(portal.get_arrival_transform(), portal.get_game_name())
 
 
 # --- Peças --------------------------------------------------------------------

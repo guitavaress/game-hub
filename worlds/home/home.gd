@@ -150,7 +150,8 @@ func _build_front_door() -> void:
 ## Os móveis, um por linha (cada um é um script em worlds/home/).
 func _build_furniture() -> void:
 	_add_shelf()
-	# 9.5: mural (parede leste) · 9.7: computador (perto da janela)
+	_add_friends_wall()
+	# 9.7: computador (perto da janela)
 
 
 ## A estante da biblioteca, na parede oeste, de frente para o leste.
@@ -221,3 +222,14 @@ func _put_on_interior_layer(node: Node) -> void:
 		(node as GeometryInstance3D).layers = INTERIOR_LAYER_MASK
 	for child in node.get_children():
 		_put_on_interior_layer(child)
+
+
+## O mural dos amigos, na parede leste, de frente para o oeste. Amigo que não
+## joga nada da biblioteca leva até onde a porta da rua leva (a praça).
+func _add_friends_wall() -> void:
+	var wall := FriendsWall.new()
+	wall.name = "FriendsWall"
+	wall.position = Vector3(ROOM_SIZE.x / 2.0, 0.0, -0.5)
+	wall.rotation.y = -PI / 2.0  # a frente (+Z) do mural aponta para o oeste
+	wall.fallback_door = _front_door
+	add_child(wall)
