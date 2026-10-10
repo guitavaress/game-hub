@@ -28,6 +28,19 @@ if [ ! -x "$GODOT" ]; then
 	exit 1
 fi
 
+# Trava: o user:// (config.cfg, chave, cache) é um só para todos os worktrees
+# do claude-squad. Se outra bateria estiver rodando, esta espera ela acabar.
+# A trava se solta sozinha quando o script termina. Sem flock (Git Bash no
+# Windows), segue sem trava.
+if command -v flock >/dev/null 2>&1; then
+	TRAVA="${XDG_RUNTIME_DIR:-/tmp}/game-hub-testes.lock"
+	exec 9>"$TRAVA"
+	if ! flock -n 9; then
+		echo "== outra bateria está rodando; esperando ela terminar =="
+		flock 9
+	fi
+fi
+
 if [ $# -gt 0 ]; then
 	TESTS="$*"
 else
