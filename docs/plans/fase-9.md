@@ -163,7 +163,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - nenhuma porta abre com jogo rodando;
     - o sol não ilumina a camada do interior.
   - Commit: `Fase 9.2: a casa e as portas`
-- [ ] **9.3 Nascer em casa** (Opus · high: começo do hub)
+- [x] **9.3 Nascer em casa** (Opus · high: começo do hub) — 109a9a9
   - Faz:
     - com `play_intro` ligado, o novo começo: casa, jogador, clarear e montagem por orçamento de tempo;
     - a porta trancada com o progresso, destrancando no `city_ready`;
@@ -200,7 +200,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - E leva à porta certa, virado para ela.
     - `check_fast_travel` passa.
   - Commit: `Fase 9.5: mural dos amigos`
-- [ ] **9.6 Configurações separadas do menu** (Sonnet · medium)
+- [x] **9.6 Configurações separadas do menu** (Sonnet · medium) — a0e981d (trilha paralela), junta em 52029f9
   - Faz: `ui/settings_view.gd` com as três abas. O `PauseMenu` passa a usá-lo, e nada muda na tela, exceto a linha nova "E · interagir (porta, estante, mural, computador)" nas teclas.
   - Pode rodar em paralelo à 9.1–9.3 (janela 1).
   - Teste:
@@ -277,6 +277,18 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - A moldura provisória não tem colisão, para não mudar os percursos dos testes; a 9.10 decide o visual e a posição finais.
   - Em casa, a câmera enxerga 60 m e usa o ambiente da casa.
   - As capturas (meio-dia e 23 h) mostram o interior igual nas duas horas: nada de sol nem de céu vazando para dentro.
+
+- 2026-10-10 (9.3): **montagem em segundo plano**.
+  - A primeira medida (200 jogos, sem janela, no notebook) deu pior quadro de 225 ms e mediana de 27 ms. A causa era carregar o hero e o logo: cerca de 13 ms por imagem, e 160 ms para um PNG de 4700 px.
+  - Correção no `GameArt`:
+    - `preload_world_art`/`is_world_art_ready` carregam em threads (`WorkerThreadPool`, 3 por vez);
+    - a cidade espera a arte de cada prédio quadro a quadro;
+    - a **compressão S3TC fica na thread principal**, uma imagem por quadro: em thread, ela travou 1 vez a cada 3 rodadas (isolado num teste à parte, etapa por etapa).
+  - Também divididos por quadros: o chão do quarteirão, os enfeites e o metrô (um bairro por vez).
+  - Resultado com 200 jogos: pior quadro de ~70 ms e mediana de 9 ms. Os picos que sobram acontecem uma vez só: o primeiro quarteirão, escondido pela tela "GAME HUB", os enfeites de um bairro novo e a mureta da borda.
+  - Conferir no desktop (a meta é ≤ 50 ms lá).
+  - A abertura pelo céu saiu. `start_intro`/`finish_intro` ficaram só para a tela "GAME HUB" (~0,8 s). `player.world_loading` trava a busca e o mapa enquanto a cidade monta.
+- 2026-10-10: o claude-squad, ao pausar a instância, faz um commit automático ("[claudesquad] update … (paused)") com o e-mail do git global, que é o pessoal. Esse commit foi desfeito e refeito como `Fase 9.3` com o e-mail noreply. Ao retomar uma instância pausada, a pasta `.godot` some e o projeto precisa ser reimportado.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
