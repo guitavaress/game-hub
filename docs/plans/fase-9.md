@@ -227,7 +227,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - o `GamePortal` não puxa o jogador que está em casa quando um jogo aberto por fora fecha.
   - Teste: `tests/check_home_overlays.gd`. `check_search`, `check_minimap` e `check_phase4` passam.
   - Commit: `Fase 9.8: busca e mapa dentro de casa`
-- [ ] **9.9 O loft** (Opus · high: visual)
+- [x] **9.9 O loft** (Opus · high: visual) — d520dc1
   - Faz: o visual do interior, todo por código.
     - Piso de madeira, parede de tijolo ou concreto, tapete, sofá, luminárias quentes e uma faixa de néon.
     - O janelão mostra um horizonte de prédios (shader) que segue dia e noite pelo grupo `city_night`.
@@ -298,6 +298,13 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - O conteúdo da tela tem 1152×648 e ocupa 94% da janela com o foco.
   - Sem janela (testes), o modo do mouse não muda, então o `check_screen_3d` só avisa nessas conferências.
   - A mesa fica encostada na parede norte, em x = 3,6, à direita da janela; a estante e o mural continuam nas paredes oeste e leste.
+- 2026-10-10 (9.9): **o loft**.
+  - Nenhuma textura baixada: a madeira (piso e móveis), o tapete e o horizonte da janela são shaders feitos por código (`worlds/home/home_wood`, `home_rug`, `home_window`). Tijolo e concreto vêm das pastas da ambientCG que o projeto já tinha. Os materiais ficam em `HomeMaterials`, sem depender da cidade.
+  - O janelão mostra três fileiras de prédios a 110, 220 e 450 m, com profundidade (o raio da câmera atravessa o vidro), e segue a hora pelo grupo `city_night`. A cidade chama `set_night` logo depois de criar a casa, para a janela já nascer na hora certa.
+  - Dentro de casa, a névoa volumétrica fica desligada em qualquer qualidade (deixava o ar enevoado).
+  - O ponto de nascer foi para z = 1,5. O sofá fica de costas para quem nasce, virado para a janela.
+  - A estante enche primeiro a fileira da altura dos olhos, depois a de cima e por último a de baixo. O nome do filtro virou uma placa no alto da estante.
+  - O `check_daynight` deixou de contar a luz do dia da janela (um `SpotLight3D` que acende de dia) como poste.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
