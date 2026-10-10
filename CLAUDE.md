@@ -51,6 +51,7 @@ tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
 assets/        só CC0, com LICENSE em cada pasta de origem
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
+.claude/skills/  skills do Claude Code (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 
 ## Regras de arquitetura
