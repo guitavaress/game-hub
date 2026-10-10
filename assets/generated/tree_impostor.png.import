@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c8tcbwo4g6ano"
-path="res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.ctex"
+path.s3tc="res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/generated/tree_impostor.png"
-dest_files=["res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.ctex"]
+dest_files=["res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +24,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
