@@ -149,7 +149,17 @@ func _build_front_door() -> void:
 
 ## Os móveis, um por linha (cada um é um script em worlds/home/).
 func _build_furniture() -> void:
-	pass  # 9.4: estante (parede oeste) · 9.5: mural (parede leste) · 9.7: computador (perto da janela)
+	_add_computer()
+	# 9.4: estante (parede oeste) · 9.5: mural (parede leste)
+
+
+## A mesa do computador, encostada na parede norte, à direita da janela, de
+## frente para a sala.
+func _add_computer() -> void:
+	var desk := ComputerDesk.new()
+	desk.name = "ComputerDesk"
+	desk.position = Vector3(3.6, 0.0, -ROOM_SIZE.z / 2.0 + ComputerDesk.DESK_SIZE.z / 2.0 + 0.05)
+	add_child(desk)
 
 
 ## Área "em casa": avisa o jogador quando ele entra e quando sai.

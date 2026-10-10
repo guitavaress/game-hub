@@ -5,6 +5,8 @@ extends CharacterBody3D
 ## - Mouse gira a visão; W/A/S/D anda; Espaço pula; Shift corre.
 ## - Esc abre o menu de pausa (PauseMenu) e Tab abre a busca de jogos
 ##   (GameSearch); os dois vêm junto com o jogador, como o HUD.
+## - E numa tela 3D (Screen3D) aproxima a câmera dela (focus_on); Esc devolve
+##   (leave_focus).
 ## - Um raio invisível (RayCast3D) sai da câmera. Se ele acertar algo que tenha
 ##   o método get_look_label(), o texto aparece no HUD. É um "contrato" simples:
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
@@ -36,6 +38,8 @@ const INDOOR_CAMERA_FAR: float = 60.0
 ## passam (filtro passa-baixa) e o volume cai um pouco.
 const INDOOR_AMBIENCE_CUTOFF_HZ: float = 900.0
 const INDOOR_AMBIENCE_DB: float = -10.0
+## Quanto tempo (s) a câmera leva para chegar à tela 3D e para voltar.
+const FOCUS_SLIDE_SECONDS: float = 0.45
 
 ## Sons (pacotes CC0 da Kenney).
 const FOOTSTEP_SOUNDS: Array[AudioStream] = [
@@ -86,6 +90,14 @@ var _indoors: bool = false
 ## Até onde a câmera enxerga fora de casa (o valor da cena).
 var _outdoor_camera_far: float = 4000.0
 
+## FOCO numa tela 3D (veja focus_on): a tela focada (null = sem foco), se a
+## câmera está voltando, a animação da câmera e a posição normal da câmera
+## dentro da cabeça.
+var _focus_screen: Node3D = null
+var _focus_leaving: bool = false
+var _focus_tween: Tween
+var _camera_rest: Transform3D = Transform3D.IDENTITY
+
 ## INTERAGIR (E): quem está sendo olhado e responde ao E, há quanto tempo o E
 ## está segurado nele, e se o E já disparou nesta segurada.
 var _interact_target: Node = null
@@ -105,6 +117,7 @@ func _ready() -> void:
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	_outdoor_camera_far = _camera.far
+	_camera_rest = _camera.transform
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
@@ -121,9 +134,14 @@ func _ready() -> void:
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
 
+	# Um jogo que abre (por exemplo, por fora do hub) tira o foco na hora,
+	# como fecha o menu de pausa.
+	GameLauncher.game_started.connect(func(_app_id: int, _source: Node) -> void:
+		leave_focus(true))
+
 
 func _unhandled_input(event: InputEvent) -> void:
-	if in_intro:
+	if in_intro or _focus_screen != null:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var motion := event as InputEventMouseMotion
@@ -145,12 +163,12 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 
-	if Input.is_action_just_pressed("jump") and is_on_floor() and not _traveling:
+	if Input.is_action_just_pressed("jump") and is_on_floor() and not _is_movement_locked():
 		velocity.y = jump_velocity
 		_play_random(_body_player, JUMP_SOUNDS)
 
 	# Direção pedida pelo teclado, convertida para "para onde o jogador está virado".
-	var input_dir := Vector2.ZERO if _traveling else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input_dir := Vector2.ZERO if _is_movement_locked() else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input_dir != Vector2.ZERO:
 		_hud.on_player_moved()  # o aviso de volta do jogo pode sair
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
@@ -216,11 +234,12 @@ func get_transit_panel() -> TransitPanel:
 	return _transit_panel
 
 
-## Algum painel por cima do jogo (menu, busca, mapa, metrô) está aberto?
-## Cada painel confere isto antes de abrir: só um de cada vez.
+## Algum painel por cima do jogo (menu, busca, mapa, metrô) está aberto, ou o
+## jogador está usando uma tela 3D? Cada painel confere isto antes de abrir:
+## só um de cada vez.
 func is_overlay_open() -> bool:
 	return _pause_menu.is_open() or _game_search.is_open() or _world_map.is_open() \
-			or _transit_panel.is_open()
+			or _transit_panel.is_open() or _focus_screen != null
 
 
 func get_world_map() -> WorldMap:
@@ -310,6 +329,81 @@ func is_traveling() -> bool:
 	return _traveling
 
 
+## Viajando ou usando uma tela 3D: o jogador não anda nem pula.
+func _is_movement_locked() -> bool:
+	return _traveling or _focus_screen != null
+
+
+## FOCO NUMA TELA 3D: a câmera desliza até a frente da tela
+## (screen.get_camera_pose), o mouse aparece, o jogador para e o HUD some. A
+## tela recebe set_focused(true, jogador) e passa a cuidar do mouse e do
+## teclado; o Esc dela chama leave_focus. Enquanto isso, is_overlay_open() é
+## true: o menu de pausa, a busca e o mapa não abrem.
+func focus_on(screen: Node3D) -> void:
+	if _focus_screen != null or not _can_interact() or not screen.has_method("get_camera_pose"):
+		return
+	_focus_screen = screen
+	_focus_leaving = false
+	_reset_interact_hold()
+	velocity = Vector3(0.0, velocity.y, 0.0)
+	_hud.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	var window := get_viewport().get_visible_rect().size
+	var pose: Transform3D = screen.get_camera_pose(_camera.fov, window.x / maxf(window.y, 1.0))
+	_slide_camera(pose)
+	screen.set_focused(true, self)
+
+
+## Sai do foco: a câmera volta para a cabeça e o jogador ganha os controles
+## de novo. "instant" pula a animação (ex.: um jogo abriu).
+func leave_focus(instant: bool = false) -> void:
+	if _focus_screen == null or (_focus_leaving and not instant):
+		return
+	_focus_leaving = true
+	if is_instance_valid(_focus_screen):
+		_focus_screen.set_focused(false)
+	if instant:
+		_end_focus()
+	else:
+		_slide_camera(_head.global_transform * _camera_rest, _end_focus)
+
+
+func is_focused() -> bool:
+	return _focus_screen != null
+
+
+func get_focused_screen() -> Node3D:
+	return _focus_screen
+
+
+## Anima a câmera da posição atual até "target" (no mundo), suavizando a
+## partida e a chegada. "on_done" é chamado no fim.
+func _slide_camera(target: Transform3D, on_done: Callable = Callable()) -> void:
+	if _focus_tween != null:
+		_focus_tween.kill()
+	var start := _camera.global_transform
+	_focus_tween = create_tween()
+	_focus_tween.tween_method(func(t: float) -> void:
+		_camera.global_transform = start.interpolate_with(target, t),
+		0.0, 1.0, FOCUS_SLIDE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if on_done.is_valid():
+		_focus_tween.tween_callback(on_done)
+
+
+## Fim do foco: câmera no lugar, HUD de volta e mouse preso (se o hub não foi
+## dormir por causa de um jogo; aí quem cuida do mouse é o HubWindow).
+func _end_focus() -> void:
+	if _focus_tween != null:
+		_focus_tween.kill()
+		_focus_tween = null
+	_camera.transform = _camera_rest
+	_focus_screen = null
+	_focus_leaving = false
+	_hud.visible = not in_intro
+	if not HubWindow.is_sleeping:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
 ## VIAGEM RÁPIDA: escurece a tela, leva o jogador até "target" (ele fica
 ## virado para a frente do transform, como no teleport_to), apaga a faixa de
 ## luz e clareia. Espere com "await". Durante a viagem o jogador não anda e a
@@ -333,7 +427,8 @@ func travel_to(target: Transform3D, message: String = "", fade_seconds: float = 
 
 func _update_look_target() -> void:
 	var info := {}
-	if _look_ray.is_colliding():
+	# Com o foco numa tela, o cartão some (o raio continua preso à câmera).
+	if _focus_screen == null and _look_ray.is_colliding():
 		info = _find_look_info(_look_ray.get_collider())
 	if info != _current_look_info:
 		_current_look_info = info
