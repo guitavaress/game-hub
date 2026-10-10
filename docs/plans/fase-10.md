@@ -119,7 +119,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Teste: `tests/check_first_time.gd` (guarda e devolve o `config.cfg`, como o `check_pause_menu`): sem "visto", `finish_intro` mostra o cartão e o aviso dos amigos espera; ao fechar, grava "visto" e o aviso aparece; na segunda vez, não mostra. `check_home_start` também guarda e devolve o `config.cfg` e confere o aviso "A cidade está pronta".
   - Commit: `Fase 10.7: primeira vez guiada`
 
-- [ ] **10.8 Nascer virado para a estante** (Sonnet · low) — revisão 1.2
+- [x] **10.8 Nascer virado para a estante** (Sonnet · low) — revisão 1.2 — 5369390
   - Faz: `worlds/home/home.gd` (`get_spawn_transform`) gira o jogador ~35° para oeste: ele vê a estante e o janelão. O sofá já tem braços e almofadas (9.9); nada muda nele.
   - Teste: `check_home` e `check_home_start` passam a esperar "entre a janela e a estante" no lugar de "olhando para o norte".
   - Manual: captura `casa_noite_nascer`.
