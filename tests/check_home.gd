@@ -8,6 +8,11 @@ extends SceneTree
 ##   - o sol da cidade não ilumina a camada do interior;
 ##   - o loft (9.9): nada fica fora da sala, dá para andar do ponto de nascer
 ##     até cada móvel e até a porta, e a janela acompanha a hora.
+## E da fachada da porta "Casa" na praça (Fase 9.10):
+##   - fica dentro da praça, longe do chafariz, da estação Central, dos postes
+##     e da roda de amigos (até 40 amigos), e fora dos caminhos da praça;
+##   - é sólida, e o ponto de chegada (quem sai de casa) fica livre, na frente;
+##   - o néon e a luz acendem à noite; a casa é um marco no mapa.
 
 const INTERIOR_MASK := 1 << 19  # camada de render 20 (Home.INTERIOR_LAYER)
 
@@ -50,6 +55,8 @@ func _run() -> void:
 			all_interior = false
 	_check("tudo o que a casa desenha está na camada do interior (%d peças)" % meshes.size(), all_interior)
 	_check("as duas portas estão abertas", plaza_door.is_open() and front_door.is_open())
+
+	_check_facade(city, plaza_door)
 
 	print("== Jogo rodando: a porta não abre ==")
 	_look_at(player, plaza_door, 3.0)
@@ -104,11 +111,125 @@ func _run() -> void:
 	_check("o som do mundo volta ao normal", not _ambience_muffled())
 	forward = -player.global_basis.z
 	_check("olhando para o chafariz (norte)", forward.dot(Vector3(0.0, 0.0, -1.0)) > 0.95)
+	player.rotation.y = PI  # vira para trás (sul): a porta "Casa" está ali
+	await _frames(3)
+	_check("virando para trás, a porta Casa está ali", hud.get_look_text().begins_with(plaza_door.door_name))
 
 	await _check_loft(home, player)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## A fachada da porta "Casa" (HomeDoorFacade): lugar, folgas, sólida, néon e mapa.
+func _check_facade(city: Node, door: Node3D) -> void:
+	print("== Fachada da porta Casa na praça ==")
+	var facade: Node3D = city.get_node("HomeDoorFacade")
+	_check("a fachada fica na porta, virada para o mesmo lado",
+			facade.global_transform.is_equal_approx(door.global_transform))
+	var rect := _world_rect(facade, load("res://worlds/city/home_door_facade.gd").footprint())
+	var plaza := Rect2(-14.0, -14.0, 28.0, 28.0)  # o quarteirão da praça
+	_check("dentro da praça %s" % rect, plaza.encloses(rect))
+	var fountain_gap := _rect_distance(rect, Vector2.ZERO) - 2.0  # a bacia tem 2 m de raio
+	_check("longe do chafariz (%.1f m da bacia)" % fountain_gap, fountain_gap >= 3.0)
+	var central: Node3D = city.get_node("Metro_0")
+	var metro_rect := _world_rect(central, load("res://worlds/city/metro_entrance.gd").footprint())
+	var metro_gap := _rects_distance(rect, metro_rect)
+	_check("longe da estação Central (%.1f m)" % metro_gap, metro_gap >= 3.0)
+
+	# Roda de amigos: de 1 a 40 amigos na praça, ninguém a menos de 1 m.
+	var friend_gap := INF
+	for total in range(1, 41):
+		for i in total:
+			var spot: Vector3 = city._plaza_friend_position(i, total)
+			friend_gap = minf(friend_gap, _rect_distance(rect, Vector2(spot.x, spot.z)))
+	_check("longe da roda de amigos, até 40 amigos (%.1f m)" % friend_gap, friend_gap >= 1.0)
+
+	# Caminhos: os eixos do chafariz até as quatro ruas (5 m de largura; o de
+	# norte a sul passa por onde se nasce) e a travessia ao sul do chafariz
+	# (a linha z = 6 do teste de passos).
+	var paths := {"eixo norte-sul": Rect2(-2.5, -14.0, 5.0, 28.0), "eixo leste-oeste": Rect2(-14.0, -2.5, 28.0, 5.0),
+			"travessia ao sul do chafariz": Rect2(-14.0, 5.0, 28.0, 2.0)}
+	for path_name: String in paths:
+		_check("fora do caminho: %s" % path_name, not rect.intersects(paths[path_name]))
+
+	# Nada sólido encosta no quiosque (floreiras, chafariz, estação) e nenhum poste perto.
+	var space: PhysicsDirectSpaceState3D = facade.get_world_3d().direct_space_state
+	var query := PhysicsShapeQueryParameters3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(rect.size.x + 0.6, 2.0, rect.size.y + 0.6)
+	query.shape = box
+	query.transform = Transform3D(Basis.IDENTITY, Vector3(rect.get_center().x, 1.2, rect.get_center().y))
+	query.collision_mask = 1
+	query.exclude = [facade.get_node("Body").get_rid()]
+	var touching := space.intersect_shape(query, 4).size()
+	_check("nada sólido a menos de 30 cm do quiosque (%d)" % touching, touching == 0)
+	var light_gap := INF
+	for node in city.find_children("*", "Node3D", true, false):
+		if node.get_script() == null or node.get_script().get_global_name() != "StreetLight":
+			continue
+		light_gap = minf(light_gap, _rect_distance(rect, Vector2(node.global_position.x, node.global_position.z)))
+	_check("longe dos postes (%.1f m)" % light_gap, light_gap >= 1.5)
+
+	# Sólida: um raio da chegada até a porta bate no quiosque.
+	var arrival: Vector3 = city.HOME_DOOR_ARRIVAL
+	var ray := PhysicsRayQueryParameters3D.create(arrival + Vector3(0, 1.0, 0), door.global_position + Vector3(0, 1.0, 0))
+	ray.collision_mask = 1
+	var hit := space.intersect_ray(ray)
+	_check("o quiosque é sólido", not hit.is_empty() and hit["collider"] == facade.get_node("Body"))
+	var free := PhysicsShapeQueryParameters3D.new()
+	var body_box := BoxShape3D.new()
+	body_box.size = Vector3(0.8, 1.6, 0.8)
+	free.shape = body_box
+	free.transform = Transform3D(Basis.IDENTITY, arrival + Vector3(0, 1.0, 0))
+	free.collision_mask = 1
+	var front: Vector3 = door.global_basis.z
+	var ahead := (arrival - door.global_position).dot(front)
+	_check("a chegada fica livre, %.1f m na frente da porta" % ahead,
+			space.intersect_shape(free, 1).is_empty() and ahead > 1.5 and ahead < 3.0)
+
+	# Néon e luz: acendem à noite, apagam de dia.
+	var neon: Label3D = facade.get_node("Neon")
+	city._on_night_changed(0.0)
+	var day_lamp: float = facade.get_lamp_energy()
+	var day_neon := neon.modulate.get_luminance()
+	city._on_night_changed(1.0)
+	_check("à noite a luz da marquise acende (dia %.1f, noite %.1f)" % [day_lamp, facade.get_lamp_energy()],
+			day_lamp == 0.0 and facade.get_lamp_energy() > 1.0)
+	_check("à noite o néon CASA brilha mais", neon.modulate.get_luminance() > day_neon * 2.0)
+	city._on_night_changed(city._day_night.get_night())
+
+	# Mapa: um marco "home" na porta.
+	var homes: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"] \
+			.filter(func(landmark: Dictionary) -> bool: return landmark["kind"] == "home")
+	_check("a porta Casa é um marco no mapa", homes.size() == 1
+			and (homes[0]["pos"] as Vector2).distance_to(Vector2(door.global_position.x, door.global_position.z)) < 0.1)
+
+
+## O retângulo (x, z) do mundo ocupado por um retângulo local de um nó (girado
+## só em Y): os quatro cantos levados ao mundo.
+func _world_rect(node: Node3D, local: Rect2) -> Rect2:
+	var rect := Rect2()
+	for i in 4:
+		var corner := Vector3(local.position.x + local.size.x * (i % 2), 0.0, local.position.y + local.size.y * floori(i / 2.0))
+		var world := node.global_transform * corner
+		if i == 0:
+			rect = Rect2(Vector2(world.x, world.z), Vector2.ZERO)
+		else:
+			rect = rect.expand(Vector2(world.x, world.z))
+	return rect
+
+
+func _rect_distance(rect: Rect2, point: Vector2) -> float:
+	var dx := maxf(maxf(rect.position.x - point.x, 0.0), point.x - rect.end.x)
+	var dy := maxf(maxf(rect.position.y - point.y, 0.0), point.y - rect.end.y)
+	return Vector2(dx, dy).length()
+
+
+func _rects_distance(a: Rect2, b: Rect2) -> float:
+	var dx := maxf(maxf(a.position.x - b.end.x, 0.0), b.position.x - a.end.x)
+	var dy := maxf(maxf(a.position.y - b.end.y, 0.0), b.position.y - a.end.y)
+	return Vector2(dx, dy).length()
 
 
 ## Coloca o jogador a "distance" metros na frente da porta, olhando para ela.

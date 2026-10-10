@@ -145,6 +145,9 @@ func _draw() -> void:
 			_draw_label(font, String(area["name"]).split(" e ")[0], _pixel_rect(label_rect).get_center())
 	for landmark: Dictionary in _data["landmarks"]:
 		var at := to_pixel(landmark["pos"])
+		if landmark["kind"] == "home":
+			_draw_house(at, landmark["color"])
+			continue
 		draw_circle(at, 5.0, Color.BLACK)
 		draw_circle(at, 3.5, landmark["color"])
 
@@ -171,6 +174,16 @@ func _draw() -> void:
 		var width := font.get_string_size(_area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		draw_rect(Rect2(0.0, size.y - 22.0, size.x, 22.0), Color(0, 0, 0, 0.55))
 		draw_string(font, Vector2((size.x - width) / 2.0, size.y - 7.0), _area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("DDE2EA"))
+
+
+## Marco da casa: uma casinha (telhado e paredes) com contorno escuro, maior
+## que as bolinhas das estações.
+func _draw_house(at: Vector2, color: Color) -> void:
+	var house := PackedVector2Array([at + Vector2(0, -8), at + Vector2(7, -1), at + Vector2(5, -1),
+			at + Vector2(5, 6), at + Vector2(-5, 6), at + Vector2(-5, -1), at + Vector2(-7, -1)])
+	draw_colored_polygon(house, color)
+	house.append(house[0])
+	draw_polyline(house, Color.BLACK, 1.5)
 
 
 ## Faixa "Você está em casa" no alto do mapa (no lugar da seta).

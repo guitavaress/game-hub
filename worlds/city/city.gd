@@ -60,11 +60,13 @@ const METRO_MAX_PER_DISTRICT: int = 4
 ## A CASA (Fase 9): fica longe da cidade (fora de qualquer tamanho de
 ## cidade), ao sul. Ninguém a vê de fora: entra-se pela porta "Casa" da praça.
 const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
-## Porta "Casa" na praça (provisória: o visual final vem na 9.10): na beira
-## sul, de frente para o chafariz. Quem sai de casa aparece um pouco à frente
-## dela, olhando para o norte.
-const HOME_DOOR_SPOT: Vector3 = Vector3(0.0, 0.0, 12.5)
-const HOME_DOOR_ARRIVAL: Vector3 = Vector3(0.0, 0.1, 10.5)
+## Porta "Casa" na praça: na beira sul, a leste do eixo, de frente para o
+## norte (o chafariz). Fica fora dos caminhos de quem anda pela praça (os
+## eixos que levam às quatro ruas e o lado sul do chafariz), longe da estação
+## Central (a noroeste) e da roda de amigos. Quem sai de casa aparece um
+## pouco à frente dela, olhando para o norte.
+const HOME_DOOR_SPOT: Vector3 = Vector3(6.0, 0.0, 12.2)
+const HOME_DOOR_ARRIVAL: Vector3 = Vector3(6.0, 0.1, 10.0)
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -143,6 +145,8 @@ func _ready() -> void:
 	var half := CityLayout.half_extent(cells)
 	_map.set_bounds(half)
 	await _build_metro(districts)
+	# A porta "Casa" vira um marco nos mapas (depois das estações: fica por cima).
+	_map.add_landmark("home", "Casa", Vector2(HOME_DOOR_SPOT.x, HOME_DOOR_SPOT.z), HomeDoorFacade.NEON_COLOR)
 	await _keep_frame_light()
 	_build_ground_and_walls(half)
 	await _keep_frame_light()
@@ -682,44 +686,19 @@ func _build_home() -> void:
 	_home_door.rotation.y = PI  # a frente (+Z) da porta aponta para o chafariz (norte)
 	add_child(_home_door)
 	_home_door.set_destination(_home.get_spawn_transform())
-	_add_provisional_home_door_frame()
+	# A aparência é da cidade (o TravelDoor só tem a lógica): o quiosque com o
+	# néon "CASA", no mesmo lugar e virado para o mesmo lado.
+	var facade := HomeDoorFacade.new()
+	facade.name = "HomeDoorFacade"
+	facade.position = HOME_DOOR_SPOT
+	facade.rotation.y = PI
+	add_child(facade)
 
 	var front_door := _home.get_front_door()
 	front_door.detail = "Sair para a praça"
 	front_door.travel_message = "Praça"
 	# Chegando na praça: na frente da porta "Casa", olhando para o norte (-Z).
 	front_door.set_destination(Transform3D(Basis.IDENTITY, HOME_DOOR_ARRIVAL))
-
-
-## Moldura provisória da porta "Casa" (dois pilares, a viga e o nome), sem
-## colisão. O visual final é da subetapa 9.10.
-func _add_provisional_home_door_frame() -> void:
-	var frame := Node3D.new()
-	frame.name = "HomeDoorFrame"
-	frame.position = HOME_DOOR_SPOT
-	add_child(frame)
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.16, 0.13, 0.11)
-	for piece in [[Vector3(0.12, 2.5, 0.2), Vector3(-0.75, 1.25, 0.0)],
-			[Vector3(0.12, 2.5, 0.2), Vector3(0.75, 1.25, 0.0)],
-			[Vector3(1.62, 0.14, 0.2), Vector3(0.0, 2.55, 0.0)],
-			[Vector3(1.4, 2.4, 0.06), Vector3(0.0, 1.2, 0.05)]]:
-		var mesh := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = piece[0]
-		mesh.mesh = box
-		mesh.material_override = material
-		mesh.position = piece[1]
-		frame.add_child(mesh)
-	var label := Label3D.new()
-	label.text = "CASA"
-	label.font = HubFonts.SIGN
-	label.font_size = 64
-	label.pixel_size = 0.004
-	label.modulate = Color(1.0, 0.85, 0.6)
-	label.position = Vector3(0.0, 2.85, -0.12)
-	label.rotation.y = PI  # o texto lido de quem está na praça (ao norte)
-	frame.add_child(label)
 
 
 func get_home() -> Home:
