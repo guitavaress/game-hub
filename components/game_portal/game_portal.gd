@@ -182,8 +182,11 @@ func _on_session_ended(ended_app_id: int, source: Node, _success: bool, _message
 			ScreenFade.fade_in(RETURN_FADE_TIME)
 	elif source == null and ended_app_id == app_id and app_id > 0:
 		# Este jogo foi aberto POR FORA do hub e fechou: o jogador volta na
-		# porta deste portal, como se tivesse entrado por aqui.
-		_teleport_player_to_door(null)
+		# porta deste portal, como se tivesse entrado por aqui. Em casa, não:
+		# quem está na estante ou no computador não é puxado para a rua.
+		var player := get_tree().get_first_node_in_group("player") as Player
+		if player == null or not player.is_indoors():
+			_teleport_player_to_door(player)
 
 
 ## Leva o jogador para o ReturnPoint. Se não soubermos quem é (null), procuramos

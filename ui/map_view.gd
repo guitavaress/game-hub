@@ -35,6 +35,9 @@ var _data: Dictionary = {}
 var _area_name: String = ""
 var _heading: float = 0.0
 var _player_xz: Vector2 = Vector2.ZERO
+## O jogador está em casa: a casa fica longe da planta, então no lugar da seta
+## o mapa escreve "Você está em casa".
+var _indoors: bool = false
 var _target: Dictionary = {"visible": false}
 
 
@@ -60,9 +63,14 @@ func refresh() -> void:
 		_player_xz = Vector2(player.global_position.x, player.global_position.z)
 		_heading = deg_to_rad(Compass.bearing_of(-player.global_basis.z))
 		_area_name = map.area_name_at(player.global_position) if map != null else ""
+		_indoors = player.has_method("is_indoors") and player.is_indoors()
 	_target = _read_target()
 	_layout()
 	queue_redraw()
+
+
+func is_indoors() -> bool:
+	return _indoors
 
 
 func get_area_name() -> String:
@@ -146,20 +154,33 @@ func _draw() -> void:
 		draw_colored_polygon(PackedVector2Array([at + Vector2(0, -8), at + Vector2(7, 0), at + Vector2(0, 8), at + Vector2(-7, 0)]), color)
 		draw_polyline(PackedVector2Array([at + Vector2(0, -8), at + Vector2(7, 0), at + Vector2(0, 8), at + Vector2(-7, 0), at + Vector2(0, -8)]), Color.BLACK, 1.5)
 
-	# O jogador: uma seta branca virada para onde ele olha.
-	var me := _clamp_to_view(to_pixel(_player_xz))
-	var forward := Vector2(sin(_heading), -cos(_heading))
-	var side := Vector2(-forward.y, forward.x)
-	var arrow := PackedVector2Array([me + forward * 9.0, me - forward * 6.0 + side * 6.0, me - forward * 3.0, me - forward * 6.0 - side * 6.0])
-	draw_colored_polygon(arrow, PLAYER_COLOR)
-	arrow.append(arrow[0])
-	draw_polyline(arrow, Color.BLACK, 1.5)  # contorno: aparece até sobre a praça clara
+	if _indoors:
+		_draw_home_banner(font)
+	else:
+		# O jogador: uma seta branca virada para onde ele olha.
+		var me := _clamp_to_view(to_pixel(_player_xz))
+		var forward := Vector2(sin(_heading), -cos(_heading))
+		var side := Vector2(-forward.y, forward.x)
+		var arrow := PackedVector2Array([me + forward * 9.0, me - forward * 6.0 + side * 6.0, me - forward * 3.0, me - forward * 6.0 - side * 6.0])
+		draw_colored_polygon(arrow, PLAYER_COLOR)
+		arrow.append(arrow[0])
+		draw_polyline(arrow, Color.BLACK, 1.5)  # contorno: aparece até sobre a praça clara
 
 	draw_rect(Rect2(Vector2.ZERO, size), BORDER_COLOR, false, 1.0)
 	if show_area_name and not _area_name.is_empty():
 		var width := font.get_string_size(_area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		draw_rect(Rect2(0.0, size.y - 22.0, size.x, 22.0), Color(0, 0, 0, 0.55))
 		draw_string(font, Vector2((size.x - width) / 2.0, size.y - 7.0), _area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("DDE2EA"))
+
+
+## Faixa "Você está em casa" no alto do mapa (no lugar da seta).
+func _draw_home_banner(font: Font) -> void:
+	var text := "Você está em casa"
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	var box := Rect2((size.x - width) / 2.0 - 12.0, 10.0, width + 24.0, 28.0)
+	draw_rect(box, Color(0, 0, 0, 0.7))
+	draw_rect(box, PLAYER_COLOR, false, 1.0)
+	draw_string(font, Vector2(box.position.x + 12.0, box.position.y + 20.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, PLAYER_COLOR)
 
 
 ## Nome centrado no ponto, em texto claro com contorno.

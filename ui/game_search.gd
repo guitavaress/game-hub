@@ -43,6 +43,8 @@ var _selected: int = 0
 ## Distância (m) do jogador até cada portal, medida ao abrir.
 var _distances: Dictionary[GamePortal, float] = {}
 var _sound: AudioStreamPlayer
+## Texto do Enter na dica (em casa vira "ir até a porta").
+var _enter_hint: Label
 
 
 func _ready() -> void:
@@ -89,7 +91,7 @@ func _ready() -> void:
 	_field.add_theme_color_override("font_placeholder_color", HINT_COLOR)
 	_field.text_changed.connect(func(_text: String) -> void: _update_results())
 	_field.text_submitted.connect(func(_text: String) -> void:
-		if Input.is_key_pressed(KEY_SHIFT):
+		if Input.is_key_pressed(KEY_SHIFT) or _is_indoors():
 			travel_to_selected()
 		else:
 			_choose(_selected))
@@ -130,6 +132,7 @@ func can_open() -> bool:
 
 func open() -> void:
 	_measure_distances()
+	_update_hint()
 	_field.text = ""
 	_update_results()
 	visible = true
@@ -176,6 +179,17 @@ func choose_selected() -> void:
 ## Viaja até a porta do jogo escolhido (igual a apertar Shift+Enter).
 func travel_to_selected() -> void:
 	_travel(_selected)
+
+
+## O jogador está em casa? Lá não há ruas, então a faixa de luz não serve:
+## o Enter vira "ir até a porta" (igual ao Shift+Enter).
+func _is_indoors() -> bool:
+	var player := get_parent() as Player
+	return player != null and player.is_indoors()
+
+
+func _update_hint() -> void:
+	_enter_hint.text = "ir até a porta" if _is_indoors() else "acender o caminho"
 
 
 # --- Resultados ------------------------------------------------------------------
@@ -277,6 +291,9 @@ func _on_field_input(event: InputEvent) -> void:
 func _choose(index: int) -> void:
 	if index < 0 or index >= _results.size():
 		return
+	if _is_indoors():
+		_travel(index)
+		return
 	var portal := _results[index]
 	close()
 	_sound.play()
@@ -306,7 +323,8 @@ func _hint_row() -> Control:
 	row.add_child(_label("escolher", HubFonts.LIGHT, 14, HINT_COLOR))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Enter"))
-	row.add_child(_label("acender o caminho", HubFonts.LIGHT, 14, HINT_COLOR))
+	_enter_hint = _label("acender o caminho", HubFonts.LIGHT, 14, HINT_COLOR)
+	row.add_child(_enter_hint)
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Shift+Enter"))
 	row.add_child(_label("ir até lá", HubFonts.LIGHT, 14, HINT_COLOR))
