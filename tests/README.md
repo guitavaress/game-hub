@@ -13,7 +13,7 @@ Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada
 
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.
 
-**Duas instâncias do claude-squad:** o `user://` é um só para todos os worktrees, por isso o `run_tests.sh` usa uma trava (`flock`). Se outra bateria estiver rodando, aparece "outra bateria está rodando; esperando ela terminar" e esta começa depois. A trava só vale para o `run_tests.sh`: um `godot -s` rodado à mão não espera. No Git Bash do Windows, sem `flock`, o script segue sem trava.
+**Duas sessões em paralelo (worktrees):** o `user://` é um só para todos os worktrees, por isso o `run_tests.sh` usa uma trava (`flock`). Se outra bateria estiver rodando, aparece "outra bateria está rodando; esperando ela terminar" e esta começa depois. A trava só vale para o `run_tests.sh`: um `godot -s` rodado à mão não espera. No Git Bash do Windows, sem `flock`, o script segue sem trava.
 
 ## Escrever um teste novo
 

@@ -1,34 +1,34 @@
 # Fase 9: A casa
 
 **Status:** em andamento (aprovado em 2026-10-06)
-**Branch:** a sessão roda num **worktree do claude-squad**, na branch `guitavares/game-hub` (que hoje aponta para o mesmo commit da `fase-8`, `9136f27`). Os commits da fase vão nessa branch; o checkout principal (`~/git/game-hub`) fica na `fase-8` e não é tocado. No fim da fase, `git branch -f fase-9 HEAD` dá o nome de sempre à branch. A cadeia fica `main` ← `fase-linux` ← `fase-7` ← `fase-8` ← `fase-9`.
+**Branch:** `fase-9`, no checkout principal (`~/git/game-hub`), aberto como projeto no **Nimbalyst**. Até 9.3 e 9.6 a fase rodou num worktree do claude-squad (branch `guitavares/game-hub`); na migração (2026-10-10), a `fase-9` nasceu dela, em `08fcd02`. A cadeia fica `main` ← `fase-linux` ← `fase-7` ← `fase-8` ← `fase-9`.
 
-### Trabalho com o claude-squad
-- **Trilha principal** (instância "Game Hub", branch `guitavares/game-hub`):
+### Trabalho com o Nimbalyst
+- **Trilha principal** (sessão comum do projeto `~/git/game-hub`, branch `fase-9`):
   - faz as subetapas em ordem;
   - é a única que marca `[x]` e escreve em "Decisões tomadas durante a fase";
   - junta as branches paralelas.
-  - "Uma sessão por subetapa" vira um `/clear` (ou uma conversa nova) na mesma instância.
-- **Trilha paralela** (opcional, uma por vez): uma instância nova do cs para uma subetapa que não mexe nos mesmos arquivos da principal naquele momento.
+  - "Uma sessão por subetapa" vira um **New session** no mesmo projeto.
+- **Trilha paralela** (opcional, uma por vez): uma sessão em **New Worktree** (Ctrl+Alt+W) para uma subetapa que não mexe nos mesmos arquivos da principal naquele momento. O worktree nasce da branch atual do projeto (`fase-9`), na pasta `~/git/game-hub_worktrees/<nome>`, com a branch `worktree/<nome>`.
 
   | Janela | Principal | Paralela |
   |---|---|---|
-  | 1 (agora) | 9.1 → 9.2 → 9.3 | 9.6 |
-  | 2 (com a 9.3 e a 9.6 juntas) | 9.4 → 9.5 | 9.7 |
+  | 1 (feita) | 9.1 → 9.2 → 9.3 | 9.6 |
+  | 2 (agora) | 9.4 → 9.5 | 9.7 |
   | 3 (depois da 9.8) | 9.9 | 9.10 |
 
   A 9.8 e a 9.11 ficam só na principal.
 - **Passo a passo da paralela:**
-  1. No cs, `n` cria a instância com o nome da subetapa (ex.: "9.6 config").
-  2. Ela nasce do HEAD do checkout principal (`fase-8`) e não do nosso. Por isso, a primeira mensagem é: "`git merge --ff-only guitavares/game-hub`; depois execute a subetapa 9.N deste plano, sem marcar o plano; faça o commit com o e-mail noreply e me diga o hash".
-  3. Ela roda só os testes dela. **Nunca rode a bateria em duas instâncias ao mesmo tempo**: o `user://` (com o `config.cfg`, a chave e o cache) é um só para todos os worktrees.
+  1. No Nimbalyst, **New Worktree**, com o modelo e o esforço da subetapa.
+  2. Primeira mensagem: "execute a subetapa 9.N do plano `docs/plans/fase-9.md`, sem marcar o plano; faça o commit com o e-mail noreply e me diga o hash".
+  3. Ela roda só os testes dela. A bateria inteira tem trava (`flock`), então duas sessões não rodam ao mesmo tempo; um `godot -s` à mão não espera a trava.
   4. Para juntar, na principal e entre duas subetapas:
-     - `git merge --no-ff <branch da paralela> -m "Fase 9.N: junta a trilha paralela"`;
+     - `git merge --no-ff worktree/<nome> -m "Fase 9.N: junta a trilha paralela"`;
      - `bash tests/run_tests.sh`;
      - marcar `[x]` com o hash.
-  5. Só depois de juntar, encerrar a instância no cs (`D`).
-  6. Teste no editor: abrir o `project.godot` do worktree (o caminho aparece no cs). Cada worktree reimporta o projeto na primeira vez.
-  7. O atalho de push do cs não é usado sem o dono pedir.
+  5. **Não usar os botões Commit e Merge do Nimbalyst:** o Commit usa o e-mail do git global (o pessoal), e o Merge pula a bateria e o plano. Depois de juntar, apagar o worktree pelo Nimbalyst.
+  6. Teste no editor: abrir o `project.godot` da pasta do worktree. Cada worktree reimporta o projeto na primeira vez.
+  7. Nada de push sem o dono pedir.
 
 ## Contexto
 A Fase 8 está fechada (8.0–8.9 marcadas, commits até `9136f27`; faltam só as conferências no desktop/Windows, a partir de 18/10). A Fase 9 é o primeiro passo da ideia "a casa é o computador" (V2, [ROADMAP › Fase 9](../ROADMAP.md#fase-9-a-casa)). O jogador passa a **nascer dentro de um loft**, onde o HUD vira coisas físicas:
@@ -260,8 +260,8 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
 - **Testes dependem da praça:** com `play_intro = false`, tudo continua como hoje, e só os testes novos ligam a casa.
 - **Abrir jogo da estante e voltar:** a volta copia o que o portal faz (clarear só se o hub não dormiu). O teste cobre os dois casos.
 - **Esc em dobro:** o Esc da tela 3D, do campo de texto e do menu de pausa podem brigar. A ordem é testada na 9.7.
-- **Duas baterias ao mesmo tempo (claude-squad):** o `user://` é compartilhado entre os worktrees, e os testes que guardam e devolvem o `config.cfg` podem apagar a chave ou as opções. Por isso, só uma instância roda testes de cada vez.
-- **Instância nova sem o plano:** ela nasce da `fase-8`. Começar com `git merge --ff-only guitavares/game-hub`.
+- **Duas baterias ao mesmo tempo:** o `user://` é compartilhado entre os worktrees, e os testes que guardam e devolvem o `config.cfg` podem apagar a chave ou as opções. A trava do `run_tests.sh` faz uma esperar a outra; um `godot -s` à mão fica de fora.
+- **Botões do Nimbalyst:** o Commit usaria o e-mail pessoal e o Merge pularia a bateria e o plano. Os dois ficam sem uso.
 
 ## Fora do escopo
 - Avatar visível, personalizar a casa (mover móveis, trocar cores), cabana ou outros temas e estatísticas na parede. Anotar no "Depois" do ROADMAP como "Casa, parte 2".
@@ -289,6 +289,10 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - Conferir no desktop (a meta é ≤ 50 ms lá).
   - A abertura pelo céu saiu. `start_intro`/`finish_intro` ficaram só para a tela "GAME HUB" (~0,8 s). `player.world_loading` trava a busca e o mapa enquanto a cidade monta.
 - 2026-10-10: o claude-squad, ao pausar a instância, faz um commit automático ("[claudesquad] update … (paused)") com o e-mail do git global, que é o pessoal. Esse commit foi desfeito e refeito como `Fase 9.3` com o e-mail noreply. Ao retomar uma instância pausada, a pasta `.godot` some e o projeto precisa ser reimportado.
+- 2026-10-10: **migração do claude-squad para o Nimbalyst** (dono).
+  - A `fase-9` nasceu da `guitavares/game-hub` em `08fcd02` (9.3, 9.6 e a trava da bateria juntas) e fica no checkout principal.
+  - A paralela usa New Worktree, que parte da branch atual: acabou o `git merge --ff-only` da primeira mensagem.
+  - Motivos: ver os diffs e o plano de forma visual, e o cs fazia commits automáticos com o e-mail pessoal.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

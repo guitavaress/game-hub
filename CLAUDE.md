@@ -92,8 +92,9 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 ### Sessões e contexto
 - **Uma sessão por subetapa grande.** O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
 - Leia o mapa acima antes de explorar o código. Abra só os arquivos que o passo precisa.
-- **claude-squad:** as sessões rodam em instâncias do cs, cada uma com o seu worktree e a sua branch. Uma instância nova nasce do HEAD do checkout principal, então ela começa com `git merge --ff-only <branch da trilha principal>`. O plano da fase diz quem é a trilha principal.
-- **Nunca rode a bateria em duas instâncias ao mesmo tempo:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O atalho de push do cs não é usado sem o dono pedir.
+- **Nimbalyst:** o projeto é o checkout principal (`~/git/game-hub`), na branch da fase. A trilha principal usa sessões comuns; uma trilha paralela usa **New Worktree**, que nasce da branch atual em `~/git/game-hub_worktrees/<nome>` (branch `worktree/<nome>`). O plano da fase diz quem é a trilha principal e como juntar.
+- **Botões Commit e Merge do Nimbalyst não são usados:** o Commit usa o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply.
+- **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava, mas um `godot -s` rodado à mão não espera.
 
 ### Testes
 - **Antes de cada commit:** `bash tests/run_tests.sh` precisa terminar com `RESULTADO GERAL: TUDO OK`.
