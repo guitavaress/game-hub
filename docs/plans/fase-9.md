@@ -220,7 +220,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - o menu de pausa não abre durante o foco.
   - Manual: captura da câmera focada, para ver se o texto fica legível.
   - Commit: `Fase 9.7: tela 3D e computador`
-- [ ] **9.8 Busca, mapa e volta dentro de casa** (Sonnet · medium)
+- [x] **9.8 Busca, mapa e volta dentro de casa** (Sonnet · medium) — e739731
   - Faz:
     - na busca em casa, Enter = ir até a porta (com a dica);
     - o mapa abre com "Você está em casa";
