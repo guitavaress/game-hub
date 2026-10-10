@@ -241,7 +241,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
   - Teste: em `check_home`, uma conferência geométrica como a do metrô. `check_metro`, `check_holograms` e `check_phase6_audio` passam.
   - Manual: capturas de dia e de noite.
   - Commit: `Fase 9.10: porta de casa na praça`
-- [x] **9.11 Desempenho e docs** (Sonnet · low; Opus se a medida pedir ajuste)
+- [x] **9.11 Desempenho e docs** (Sonnet · low; Opus se a medida pedir ajuste) — e7822bf
   - Faz:
     - `tools/medir_desempenho.gd` ganha um trecho dentro de casa; roda no notebook (comparação relativa) e anota;
     - README: a casa, o E, a estante, o mural e o computador;
