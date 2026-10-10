@@ -5,7 +5,9 @@ extends SceneTree
 ##     minimapa, som do mundo abafado;
 ##   - E na porta da rua devolve à praça, e tudo volta ao normal;
 ##   - nenhuma porta abre com um jogo abrindo/rodando, nem trancada;
-##   - o sol da cidade não ilumina a camada do interior.
+##   - o sol da cidade não ilumina a camada do interior;
+##   - o loft (9.9): nada fica fora da sala, dá para andar do ponto de nascer
+##     até cada móvel e até a porta, e a janela acompanha a hora.
 
 const INTERIOR_MASK := 1 << 19  # camada de render 20 (Home.INTERIOR_LAYER)
 
@@ -103,6 +105,8 @@ func _run() -> void:
 	forward = -player.global_basis.z
 	_check("olhando para o chafariz (norte)", forward.dot(Vector3(0.0, 0.0, -1.0)) > 0.95)
 
+	await _check_loft(home, player)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
@@ -130,6 +134,65 @@ func _ambience_muffled() -> bool:
 		if not AudioServer.is_bus_effect_enabled(bus, i):
 			muffled = false
 	return muffled
+
+
+## O loft (9.9): tudo dentro da sala, passagens livres e a janela com a hora.
+func _check_loft(home: Node3D, player: CharacterBody3D) -> void:
+	print("== O loft ==")
+	var room: Vector3 = home.ROOM_SIZE
+	var inner := AABB(Vector3(-room.x / 2.0, 0.0, -room.z / 2.0), room).grow(0.03)
+	var outside: Array[String] = []
+	var pieces := 0
+	for mesh in _geometry(home):
+		if mesh.name.begins_with("Floor") or mesh.name.begins_with("Ceiling") or mesh.name.begins_with("Wall"):
+			continue  # a casca da sala fica do lado de fora de propósito
+		pieces += 1
+		var box: AABB = mesh.global_transform * mesh.get_aabb()
+		box.position -= home.global_position
+		if not inner.encloses(box):
+			outside.append(String(mesh.name))
+	if not outside.is_empty():
+		print("   fora da sala: ", outside)
+	_check("nada fica fora da sala (%d peças)" % pieces, outside.is_empty())
+
+	# Passagens: o corpo do jogador anda em linha reta de ponto em ponto
+	# (coordenadas da casa, em x e z), sem bater em nada.
+	var shape: Shape3D = player.get_node("CollisionShape3D").shape
+	var routes := {
+		"estante": [Vector2(0.0, 1.5), Vector2(-3.5, 1.5), Vector2(-3.5, -0.5)],
+		"mural": [Vector2(0.0, 1.5), Vector2(3.5, 1.5), Vector2(3.5, -0.5)],
+		"computador": [Vector2(0.0, 1.5), Vector2(3.6, 1.5), Vector2(3.6, -3.1)],
+		"janela": [Vector2(0.0, 1.5), Vector2(-2.4, 1.5), Vector2(-2.4, -3.8)],
+		"porta da rua": [Vector2(0.0, 1.5), Vector2(0.0, 3.9)],
+	}
+	var space := player.get_world_3d().direct_space_state
+	for target in routes:
+		var points: Array = routes[target]
+		var free := true
+		for i in points.size() - 1:
+			var query := PhysicsShapeQueryParameters3D.new()
+			query.shape = shape
+			query.collision_mask = 1
+			query.exclude = [player.get_rid()]
+			var from: Vector2 = points[i]
+			var to: Vector2 = points[i + 1]
+			query.transform = Transform3D(Basis.IDENTITY, home.to_global(Vector3(from.x, 1.05, from.y)))
+			query.motion = home.global_basis * Vector3(to.x - from.x, 0.0, to.y - from.y)
+			if space.cast_motion(query)[0] < 1.0:
+				free = false
+		_check("passagem livre até: %s" % target, free)
+
+	_check("a casa ouve a hora (grupo city_night)", home.is_in_group("city_night"))
+	var night_before: float = home.get_night()
+	var window: ShaderMaterial = home.get_node("WindowView").material_override
+	var daylight: SpotLight3D = home.get_node("Daylight")
+	home.set_night(0.0)
+	_check("de dia: janela clara e luz do dia entrando", window.get_shader_parameter("night") == 0.0
+			and daylight.visible and daylight.light_energy > 1.0)
+	home.set_night(1.0)
+	_check("de noite: janela escura e sem luz do dia", window.get_shader_parameter("night") == 1.0
+			and not daylight.visible)
+	home.set_night(night_before)
 
 
 func _geometry(node: Node) -> Array[GeometryInstance3D]:

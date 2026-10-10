@@ -122,6 +122,7 @@ var _district_signs: Array[DistrictSign] = []
 func _ready() -> void:
 	_build_environment()
 	_build_home()
+	_home.set_night(_day_night.get_night())  # a janela da casa já nasce na hora certa
 	# O jogador nasce antes da cidade: dentro de casa (na abertura).
 	var player := _spawn_player()
 	_frame_started_us = Time.get_ticks_usec()

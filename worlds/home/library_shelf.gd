@@ -16,9 +16,13 @@ const ROWS: int = 3
 const PER_PAGE: int = COLUMNS * ROWS
 ## Tamanho da caixa (largura, altura, espessura) e espaço entre os centros.
 const BOX_SIZE: Vector3 = Vector3(0.4, 0.6, 0.06)
-const BOX_STEP: Vector2 = Vector2(0.52, 0.8)
+const BOX_STEP: Vector2 = Vector2(0.52, 0.72)
+## Ordem em que as fileiras se enchem (0 = a de baixo): primeiro a da altura
+## dos olhos, depois a de cima e por último a de baixo. Assim, com poucos
+## jogos, os mais recentes ficam bem na frente de quem olha.
+const ROW_ORDER: Array[int] = [1, 2, 0]
 ## Altura do centro da fileira de baixo; as outras sobem de BOX_STEP.y.
-const FIRST_ROW_Y: float = 1.0
+const FIRST_ROW_Y: float = 0.8
 ## Segundos segurando E até o jogo abrir.
 const HOLD_SECONDS: float = 1.2
 ## Segundos para a tela clarear quando o jogador volta do jogo.
@@ -26,6 +30,7 @@ const RETURN_FADE_TIME: float = 0.8
 ## Onde o jogador reaparece (na frente da estante, olhando para ela).
 const RETURN_SPOT: Vector3 = Vector3(0.0, 0.1, 2.5)
 const PANEL_COLOR: Color = Color(0.16, 0.11, 0.08)
+const FRAME_WOOD: Color = Color(0.3, 0.19, 0.11)
 const FILTER_ALL: String = ""
 
 var _page: int = 0
@@ -164,7 +169,7 @@ func _build_page() -> void:
 	var width := (COLUMNS - 1) * BOX_STEP.x
 	for i in mini(PER_PAGE, _app_ids.size() - first):
 		var column := i % COLUMNS
-		var row := ROWS - 1 - floori(i / float(COLUMNS))  # a primeira fileira é a de cima
+		var row := ROW_ORDER[floori(i / float(COLUMNS))]
 		var box := ShelfBox.new()
 		box.shelf = self
 		box.app_id = _app_ids[first + i]
@@ -172,7 +177,7 @@ func _build_page() -> void:
 		_slots.add_child(box)
 		_boxes_by_app[box.app_id] = box
 	_page_label.text = "%d / %d" % [_page + 1, get_page_count()]
-	_filter_label.text = "Todos" if _filter.is_empty() else GameCategories.get_category_name(_filter)
+	_filter_label.text = "TODOS OS JOGOS" if _filter.is_empty() else GameCategories.get_category_name(_filter).to_upper()
 
 
 func _on_art_ready(app_id: int, _texture: Texture2D) -> void:
@@ -215,38 +220,56 @@ func _on_session_ended(_app_id: int, source: Node, _success: bool, _message: Str
 
 # --- Montagem -------------------------------------------------------------------
 
-## O fundo da estante (com colisão, para ninguém atravessar) e a moldura.
+## O móvel: fundo, laterais, tampo, rodapé e uma prateleira embaixo de cada
+## fileira de caixas, em madeira. O fundo e as laterais têm colisão (o
+## jogador não atravessa a estante); as prateleiras não, para não esconder as
+## capas do raio do olhar.
 func _build_frame() -> void:
 	var width := (COLUMNS - 1) * BOX_STEP.x + 0.8
-	var height := FIRST_ROW_Y + (ROWS - 1) * BOX_STEP.y + 0.7
-	var material := StandardMaterial3D.new()
-	material.albedo_color = PANEL_COLOR
-	material.roughness = 0.8
-	var panel := MeshInstance3D.new()
-	panel.name = "Panel"
+	var top := FIRST_ROW_Y + (ROWS - 1) * BOX_STEP.y + BOX_SIZE.y / 2.0 + 0.12
+	var depth := 0.26
+	var wood := HomeMaterials.wood(FRAME_WOOD, false, 0.45)
+	var back := HomeMaterials.wood(PANEL_COLOR, false, 0.7)
+	_add_part("Panel", Vector3(width, top, 0.04), Vector3(0.0, top / 2.0, 0.02), back, true)
+	for side in [-1.0, 1.0]:
+		_add_part("Side", Vector3(0.05, top, depth), Vector3(side * (width / 2.0 + 0.025), top / 2.0, depth / 2.0), wood, true)
+	_add_part("Top", Vector3(width + 0.1, 0.16, depth + 0.02), Vector3(0.0, top + 0.03, depth / 2.0), wood, false)
+	_add_part("Plinth", Vector3(width, 0.1, depth - 0.02), Vector3(0.0, 0.05, depth / 2.0), wood, false)
+	for row in ROWS:
+		var board_y := FIRST_ROW_Y + row * BOX_STEP.y - BOX_SIZE.y / 2.0 - 0.015
+		_add_part("Board", Vector3(width, 0.03, depth - 0.02), Vector3(0.0, board_y, depth / 2.0), wood, false)
+
+
+func _add_part(part_name: String, part_size: Vector3, center: Vector3, material: Material, solid: bool) -> void:
+	var part := MeshInstance3D.new()
+	part.name = part_name
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(width, height, 0.08)
-	panel.mesh = mesh
-	panel.material_override = material
-	panel.position = Vector3(0.0, height / 2.0 + 0.05, 0.04)
-	panel.layers = Home.INTERIOR_LAYER_MASK
-	var body := StaticBody3D.new()
-	var shape := CollisionShape3D.new()
-	var box_shape := BoxShape3D.new()
-	box_shape.size = mesh.size
-	shape.shape = box_shape
-	body.add_child(shape)
-	panel.add_child(body)
-	add_child(panel)
+	mesh.size = part_size
+	part.mesh = mesh
+	part.material_override = material
+	part.position = center
+	part.layers = Home.INTERIOR_LAYER_MASK
+	if solid:
+		var body := StaticBody3D.new()
+		var shape := CollisionShape3D.new()
+		var box_shape := BoxShape3D.new()
+		box_shape.size = part_size
+		shape.shape = box_shape
+		body.add_child(shape)
+		part.add_child(body)
+	add_child(part)
 
 
-## As placas: página anterior, próxima e filtro, embaixo das caixas.
+## As placas embaixo das caixas (página anterior, próxima e filtro) e, no
+## alto da estante, o nome do filtro de agora ("TODOS OS JOGOS", "CARTAS…").
 func _build_buttons() -> void:
-	_page_label = _make_label("1 / 1", Vector3(0.0, 0.62, 0.1))
-	_filter_label = _make_label("Todos", Vector3(1.55, 0.62, 0.1))
-	_add_button("PrevPage", "<", "Página anterior", Vector3(-0.55, 0.62, 0.1), previous_page)
-	_add_button("NextPage", ">", "Próxima página", Vector3(0.55, 0.62, 0.1), next_page)
-	_add_button("Filter", "Bairro", "Trocar o bairro", Vector3(1.55, 0.36, 0.1), next_filter)
+	_page_label = _make_label("1 / 1", Vector3(0.0, 0.3, 0.1))
+	var top := FIRST_ROW_Y + (ROWS - 1) * BOX_STEP.y + BOX_SIZE.y / 2.0 + 0.12
+	_filter_label = _make_label("TODOS OS JOGOS", Vector3(0.0, top + 0.03, 0.29))
+	_filter_label.font_size = 40
+	_add_button("PrevPage", "<", "Página anterior", Vector3(-0.55, 0.3, 0.1), previous_page)
+	_add_button("NextPage", ">", "Próxima página", Vector3(0.55, 0.3, 0.1), next_page)
+	_add_button("Filter", "Bairro", "Trocar o bairro", Vector3(1.55, 0.3, 0.1), next_filter)
 
 
 func _make_label(text: String, at: Vector3) -> Label3D:

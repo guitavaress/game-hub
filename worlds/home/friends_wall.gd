@@ -17,7 +17,9 @@ const CARD_SIZE: Vector3 = Vector3(1.0, 0.56, 0.05)
 const CARD_STEP: Vector2 = Vector2(1.15, 0.7)
 ## Altura do centro da fileira de baixo.
 const FIRST_ROW_Y: float = 1.0
-const PANEL_COLOR: Color = Color(0.13, 0.12, 0.14)
+const CORK_COLOR: Color = Color(0.52, 0.36, 0.22)
+const FRAME_WOOD: Color = Color(0.3, 0.19, 0.11)
+const TITLE_COLOR: Color = Color(1.0, 0.55, 0.85)
 const PLAYING_COLOR: Color = Color(0.55, 0.85, 0.35)
 const ONLINE_COLOR: Color = Color(0.4, 0.7, 1.0)
 const AWAY_COLOR: Color = Color(0.9, 0.7, 0.3)
@@ -130,19 +132,21 @@ func _on_avatar_ready(steam_id: String, texture: Texture2D) -> void:
 		(quad.material_override as StandardMaterial3D).albedo_texture = texture
 
 
+## O quadro de cortiça com moldura de madeira e o título em cima. O quadro
+## tem colisão (o jogador não entra nele).
 func _build_frame() -> void:
 	var width := (COLUMNS - 1) * CARD_STEP.x + 1.4
-	var height := FIRST_ROW_Y + (ROWS - 1) * CARD_STEP.y + 0.7
-	var material := StandardMaterial3D.new()
-	material.albedo_color = PANEL_COLOR
-	material.roughness = 0.9
+	var bottom := FIRST_ROW_Y - CARD_SIZE.y / 2.0 - 0.2
+	var top := FIRST_ROW_Y + (ROWS - 1) * CARD_STEP.y + CARD_SIZE.y / 2.0 + 0.32
+	var height := top - bottom
+	var cork := HomeMaterials.fabric(CORK_COLOR)
 	var panel := MeshInstance3D.new()
 	panel.name = "Panel"
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(width, height, 0.08)
+	mesh.size = Vector3(width, height, 0.06)
 	panel.mesh = mesh
-	panel.material_override = material
-	panel.position = Vector3(0.0, height / 2.0 + 0.05, 0.04)
+	panel.material_override = cork
+	panel.position = Vector3(0.0, bottom + height / 2.0, 0.03)
 	panel.layers = Home.INTERIOR_LAYER_MASK
 	var body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
@@ -152,6 +156,38 @@ func _build_frame() -> void:
 	body.add_child(shape)
 	panel.add_child(body)
 	add_child(panel)
+
+	# Moldura: quatro ripas de madeira em volta do quadro.
+	var wood := HomeMaterials.wood(FRAME_WOOD, false, 0.45)
+	var bar := 0.07
+	for y in [bottom, top]:
+		_frame_bar(Vector3(width + bar * 2.0, bar, 0.08), Vector3(0.0, y, 0.04), wood)
+	for x in [-width / 2.0 - bar / 2.0, width / 2.0 + bar / 2.0]:
+		_frame_bar(Vector3(bar, height, 0.08), Vector3(x, bottom + height / 2.0, 0.04), wood)
+
+	var title := Label3D.new()
+	title.name = "Title"
+	title.text = "AMIGOS ONLINE"
+	title.font_size = 64
+	title.pixel_size = 0.003
+	title.modulate = TITLE_COLOR
+	title.outline_size = 10
+	title.outline_modulate = Color(0.05, 0.03, 0.05)
+	title.position = Vector3(0.0, top - 0.17, 0.065)
+	title.layers = Home.INTERIOR_LAYER_MASK
+	add_child(title)
+
+
+func _frame_bar(bar_size: Vector3, center: Vector3, material: Material) -> void:
+	var bar := MeshInstance3D.new()
+	bar.name = "FrameBar"
+	var mesh := BoxMesh.new()
+	mesh.size = bar_size
+	bar.mesh = mesh
+	bar.material_override = material
+	bar.position = center
+	bar.layers = Home.INTERIOR_LAYER_MASK
+	add_child(bar)
 
 
 ## Cartões e rótulos: a base (área olhável na camada 3, placa e texto).

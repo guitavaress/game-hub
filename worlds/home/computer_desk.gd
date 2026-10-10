@@ -22,7 +22,8 @@ const MONITOR_DEPTH: float = 0.04
 ## Pixels do conteúdo da tela (mesma proporção da tela).
 const SCREEN_RESOLUTION: Vector2i = Vector2i(1152, 648)
 
-const DESK_COLOR: Color = Color(0.24, 0.17, 0.12)
+const DESK_COLOR: Color = Color(0.3, 0.19, 0.11)
+const LAMP_COLOR: Color = Color(1.0, 0.74, 0.48)
 const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
 const SCREEN_BACKGROUND: Color = Color("0E1015")
 
@@ -46,15 +47,39 @@ func get_settings() -> SettingsView:
 
 # --- Montagem -------------------------------------------------------------------
 
-## Tampo e duas laterais (com colisão: o jogador não atravessa a mesa).
+## Tampo de madeira em pés de aço (com colisão: o jogador não atravessa a
+## mesa), um teclado, um mouse e uma luminária de mesa.
 func _build_desk() -> void:
-	var wood := _material(DESK_COLOR, 0.6)
+	var wood := HomeMaterials.wood(DESK_COLOR, false, 0.4)
+	var steel := HomeMaterials.metal(Color(0.09, 0.09, 0.1))
 	var top_y := DESK_SIZE.y - TOP_THICKNESS / 2.0
 	_add_box("Top", Vector3(DESK_SIZE.x, TOP_THICKNESS, DESK_SIZE.z), Vector3(0.0, top_y, 0.0), wood)
 	var leg_height := DESK_SIZE.y - TOP_THICKNESS
 	for side in [-1.0, 1.0]:
-		var x: float = side * (DESK_SIZE.x / 2.0 - 0.04)
-		_add_box("Side", Vector3(0.06, leg_height, DESK_SIZE.z - 0.04), Vector3(x, leg_height / 2.0, 0.0), wood)
+		var x: float = side * (DESK_SIZE.x / 2.0 - 0.06)
+		_add_box("Side", Vector3(0.04, leg_height, DESK_SIZE.z - 0.08), Vector3(x, leg_height / 2.0, 0.0), steel)
+		_add_box("Foot", Vector3(0.06, 0.03, DESK_SIZE.z - 0.04), Vector3(x, 0.015, 0.0), steel, false)
+	var dark := _material(Color(0.07, 0.07, 0.08), 0.5)
+	_add_box("Keyboard", Vector3(0.44, 0.02, 0.14), Vector3(-0.05, DESK_SIZE.y + 0.01, 0.12), dark, false)
+	_add_box("Mouse", Vector3(0.06, 0.02, 0.1), Vector3(0.3, DESK_SIZE.y + 0.01, 0.12), dark, false)
+	_build_desk_lamp(Vector3(-DESK_SIZE.x / 2.0 + 0.18, DESK_SIZE.y, -0.12))
+
+
+## Luminária de mesa: base, haste e cabeça acesa, com uma luz quente pequena.
+func _build_desk_lamp(at: Vector3) -> void:
+	var steel := HomeMaterials.metal(Color(0.09, 0.09, 0.1))
+	_add_box("LampBase", Vector3(0.14, 0.02, 0.14), at + Vector3(0.0, 0.01, 0.0), steel, false)
+	_add_box("LampArm", Vector3(0.02, 0.42, 0.02), at + Vector3(0.0, 0.22, 0.0), steel, false)
+	var head := _add_box("LampHead", Vector3(0.16, 0.05, 0.08), at + Vector3(0.04, 0.44, 0.04), steel, false)
+	head.rotation.z = deg_to_rad(-15.0)
+	_add_box("LampGlow", Vector3(0.12, 0.01, 0.06), at + Vector3(0.045, 0.41, 0.04), HomeMaterials.glow(LAMP_COLOR, 5.0), false)
+	var light := OmniLight3D.new()
+	light.name = "DeskLight"
+	light.light_color = LAMP_COLOR
+	light.light_energy = 0.6
+	light.omni_range = 1.8
+	light.position = at + Vector3(0.05, 0.35, 0.05)
+	add_child(light)
 
 
 ## Monitor no fundo da mesa: pé, corpo e a tela (Screen3D) na frente do corpo.
