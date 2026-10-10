@@ -1,6 +1,6 @@
 # Fase 10: Acabamento
 
-**Status:** em andamento
+**Status:** concluída (no Linux; falta a conferência no desktop)
 **Branch:** `fase-10`, nascida da `fase-9` (`3eb8403`), no checkout principal (`~/git/game-hub`). A cadeia fica `main` ← `fase-linux` ← … ← `fase-9` ← `fase-10`.
 
 ## Contexto
@@ -158,6 +158,16 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 - 2026-10-10 (10.5): feita na trilha principal, em sequência (sem worktree). Os pesos ficaram os da tabela; a captura de cima mostra Estratégia alta e de concreto claro, RPG baixo e de tijolo. O `check_variants` ("mesmo jogo, mesmo prédio") passou a refazer o prédio com os pesos do bairro, como a cidade faz.
 - 2026-10-10 (10.6): a grua da Simulação gira em cima do prédio mais alto de cada quarteirão e chega a ~46 m, acima do "prédio mais alto possível" (35,7 m, `BuildingVariant.max_total_height()`, com recuo e caixa d'água). Para ela não atravessar o letreiro, os enfeites que sobem acima dos telhados dizem até onde vão (`get_top_y()`, hoje só o `ConstructionSite`), e o letreiro fica acima do maior dos dois, com 5 m de folga até o meio da placa. Por isso o letreiro nasce no fim do bairro (junto do clima), e não junto do pórtico: a grua de um quarteirão vizinho alcança a ponta dele. Com 200 jogos falsos: 40,7 m nos bairros sem grua e 51,2 m na Simulação.
 - 2026-10-10 (10.7): o `finish_intro` abre o cartão de controles **antes** de mostrar o HUD; assim, quando o HUD aparece, os avisos que esperavam (o dos amigos) continuam na fila até o cartão sair. O cartão fica 150 px acima do pé da tela, para não encostar no cartão do que se olha. O E é lido com `Input.is_action_just_pressed` no `_process` (e não por `_input`), o que também funciona com o `Input.action_press` dos testes.
+- 2026-10-10 (10.9): medida final, Leve, `fase-9` (`3eb8403`, num worktree temporário) × `fase-10`, **intercaladas** (uma rodada de cada, alternando), porque o notebook não estava parado (Chromium entre 50% e 93% da CPU). As duas versões sofreram a mesma interferência, e a `fase-10` ganhou nas quatro duplas:
+
+  | Medida | Rodada | fase-9 FPS | fase-10 FPS | fase-9 p99 | fase-10 p99 | Desenhos (9 → 10) | Textura (9 → 10) |
+  |---|---|---|---|---|---|---|---|
+  | 200 jogos, 22 h | 1 | 22,0 | 33,1 | 72 ms | 51 ms | 3176 → 2360 | 552 → 467 MB |
+  | 200 jogos, 22 h | 2 | 28,8 | 51,1 | 69 ms | 37 ms | 1804 → 1405 | 531 → 446 MB |
+  | 30 jogos, 12 h | 1 | 33,2 | 57,6 | 49 ms | 31 ms | 859 → 795 | 276 → 191 MB |
+  | 30 jogos, 12 h | 2 | 31,4 | 58,6 | 47 ms | 28 ms | 886 → 797 | 276 → 191 MB |
+
+  Em casa, as duas ficaram em ~49–60 FPS. O critério "não piora mais de ~2 FPS na Leve" passou com folga: a Leve ficou mais leve (sombra do sol até 70 m e atlas de 2048, menos desenhos; texturas comprimidas, ~85 MB a menos). Com o notebook parado, os números absolutos devem subir nas duas; vale repetir à mão (`-- 200 leve 22` e `-- 30 leve 12`, nas duas branches, no mesmo dia).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:

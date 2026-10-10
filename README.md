@@ -2,7 +2,7 @@
 
 Um launcher para a biblioteca Steam em forma de **mundo 3D em primeira pessoa**, feito em [Godot 4](https://godotengine.org).
 
-Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o banner do jogo no alto da fachada e o logo sobre a porta. Os prédios ficam agrupados em **bairros por categoria** (RPG, Sobrevivência e Terror, Cartas e Tabuleiro...), cada um com a sua cor de néon e o seu jeito. Ao parar na porta de um prédio, um anel enche em volta da mira; aí aparece a tela "Abrindo X…", o jogo abre pela Steam e o hub se minimiza. Quando você fecha o jogo, o hub volta com você na porta do mesmo prédio e um resumo da sessão ("1 h 12 min de Balatro").
+Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o banner do jogo no alto da fachada e o logo sobre a porta. Os prédios ficam agrupados em **bairros por categoria** (RPG, Sobrevivência e Terror, Cartas e Tabuleiro...), cada um com a sua cor de néon, a sua arquitetura e o seu nome em letreiro por cima dos telhados. Ao entrar na porta de um prédio, um anel enche em volta da mira; aí aparece a tela "Abrindo X…", o jogo abre pela Steam e o hub se minimiza. Quando você fecha o jogo, o hub volta com você na porta do mesmo prédio e um resumo da sessão ("1 h 12 min de Balatro").
 
 ## Situação do projeto
 
@@ -20,6 +20,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta no Linux (falta a conferência no Windows) |
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
 | 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
+| 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
@@ -101,7 +102,11 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo (recue antes do anel encher para cancelar) |
 | Esc, enquanto o jogo está abrindo | Cancelar a espera |
 
-**PC fraco?** No menu de pausa, em **Qualidade**, escolha **Leve**: desliga os reflexos, o sombreamento extra e a névoa, e desenha o 3D em metade da resolução.
+**PC fraco?** No menu de pausa, em **Qualidade**, escolha **Leve**: desliga os reflexos, o sombreamento extra e a névoa, desenha o 3D em metade da resolução, usa o anti-aliasing mais barato (FXAA) e encurta a sombra do sol.
+
+**Qualidades:** **Alta** liga tudo e alisa as bordas com MSAA 2x + SMAA; **Média** tira os reflexos na tela e usa SMAA; **Leve** é a de cima. As texturas do chão e das paredes têm mipmaps: o asfalto ao longe não "granula" nem cintila. A interface (menus, avisos, mapa) cresce junto com a janela, então ocupa a mesma parte da tela em 720p, 1080p ou 1440p.
+
+**Primeira vez:** ao abrir o hub pela primeira vez, um cartão no pé da tela mostra as teclas principais (some no primeiro E ou depois de 15 s; não aparece de novo). Os outros avisos esperam ele sair. Quando a cidade termina de montar, aparece "A cidade está pronta", com um som curto.
 
 ## Configuração
 
@@ -169,18 +174,18 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 
 ## A casa
 
-Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela) e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
+Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela), virado para a estante e o janelão, e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
 
 - **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
 - **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
 - **Computador:** E aproxima a câmera da tela, que mostra as mesmas abas do menu de pausa (som e vídeo, controles, amigos), clicáveis, com o campo da chave. Esc devolve a câmera.
-- **Portas:** E na porta do loft leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
+- **Portas:** E na porta do loft ("E para sair") leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
 
 ## Detalhes da cidade
 
-- **Cartão do jogo:** ao olhar para um prédio, o HUD mostra o bairro, o nome, o tempo jogado e quando foi a última vez ("23 h jogadas · jogado ontem") e quais amigos estão jogando. O hub lê as horas do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
+- **Cartão do jogo:** ao olhar para um prédio, o HUD mostra o bairro, o nome, o tempo jogado e quando foi a última vez ("23 h jogadas · jogado ontem"), quais amigos estão jogando e como entrar ("Entre pela porta para jogar"). O hub lê as horas do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
 - **Arte da Steam:** o banner largo do jogo (hero) no alto da fachada e o logo sobre a porta; sem banner, a capa em pé.
-- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada e placas nas esquinas. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando, névoa baixa e garoa à noite no de Terror.
+- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada, placas nas esquinas e **um letreiro grande acima dos telhados**, que se vê de longe. A **arquitetura** também muda: Estratégia e Simulação são altos; RPG e Aventura, baixos e de tijolo; Casual, baixo e claro; Terror, baixo e de concreto escuro. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando, névoa baixa e garoa à noite no de Terror.
 - **Prédios variados:** andares, recuo no topo, marquise, tipo de janela e caixa d'água mudam de prédio para prédio (sempre iguais para o mesmo jogo).
 - **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
 - **Dia e noite:** seguem o relógio do PC (ou ficam fixos, pelo menu). No pôr do sol o céu fica dourado e as janelas acendem uma a uma; à noite acendem os postes, o néon e as vitrines, e as poças refletem as luzes. No horizonte, uma silhueta de cidade.

@@ -1,6 +1,11 @@
 extends SceneTree
 ## Mede o desempenho da cidade andando (Fase 8). Rode COM JANELA, à mão:
 ##
+## ATENÇÃO (revisão de 2026-10-10, item 8.3): no notebook, meça com ele PARADO
+## (sem vídeo, navegador ou outro programa pesado) e compare a versão antiga e
+## a nova LADO A LADO, no mesmo dia. Com outra coisa rodando, o FPS cai pela
+## metade e até os desenhos por quadro mudam, sem nenhuma mudança no código.
+##
 ##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>
 ##
 ##   jogos      0 = a biblioteca de verdade; N = N jogos falsos (tests/fake_library.gd)

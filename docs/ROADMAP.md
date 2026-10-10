@@ -93,16 +93,19 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop (Alta, e o pior quadro da montagem ≤ 50 ms). No notebook, em casa, a medida dá 60 FPS na Leve.
 
-### Fase 10: Acabamento 🟡 em andamento
+### Fase 10: Acabamento ✅ feita (no Linux; falta a conferência no desktop)
 
 **Objetivo:** fazer o top 5 da [revisão de 2026-10-10](design/revisao-2026-10-10.md), que dá muito resultado com pouco trabalho. Plano e registro: [plans/fase-10.md](plans/fase-10.md).
 
-**Entregas:**
-- Texturas com mipmaps e compressão, e anti-aliasing por qualidade.
-- A UI escala com a tela.
-- O cartão do prédio diz como entrar.
-- Bairros com arquitetura própria e um letreiro alto por bairro.
-- Primeira vez guiada: cartão de controles, nascer virado para a estante e aviso de "cidade pronta".
+**O que entregou:**
+- Texturas com mipmaps e compressão de placa (inclusive os céus): o asfalto ao longe parou de granular, e a memória de textura caiu ~80 MB.
+- Anti-aliasing por qualidade (Alta: MSAA 2x + SMAA; Média: SMAA; Leve: FXAA) e, na Leve, sombra do sol mais curta e mais barata.
+- A UI escala com a tela (stretch `canvas_items`, base 1280 × 720), sem mudar a velocidade do mouse.
+- O cartão do prédio diz "Entre pela porta para jogar"; a porta do loft diz "E para sair".
+- Bairros com arquitetura própria (pesos de andares e paredes nos perfis) e um letreiro alto por bairro, acima de todos os telhados.
+- Primeira vez guiada: cartão de controles, nascer virado para a estante e aviso de "A cidade está pronta".
+
+**Falta:** a conferência no desktop (Alta com MSAA + SMAA). O resto da revisão fica para uma "Fase 11: Sensação e marcos" (game feel da porta e da câmera, marcos altos, tema único, som).
 
 ### Fase Linux (feita)
 
