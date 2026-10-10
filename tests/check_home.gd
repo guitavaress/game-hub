@@ -93,7 +93,10 @@ func _run() -> void:
 	_check("sem minimapa", not hud.get_minimap().visible)
 	_check("som do mundo abafado", _ambience_muffled())
 	var forward: Vector3 = -player.global_basis.z
-	_check("olhando para a janela (norte)", forward.dot(Vector3(0.0, 0.0, -1.0)) > 0.95)
+	# Fase 10.8: virado ~35° do norte para o oeste, entre a janela e a estante.
+	var from_north := absf(rad_to_deg(Vector2(forward.x, forward.z).angle_to(Vector2(0.0, -1.0))))
+	_check("entre a janela e a estante (%.0f° do norte para o oeste)" % from_north,
+			forward.x < 0.0 and from_north > 20.0 and from_north < 50.0)
 
 	print("== Casa → praça ==")
 	player.rotation.y = PI  # vira para a porta da rua (sul)

@@ -26,8 +26,11 @@ const INTERIOR_LAYER_MASK: int = 1 << (INTERIOR_LAYER - 1)
 ## Tamanho por dentro (largura x, altura, profundidade z), em metros.
 const ROOM_SIZE: Vector3 = Vector3(12.0, 3.4, 9.0)
 const WALL_THICKNESS: float = 0.3
-## Onde o jogador nasce: um pouco ao sul do meio, olhando para a janela (norte).
+## Onde o jogador nasce: um pouco ao sul do meio, olhando entre a janela
+## (norte) e a estante (parede oeste): SPAWN_TURN_DEGREES girado do norte
+## para o oeste. Ele vê a estante e o janelão logo de cara.
 const SPAWN_SPOT: Vector3 = Vector3(0.0, 0.1, 1.5)
+const SPAWN_TURN_DEGREES: float = 35.0
 
 ## O janelão na parede norte (largura, altura) e a altura do meio dele.
 const WINDOW_SIZE: Vector2 = Vector2(5.2, 2.4)
@@ -76,7 +79,9 @@ func _ready() -> void:
 
 ## Onde (e para onde virado) o jogador aparece ao entrar em casa.
 func get_spawn_transform() -> Transform3D:
-	return Transform3D(global_basis, to_global(SPAWN_SPOT))
+	# Girar +Y leva a frente (-Z, o norte) para o oeste (-X).
+	var turn := Basis(Vector3.UP, deg_to_rad(SPAWN_TURN_DEGREES))
+	return Transform3D(global_basis * turn, to_global(SPAWN_SPOT))
 
 
 ## A porta da rua (quem coloca a casa diz para onde ela leva).

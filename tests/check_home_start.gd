@@ -59,6 +59,10 @@ func _start_city() -> void:
 	_check("nasceu no ponto de nascer da casa",
 			player.global_position.distance_to(home.get_spawn_transform().origin) < 0.5)
 	_check("está em casa (ambiente da casa)", player.is_indoors())
+	var forward: Vector3 = -player.global_basis.z
+	var from_north := absf(rad_to_deg(Vector2(forward.x, forward.z).angle_to(Vector2(0.0, -1.0))))
+	_check("entre a janela e a estante (%.0f° do norte para o oeste)" % from_north,
+			forward.x < 0.0 and from_north > 20.0 and from_north < 50.0)
 	_check("tela GAME HUB visível, parado e sem HUD",
 			fade.is_splash_visible() and player.in_intro and not player.get_hud().visible)
 	_check("a porta da rua está trancada, com o progresso",
