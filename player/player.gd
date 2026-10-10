@@ -73,9 +73,12 @@ var _pause_menu: PauseMenu
 var _game_search: GameSearch
 var _world_map: WorldMap
 var _transit_panel: TransitPanel
-## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
-## o jogador fica parado e sem controles.
+## true durante a abertura (a tela "GAME HUB" por cima da casa): o jogador
+## fica parado, sem controles e sem HUD.
 var in_intro: bool = false
+## true enquanto o mundo ainda está montando (o jogador já anda pela casa):
+## a busca e o mapa não abrem (o mundo lá fora ainda não existe inteiro).
+var world_loading: bool = false
 ## true durante uma viagem rápida (travel_to): sem andar, sem busca, sem menu.
 var _traveling: bool = false
 ## Dentro de casa (veja set_indoors).
@@ -228,22 +231,16 @@ func get_game_search() -> GameSearch:
 	return _game_search
 
 
-## Abertura: parado (sem gravidade: o chão ainda nem existe), sem controles,
-## sem HUD e olhando "pitch_degrees" para cima (só céu).
-func start_intro(pitch_degrees: float) -> void:
+## Abertura: a tela "GAME HUB" por cima (o mundo pode estar montando). O
+## jogador fica parado, sem controles e sem HUD.
+func start_intro() -> void:
 	in_intro = true
 	set_physics_process(false)
 	_hud.visible = false
-	_head.rotation.x = deg_to_rad(pitch_degrees)
 
 
-## Fim da abertura: a câmera desce até o horizonte em "seconds" segundos e
-## aí o jogador ganha os controles e o HUD. Dá para esperar com await.
-func finish_intro(seconds: float) -> void:
-	var tween := create_tween()
-	tween.tween_property(_head, "rotation:x", 0.0, seconds) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	await tween.finished
+## Fim da abertura: o jogador ganha os controles e o HUD.
+func finish_intro() -> void:
 	in_intro = false
 	set_physics_process(true)
 	_hud.visible = true
