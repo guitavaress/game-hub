@@ -100,7 +100,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: capturas `bairro_noite_alto` e `bairro_dia_alto` (vista de cima), antes e depois.
   - Commit: `Fase 10.5: arquitetura própria por bairro`
 
-- [ ] **10.6 Um letreiro alto por bairro** (Sonnet · medium) — revisão 3.1
+- [x] **10.6 Um letreiro alto por bairro** (Sonnet · medium) — revisão 3.1 — 3fb2d50
   - Faz, em `worlds/city/city.gd`:
     - o `DistrictSign` sai do `_build_block` (hoje um por quarteirão, a 17 m) e passa a nascer uma vez por bairro, no primeiro quarteirão, junto do `_build_gate` (perto da linha 356), em cima do meio do quarteirão;
     - a altura vira `BuildingVariant` (prédio mais alto possível, com recuo e telhado) + ~5 m, e o texto cresce (`DISTRICT_SIGN_TEXT_HEIGHT` de 1,8 para ~4);
@@ -156,6 +156,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 - 2026-10-10 (10.2): capturas ampliadas da beira da calçada: na Alta (MSAA 2x + SMAA) os degraus sumiram; na Leve (FXAA) a borda fica lisa, e o chuvisco no asfalto é o FSR a 50% (já existia). Medida com o notebook ainda ocupado (Leve, 22 h, 200 jogos): 48,1 FPS, **1392 desenhos** (eram ~1660–3000) e **446 MB** de textura, por causa da sombra mais curta e do atlas de 2048. A Média deu 19,5 FPS no notebook (não é alvo dele). O tamanho do atlas da sombra não tem leitura de volta no `RenderingServer`, então o teste não o confere.
 - 2026-10-10 (10.3): o app já tratava o clique da tela 3D certo com o stretch (a Godot converte o pixel da janela para a coordenada da UI, e a câmera desfaz a conversão). Quem quebrou foi o `check_screen_3d`, que mandava o clique já na coordenada da UI como se fosse pixel da janela; agora ele converte com `root.get_final_transform()`, como um clique de verdade. Passa sem janela e com janela. Capturas em 720p, 1080p e 1440p: o menu de pausa ocupa 36% da largura nas três (antes, 18% em 1440p); HUD, bússola, minimapa e computador crescem juntos.
 - 2026-10-10 (10.5): feita na trilha principal, em sequência (sem worktree). Os pesos ficaram os da tabela; a captura de cima mostra Estratégia alta e de concreto claro, RPG baixo e de tijolo. O `check_variants` ("mesmo jogo, mesmo prédio") passou a refazer o prédio com os pesos do bairro, como a cidade faz.
+- 2026-10-10 (10.6): a grua da Simulação gira em cima do prédio mais alto de cada quarteirão e chega a ~46 m, acima do "prédio mais alto possível" (35,7 m, `BuildingVariant.max_total_height()`, com recuo e caixa d'água). Para ela não atravessar o letreiro, os enfeites que sobem acima dos telhados dizem até onde vão (`get_top_y()`, hoje só o `ConstructionSite`), e o letreiro fica acima do maior dos dois, com 5 m de folga até o meio da placa. Por isso o letreiro nasce no fim do bairro (junto do clima), e não junto do pórtico: a grua de um quarteirão vizinho alcança a ponta dele. Com 200 jogos falsos: 40,7 m nos bairros sem grua e 51,2 m na Simulação.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
