@@ -27,6 +27,11 @@ func _run() -> void:
 	var menu = player.get_pause_menu()
 	var lines_before := FileAccess.get_file_as_string(CONFIG).split("\n").size()
 
+	print("\n== a UI escala com a janela (Fase 10.3) ==")
+	_check("stretch canvas_items", root.content_scale_mode == Window.CONTENT_SCALE_MODE_CANVAS_ITEMS)
+	_check("aspecto expand", root.content_scale_aspect == Window.CONTENT_SCALE_ASPECT_EXPAND)
+	_check("base 1280 × 720", root.content_scale_size == Vector2i(1280, 720))
+
 	print("\n== Esc abre e fecha ==")
 	await _esc()
 	_check("abriu e pausou", menu.is_open() and paused)

@@ -165,7 +165,11 @@ func _click(camera: Camera3D, screen: Node, control: Control) -> void:
 	_push_click(camera.unproject_position(screen.pixel_to_world(pixel)))
 
 
+## "at" está nas coordenadas da UI (as do unproject_position). Com a UI que
+## escala (Fase 10.3), elas não são os pixels da janela: o clique vira pixel
+## da janela (como um clique de verdade) e a Godot converte de volta.
 func _push_click(at: Vector2) -> void:
+	at = root.get_final_transform() * at
 	var motion := InputEventMouseMotion.new()
 	motion.position = at
 	motion.global_position = at

@@ -145,10 +145,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var motion := event as InputEventMouseMotion
+		# screen_relative: o movimento em pixels da TELA. O "relative" vem na
+		# escala da UI (que cresce com a janela), e o mouse ficaria mais lento
+		# em telas grandes.
 		# Girar o corpo inteiro para os lados (eixo Y)...
-		rotate_y(-motion.relative.x * mouse_sensitivity)
+		rotate_y(-motion.screen_relative.x * mouse_sensitivity)
 		# ...e só a "cabeça" para cima/baixo (eixo X).
-		_head.rotate_x(-motion.relative.y * mouse_sensitivity)
+		_head.rotate_x(-motion.screen_relative.y * mouse_sensitivity)
 		var limit := deg_to_rad(MAX_PITCH_DEGREES)
 		_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
 	elif event is InputEventMouseButton and event.is_pressed() \
