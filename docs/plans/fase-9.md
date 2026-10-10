@@ -189,7 +189,7 @@ Ordem: estrutura e contratos primeiro (nada visível), depois a casa funcional, 
     - no `session_ended`, o jogador continua em casa e a tela clareia.
     - `check_look_card` e `check_portal_regression` passam.
   - Commit: `Fase 9.4: estante da biblioteca`
-- [ ] **9.5 Mural dos amigos** (Sonnet · medium)
+- [x] **9.5 Mural dos amigos** (Sonnet · medium) — f0333a2
   - Faz:
     - `GamePortal.get_arrival_transform()`, com a busca passando a usá-lo;
     - `worlds/home/friends_wall.gd` (cartões, cartão vazio, E leva até a porta ou até a praça);
