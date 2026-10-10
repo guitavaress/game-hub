@@ -3,6 +3,7 @@ extends CanvasLayer
 ## Busca de jogos (Tab): um campo de 500 px no alto da tela e, embaixo, os
 ## jogos que combinam com o que foi digitado ("Balatro · Cartas · 140 m").
 ## Setas escolhem, Enter (ou clique) confirma, Esc ou Tab fecham.
+## Shift+Enter (ou Shift+clique) viaja direto até a porta, sem abrir o jogo.
 ##
 ## Ao escolher, o mundo desenha uma faixa de luz no chão até a porta: a busca
 ## chama show_route() em quem estiver no grupo "route_guide" (na cidade, o
@@ -42,6 +43,8 @@ var _selected: int = 0
 ## Distância (m) do jogador até cada portal, medida ao abrir.
 var _distances: Dictionary[GamePortal, float] = {}
 var _sound: AudioStreamPlayer
+## Texto do Enter na dica (em casa vira "ir até a porta").
+var _enter_hint: Label
 
 
 func _ready() -> void:
@@ -87,7 +90,11 @@ func _ready() -> void:
 	_field.add_theme_color_override("font_color", TEXT_COLOR)
 	_field.add_theme_color_override("font_placeholder_color", HINT_COLOR)
 	_field.text_changed.connect(func(_text: String) -> void: _update_results())
-	_field.text_submitted.connect(func(_text: String) -> void: _choose(_selected))
+	_field.text_submitted.connect(func(_text: String) -> void:
+		if Input.is_key_pressed(KEY_SHIFT) or _is_indoors():
+			travel_to_selected()
+		else:
+			_choose(_selected))
 	_field.gui_input.connect(_on_field_input)
 	column.add_child(_field)
 
@@ -120,11 +127,12 @@ func can_open() -> bool:
 	var player := get_parent() as Player
 	return not GameLauncher.is_busy() and not HubWindow.is_sleeping \
 			and not ScreenFade.door_charge.visible and ScreenFade.get_amount() < 0.5 \
-			and not (player != null and (player.in_intro or player.get_pause_menu().is_open()))
+			and not (player != null and (player.in_intro or player.world_loading or player.is_traveling() or player.is_overlay_open()))
 
 
 func open() -> void:
 	_measure_distances()
+	_update_hint()
 	_field.text = ""
 	_update_results()
 	visible = true
@@ -166,6 +174,22 @@ func set_query(text: String) -> void:
 ## Confirma o jogo escolhido na lista (igual a apertar Enter).
 func choose_selected() -> void:
 	_choose(_selected)
+
+
+## Viaja até a porta do jogo escolhido (igual a apertar Shift+Enter).
+func travel_to_selected() -> void:
+	_travel(_selected)
+
+
+## O jogador está em casa? Lá não há ruas, então a faixa de luz não serve:
+## o Enter vira "ir até a porta" (igual ao Shift+Enter).
+func _is_indoors() -> bool:
+	var player := get_parent() as Player
+	return player != null and player.is_indoors()
+
+
+func _update_hint() -> void:
+	_enter_hint.text = "ir até a porta" if _is_indoors() else "acender o caminho"
 
 
 # --- Resultados ------------------------------------------------------------------
@@ -229,7 +253,10 @@ func _make_row(portal: GamePortal, index: int) -> PanelContainer:
 	content.add_child(_label("· %d m" % (roundi(_distances[portal] / 10.0) * 10), HubFonts.LIGHT, 14, SECONDARY_COLOR))
 	row.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_choose(index)
+			if event.shift_pressed:
+				_travel(index)
+			else:
+				_choose(index)
 		elif event is InputEventMouseMotion and _selected != index:
 			_selected = index
 			_paint_selection())
@@ -264,11 +291,27 @@ func _on_field_input(event: InputEvent) -> void:
 func _choose(index: int) -> void:
 	if index < 0 or index >= _results.size():
 		return
+	if _is_indoors():
+		_travel(index)
+		return
 	var portal := _results[index]
 	close()
 	_sound.play()
 	get_tree().call_group("route_guide", "show_route", get_parent(), portal)
 	game_chosen.emit(portal)
+
+
+## Viagem rápida: leva o jogador à frente da porta, virado para ela. Não abre o jogo.
+func _travel(index: int) -> void:
+	if index < 0 or index >= _results.size():
+		return
+	var portal := _results[index]
+	var player := get_parent() as Player
+	close()
+	if player == null or GameLauncher.is_busy():
+		return
+	_sound.play()
+	player.travel_to(portal.get_arrival_transform(), portal.get_game_name())
 
 
 # --- Peças --------------------------------------------------------------------
@@ -280,7 +323,11 @@ func _hint_row() -> Control:
 	row.add_child(_label("escolher", HubFonts.LIGHT, 14, HINT_COLOR))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Enter"))
-	row.add_child(_label("acender o caminho", HubFonts.LIGHT, 14, HINT_COLOR))
+	_enter_hint = _label("acender o caminho", HubFonts.LIGHT, 14, HINT_COLOR)
+	row.add_child(_enter_hint)
+	row.add_child(_spacer(10))
+	row.add_child(GameScreen.make_key_cap("Shift+Enter"))
+	row.add_child(_label("ir até lá", HubFonts.LIGHT, 14, HINT_COLOR))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Esc"))
 	row.add_child(_label("fechar", HubFonts.LIGHT, 14, HINT_COLOR))

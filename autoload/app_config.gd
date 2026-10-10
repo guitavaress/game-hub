@@ -2,7 +2,8 @@ extends Node
 ## AppConfig: lê as preferências do usuário em user://config.cfg (autoload).
 ##
 ## Onde fica o arquivo: %APPDATA%\Godot\app_userdata\Game Hub\config.cfg
-## (no editor: menu Projeto > Abrir Pasta de Dados do Usuário).
+## (no Linux: ~/.local/share/godot/app_userdata/Game Hub/config.cfg;
+## no editor: menu Projeto > Abrir Pasta de Dados do Usuário).
 ##
 ## Na primeira vez, o arquivo é criado com comentários explicando cada opção.
 ## Depois disso o hub mexe no arquivo só de dois jeitos, sem nunca apagar o que
@@ -57,6 +58,23 @@ const VIDEO_SECTION_TEXT: String = """
 quality="alta"
 ; Hora da cidade: "relogio" (segue o relógio do PC), "dia" ou "noite".
 time_of_day="relogio"
+; Bússola e minimapa na tela: true ou false.
+show_map=true
+"""
+
+## Seção da janela (Fase Linux), acrescentada do mesmo jeito.
+const WINDOW_SECTION_TEXT: String = """
+[window]
+
+; Só no Linux com Hyprland: em qual monitor os jogos abrem (num workspace
+; novo). Use o nome que aparece em "hyprctl monitors", ex.: game_monitor="HDMI-A-1".
+; Vazio (ou um monitor desligado) = o monitor que estiver em foco.
+game_monitor=""
+; Só no Linux com Hyprland: true = o hub força o jogo para a tela cheia.
+; CUIDADO: jogos antigos que não mudam de tamanho (ex.: Undertale) ficam
+; desenhados num canto. false (padrão) = o próprio jogo decide; use a opção
+; de tela cheia dele (no Undertale, F4).
+game_fullscreen=false
 """
 
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
@@ -65,6 +83,7 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"steam": STEAM_SECTION_TEXT,
 	"audio": AUDIO_SECTION_TEXT,
 	"video": VIDEO_SECTION_TEXT,
+	"window": WINDOW_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
@@ -96,7 +115,7 @@ excluded_app_ids=[431960, 993090]
 ;          acao, cartas, aventura, casual, outros
 ; Exemplo (Stardew Valley no bairro de RPG):  overrides={ 413150: "rpg" }
 overrides={}
-""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT
+""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT + WINDOW_SECTION_TEXT
 
 ## Problema ao ler o arquivo, para o HUD avisar ("" = tudo certo).
 var load_problem: String = ""
@@ -177,6 +196,25 @@ func get_time_of_day() -> String:
 func set_time_of_day(mode: String) -> void:
 	if mode in TIME_OF_DAY_MODES:
 		_set_option("video", "time_of_day", mode)
+
+
+## Bússola e minimapa ligados? (Padrão: sim.)
+func get_show_map() -> bool:
+	return bool(_config.get_value("video", "show_map", true))
+
+
+func set_show_map(on: bool) -> void:
+	_set_option("video", "show_map", on)
+
+
+## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
+func get_game_monitor() -> String:
+	return str(_config.get_value("window", "game_monitor", "")).strip_edges()
+
+
+## No Hyprland, o hub força o jogo para a tela cheia? (Padrão: não, o jogo decide.)
+func get_game_fullscreen() -> bool:
+	return bool(_config.get_value("window", "game_fullscreen", false))
 
 
 ## Chave da Steam Web API ("" = não configurada). É SEGREDO: nunca imprima.

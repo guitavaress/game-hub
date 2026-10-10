@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_6vmj3"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_v1pb6"]
+
+[sub_resource type="Resource" id="Resource_6vmj3"]
+script = ExtResource("1_6vmj3")
+files = PackedStringArray("res://assets/kenney/music-jingles/jingles_PIZZI00.ogg", "res://assets/kenney/music-jingles/jingles_PIZZI04.ogg")
+volume_db = -14.0
+interval = Vector2(8, 16)
+
+[resource]
+script = ExtResource("2_v1pb6")
+id = "casual"
+display_name = "Casual e Festa"
+color = Color(0.8235294, 0.47843137, 0.627451, 1)
+neon = Color(1, 0.29803923, 0.6039216, 1)
+tags = PackedInt32Array(597, 7178, 7108, 1654, 97376, 1752, 1621, 10437, 379975, 615955, 1665, 5350)
+tag_names = PackedStringArray("Casual", "Reúna a Galera", "Em Grupos", "Relaxante", "Aconchegante", "Ritmo", "Música", "Perguntas e Respostas", "Clicker", "Progressão Ociosa", "Combinar 3", "Para Toda a Família")
+ambience = Array[ExtResource("1_6vmj3")]([SubResource("Resource_6vmj3")])
+props_script = "res://worlds/city/district_props/string_lights.gd"
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

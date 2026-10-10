@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_5s4ip"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_chhg0"]
+
+[sub_resource type="Resource" id="Resource_5s4ip"]
+script = ExtResource("1_5s4ip")
+files = PackedStringArray("res://assets/kenney/interface-sounds/click_001.ogg", "res://assets/kenney/interface-sounds/click_002.ogg", "res://assets/kenney/interface-sounds/click_003.ogg")
+volume_db = -14.0
+interval = Vector2(1.5, 5)
+
+[resource]
+script = ExtResource("2_chhg0")
+id = "estrategia"
+display_name = "Estratégia e Tática"
+color = Color(0.2901961, 0.43529412, 0.64705884, 1)
+neon = Color(0.29803923, 0.58431375, 1, 1)
+tags = PackedInt32Array(9, 1676, 1741, 4364, 1670, 1645, 1708, 4684, 3813, 14139, 1084988)
+tag_names = PackedStringArray("Estratégia", "Estratégia em Tempo Real (RTS)", "Estratégia em Turnos", "Grande Estratégia", "4X", "Defesa de Torres", "Tático", "Jogo de Guerra", "Tática em Tempo Real", "Tática por Turnos", "Batalha Automática")
+ambience = Array[ExtResource("1_5s4ip")]([SubResource("Resource_5s4ip")])
+props_script = "res://worlds/city/district_props/strategy_table.gd"
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

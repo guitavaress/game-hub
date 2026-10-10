@@ -42,7 +42,7 @@ func _run() -> void:
 	print("\n== volume ==")
 	menu.open()
 	var old_effects: float = app.get_volume("Efeitos")
-	menu._volume_sliders["Efeitos"].value = 37.0
+	menu._settings._volume_sliders["Efeitos"].value = 37.0
 	var bus := AudioServer.get_bus_index("Efeitos")
 	_check("vale na hora (memória e canal)", is_equal_approx(app.get_volume("Efeitos"), 0.37)
 		and absf(AudioServer.get_bus_volume_db(bus) - linear_to_db(0.37)) < 0.01)
@@ -55,37 +55,37 @@ func _run() -> void:
 	print("\n== qualidade ==")
 	menu.open()
 	var env: Environment = city._environment
-	menu._quality_buttons["leve"].pressed.emit()
+	menu._settings._quality_buttons["leve"].pressed.emit()
 	_check("leve: sem SSR/SSAO, 3D em 50%", app.get_quality() == "leve" and not env.ssr_enabled
 		and not env.ssao_enabled and is_equal_approx(root.scaling_3d_scale, 0.5))
-	menu._quality_buttons["media"].pressed.emit()
+	menu._settings._quality_buttons["media"].pressed.emit()
 	_check("média: SSAO sim, SSR não, 3D 100%", not env.ssr_enabled and env.ssao_enabled
 		and is_equal_approx(root.scaling_3d_scale, 1.0))
-	menu._quality_buttons["alta"].pressed.emit()
+	menu._settings._quality_buttons["alta"].pressed.emit()
 	_check("alta: tudo ligado", env.ssr_enabled and env.ssao_enabled)
 	_check("gravou quality=\"alta\"", "quality=\"alta\"" in FileAccess.get_file_as_string(CONFIG))
-	print("   dica: ", menu._quality_hint.text)
+	print("   dica: ", menu._settings._quality_hint.text)
 
 	print("\n== hora ==")
-	menu._time_buttons["noite"].pressed.emit()
+	menu._settings._time_buttons["noite"].pressed.emit()
 	var hour: float = city._day_night.current_hour()
 	_check("noite fixa = 22h", absf(hour - 22.0) < 0.01 and city._day_night.get_night() > 0.9)
-	menu._time_buttons["dia"].pressed.emit()
+	menu._settings._time_buttons["dia"].pressed.emit()
 	_check("dia fixo = 14h", absf(city._day_night.current_hour() - 14.0) < 0.01 and city._day_night.get_night() < 0.1)
-	menu._time_buttons["relogio"].pressed.emit()
+	menu._settings._time_buttons["relogio"].pressed.emit()
 	_check("volta ao relógio", app.get_time_of_day() == "relogio")
 
 	print("\n== amigos: chave inválida é recusada ==")
 	var key_before: String = app.get_web_api_key()
-	menu._show_page(2)
-	_check("só a aba Amigos marcada", menu._tab_buttons[2].button_pressed
-		and not menu._tab_buttons[0].button_pressed and menu._pages[2].visible and not menu._pages[0].visible)
-	menu._key_field.text = "abc"
-	menu._save_friends()
-	_check("recusou sem gravar", app.get_web_api_key() == key_before and "32" in menu._friends_status.text)
-	print("   status: ", menu._friends_status.text)
-	_check("campo da chave é secreto", menu._key_field.secret)
-	menu._key_field.text = ""
+	menu._settings._show_page(2)
+	_check("só a aba Amigos marcada", menu._settings._tab_buttons[2].button_pressed
+		and not menu._settings._tab_buttons[0].button_pressed and menu._settings._pages[2].visible and not menu._settings._pages[0].visible)
+	menu._settings._key_field.text = "abc"
+	menu._settings._save_friends()
+	_check("recusou sem gravar", app.get_web_api_key() == key_before and "32" in menu._settings._friends_status.text)
+	print("   status: ", menu._settings._friends_status.text)
+	_check("campo da chave é secreto", menu._settings._key_field.secret)
+	menu._settings._key_field.text = ""
 	menu.close()
 
 	var lines_after := FileAccess.get_file_as_string(CONFIG).split("\n").size()

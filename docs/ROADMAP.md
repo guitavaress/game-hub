@@ -24,10 +24,10 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | Versão | O que é | Situação |
 |---|---|---|
 | **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
-| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🗓️ planejada: [Fase 9](#fase-9-a-casa) |
+| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🟡 primeiro passo feito na [Fase 9](#fase-9-a-casa); avatar e casa personalizável em [Depois](#depois) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](#fase-7-world-profile); biomas em [Depois](#depois) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔭 horizonte |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | 🗓️ [Fase Linux](#fase-linux-quando-precisar) + 🔭 horizonte |
+| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)) + 🔭 horizonte (desktop) |
 | **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔭 horizonte |
 
 ## O que já foi feito
@@ -38,6 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
+- **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
 
@@ -45,7 +46,7 @@ Os detalhes estão no [README](../README.md) e no histórico do git.
 
 A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano dela vai para `docs/plans/fase-N.md` e é aprovado.
 
-### Fase 7: World Profile
+### Fase 7: World Profile ✅ feita (no Linux; falta conferir no Windows)
 
 **Objetivo:** tudo o que muda de um bairro para outro passa a ser **dado num perfil**, e não mais decisão espalhada pelo código. É a base da V3 (biomas) e deixa a lógica do produto independente de engine.
 
@@ -61,9 +62,11 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 - **Clima por bairro:** chuva leve à noite (antigo item P3.25), por exemplo uma garoa no bairro Terror.
 - **PortalShell** (antigo item P3.26): separar o "invólucro" (prédio, arco de pedra, boxe de corrida) do `GamePortal`. O perfil diz qual invólucro usar.
 
+**Feito:** perfis `.tres` em `profiles/`, `GameCategories` como fachada, som, enfeite, pesos de andares e parede e garoa vindos do perfil, `PortalShell` com prédio e arco. Densidade e landmark ficaram como campos reservados, sem efeito (vão para "Depois").
+
 **Pronto quando:** criar um bairro novo é escrever um perfil novo, mais um script de enfeite opcional, sem mexer em nenhum `match`.
 
-### Fase 8: Escala
+### Fase 8: Escala ✅ feita (no Linux; falta o desempenho no desktop)
 
 **Objetivo:** o hub continua gostoso com **centenas de jogos**.
 
@@ -74,33 +77,37 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 - **Transporte entre bairros:** metrô ou bonde, antes de qualquer carro.
 - Teste de desempenho com uma **biblioteca falsa de ~200 jogos**, com ajustes de desenho à distância (LOD) se precisar.
 
+**Feito:** biblioteca falsa de 200 jogos para testes (`tests/fake_library.gd`) e `tools/medir_desempenho.gd`; planta da cidade como dado (`CityMap`); viagem rápida (Shift+Enter na busca); bússola; minimapa e mapa grande (M); metrô (`TransitStop` + `MetroEntrance`, com estações extras nos bairros grandes); capas comprimidas (memória de textura de 1,9 GB para 0,5 GB com 200 jogos). Ficaram para depois, se a medida no desktop pedir: LOD, sons e luzes só de perto. Bonde andando de verdade e clicar no mapa para viajar não entraram.
+
 **Pronto quando:** com 200 jogos, o hub continua leve, e qualquer jogo fica a menos de ~20 s de distância.
 
-### Fase 9: A casa
+### Fase 9: A casa ✅ feita (no Linux; falta a conferência no desktop)
 
-**Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2).
+**Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2). Plano e registro: [plans/fase-9.md](plans/fase-9.md).
 
-**Entregas:**
-- Um **interior** onde o jogador nasce.
-- O HUD em **forma física**: estante com a biblioteca, mural dos amigos e painel de configurações.
-- O menu de pausa (Esc) continua existindo como atalho.
+**O que entregou:**
+- Um **loft** onde o jogador nasce em ~1 s, com a cidade montando em segundo plano; a abertura pelo céu saiu.
+- O HUD em **forma física**: estante com a biblioteca (páginas e filtro por bairro), mural dos amigos e um computador cuja tela é o menu de configurações, clicável.
+- **E para interagir**, também nas portas: a do loft e a "Casa" da praça.
+- O menu de pausa (Esc), a busca e o mapa continuam funcionando em casa.
 
-**Pronto quando:** dá para configurar tudo e escolher um jogo sem sair da casa.
+**Falta:** a conferência no desktop (Alta, e o pior quadro da montagem ≤ 50 ms). No notebook, em casa, a medida dá 60 FPS na Leve.
 
-### Fase Linux (quando precisar)
+### Fase Linux (feita)
 
-Não tem número fixo: entra quando o hub for usado no Linux.
+Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O desktop vai ter dual boot, então **Windows e Linux são alvos de primeira classe**. Plano e registro: [plans/fase-linux.md](plans/fase-linux.md).
 
-**Objetivo:** Windows e Linux atrás da **mesma interface** de plataforma: caminho da Steam, jogo rodando (`RunningAppID`), "o processo ainda está vivo?" e pasta de dados.
+**O que entregou:**
+- **Mesma interface** em `autoload/platform/`: o `SteamClient` responde "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?"; o `WindowHost` esconde e mostra a janela.
+- **No Linux, o jogo rodando vem do processo `reaper`** que a Steam cria para cada jogo. O `~/.steam/registry.vdf` não guarda isso.
+- **No Hyprland**, o jogo abre num workspace vazio do monitor escolhido, e o hub se esconde num workspace oculto e volta ao fechar o jogo.
+- Detalhes técnicos em [PLATAFORMA](PLATAFORMA.md).
 
-**Onde está a parte do Windows hoje:**
-- `autoload/win_registry.gd`: lê o registro;
-- `autoload/steam_library.gd` e `autoload/game_launcher.gd`: chamam o registro;
-- `autoload/game_launcher.gd`: usa o `tasklist` para ver se o processo está vivo.
-
-**No Linux:** os mesmos valores ficam em `~/.steam/registry.vdf`, que o `autoload/vdf.gd` já sabe ler.
+**Falta:** a conferência à mão no Windows (checklist no fim do plano). A bateria passa inteira no Linux (25 testes), com Balatro, Skyrim, Valheim e Stardew instalados, e o GitHub Actions já confere o backend do Windows (`reg.exe` e `tasklist` de verdade); falta abrir um jogo de verdade e ver a janela.
 
 ## Depois
+
+- **Casa, parte 2:** avatar visível, personalizar a casa (mover móveis, trocar cores), outros temas (cabana...) e estatísticas na parede.
 
 - **Primeiro bioma** (antigo P3.27): uma montanha de gelo, com HDRI próprio, terreno e o mesmo HUD. Usa o World Profile.
 - **Biomas gerados por código** a partir da biblioteca: RPG vira floresta ou castelo, corrida vira pista e garagens, terror vira neblina e abandono.
@@ -129,4 +136,4 @@ Ideias guardadas para não se perderem. Nada aqui está planejado.
 ## Regras que já valem
 
 - **Dados de mundo em perfis:** a partir da Fase 7, cores, sons, enfeites e clima novos por categoria entram no perfil, e não em `match` espalhado.
-- **Plataforma isolada:** código específico do Windows (ou do Linux) só em arquivos isolados, como `win_registry.gd`. Os sistemas pedem "qual jogo está rodando?", e não "leia o registro".
+- **Plataforma isolada:** código específico do Windows ou do Linux só em `autoload/platform/` (o `tests/check_platform.gd` confere). Os sistemas pedem "qual jogo está rodando?" ao `SteamClient`, e não "leia o registro".

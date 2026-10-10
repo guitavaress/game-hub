@@ -35,6 +35,17 @@ static func apply_to_viewport(viewport: Viewport, level: String) -> void:
 		viewport.scaling_3d_scale = 1.0
 
 
+## Quanto do clima (chuva, por exemplo) fica ligado: 100% na Alta, 60% na
+## Média, 25% na Leve (partículas transparentes pesam em PCs fracos).
+static func weather_amount(level: String) -> float:
+	match level:
+		"leve":
+			return 0.25
+		"media":
+			return 0.6
+	return 1.0
+
+
 ## Nome para mostrar ("Média") e uma frase explicando.
 static func describe(level: String) -> String:
 	match level:

@@ -20,36 +20,25 @@ extends RefCounted
 ## futuro, o mesmo elemento pode marcar a entrada do bioma.
 
 
-## Enfeita um quarteirão do bairro (se o bairro tiver enfeite).
+## Enfeita um quarteirão do bairro (se o perfil do bairro tiver enfeite).
+## O enfeite é o script indicado em "props_script" do perfil (profiles/districts/).
 static func decorate(parent: Node3D, category_id: String, cell: Vector2i, buildings: Array[CityBuilding]) -> void:
-	var props: Node3D = null
-	match category_id:
-		"acao":
-			props = ActionScreens.new()
-		"cartas":
-			props = CardMarquee.new()
-		"sobrevivencia":
-			props = TerrorMood.new()
-		"esportes":
-			props = SportsScoreboard.new()
-		"simulacao":
-			props = ConstructionSite.new()
-		"casual":
-			props = StringLights.new()
-		"estrategia":
-			props = StrategyTable.new()
-		"rpg":
-			props = RpgBanners.new()
-		"aventura":
-			props = AdventureLanterns.new()
-		_:  # bairro sem enfeite próprio (inclusive Outros)
-			props = AddressTotem.new()
+	var profile := Profiles.district(category_id)
+	if profile == null or profile.props_script.is_empty():
+		return
+	var script := load(profile.props_script) as GDScript
+	if script == null:
+		push_warning("O enfeite %s do bairro %s não carregou." % [profile.props_script, category_id])
+		return
+	var props := script.new() as Node3D
 	if props == null:
 		return
 	props.name = "DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y]
 	props.set("buildings", buildings)
 	if "cell" in props:
 		props.set("cell", cell)
+	if "category_id" in props:
+		props.set("category_id", category_id)
 	parent.add_child(props)
 
 

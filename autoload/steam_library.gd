@@ -2,7 +2,7 @@ extends Node
 ## SteamLibrary: lê os jogos instalados neste PC (autoload).
 ##
 ## Como funciona:
-##   1. O registro do Windows diz onde a Steam está instalada (SteamPath).
+##   1. O SteamClient diz onde a Steam está instalada (no Windows, pelo registro).
 ##   2. <Steam>/steamapps/libraryfolders.vdf lista as bibliotecas (pode haver
 ##      uma por disco).
 ##   3. Em cada biblioteca, cada steamapps/appmanifest_<appid>.acf descreve um
@@ -12,8 +12,6 @@ extends Node
 ##
 ## Só LÊ arquivos da Steam; nunca escreve nada nas pastas dela.
 ## Não conhece nenhum mundo: só responde perguntas.
-
-const STEAM_REG_KEY: String = "HKCU\\Software\\Valve\\Steam"
 
 ## Apps da própria Steam que nunca são jogos.
 const EXCLUDED_APP_IDS: Array[int] = [
@@ -66,8 +64,7 @@ func _ready() -> void:
 ## Devolve "" se a Steam não estiver instalada.
 func get_steam_path() -> String:
 	if _steam_path.is_empty():
-		var raw := WinRegistry.read_string(STEAM_REG_KEY, "SteamPath")
-		_steam_path = raw.replace("\\", "/").trim_suffix("/")
+		_steam_path = SteamClient.steam_path()
 	return _steam_path
 
 
@@ -193,23 +190,38 @@ func _load_playtimes() -> void:
 
 ## SteamID64 (17 dígitos, em texto) de quem está logado na Steam, ou "" se não souber.
 func get_current_steam_id() -> String:
-	# Com a Steam aberta, o registro guarda o "account id" de quem está logado.
-	var account_id := WinRegistry.read_dword(STEAM_REG_KEY + "\\ActiveProcess", "ActiveUser", 0)
+	# Com a Steam aberta, ela diz o "account id" de quem está logado.
+	var account_id := SteamClient.active_account_id()
 	if account_id > 0:
 		return str(STEAM_ID64_BASE + account_id)
 
-	# Com a Steam fechada: o usuário mais recente do loginusers.vdf.
+	# Senão (Steam fechada, ou o Linux): o usuário mais recente do loginusers.vdf.
 	var steam := get_steam_path()
 	if steam.is_empty():
 		return ""
-	var data := Vdf.parse(FileAccess.get_file_as_string(steam + "/config/loginusers.vdf"))
-	var users: Variant = data.get("users", {})
-	if users is Dictionary:
-		for steam_id: String in users:
-			var user: Variant = users[steam_id]
-			if user is Dictionary and str(user.get("MostRecent", "0")) == "1":
-				return steam_id
-	return ""
+	return _most_recent_user(FileAccess.get_file_as_string(steam + "/config/loginusers.vdf"))
+
+
+## Quem entrou por último, segundo o texto do loginusers.vdf: quem tem
+## "MostRecent" = 1 ou, se ninguém tiver (a Steam nova não grava mais isso),
+## o maior "Timestamp". Devolve o SteamID64 ou "".
+func _most_recent_user(loginusers_text: String) -> String:
+	var users: Variant = Vdf.get_ignoring_case(Vdf.parse(loginusers_text), "users")
+	if not users is Dictionary:
+		return ""
+	var newest_id := ""
+	var newest_time := -1
+	for steam_id: String in users:
+		var user: Variant = users[steam_id]
+		if not user is Dictionary:
+			continue
+		if str(Vdf.get_ignoring_case(user, "MostRecent")) == "1":
+			return steam_id
+		var timestamp := str(Vdf.get_ignoring_case(user, "Timestamp")).to_int()
+		if timestamp > newest_time:
+			newest_time = timestamp
+			newest_id = steam_id
+	return newest_id
 
 
 ## Esquece o que já foi lido (para ler tudo de novo na próxima pergunta).

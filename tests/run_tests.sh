@@ -11,12 +11,34 @@
 # Nenhum teste abre jogo de verdade (a Steam é "falsa" nos testes do launcher).
 # Os que mexem no user://config.cfg ou no cache guardam uma cópia e devolvem no fim.
 
-GODOT="${GODOT:-/c/Godot/Godot_v4.7.2-stable_win64_console.exe}"
+#   No Linux, procura "godot" no PATH e depois em ~/.local/bin/godot.
+if [ -z "$GODOT" ]; then
+	if [ -x "/c/Godot/Godot_v4.7.2-stable_win64_console.exe" ]; then
+		GODOT="/c/Godot/Godot_v4.7.2-stable_win64_console.exe"
+	elif command -v godot >/dev/null 2>&1; then
+		GODOT="$(command -v godot)"
+	else
+		GODOT="$HOME/.local/bin/godot"
+	fi
+fi
 cd "$(dirname "$0")/.." || exit 1
 
 if [ ! -x "$GODOT" ]; then
 	echo "Godot não encontrada em $GODOT (use a variável GODOT)."
 	exit 1
+fi
+
+# Trava: o user:// (config.cfg, chave, cache) é um só para todos os worktrees
+# do claude-squad. Se outra bateria estiver rodando, esta espera ela acabar.
+# A trava se solta sozinha quando o script termina. Sem flock (Git Bash no
+# Windows), segue sem trava.
+if command -v flock >/dev/null 2>&1; then
+	TRAVA="${XDG_RUNTIME_DIR:-/tmp}/game-hub-testes.lock"
+	exec 9>"$TRAVA"
+	if ! flock -n 9; then
+		echo "== outra bateria está rodando; esperando ela terminar =="
+		flock 9
+	fi
 fi
 
 if [ $# -gt 0 ]; then

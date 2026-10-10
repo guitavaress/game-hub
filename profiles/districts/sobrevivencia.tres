@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_2aogd"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_7fekq"]
+[ext_resource type="Script" path="res://profiles/weather_spec.gd" id="3_rain1"]
+
+[sub_resource type="Resource" id="Resource_2aogd"]
+script = ExtResource("1_2aogd")
+kind = "loop"
+files = PackedStringArray("res://assets/generated/wind_loop.wav")
+volume_db = -12.0
+max_distance = 22.0
+unit_size = 6.0
+
+[sub_resource type="Resource" id="Resource_7fekq"]
+script = ExtResource("1_2aogd")
+files = PackedStringArray("res://assets/kenney/sci-fi-sounds/lowFrequency_explosion_001.ogg")
+volume_db = -18.0
+interval = Vector2(10, 20)
+pitch_range = Vector2(0.5, 0.7)
+
+[sub_resource type="Resource" id="Resource_rain1"]
+script = ExtResource("3_rain1")
+kind = "garoa"
+
+[resource]
+script = ExtResource("2_7fekq")
+id = "sobrevivencia"
+display_name = "Sobrevivência e Terror"
+color = Color(0.5411765, 0.23529412, 0.25882354, 1)
+neon = Color(1, 0.29803923, 0.35686275, 1)
+tags = PackedInt32Array(1662, 1100689, 1667, 3978, 1721, 1659, 7432)
+tag_names = PackedStringArray("Sobrevivência", "Sobrevivência em Mundo Aberto", "Terror", "Terror de Sobrevivência", "Terror Psicológico", "Zumbis", "Lovecraftiano")
+ambience = Array[ExtResource("1_2aogd")]([SubResource("Resource_2aogd"), SubResource("Resource_7fekq")])
+props_script = "res://worlds/city/district_props/terror_mood.gd"
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()
+weather = SubResource("Resource_rain1")

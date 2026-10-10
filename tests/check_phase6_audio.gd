@@ -36,17 +36,35 @@ func _run() -> void:
 		var emitters := portal.get_children().filter(func(n): return n is AmbientEmitter)
 		var desc := emitters.map(func(e): return ("loop %s (loop=%s, tocando=%s)" % [e.stream.resource_path.get_file() if e.stream.resource_path else e.loop_stream.resource_path.get_file(), _is_looping(e.stream), e.playing]) if e.loop_stream else "%d sons avulsos" % e.one_shots.size())
 		print("   %-45s [%s] %s" % [child.game.name, cats.get_category_id(child.game.app_id), desc])
-	var sports = city.get_node("Building_3405690/GamePortal")
-	var engine = sports.get_children().filter(func(n): return n is AmbientEmitter)[0]
+	# O motor do bairro de esportes: num prédio de esportes da biblioteca, se
+	# houver algum; senão (ex.: um PC sem jogos de esporte), num emissor criado
+	# aqui pela mesma tabela do bairro (CategoryAmbience), que dá na mesma.
+	var engine: AmbientEmitter = null
+	for child in city.get_children():
+		if child.name.begins_with("Building_") and cats.get_category_id(child.game.app_id) == "esportes":
+			engine = child.get_node("GamePortal").get_children().filter(func(n): return n is AmbientEmitter)[0]
+			break
+	var temp_engine: AmbientEmitter = null
+	if engine == null:
+		print("   (nenhum jogo de esportes instalado: conferindo o motor pela tabela do bairro)")
+		temp_engine = CategoryAmbience.create("esportes")[0]
+		city.add_child(temp_engine)
+		await process_frame
+		engine = temp_engine
 	_check("motor do bairro de esportes em loop, tocando, ouvido até 32 m", _is_looping(engine.stream) and engine.playing and engine.max_distance == 32.0)
+	var engine_bus_ok: bool = engine.bus == &"Ambiente"
+	if temp_engine != null:
+		temp_engine.queue_free()
 	var survival = city.get_node("Building_892970/GamePortal")  # Valheim
 	var wind = survival.get_children().filter(func(n): return n is AmbientEmitter)[0]
 	_check("vento (WAV gerado) em loop", _is_looping(wind.stream))
-	_check("todos no canal Ambiente", engine.bus == &"Ambiente" and wind.bus == &"Ambiente")
+	_check("todos no canal Ambiente", engine_bus_ok and wind.bus == &"Ambiente")
 
 	print("\n== passos ==")
-	player.global_position = Vector3(0, 0.1, 10)
-	player.rotation.y = PI  # de costas para o chafariz, rua livre à frente
+	# Atravessa a praça de oeste para leste, ao sul do chafariz: linha livre de
+	# floreiras, postes e da estação de metrô (que fica no vão entre os prédios).
+	player.global_position = Vector3(-13, 0.1, 6)
+	player.rotation.y = -PI / 2.0  # olhando para o leste (+X)
 	for i in 10:
 		await physics_frame
 	var steps := await _count_steps(player, 2.0, false)

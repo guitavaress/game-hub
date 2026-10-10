@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DistrictProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_lpw1u"]
+[ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_2kfey"]
+
+[sub_resource type="Resource" id="Resource_lpw1u"]
+script = ExtResource("1_lpw1u")
+files = PackedStringArray("res://assets/kenney/rpg-audio/bookFlip1.ogg", "res://assets/kenney/rpg-audio/bookFlip2.ogg", "res://assets/kenney/rpg-audio/bookFlip3.ogg", "res://assets/kenney/rpg-audio/handleCoins.ogg", "res://assets/kenney/rpg-audio/handleCoins2.ogg", "res://assets/kenney/rpg-audio/metalClick.ogg", "res://assets/kenney/rpg-audio/metalLatch.ogg", "res://assets/kenney/rpg-audio/drawKnife1.ogg", "res://assets/kenney/rpg-audio/drawKnife2.ogg", "res://assets/kenney/rpg-audio/drawKnife3.ogg")
+interval = Vector2(2, 6)
+
+[resource]
+script = ExtResource("2_2kfey")
+id = "rpg"
+display_name = "RPG e Fantasia"
+color = Color(0.48235294, 0.36862746, 0.654902, 1)
+neon = Color(0.5764706, 0.29803923, 1, 1)
+tags = PackedInt32Array(122, 4434, 4231, 4474, 10695, 4325, 21725, 17305, 1754, 29482, 1720)
+tag_names = PackedStringArray("RPG", "JRPG", "RPG de Ação", "CRPG", "RPG de Grupos", "Combate em Turnos", "RPG Tático", "RPG de Estratégia", "MMORPG", "Soulslike", "Explorador de Calabouços")
+ambience = Array[ExtResource("1_lpw1u")]([SubResource("Resource_lpw1u")])
+props_script = "res://worlds/city/district_props/rpg_banners.gd"
+floor_weights = PackedFloat32Array()
+wall_weights = PackedFloat32Array()

@@ -1,0 +1,19 @@
+"Registry"
+{
+	"HKCU"
+	{
+		"Software"
+		{
+			"Valve"
+			{
+				"Steam"
+				{
+					"ActiveProcess"
+					{
+						"ActiveUser"		"16"
+					}
+				}
+			}
+		}
+	}
+}

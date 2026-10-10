@@ -32,6 +32,8 @@ const SYMBOL_DIAMOND: int = 2
 
 ## Os prédios e o quarteirão (a cidade preenche antes de adicionar).
 var buildings: Array[CityBuilding] = []
+## Id do bairro (o DistrictProps preenche, a partir do perfil).
+var category_id: String = ""
 var cell: Vector2i = Vector2i.ZERO
 
 var _material: ShaderMaterial
@@ -43,8 +45,8 @@ static var _shared_atlas: Dictionary[String, Texture2D] = {}
 
 func _ready() -> void:
 	add_to_group("city_night")
-	var color := GameCategories.get_category_color("rpg")
-	var neon := GameCategories.get_neon_color("rpg")
+	var color := GameCategories.get_category_color(category_id)
+	var neon := GameCategories.get_neon_color(category_id)
 
 	_material = ShaderMaterial.new()
 	_material.shader = SHADER

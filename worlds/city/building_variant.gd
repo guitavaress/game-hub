@@ -50,12 +50,13 @@ var top_walls_material: ShaderMaterial
 var _led_material: StandardMaterial3D
 
 
-## O prédio de um jogo (sempre igual para o mesmo App ID).
-static func from_app_id(app_id: int) -> BuildingVariant:
+## O prédio de um jogo (sempre igual para o mesmo App ID). "floor_weights" são
+## as chances de 3 a 7 andares do bairro (perfil); vazio = FLOOR_WEIGHTS.
+static func from_app_id(app_id: int, floor_weights: PackedFloat32Array = PackedFloat32Array()) -> BuildingVariant:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = app_id * 7919 + 13  # outra "semente", para não repetir os sorteios de cor e material
 	var variant := BuildingVariant.new()
-	variant.floors = 3 + rng.rand_weighted(PackedFloat32Array(FLOOR_WEIGHTS))
+	variant.floors = 3 + rng.rand_weighted(floor_weights if floor_weights.size() == FLOOR_WEIGHTS.size() else PackedFloat32Array(FLOOR_WEIGHTS))
 	variant.setback = rng.randf() < 0.4
 	variant.parapet = rng.randf() < 0.6
 	variant.canopy = rng.randf() < 0.5

@@ -27,6 +27,8 @@ const MAX_TOASTS: int = 3
 ## O aviso de volta do jogo fica pelo menos isto (s) antes de sumir ao andar.
 const SESSION_MIN_SECONDS: float = 1.5
 const TOASTS_TOP: float = 12.0
+## Minimapa no canto superior direito.
+const MINIMAP_SIZE: Vector2 = Vector2(168.0, 168.0)
 const TOASTS_GAP: int = 8
 
 ## Sons (Kenney, CC0).
@@ -42,7 +44,12 @@ var _look_label: Label
 var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
+var _look_action: Label
+## Dentro de casa (o jogador avisa): sem bússola e sem minimapa.
+var _indoors: bool = false
 var _toasts: VBoxContainer
+var _compass: Compass
+var _minimap: MapView
 ## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
 var _waiting_messages: Array[Array] = []
 var _sound: AudioStreamPlayer
@@ -57,6 +64,7 @@ func _ready() -> void:
 	_build_crosshair()
 	_build_look_card()
 	_build_toasts()
+	_build_compass()
 	visibility_changed.connect(_show_waiting_messages)
 
 	_sound = AudioStreamPlayer.new()
@@ -96,6 +104,8 @@ func set_look_info(info: Dictionary) -> void:
 	_set_line(_look_detail, str(info.get("detail", "")))
 	var friends := str(info.get("friends", ""))
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
+	# Dica de interação ("Segure E para jogar"), só nos alvos que respondem ao E.
+	_set_line(_look_action, str(info.get("action", "")))
 	_look_card.visible = not title.is_empty()
 
 	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.
@@ -116,6 +126,10 @@ func set_look_text(text: String) -> void:
 
 
 ## As linhas extras do cartão (rótulo do bairro e amigos) sobre o que se olha.
+func get_look_action() -> String:
+	return _look_action.text
+
+
 func get_look_extras() -> PackedStringArray:
 	return PackedStringArray([_look_label.text, _look_friends.text])
 
@@ -331,6 +345,8 @@ func _build_look_card() -> void:
 	column.add_child(_look_detail)
 	_look_friends = _make_label(FRIENDS_FONT_SIZE, FRIENDS_COLOR, HubFonts.LIGHT)
 	column.add_child(_look_friends)
+	_look_action = _make_label(FRIENDS_FONT_SIZE, DETAIL_COLOR, HubFonts.TEXT)
+	column.add_child(_look_action)
 
 
 ## Pilha de avisos no topo, centralizada, 500 px de largura.
@@ -344,6 +360,49 @@ func _build_toasts() -> void:
 	_toasts.offset_right = Toast.WIDTH / 2.0
 	_toasts.offset_top = TOASTS_TOP
 	add_child(_toasts)
+
+
+## A bússola no topo; os avisos descem para ficar abaixo dela.
+func _build_compass() -> void:
+	_compass = Compass.new()
+	_compass.name = "Compass"
+	add_child(_compass)
+	_minimap = MapView.new()
+	_minimap.name = "Minimap"
+	_minimap.follow_player = true
+	_minimap.show_area_name = true
+	_minimap.custom_minimum_size = MINIMAP_SIZE
+	_minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.offset_left = -MINIMAP_SIZE.x - 12.0
+	_minimap.offset_right = -12.0
+	_minimap.offset_top = 12.0
+	_minimap.offset_bottom = 12.0 + MINIMAP_SIZE.y
+	add_child(_minimap)
+	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
+		if section == "video" and key == "show_map":
+			_apply_map_visibility())
+	_apply_map_visibility()
+
+
+## Em casa a bússola e o minimapa somem (eles falam do mundo lá fora).
+func set_indoors(on: bool) -> void:
+	_indoors = on
+	_apply_map_visibility()
+
+
+func _apply_map_visibility() -> void:
+	var on := AppConfig.get_show_map() and not _indoors
+	_compass.visible = on
+	_minimap.visible = on
+	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)
+
+
+func get_minimap() -> MapView:
+	return _minimap
+
+
+func get_compass() -> Compass:
+	return _compass
 
 
 func _make_panel_style(left_border: int) -> StyleBoxFlat:

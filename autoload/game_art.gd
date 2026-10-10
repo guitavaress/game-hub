@@ -18,6 +18,23 @@ extends Node
 ## Também arranja o HERO (banner largo 1920x620, sem logo, feito pela Steam para
 ## ficar ATRÁS do logo) e o LOGO (PNG transparente) de cada jogo.
 ##
+## Memória (Fase 8.8): na cidade, o hero e o logo aparecem numa fachada, então
+## get_hero e get_logo devolvem uma versão COMPRIMIDA para a placa de vídeo
+## (S3TC, ~6 vezes menos memória; só diminuem se passarem de
+## WORLD_MAX_WIDTH, como alguns logos de 4700 px). Com 200 jogos, a memória de
+## textura cai de ~1,9 GB para ~0,3 GB. A tela "Abrindo X…" é a tela inteira:
+## ela pede o original sem compressão com get_hero_full e get_logo_full
+## (carregado na hora, um de cada vez).
+##
+## Em segundo plano (Fase 9.3): carregar um hero ou um logo do disco leva de
+## 10 a 160 ms (um PNG de 4700 px é o pior). Para a cidade montar sem travar
+## a casa, preload_world_art(app_ids) carrega em threads (WorkerThreadPool) e
+## is_world_art_ready(app_id) diz quando acabou. A COMPRESSÃO (~6 ms) fica na
+## thread principal: o compressor S3TC da Godot às vezes trava quando roda
+## numa thread (medido na 9.3: 1 vez a cada 3 rodadas com 200 jogos).
+## get_hero/get_logo continuam valendo a qualquer hora: se o carregamento
+## daquele jogo ainda estiver em andamento, esperam por ele.
+##
 ## Uso:
 ##   var textura := GameArt.get_art(app_id)   # null = ainda não temos
 ##   GameArt.art_ready.connect(...)           # chegou uma capa (nova ou melhor)
@@ -37,6 +54,12 @@ const RETRY_AFTER_DAYS: int = 7
 const SECONDS_PER_DAY: int = 24 * 60 * 60
 ## Capas com menos que isso de largura ganham uma versão HD baixada.
 const HD_MIN_WIDTH: int = 600
+## Largura máxima do hero e do logo usados no mundo (fachadas). Diminuir custa
+## tempo na abertura, então só as imagens enormes passam por isso.
+const WORLD_MAX_WIDTH: int = 2048
+## Quantos carregamentos em segundo plano rodam ao mesmo tempo (o resto das
+## threads fica livre para a Godot).
+const MAX_PARALLEL_LOADS: int = 3
 
 ## Nomes de arquivo no cache local da Steam, em ordem de preferência.
 ## (O nome muda conforme o jogo e a versão da Steam, e às vezes o arquivo fica
@@ -48,6 +71,8 @@ const STEAM_CACHE_FILES: Array[String] = [
 	"library_header.jpg",   # capa deitada (nome novo)
 ]
 
+## false = nunca baixa nada (os testes de escala, com jogos inventados, ligam isto).
+var allow_downloads: bool = true
 var _textures: Dictionary[int, Texture2D] = {}
 var _heroes: Dictionary[int, Texture2D] = {}
 ## Logos já procurados (app_id -> textura, ou null se o jogo não tem logo).
@@ -58,10 +83,131 @@ var _logos: Dictionary = {}
 var _queue: Array[Dictionary] = []
 ## Downloads em andamento, pelo "stem".
 var _active: Dictionary[String, Dictionary] = {}
+## Carregamentos em segundo plano: "hero:<app_id>" ou "logo:<app_id>" -> tarefa
+## do WorkerThreadPool. As imagens prontas ficam em _loaded_images até a
+## thread principal transformá-las em textura (protegidas pelo _loaded_lock).
+var _pending: Dictionary[String, int] = {}
+## Carregamentos esperando a vez (no máximo MAX_PARALLEL_LOADS rodam juntos).
+## Cada um: [key, caminho do arquivo].
+var _load_queue: Array[Array] = []
+var _loaded_images: Dictionary[String, Image] = {}
+var _loaded_lock := Mutex.new()
 
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(CACHE_DIR)
+	set_process(false)  # só trabalha com carregamentos na fila
+
+
+## Com carregamentos na fila: começa os próximos quando há vaga.
+func _process(_delta: float) -> void:
+	_start_queued()
+	if _load_queue.is_empty():
+		set_process(false)
+
+
+## Fechando o hub: esvazia a fila e espera as threads terminarem.
+func _exit_tree() -> void:
+	_load_queue.clear()
+	for task in _pending.values():
+		WorkerThreadPool.wait_for_task_completion(task)
+	_pending.clear()
+
+
+# --- Em segundo plano -----------------------------------------------------------
+
+## Começa a carregar (em threads) o hero e o logo destes jogos, na ordem da
+## lista. Quem ainda não tem arquivo no disco fica de fora (get_hero baixa).
+func preload_world_art(app_ids: Array[int]) -> void:
+	for app_id in app_ids:
+		if not _heroes.has(app_id) and not _is_loading("hero:%d" % app_id):
+			var hero_path := _hero_path(app_id)
+			if not hero_path.is_empty():
+				_load_queue.append(["hero:%d" % app_id, hero_path])
+		if not _logos.has(app_id) and not _is_loading("logo:%d" % app_id):
+			var logo_path := _logo_path(app_id)
+			if logo_path.is_empty():
+				_logos[app_id] = null  # o jogo não tem logo
+			else:
+				_load_queue.append(["logo:%d" % app_id, logo_path])
+	_start_queued()
+	set_process(not _load_queue.is_empty())
+
+
+## O hero e o logo deste jogo já estão prontos (ou nem existem no disco)?
+## Não espera nada: quem quer esperar pergunta de novo no próximo quadro.
+## Termina (comprime) no máximo UMA imagem por chamada: comprimir custa uns
+## 10 ms, e as duas juntas pesariam num quadro só.
+func is_world_art_ready(app_id: int) -> bool:
+	for key in ["hero:%d" % app_id, "logo:%d" % app_id]:
+		if _queue_index(key) >= 0:
+			return false  # ainda esperando a vez
+		if _pending.has(key):
+			if WorkerThreadPool.is_task_completed(_pending[key]):
+				_finish_loading(key)
+			return false  # a outra (se houver) fica para a próxima chamada
+	return true
+
+
+## Começa os carregamentos da fila enquanto houver vaga.
+func _start_queued() -> void:
+	var running := 0
+	for task in _pending.values():
+		if not WorkerThreadPool.is_task_completed(task):
+			running += 1
+	while running < MAX_PARALLEL_LOADS and not _load_queue.is_empty():
+		var next: Array = _load_queue.pop_front()
+		_pending[next[0]] = WorkerThreadPool.add_task(_load_in_thread.bind(next[0], next[1]), false, "GameArt " + next[0])
+		running += 1
+
+
+func _is_loading(key: String) -> bool:
+	return _pending.has(key) or _queue_index(key) >= 0
+
+
+func _queue_index(key: String) -> int:
+	for i in _load_queue.size():
+		if _load_queue[i][0] == key:
+			return i
+	return -1
+
+
+## Se "key" está na fila ou carregando: na fila, sai dela (quem pediu carrega
+## na hora); carregando, espera terminar e guarda a textura.
+func _settle(key: String) -> void:
+	var index := _queue_index(key)
+	if index >= 0:
+		_load_queue.remove_at(index)
+	elif _pending.has(key):
+		_finish_loading(key)
+
+
+## Roda numa thread: carrega, diminui se precisar e gera os mipmaps. A
+## compressão e a textura ficam para a thread principal (_finish_loading).
+func _load_in_thread(key: String, path: String) -> void:
+	var image := _decode_image(path, WORLD_MAX_WIDTH, false)
+	_loaded_lock.lock()
+	_loaded_images[key] = image
+	_loaded_lock.unlock()
+
+
+## Espera (se ainda não acabou) o carregamento "key" e guarda a textura.
+func _finish_loading(key: String) -> void:
+	WorkerThreadPool.wait_for_task_completion(_pending[key])
+	_pending.erase(key)
+	_loaded_lock.lock()
+	var image: Image = _loaded_images.get(key)
+	_loaded_images.erase(key)
+	_loaded_lock.unlock()
+	if image != null:
+		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
+	var texture := _to_texture(image, true)
+	var app_id := int(key.get_slice(":", 1))
+	if key.begins_with("hero:"):
+		if texture != null:
+			_heroes[app_id] = texture
+	else:
+		_logos[app_id] = texture
 
 
 ## Devolve a capa do jogo, ou null se ainda não tivermos (aí começa o download
@@ -100,13 +246,12 @@ func get_art(app_id: int) -> Texture2D:
 ## Hero do jogo (banner 1920x620), ou null se ainda não tivermos (aí começa o
 ## download e o sinal hero_ready avisa quando chegar).
 func get_hero(app_id: int) -> Texture2D:
+	_settle("hero:%d" % app_id)  # estava na fila ou carregando em segundo plano
 	if _heroes.has(app_id):
 		return _heroes[app_id]
-	var path := _cached_file("%d_hero" % app_id)
-	if path.is_empty():
-		path = _find_in_steam_cache(app_id, ["library_hero.jpg"])
+	var path := _hero_path(app_id)
 	if not path.is_empty():
-		var texture := _load_texture(path)
+		var texture := _load_texture(path, WORLD_MAX_WIDTH, true)
 		if texture != null:
 			_heroes[app_id] = texture
 			return texture
@@ -117,17 +262,56 @@ func get_hero(app_id: int) -> Texture2D:
 ## Logo do jogo (PNG com fundo transparente, do cache local da Steam), ou null
 ## se não houver. Serve para letreiros: fica mais bonito que o nome em texto.
 func get_logo(app_id: int) -> Texture2D:
+	_settle("logo:%d" % app_id)  # estava na fila ou carregando em segundo plano
 	if _logos.has(app_id):
 		return _logos[app_id]
-	var logo: Texture2D = null
-	var steam := SteamLibrary.get_steam_path()
-	if not steam.is_empty():
-		for file in _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2):
-			if file.get_file() == "logo.png":
-				logo = _load_texture(file)
-				break
+	var path := _logo_path(app_id)
+	var logo: Texture2D = null if path.is_empty() else _load_texture(path, WORLD_MAX_WIDTH, true)
 	_logos[app_id] = logo
 	return logo
+
+
+## Hero no tamanho original, para a tela inteira ("Abrindo X…"). Carrega na
+## hora e guarda só o último (null = ainda não temos: use get_hero, que baixa).
+func get_hero_full(app_id: int) -> Texture2D:
+	return _full("hero", app_id, _hero_path(app_id))
+
+
+## Logo no tamanho original, para a tela inteira (null = o jogo não tem logo).
+func get_logo_full(app_id: int) -> Texture2D:
+	return _full("logo", app_id, _logo_path(app_id))
+
+
+## Uma imagem original guardada por tipo ("hero", "logo"): a tela só mostra
+## um jogo por vez, então não vale guardar mais.
+var _full_cache: Dictionary[String, Array] = {}
+
+func _full(kind: String, app_id: int, path: String) -> Texture2D:
+	var cached: Array = _full_cache.get(kind, [])
+	if not cached.is_empty() and cached[0] == app_id:
+		return cached[1]
+	var texture: Texture2D = null if path.is_empty() else _load_texture(path)
+	_full_cache[kind] = [app_id, texture]
+	return texture
+
+
+## Onde está o hero no disco ("" = não temos).
+func _hero_path(app_id: int) -> String:
+	var path := _cached_file("%d_hero" % app_id)
+	if path.is_empty():
+		path = _find_in_steam_cache(app_id, ["library_hero.jpg"])
+	return path
+
+
+## Onde está o logo no disco, no cache da Steam ("" = não há).
+func _logo_path(app_id: int) -> String:
+	var steam := SteamLibrary.get_steam_path()
+	if steam.is_empty():
+		return ""
+	for file in _list_files("%s/appcache/librarycache/%d" % [steam, app_id], 2):
+		if file.get_file() == "logo.png":
+			return file
+	return ""
 
 
 ## Arquivo "<stem>.jpg" ou "<stem>.png" no nosso cache ("" = não existe).
@@ -165,13 +349,41 @@ func _list_files(folder: String, depth: int) -> PackedStringArray:
 	return result
 
 
-func _load_texture(path: String) -> Texture2D:
+## Carrega uma imagem do disco. "max_width" > 0 diminui (mantendo a proporção)
+## se for mais larga; "compress" comprime para a placa de vídeo (S3TC: ~4 a 8
+## vezes menos memória). Se a compressão não existir nesta versão da Godot, a
+## imagem fica sem comprimir (funciona igual, só gasta mais).
+func _load_texture(path: String, max_width: int = 0, compress: bool = false) -> Texture2D:
+	return _to_texture(_decode_image(path, max_width, compress), compress)
+
+
+## A parte pesada do _load_texture (pode rodar numa thread: não cria textura
+## nem mexe em nada do GameArt). Devolve null se a imagem for inválida.
+static func _decode_image(path: String, max_width: int, compress: bool) -> Image:
 	var image := Image.load_from_file(path)
 	if image == null or image.is_empty():
-		push_warning("GameArt: imagem inválida em %s" % path)
 		return null
+	if max_width > 0 and image.get_width() > max_width:
+		var height := maxi(1, roundi(image.get_height() * float(max_width) / image.get_width()))
+		image.resize(max_width, height, Image.INTERPOLATE_BILINEAR)  # rápido; a imagem continua grande
 	image.generate_mipmaps()  # deixa a imagem bonita vista de longe
+	if compress:
+		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
+	return image
+
+
+## Textura a partir da imagem já carregada (na thread principal).
+func _to_texture(image: Image, wanted_compressed: bool) -> Texture2D:
+	if image == null:
+		push_warning("GameArt: imagem inválida")
+		return null
+	if wanted_compressed and not image.is_compressed() and not _warned_compress:
+		_warned_compress = true
+		push_warning("GameArt: sem compressão de textura nesta versão; as capas gastam mais memória.")
 	return ImageTexture.create_from_image(image)
+
+
+var _warned_compress: bool = false
 
 
 # --- Endereços ---------------------------------------------------------------
@@ -211,7 +423,7 @@ func _without_empty(urls: Array) -> Array[String]:
 # --- Downloads ---------------------------------------------------------------
 
 func _queue_download(app_id: int, stem: String, urls: Array[String], kind: String = "cover") -> void:
-	if urls.is_empty() or _active.has(stem) or _failed_recently(stem):
+	if not allow_downloads or urls.is_empty() or _active.has(stem) or _failed_recently(stem):
 		return
 	for job in _queue:
 		if job["stem"] == stem:
@@ -249,7 +461,8 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 		if file != null:
 			file.store_buffer(body)
 			file.close()
-			var texture := _load_texture(path)
+			var is_hero: bool = job["kind"] == "hero"
+			var texture := _load_texture(path, WORLD_MAX_WIDTH if is_hero else 0, is_hero)
 			var is_hd_job := String(job["stem"]).ends_with("_hd")
 			if texture != null and (not is_hd_job or texture.get_width() >= HD_MIN_WIDTH):
 				_finish_download(http, job, texture)
@@ -311,3 +524,4 @@ func _failed_recently(stem: String) -> bool:
 	var failed_at := FileAccess.get_file_as_string(path).to_int()
 	var age := int(Time.get_unix_time_from_system()) - failed_at
 	return age < RETRY_AFTER_DAYS * SECONDS_PER_DAY
+

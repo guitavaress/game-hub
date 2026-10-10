@@ -1,0 +1,3293 @@
+{
+  "origem": "Fase Linux, commit 3b8c3fc (antes da Fase 7)",
+  "categorias": [
+    {
+      "id": "esportes",
+      "nome": "Esportes e Corrida",
+      "cor": {
+        "html": "3f8f5aff",
+        "rgba": [
+          0.2471,
+          0.5608,
+          0.3529,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "4cff88ff",
+        "rgba": [
+          0.298,
+          1.0,
+          0.5333,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        701,
+        1254546,
+        1254552,
+        699,
+        1746,
+        7038,
+        22955,
+        1753,
+        5914,
+        5727,
+        324176,
+        12190,
+        47827,
+        19568,
+        7309,
+        28444,
+        17927,
+        7328,
+        1100687,
+        7622,
+        15868,
+        252854
+      ],
+      "som": [
+        {
+          "tipo": "loop",
+          "volume_db": -16.0,
+          "distancia_max": 32.0,
+          "unit_size": 6.0,
+          "intervalo": [
+            3.0,
+            8.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/sci-fi-sounds/engineCircular_000.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/sports_scoreboard.gd",
+        "nome_do_no": "DistrictProps_esportes_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "rpg",
+      "nome": "RPG e Fantasia",
+      "cor": {
+        "html": "7b5ea7ff",
+        "rgba": [
+          0.4824,
+          0.3686,
+          0.6549,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "934cffff",
+        "rgba": [
+          0.5765,
+          0.298,
+          1.0,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        122,
+        4434,
+        4231,
+        4474,
+        10695,
+        4325,
+        21725,
+        17305,
+        1754,
+        29482,
+        1720
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -10.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            2.0,
+            6.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/rpg-audio/bookFlip1.ogg",
+            "res://assets/kenney/rpg-audio/bookFlip2.ogg",
+            "res://assets/kenney/rpg-audio/bookFlip3.ogg",
+            "res://assets/kenney/rpg-audio/handleCoins.ogg",
+            "res://assets/kenney/rpg-audio/handleCoins2.ogg",
+            "res://assets/kenney/rpg-audio/metalClick.ogg",
+            "res://assets/kenney/rpg-audio/metalLatch.ogg",
+            "res://assets/kenney/rpg-audio/drawKnife1.ogg",
+            "res://assets/kenney/rpg-audio/drawKnife2.ogg",
+            "res://assets/kenney/rpg-audio/drawKnife3.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/rpg_banners.gd",
+        "nome_do_no": "DistrictProps_rpg_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "sobrevivencia",
+      "nome": "Sobrevivência e Terror",
+      "cor": {
+        "html": "8a3c42ff",
+        "rgba": [
+          0.5412,
+          0.2353,
+          0.2588,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "ff4c5bff",
+        "rgba": [
+          1.0,
+          0.298,
+          0.3569,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        1662,
+        1100689,
+        1667,
+        3978,
+        1721,
+        1659,
+        7432
+      ],
+      "som": [
+        {
+          "tipo": "loop",
+          "volume_db": -12.0,
+          "distancia_max": 22.0,
+          "unit_size": 6.0,
+          "intervalo": [
+            3.0,
+            8.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/generated/wind_loop.wav"
+          ]
+        },
+        {
+          "tipo": "avulsos",
+          "volume_db": -18.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            10.0,
+            20.0
+          ],
+          "tom": [
+            0.5,
+            0.699999988079071
+          ],
+          "arquivos": [
+            "res://assets/kenney/sci-fi-sounds/lowFrequency_explosion_001.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/terror_mood.gd",
+        "nome_do_no": "DistrictProps_sobrevivencia_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "simulacao",
+      "nome": "Simulação e Construção",
+      "cor": {
+        "html": "c9be4aff",
+        "rgba": [
+          0.7882,
+          0.7451,
+          0.2902,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "fff04cff",
+        "rgba": [
+          1.0,
+          0.9412,
+          0.298,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        220585,
+        7332,
+        87918,
+        10235,
+        12472,
+        4328,
+        1643,
+        255534,
+        4695,
+        22602,
+        4520,
+        16598,
+        15045,
+        3810,
+        599
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -12.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            0.600000023841858,
+            3.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/impact-sounds/impactWood_light_000.ogg",
+            "res://assets/kenney/impact-sounds/impactWood_light_001.ogg",
+            "res://assets/kenney/impact-sounds/impactWood_light_002.ogg",
+            "res://assets/kenney/impact-sounds/impactWood_light_003.ogg",
+            "res://assets/kenney/impact-sounds/impactWood_light_004.ogg",
+            "res://assets/kenney/impact-sounds/impactPlank_medium_000.ogg",
+            "res://assets/kenney/impact-sounds/impactPlank_medium_001.ogg",
+            "res://assets/kenney/impact-sounds/impactPlank_medium_002.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/construction_site.gd",
+        "nome_do_no": "DistrictProps_simulacao_3_4",
+        "tem_cell": false
+      }
+    },
+    {
+      "id": "estrategia",
+      "nome": "Estratégia e Tática",
+      "cor": {
+        "html": "4a6fa5ff",
+        "rgba": [
+          0.2902,
+          0.4353,
+          0.6471,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "4c95ffff",
+        "rgba": [
+          0.298,
+          0.5843,
+          1.0,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        9,
+        1676,
+        1741,
+        4364,
+        1670,
+        1645,
+        1708,
+        4684,
+        3813,
+        14139,
+        1084988
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -14.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            1.5,
+            5.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/interface-sounds/click_001.ogg",
+            "res://assets/kenney/interface-sounds/click_002.ogg",
+            "res://assets/kenney/interface-sounds/click_003.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/strategy_table.gd",
+        "nome_do_no": "DistrictProps_estrategia_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "acao",
+      "nome": "Ação e Roguelike",
+      "cor": {
+        "html": "c0623aff",
+        "rgba": [
+          0.7529,
+          0.3843,
+          0.2275,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "ff824cff",
+        "rgba": [
+          1.0,
+          0.5098,
+          0.298,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        42804,
+        1716,
+        3959,
+        19,
+        1774,
+        1663,
+        3814,
+        1646,
+        4885,
+        4637,
+        4758,
+        4255,
+        1773,
+        1743,
+        4158,
+        1625,
+        5379,
+        3877,
+        1628,
+        176981,
+        3955,
+        353880,
+        1680,
+        1687
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -18.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            1.5,
+            5.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/sci-fi-sounds/laserSmall_000.ogg",
+            "res://assets/kenney/sci-fi-sounds/laserSmall_001.ogg",
+            "res://assets/kenney/sci-fi-sounds/laserSmall_002.ogg",
+            "res://assets/kenney/sci-fi-sounds/laserSmall_003.ogg",
+            "res://assets/kenney/sci-fi-sounds/laserSmall_004.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/action_screens.gd",
+        "nome_do_no": "DistrictProps_acao_3_4",
+        "tem_cell": false
+      }
+    },
+    {
+      "id": "cartas",
+      "nome": "Cartas e Tabuleiro",
+      "cor": {
+        "html": "2f8f8aff",
+        "rgba": [
+          0.1843,
+          0.5608,
+          0.5412,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "4cfff6ff",
+        "rgba": [
+          0.298,
+          1.0,
+          0.9647,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        1666,
+        32322,
+        1091588,
+        791774,
+        9271,
+        1770,
+        17389,
+        4184,
+        13070,
+        7556,
+        33572
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -8.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            1.5,
+            5.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/casino-audio/card-shuffle.ogg",
+            "res://assets/kenney/casino-audio/card-slide-1.ogg",
+            "res://assets/kenney/casino-audio/card-slide-2.ogg",
+            "res://assets/kenney/casino-audio/card-slide-3.ogg",
+            "res://assets/kenney/casino-audio/card-slide-4.ogg",
+            "res://assets/kenney/casino-audio/card-shove-1.ogg",
+            "res://assets/kenney/casino-audio/card-shove-2.ogg",
+            "res://assets/kenney/casino-audio/chips-stack-1.ogg",
+            "res://assets/kenney/casino-audio/chips-stack-2.ogg",
+            "res://assets/kenney/casino-audio/chips-stack-3.ogg",
+            "res://assets/kenney/casino-audio/dice-throw-1.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/card_marquee.gd",
+        "nome_do_no": "DistrictProps_cartas_3_4",
+        "tem_cell": false
+      }
+    },
+    {
+      "id": "aventura",
+      "nome": "Aventura e Mistério",
+      "cor": {
+        "html": "d09a3cff",
+        "rgba": [
+          0.8157,
+          0.6039,
+          0.2353,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "ffbd4cff",
+        "rgba": [
+          1.0,
+          0.7412,
+          0.298,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        1664,
+        5716,
+        5613,
+        8369,
+        5537,
+        1698,
+        5900,
+        3799,
+        1738,
+        769306,
+        11014,
+        4486,
+        21,
+        3834
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -14.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            1.0,
+            4.0
+          ],
+          "tom": [
+            0.850000023841858,
+            1.25
+          ],
+          "arquivos": [
+            "res://assets/generated/bird_chirp_1.wav",
+            "res://assets/generated/bird_chirp_2.wav",
+            "res://assets/generated/bird_chirp_3.wav",
+            "res://assets/generated/bird_chirp_4.wav"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/adventure_lanterns.gd",
+        "nome_do_no": "DistrictProps_aventura_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "casual",
+      "nome": "Casual e Festa",
+      "cor": {
+        "html": "d27aa0ff",
+        "rgba": [
+          0.8235,
+          0.4784,
+          0.6275,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "ff4c9aff",
+        "rgba": [
+          1.0,
+          0.298,
+          0.6039,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [
+        597,
+        7178,
+        7108,
+        1654,
+        97376,
+        1752,
+        1621,
+        10437,
+        379975,
+        615955,
+        1665,
+        5350
+      ],
+      "som": [
+        {
+          "tipo": "avulsos",
+          "volume_db": -14.0,
+          "distancia_max": 18.0,
+          "unit_size": 4.0,
+          "intervalo": [
+            8.0,
+            16.0
+          ],
+          "tom": [
+            0.899999976158142,
+            1.10000002384186
+          ],
+          "arquivos": [
+            "res://assets/kenney/music-jingles/jingles_PIZZI00.ogg",
+            "res://assets/kenney/music-jingles/jingles_PIZZI04.ogg"
+          ]
+        }
+      ],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/string_lights.gd",
+        "nome_do_no": "DistrictProps_casual_3_4",
+        "tem_cell": true
+      }
+    },
+    {
+      "id": "outros",
+      "nome": "Outros",
+      "cor": {
+        "html": "7d8590ff",
+        "rgba": [
+          0.4902,
+          0.5216,
+          0.5647,
+          1.0
+        ]
+      },
+      "neon": {
+        "html": "dde3eaff",
+        "rgba": [
+          0.8667,
+          0.8902,
+          0.9176,
+          1.0
+        ]
+      },
+      "neon_na_tabela": true,
+      "tags": [],
+      "som": [],
+      "enfeite": {
+        "script": "res://worlds/city/district_props/address_totem.gd",
+        "nome_do_no": "DistrictProps_outros_3_4",
+        "tem_cell": true
+      }
+    }
+  ],
+  "arquitetura": {
+    "pesos_andares": [
+      0.2,
+      0.25,
+      0.25,
+      0.18,
+      0.12
+    ],
+    "estilos_parede": [
+      {
+        "pasta": "Concrete034",
+        "metros": 3.0,
+        "tom": {
+          "html": "d1d4d9ff",
+          "rgba": [
+            0.82,
+            0.83,
+            0.85,
+            1.0
+          ]
+        }
+      },
+      {
+        "pasta": "Concrete048",
+        "metros": 3.0,
+        "tom": {
+          "html": "f2ede6ff",
+          "rgba": [
+            0.95,
+            0.93,
+            0.9,
+            1.0
+          ]
+        }
+      },
+      {
+        "pasta": "Bricks097",
+        "metros": 2.2,
+        "tom": {
+          "html": "e6e0dbff",
+          "rgba": [
+            0.9,
+            0.88,
+            0.86,
+            1.0
+          ]
+        }
+      }
+    ],
+    "predios": [
+      {
+        "app_id": 2379780,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 489830,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 892970,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 413150,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 391540,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 367520,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2334730,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 3405690,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 431960,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 993090,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 620,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 10,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 7929,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 15848,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 23767,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 31686,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 39605,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 47524,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 55443,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 63362,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 71281,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 79200,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 87119,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 95038,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 102957,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 110876,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 118795,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 126714,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 134633,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 142552,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 150471,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 158390,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 166309,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 174228,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 182147,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 190066,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 197985,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 205904,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 213823,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 221742,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 229661,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 237580,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 245499,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 253418,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 261337,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 269256,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 277175,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 285094,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 293013,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 300932,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 308851,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 316770,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 324689,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 332608,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 340527,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 348446,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 356365,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 364284,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 372203,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 380122,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 388041,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 395960,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 403879,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 411798,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 419717,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 427636,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 435555,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 443474,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 451393,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 459312,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 467231,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 475150,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 483069,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 490988,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 498907,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 506826,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 514745,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 522664,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 530583,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 538502,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 546421,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 554340,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 562259,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 570178,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 578097,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 586016,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 593935,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 601854,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 609773,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 617692,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 625611,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 633530,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 641449,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 649368,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 657287,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 665206,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 673125,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 681044,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 688963,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 696882,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 704801,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 712720,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 720639,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 728558,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 736477,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 744396,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 752315,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 760234,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 768153,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 776072,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 783991,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 791910,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 799829,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 807748,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 815667,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 823586,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 831505,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 839424,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 847343,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 855262,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 863181,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 871100,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 879019,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 886938,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 894857,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 902776,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 910695,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 918614,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 926533,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 934452,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 942371,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 950290,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 958209,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 966128,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 974047,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 981966,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 989885,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 997804,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1005723,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1013642,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1021561,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1029480,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1037399,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1045318,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1053237,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1061156,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1069075,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1076994,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1084913,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1092832,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 1100751,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1108670,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 1116589,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1124508,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1132427,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 1140346,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1148265,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1156184,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1164103,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1172022,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 1179941,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1187860,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1195779,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1203698,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1211617,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1219536,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1227455,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1235374,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1243293,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1251212,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1259131,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1267050,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1274969,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1282888,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1290807,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1298726,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1306645,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1314564,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1322483,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1330402,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1338321,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1346240,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1354159,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1362078,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1369997,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1377916,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1385835,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1393754,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1401673,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1409592,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1417511,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1425430,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1433349,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1441268,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 1449187,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1457106,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1465025,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1472944,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1480863,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1488782,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1496701,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1504620,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1512539,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1520458,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1528377,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1536296,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1544215,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1552134,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1560053,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1567972,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1575891,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1583810,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1591729,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1599648,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1607567,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1615486,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1623405,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1631324,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1639243,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1647162,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1655081,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 1663000,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1670919,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1678838,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1686757,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 1694676,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1702595,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1710514,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1718433,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1726352,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 1734271,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1742190,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1750109,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1758028,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1765947,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1773866,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1781785,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1789704,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1797623,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1805542,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1813461,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 1821380,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1829299,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 1837218,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 1845137,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1853056,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 1860975,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1868894,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 1876813,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1884732,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 1892651,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1900570,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1908489,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1916408,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1924327,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1932246,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 1940165,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 1948084,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 1956003,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1963922,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 1971841,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 1979760,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 1987679,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 1995598,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 2003517,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2011436,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2019355,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2027274,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2035193,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2043112,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 2051031,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 2058950,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2066869,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2074788,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2082707,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2090626,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2098545,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2106464,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2114383,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2122302,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2130221,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2138140,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2146059,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2153978,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2161897,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2169816,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2177735,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2185654,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2193573,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2201492,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2209411,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2217330,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 2225249,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 2233168,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 2241087,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2249006,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2256925,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 2264844,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2272763,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2280682,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2288601,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 2296520,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2304439,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 2312358,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2320277,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2328196,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 2336115,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 2344034,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2351953,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 2359872,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2367791,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2375710,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2383629,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2391548,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2399467,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2407386,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2415305,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2423224,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2431143,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 2439062,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2446981,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2454900,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2462819,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2470738,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 2478657,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2486576,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2494495,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2502414,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2510333,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2518252,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2526171,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 2534090,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2542009,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2549928,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2557847,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2565766,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2573685,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2581604,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2589523,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2597442,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2605361,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2613280,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2621199,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2629118,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2637037,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2644956,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2652875,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2660794,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2668713,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2676632,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2684551,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2692470,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2700389,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2708308,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2716227,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2724146,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2732065,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2739984,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2747903,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2755822,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2763741,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2771660,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2779579,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2787498,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2795417,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2803336,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2811255,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 2819174,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2827093,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2835012,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 2842931,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2850850,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2858769,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2866688,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2874607,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 2882526,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 2890445,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2898364,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2906283,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 2914202,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 2922121,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 2930040,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 2937959,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 2945878,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 2953797,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2961716,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 2969635,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 2977554,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 2985473,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 2993392,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3001311,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3009230,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 3017149,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3025068,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3032987,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3040906,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3048825,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3056744,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 3064663,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3072582,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3080501,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3088420,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3096339,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3104258,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3112177,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3120096,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3128015,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3135934,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3143853,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3151772,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3159691,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3167610,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3175529,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3183448,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3191367,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3199286,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3207205,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3215124,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3223043,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3230962,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3238881,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3246800,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3254719,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3262638,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3270557,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3278476,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3286395,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3294314,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3302233,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 3310152,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 3318071,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3325990,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3333909,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3341828,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3349747,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3357666,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3365585,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3373504,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3381423,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3389342,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3397261,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3405180,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3413099,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3421018,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3428937,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3436856,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3444775,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3452694,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3460613,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3468532,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3476451,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3484370,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3492289,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3500208,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3508127,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3516046,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3523965,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3531884,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3539803,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 3547722,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 3555641,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3563560,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3571479,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3579398,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3587317,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3595236,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3603155,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3611074,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3618993,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3626912,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3634831,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3642750,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3650669,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3658588,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3666507,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3674426,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3682345,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3690264,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3698183,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3706102,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3714021,
+        "andares": 7,
+        "parede": 2
+      },
+      {
+        "app_id": 3721940,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3729859,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3737778,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 3745697,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3753616,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3761535,
+        "andares": 4,
+        "parede": 2
+      },
+      {
+        "app_id": 3769454,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3777373,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3785292,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3793211,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3801130,
+        "andares": 3,
+        "parede": 1
+      },
+      {
+        "app_id": 3809049,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3816968,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3824887,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3832806,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3840725,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3848644,
+        "andares": 6,
+        "parede": 1
+      },
+      {
+        "app_id": 3856563,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 3864482,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3872401,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3880320,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3888239,
+        "andares": 4,
+        "parede": 1
+      },
+      {
+        "app_id": 3896158,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3904077,
+        "andares": 6,
+        "parede": 0
+      },
+      {
+        "app_id": 3911996,
+        "andares": 5,
+        "parede": 1
+      },
+      {
+        "app_id": 3919915,
+        "andares": 6,
+        "parede": 2
+      },
+      {
+        "app_id": 3927834,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3935753,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3943672,
+        "andares": 3,
+        "parede": 0
+      },
+      {
+        "app_id": 3951591,
+        "andares": 4,
+        "parede": 0
+      },
+      {
+        "app_id": 3959510,
+        "andares": 5,
+        "parede": 2
+      },
+      {
+        "app_id": 3967429,
+        "andares": 7,
+        "parede": 1
+      },
+      {
+        "app_id": 3975348,
+        "andares": 3,
+        "parede": 2
+      },
+      {
+        "app_id": 3983267,
+        "andares": 7,
+        "parede": 0
+      },
+      {
+        "app_id": 3991186,
+        "andares": 5,
+        "parede": 0
+      },
+      {
+        "app_id": 3999105,
+        "andares": 7,
+        "parede": 0
+      }
+    ]
+  }
+}

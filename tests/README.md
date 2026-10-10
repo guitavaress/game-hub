@@ -9,9 +9,11 @@ bash tests/run_tests.sh                          # todos (alguns minutos)
 bash tests/run_tests.sh check_gates check_trees  # só estes
 ```
 
-Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. Para usar uma Godot fora de `C:\Godot`, rode `GODOT=/caminho/godot.exe bash tests/run_tests.sh`.
+Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. O script acha a Godot em `C:\Godot` (Windows) ou no `PATH`/`~/.local/bin/godot` (Linux); para outra, rode `GODOT=/caminho/godot bash tests/run_tests.sh`.
 
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.
+
+**Duas sessões em paralelo (worktrees):** o `user://` é um só para todos os worktrees, por isso o `run_tests.sh` usa uma trava (`flock`). Se outra bateria estiver rodando, aparece "outra bateria está rodando; esperando ela terminar" e esta começa depois. A trava só vale para o `run_tests.sh`: um `godot -s` rodado à mão não espera. No Git Bash do Windows, sem `flock`, o script segue sem trava.
 
 ## Escrever um teste novo
 
@@ -31,7 +33,7 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
-	city.play_intro = false  # pula a descida pelo céu
+	city.play_intro = false  # sem janela: tela preta, jogador na praça e montagem direta
 	root.add_child(city)
 	while not city.is_city_ready():
 		await process_frame
@@ -60,3 +62,14 @@ func _check(label: String, ok: bool) -> void:
 - **Arquivos do usuário:** se o teste mexe em `user://config.cfg` ou no cache, guarde uma cópia no começo e devolva no fim (veja `check_pause_menu.gd`).
 - **Nunca** use uma chave ou um ID real. Use valores falsos, como `76561190000000001`.
 - **Capturas de tela** precisam de janela (sem `--headless`). Elas ficam fora deste diretório e fora do repositório, porque mostram capas de jogos.
+- **A biblioteca de verdade importa.** Vários testes montam a cidade com os jogos instalados e procuram prédios específicos. Precisam estar instalados: **Balatro (2379780), Skyrim (489830), Valheim (892970) e Stardew Valley (413150)**; o Valheim também dá o bairro Terror. Num PC sem esses jogos, esses testes falham por falta do jogo, e não por erro no hub. O motor do bairro de esportes (`check_phase6_audio`) não exige jogo de esporte: sem ele, o teste confere o som pela tabela do bairro e avisa na saída. **Teste novo:** prefira achar o prédio pela categoria (`GameCategories.get_category_id`) a fixar um app id.
+- **Depois de um `SCRIPT ERROR`**, o teste não chega ao `quit()` e fica parado até o `timeout` (240 s). Uma bateria com muitas falhas demora.
+- **Testes de plataforma** (`check_platform`, `check_steam_linux`, `check_window_host`) usam pastas e comandos falsos em `tests/fixtures/` (com `.gdignore`, para a Godot não importar nada dali), então rodam igual no Windows e no Linux.
+- **`check_steam_windows`** só roda no Windows (nos outros sistemas, "pulado"): usa o `reg.exe` e o `tasklist` de verdade, mas numa chave de mentira (`HKCU\Software\GameHubTest`) que ele cria e apaga. Não toca na chave real da Steam.
+- **`check_weather`** (Fase 7.6) confere a garoa: só o Terror, só à noite e dentro do bairro, e a quantidade por qualidade. **`check_portal_shell`** confere o prédio e o arco como cascas de portal.
+- **Biblioteca falsa (Fase 8):** `tests/fake_library.gd` monta N jogos falsos só na memória (com capas reais da cache da Steam, sem rede) e desliga os downloads do `GameArt`. `check_scale`, `check_city_map`, `check_minimap` e `check_metro` a usam. Instale-a **antes** de criar a cidade e use `root.get_node("...")` para os autoloads (o script de teste não os enxerga direto).
+- **`play_intro` (Fase 9):** ligado (padrão com janela), o jogador nasce em casa e a cidade monta por orçamento de tempo; desligado, tudo fica como antes da Fase 9 (jogador na praça). Quase todos os testes desligam; só o `check_home_start` liga. Os testes da casa (`check_home`, `check_shelf`, `check_friends_wall`, `check_screen_3d`, `check_home_overlays`, `check_settings_view`) levam o jogador para dentro com `player.teleport_to(home.get_spawn_transform())` e `player.set_indoors(home.get_environment())`.
+- **Desempenho:** nenhum teste mede FPS. `tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>` roda **com janela** e imprime uma linha `MEDIDA` (a caminhada) e uma `MEDIDA_CASA` (girando dentro de casa). O notebook só serve para comparar antes e depois; a régua absoluta é o desktop.
+- **Painéis (menu, busca, mapa, metrô):** só um abre de cada vez, pelo `player.is_overlay_open()`. Um teste que corre por um vão entre prédios pode cair numa estação de metrô.
+- **`check_profiles`** (Fase 7) compara os perfis e o `GameCategories` com o retrato do comportamento de antes (`tests/fixtures/profiles_atuais.json`). O JSON devolve números como decimais: compare tags e ids convertendo para `int`.
+- **GitHub Actions** (`.github/workflows/testes.yml`): a cada push em `fase-*` e em cada Pull Request, roda os quatro testes de plataforma num Windows e num Linux do GitHub. A bateria completa **não** roda lá (precisa dos jogos instalados).

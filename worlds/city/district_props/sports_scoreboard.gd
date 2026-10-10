@@ -60,6 +60,8 @@ const GLYPHS: Dictionary = {
 
 ## Os prédios e o quarteirão (a cidade preenche antes de adicionar).
 var buildings: Array[CityBuilding] = []
+## Id do bairro (o DistrictProps preenche, a partir do perfil).
+var category_id: String = ""
 var cell: Vector2i = Vector2i.ZERO
 ## De onde vêm os minutos jogados de um jogo (recebe o App ID). Vazio = a
 ## Steam (SteamLibrary). Os testes trocam por números fixos.
@@ -76,7 +78,7 @@ static var _checker_texture: Texture2D
 
 func _ready() -> void:
 	add_to_group("city_night")
-	_neon = GameCategories.get_neon_color("esportes")
+	_neon = GameCategories.get_neon_color(category_id)
 	var pivot := Node3D.new()
 	pivot.name = "Gantry"
 	# Eixo Z do pivô = o sentido da rua; eixo X = de um lado ao outro dela.
