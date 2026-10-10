@@ -74,7 +74,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: capturas em 1280 × 720, 1920 × 1080 e 2560 × 1440 (`--resolution`) do menu de pausa, da busca, do mapa, do HUD com aviso e do computador focado. Conferir à mão que o mouse gira igual em janela e em tela cheia.
   - Commit: `Fase 10.3: a UI escala com a tela`
 
-- [ ] **10.4 A porta diz como entrar** (Sonnet · low) — revisão 2.1
+- [x] **10.4 A porta diz como entrar** (Sonnet · low) — revisão 2.1 — 123517e
   - Faz:
     - `components/game_portal/game_portal.gd` (`get_look_info`): acrescenta `"action": "Entre pela porta para jogar"` ao dicionário do `GameInfo.look_info()`.
     - `worlds/home/home.gd` (`_build_front_door`): `_front_door.action_text = "E para sair"`. A porta "Casa" da praça continua "E para entrar".
