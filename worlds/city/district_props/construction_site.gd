@@ -91,6 +91,15 @@ func set_night(night: float) -> void:
 		_apply_beacon()
 
 
+## Contrato dos enfeites que sobem acima dos telhados: a altura (y no mundo)
+## da peça mais alta. Aqui, o alto da lança com a luz de obstrução. A cidade
+## usa isto para pôr o letreiro do bairro por cima (0 = sem obra).
+func get_top_y() -> float:
+	if _crane == null:
+		return 0.0
+	return _crane.global_position.y + 0.3 + BEACON_RADIUS * 2.0
+
+
 ## O prédio mais alto do quarteirão (o de maior size.y; no empate, o de
 ## telhado mais alto, contando o recuo).
 func _tallest_building() -> CityBuilding:

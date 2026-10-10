@@ -21,6 +21,7 @@ func _run() -> void:
 	var blocks := 0
 	var gates: Array = []
 	var signs: Array = []
+	var district_signs: Array = []
 	for child in city.get_children():
 		if child.name.begins_with("Building_"):
 			districts[cats.get_category_id(child.game.app_id)] = true
@@ -29,10 +30,43 @@ func _run() -> void:
 		elif child.get_script() != null and child.get_script().get_global_name() == "StreetSign":
 			signs.append(child)
 		elif child.name.begins_with("DistrictSign_"):
-			blocks += 1
-	print("bairros: %d | quarteirões: %d | pórticos: %d | placas: %d" % [districts.size(), blocks, gates.size(), signs.size()])
+			district_signs.append(child)
+	for cells: Array in city._district_cells.values():
+		blocks += cells.size()
+	print("bairros: %d | quarteirões: %d | pórticos: %d | placas: %d | letreiros: %d" % [
+			districts.size(), blocks, gates.size(), signs.size(), district_signs.size()])
 	_check("um pórtico por bairro", gates.size() == districts.size())
-	_check("uma placa por quarteirão", signs.size() == blocks)
+	_check("uma placa de rua por quarteirão", signs.size() == blocks)
+
+	# Fase 10.6: um letreiro por bairro, em cima do meio do 1º quarteirão,
+	# com a placa inteira acima do prédio mais alto possível.
+	_check("um letreiro por bairro", district_signs.size() == districts.size())
+	var variant_class: GDScript = load("res://worlds/city/building_variant.gd")
+	var sign_class: GDScript = load("res://worlds/city/district_sign.gd")
+	var layout: GDScript = load("res://worlds/city/city_layout.gd")
+	var plate_half: float = sign_class.PLATE_HEIGHT * city.DISTRICT_SIGN_TEXT_HEIGHT / sign_class.TEXT_HEIGHT / 2.0
+	var tallest: float = variant_class.max_total_height()
+	var above := true
+	var on_first_block := true
+	for district_sign in district_signs:
+		var id: String = district_sign.name.trim_prefix("DistrictSign_")
+		if district_sign.position.y - plate_half <= tallest:
+			above = false
+		var first_cell: Vector2i = city._district_cells[id][0]
+		var center: Vector3 = layout.block_center(first_cell)
+		if Vector2(district_sign.position.x, district_sign.position.z).distance_to(Vector2(center.x, center.z)) > 0.01:
+			on_first_block = false
+	_check("letreiro acima do prédio mais alto possível (%.1f m)" % tallest, above)
+	_check("letreiro em cima do meio do 1º quarteirão do bairro", on_first_block)
+	# Nenhum enfeite alto (a grua da Simulação) atravessa o letreiro.
+	var over_props := true
+	for props in city.get_children():
+		if props.name.begins_with("DistrictProps_") and props.has_method("get_top_y"):
+			var id: String = props.name.split("_")[1]
+			var district_sign = city.get_node_or_null("DistrictSign_" + id)
+			if district_sign != null and district_sign.position.y - plate_half <= props.get_top_y():
+				over_props = false
+	_check("letreiro acima dos enfeites altos do bairro", over_props)
 
 	var names_ok := true
 	for gate in gates:

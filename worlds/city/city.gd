@@ -42,10 +42,11 @@ const BUILD_BUDGET_MS: float = 6.0
 const STORE_WAIT_SECONDS: float = 8.0
 ## Base dos prédios (a altura vem do número de andares: BuildingVariant).
 const BUILDING_FOOTPRINT: float = 10.0
-## Altura da placa flutuante com o nome do bairro (por cima da rua, na frente
-## do bairro; na altura do olhar ficam os pórticos).
-const DISTRICT_SIGN_HEIGHT: float = 17.0
-const DISTRICT_SIGN_TEXT_HEIGHT: float = 1.8
+## Letreiro do bairro: um por bairro, em cima do meio do primeiro quarteirão,
+## acima de todos os telhados (o prédio mais alto possível, BuildingVariant,
+## mais esta folga até o meio da placa). Na altura do olhar ficam os pórticos.
+const DISTRICT_SIGN_CLEARANCE: float = 5.0
+const DISTRICT_SIGN_TEXT_HEIGHT: float = 4.0
 ## Distância (m) da quina do quarteirão até o pórtico, andando pela rua do
 ## próprio quarteirão (fica antes do cruzamento, longe do pórtico vizinho).
 const GATE_SETBACK: float = 3.5
@@ -360,6 +361,9 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 			_report_progress("Construindo bairros… %d de %d jogos" % [built, total_games],
 					lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
 		_build_weather(cells.slice(first_cell, next_cell), district["id"])
+		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
+		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
+		_build_district_sign(cells.slice(first_cell, next_cell), district["id"])
 	return cells
 
 
@@ -506,6 +510,29 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 	add_child(gate)
 
 
+## Letreiro do bairro (néon sobre placa escura, sempre virado para quem olha),
+## um só por bairro, em cima do meio do primeiro quarteirão: acima do prédio
+## mais alto possível, e também dos enfeites que sobem acima dos telhados nos
+## quarteirões do bairro (a grua da Simulação diz até onde vai pelo
+## get_top_y). Assim ele aparece de longe, por cima da cidade.
+func _build_district_sign(district_cells: Array, category_id: String) -> void:
+	if district_cells.is_empty():
+		return
+	var top := BuildingVariant.max_total_height()
+	for cell: Vector2i in district_cells:
+		var props := get_node_or_null("DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y])
+		if props != null and props.has_method("get_top_y"):
+			top = maxf(top, props.get_top_y())
+	var cell: Vector2i = district_cells[0]
+	var district_sign := DistrictSign.new()
+	district_sign.name = "DistrictSign_%s" % category_id
+	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
+	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, top + DISTRICT_SIGN_CLEARANCE, 0.0)
+	add_child(district_sign)
+	_district_signs.append(district_sign)
+
+
 ## Placa de rua no poste da esquina do quarteirão mais perto da praça,
 ## virada para a rua das portas, com a seta apontando para o quarteirão.
 func _build_street_sign(cell: Vector2i, category_id: String) -> void:
@@ -549,22 +576,6 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	CityDecor.add_block_lights(self, center)
 	await _keep_frame_light()
 
-	# Letreiro flutuante com o nome do bairro (néon sobre placa escura), sempre
-	# virado para quem olha.
-	var district_sign := DistrictSign.new()
-	district_sign.name = "DistrictSign_%s" % category_id
-	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
-			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
-	# Por cima da rua ao lado do quarteirão, do lado da praça: nenhum prédio
-	# fica na frente nem atravessa a placa, qualquer que seja a altura dele.
-	# Quarteirões nas diagonais usam a rua norte-sul (senão três letreiros
-	# dividiriam a mesma rua e se encostariam).
-	var toward_plaza := Vector3(0.0, 0.0, _toward_center(cell.y)) if cell.x == 0 \
-			else Vector3(_toward_center(cell.x), 0.0, 0.0)
-	district_sign.position = center + toward_plaza * (CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0) \
-			+ Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
-	add_child(district_sign)
-	_district_signs.append(district_sign)
 	_build_street_sign(cell, category_id)
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.

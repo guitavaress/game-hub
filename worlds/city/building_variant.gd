@@ -25,6 +25,9 @@ const SETBACK_INSET: float = 1.5      # quanto o recuo entra de cada lado (m)
 const SETBACK_BACK: float = 1.0       # e quanto ele vai para trás
 const SETBACK_HEIGHT: float = FLOOR_HEIGHT + 0.6
 const PARAPET_HEIGHT: float = 0.6
+## Altura das coisas no telhado: a caixa d'água (pernas de 1 m e tanque de
+## 1,6 m) é a mais alta.
+const ROOF_ITEMS_HEIGHT: float = 2.6
 const PARAPET_THICKNESS: float = 0.25
 const CANOPY_SIZE: Vector3 = Vector3(4.0, 0.15, 1.5)
 const CANOPY_HEIGHT: float = 3.45
@@ -75,6 +78,14 @@ func body_height() -> float:
 ## Altura total, com o recuo (se houver).
 func total_height() -> float:
 	return body_height() + (SETBACK_HEIGHT if setback else 0.0)
+
+
+## O prédio mais alto que pode existir: 7 andares, com recuo e caixa d'água.
+## Quem precisa ficar acima de todos os telhados (ex.: o letreiro do bairro)
+## usa isto.
+static func max_total_height() -> float:
+	return GROUND_FLOOR_HEIGHT + (3 + FLOOR_WEIGHTS.size() - 1) * FLOOR_HEIGHT + TOP_MARGIN \
+			+ SETBACK_HEIGHT + ROOF_ITEMS_HEIGHT
 
 
 func window_fraction() -> Vector2:
