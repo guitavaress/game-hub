@@ -65,7 +65,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
   - Manual: captura ampliada da beira da calçada (`zoom_calcada_leve_x_alta`) nas três qualidades.
   - Commit: `Fase 10.2: anti-aliasing por qualidade`
 
-- [ ] **10.3 UI que escala** (Sonnet · medium; Opus se a tela 3D quebrar) — revisão 5.1
+- [x] **10.3 UI que escala** (Sonnet · medium; Opus se a tela 3D quebrar) — revisão 5.1 — 54b090d
   - Faz:
     - `project.godot`: `window/stretch/mode="canvas_items"` e `window/stretch/aspect="expand"`, base 1280 × 720.
     - `player/player.gd` (linhas ~149–151): olhar com `motion.screen_relative` em vez de `motion.relative`. Com o stretch, o `relative` encolhe em telas grandes e o mouse ficaria mais lento em 1440p.
@@ -154,6 +154,7 @@ Junta da paralela igual à Fase 9: `git merge --no-ff worktree/<nome>`, bateria,
 - 2026-10-10 (10.1): sem janela, `has_mipmaps()` responde sempre `false` (renderizador falso); o `check_textures` lê o número de mipmaps no cabeçalho do `.ctex` importado.
 - 2026-10-10 (10.1): medida (Leve, 200 jogos), **com o notebook ocupado** (Chromium a 50% da CPU), então o FPS não serve de comparação: 22 h 22,4 → 45,4 FPS e 12 h 37,9 → 34,6 FPS (os desenhos pularam entre ~1700 e ~3000 nas duas versões, o mesmo sintoma da revisão 8.3). A memória de textura é confiável: **552 → 470 MB** (22 h) e **531 → 492 MB** (12 h). A comparação de FPS fica para a 10.9, com o notebook parado.
 - 2026-10-10 (10.2): capturas ampliadas da beira da calçada: na Alta (MSAA 2x + SMAA) os degraus sumiram; na Leve (FXAA) a borda fica lisa, e o chuvisco no asfalto é o FSR a 50% (já existia). Medida com o notebook ainda ocupado (Leve, 22 h, 200 jogos): 48,1 FPS, **1392 desenhos** (eram ~1660–3000) e **446 MB** de textura, por causa da sombra mais curta e do atlas de 2048. A Média deu 19,5 FPS no notebook (não é alvo dele). O tamanho do atlas da sombra não tem leitura de volta no `RenderingServer`, então o teste não o confere.
+- 2026-10-10 (10.3): o app já tratava o clique da tela 3D certo com o stretch (a Godot converte o pixel da janela para a coordenada da UI, e a câmera desfaz a conversão). Quem quebrou foi o `check_screen_3d`, que mandava o clique já na coordenada da UI como se fosse pixel da janela; agora ele converte com `root.get_final_transform()`, como um clique de verdade. Passa sem janela e com janela. Capturas em 720p, 1080p e 1440p: o menu de pausa ocupa 36% da largura nas três (antes, 18% em 1440p); HUD, bússola, minimapa e computador crescem juntos.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
