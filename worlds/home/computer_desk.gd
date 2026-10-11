@@ -25,7 +25,6 @@ const SCREEN_RESOLUTION: Vector2i = Vector2i(1152, 648)
 const DESK_COLOR: Color = Color(0.3, 0.19, 0.11)
 const LAMP_COLOR: Color = Color(1.0, 0.74, 0.48)
 const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
-const SCREEN_BACKGROUND: Color = Color("0E1015")
 
 var _screen: Screen3D
 var _settings: SettingsView
@@ -108,7 +107,9 @@ func _build_monitor() -> void:
 ## título, uma dica e o botão "Sair do hub".
 func _build_screen_content() -> Control:
 	var background := PanelContainer.new()
-	background.add_theme_stylebox_override("panel", SettingsView.box(SCREEN_BACKGROUND, 0, Color.TRANSPARENT, 0, Vector4(44, 30, 44, 30)))
+	# A tela 3D é um SubViewport: o tema do hub não chega sozinho até aqui.
+	background.theme = HubTheme.get_theme()
+	background.theme_type_variation = &"HubScreen"
 
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 56)
@@ -118,7 +119,7 @@ func _build_screen_content() -> Control:
 	left.custom_minimum_size = Vector2(600.0, 0.0)
 	left.add_theme_constant_override("separation", 16)
 	columns.add_child(left)
-	left.add_child(SettingsView.label("CONFIGURAÇÕES", SettingsView.spaced_font(3), 28, SettingsView.TEXT_COLOR))
+	left.add_child(HubTheme.label("CONFIGURAÇÕES", &"HubTitle"))
 	_settings = SettingsView.new()
 	_settings.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	left.add_child(_settings)
@@ -127,22 +128,22 @@ func _build_screen_content() -> Control:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", 12)
 	columns.add_child(right)
-	right.add_child(SettingsView.label("GAME HUB", SettingsView.spaced_font(4), 20, SettingsView.HINT_COLOR))
-	var hint := SettingsView.label("Clique para mudar. Cada mudança vale na hora.", HubFonts.LIGHT, 15, SettingsView.SECONDARY_COLOR)
+	right.add_child(HubTheme.label("GAME HUB", &"HubBrand"))
+	var hint := HubTheme.label("Clique para mudar. Cada mudança vale na hora.", &"HubBodyLight")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right.add_child(hint)
 	var esc_row := HBoxContainer.new()
 	esc_row.add_theme_constant_override("separation", 10)
 	esc_row.add_child(GameScreen.make_key_cap("Esc"))
-	esc_row.add_child(SettingsView.label("voltar para a sala", HubFonts.LIGHT, 15, SettingsView.SECONDARY_COLOR))
+	esc_row.add_child(HubTheme.label("voltar para a sala", &"HubBodyLight"))
 	right.add_child(esc_row)
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(filler)
-	right.add_child(SettingsView.line())
+	right.add_child(HubTheme.line())
 	var quit_row := HBoxContainer.new()
-	quit_row.add_child(SettingsView.expander())
-	var quit := SettingsView.button("Sair do hub", false)
+	quit_row.add_child(HubTheme.expander())
+	var quit := HubTheme.button("Sair do hub")
 	quit.name = "QuitButton"
 	quit.pressed.connect(HubWindow.quit_hub)
 	quit_row.add_child(quit)

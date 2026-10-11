@@ -368,25 +368,16 @@ func _gradient(from: Vector2, to: Vector2, start: float, end_alpha: float) -> Gr
 
 ## "Tecla" desenhada: um quadradinho com borda e o nome da tecla.
 static func make_key_cap(key_name: String) -> PanelContainer:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("16181D")
-	style.border_color = Color("5A606B")
-	style.set_border_width_all(1)
-	style.border_width_bottom = 2
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 2.0
-	style.content_margin_bottom = 2.0
 	var cap := PanelContainer.new()
-	cap.add_theme_stylebox_override("panel", style)
+	# O tema vai na própria tecla: ela aparece em telas que ainda não usam o
+	# tema do hub (e dentro da tela 3D do computador).
+	cap.theme = HubTheme.get_theme()
+	cap.theme_type_variation = &"HubKeyCap"
 	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := Label.new()
-	label.text = key_name
-	label.add_theme_font_override("font", HubFonts.TEXT)
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color("E6E9EE"))
-	cap.add_child(label)
+	# Numa fileira mais alta (ex.: uma frase de duas linhas ao lado), a tecla
+	# fica no meio, sem esticar.
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cap.add_child(HubTheme.label(key_name, &"HubKeyLabel"))
 	return cap
 
 

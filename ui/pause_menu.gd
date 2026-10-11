@@ -6,13 +6,13 @@ extends CanvasLayer
 ##
 ## Com o menu aberto o mundo fica pausado. Ele não abre durante a espera na
 ## porta nem com um jogo abrindo ou rodando (aí o Esc é de outra coisa).
-## Montado por código; medidas pensadas para 1280x720 (escala junto).
+## Montado por código; medidas pensadas para 1280x720 (escala junto). Cores,
+## fontes e caixas vêm do tema do hub (HubTheme).
 
 signal opened
 signal closed
 
 const PANEL_WIDTH: float = 460.0
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.94)
 const BACKDROP_SHADER: Shader = preload("res://ui/pause_backdrop.gdshader")
 
 var _settings: SettingsView
@@ -32,7 +32,8 @@ func _ready() -> void:
 	add_child(backdrop)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", SettingsView.box(PANEL_COLOR, 0, Color.TRANSPARENT, 0, Vector4(36, 34, 36, 28)))
+	panel.theme = HubTheme.get_theme()
+	panel.theme_type_variation = &"HubSidePanel"  # encostado na borda, sem cantos
 	panel.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
 	panel.offset_right = PANEL_WIDTH
 	add_child(panel)
@@ -41,11 +42,11 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 18)
 	panel.add_child(column)
 
-	column.add_child(SettingsView.label("PAUSA", SettingsView.spaced_font(3), 30, SettingsView.TEXT_COLOR))
+	column.add_child(HubTheme.label("PAUSA", &"HubTitle"))
 	_settings = SettingsView.new()
 	_settings.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(_settings)
-	column.add_child(SettingsView.line())
+	column.add_child(HubTheme.line())
 	column.add_child(_build_bottom_row())
 
 	GameLauncher.game_started.connect(_on_game_started)
@@ -109,12 +110,12 @@ func _on_game_started(_app_id: int, _source: Node) -> void:
 func _build_bottom_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var resume := SettingsView.button("Continuar", true)
+	var resume := HubTheme.button("Continuar", true)
 	resume.pressed.connect(close)
 	row.add_child(resume)
 	row.add_child(GameScreen.make_key_cap("Esc"))
-	row.add_child(SettingsView.expander())
-	var quit := SettingsView.button("Sair do hub", false)
+	row.add_child(HubTheme.expander())
+	var quit := HubTheme.button("Sair do hub")
 	quit.pressed.connect(HubWindow.quit_hub)
 	row.add_child(quit)
 	return row
