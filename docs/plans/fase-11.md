@@ -154,7 +154,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
 
 ### Bloco C: som (principal)
 
-- [ ] **11.8 Canal de música** (Sonnet · low) — revisão 6.1 (parte)
+- [x] **11.8 Canal de música** (Sonnet · low) — revisão 6.1 (parte)
   - Faz: `default_bus_layout.tres` ganha "Música" (envia para Master); `AppConfig.VOLUME_KEYS` e o texto da `[audio]` ganham `music_volume` (padrão 0,7, também para quem já tem o arquivo); `SettingsView.VOLUME_ROWS` ganha a linha "Música"; o jingle de "cidade pronta" (`city.gd`) passa a tocar nesse canal.
   - Teste: `check_phase6_audio` passa a esperar quatro canais; `check_settings_view` confere quatro deslizadores; `check_home_start` confere o canal do jingle.
   - Commit: `Fase 11.8: canal de música`

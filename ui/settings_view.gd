@@ -23,7 +23,7 @@ const VOLUME_SAVE_DELAY: float = 0.4
 
 const TAB_NAMES: Array[String] = ["Som e vídeo", "Controles", "Amigos"]
 ## [canal de áudio, nome na tela]
-const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], ["Ambiente", "Ambiente"]]
+const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], ["Ambiente", "Ambiente"], ["Música", "Música"]]
 ## [valor no config.cfg, nome na tela]
 const QUALITY_OPTIONS: Array[Array] = [["leve", "Leve"], ["media", "Média"], ["alta", "Alta"]]
 const TIME_OPTIONS: Array[Array] = [["relogio", "Relógio"], ["dia", "Dia"], ["noite", "Noite"]]
@@ -48,6 +48,8 @@ var _volume_sliders: Dictionary[String, HSlider] = {}
 var _volume_values: Dictionary[String, Label] = {}
 var _volume_save_timer: Timer
 var _volumes_changed: bool = false
+## Canais mexidos que ainda esperam gravar (só estes vão para o arquivo).
+var _changed_buses: Dictionary[String, bool] = {}
 var _controls_changed: bool = false
 var _fullscreen_check: CheckButton
 var _map_check: CheckButton
@@ -209,6 +211,7 @@ func _on_volume_changed(value: float, bus: String) -> void:
 		return
 	AppConfig.set_volume(bus, value / 100.0, false)  # ouve na hora...
 	_volumes_changed = true
+	_changed_buses[bus] = true
 	_volume_save_timer.start()                         # ...e grava daqui a pouco
 
 
@@ -217,8 +220,9 @@ func _save_volumes() -> void:
 	_volume_save_timer.stop()
 	if _volumes_changed:
 		_volumes_changed = false
-		for bus in _volume_sliders:
+		for bus in _changed_buses:
 			AppConfig.set_volume(bus, _volume_sliders[bus].value / 100.0)
+		_changed_buses.clear()
 	if _controls_changed:
 		_controls_changed = false
 		AppConfig.set_mouse_sensitivity(_sensitivity_slider.value / 100.0)

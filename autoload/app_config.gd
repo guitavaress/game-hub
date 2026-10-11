@@ -47,6 +47,8 @@ master_volume=0.8
 effects_volume=1.0
 ; Sons dos bairros (motor, cartas, vento...).
 ambience_volume=0.8
+; Jingles (a faixa "cidade pronta" e as próximas).
+music_volume=0.7
 """
 
 ## Seção de vídeo (P2: menu de pausa), acrescentada do mesmo jeito.
@@ -109,7 +111,12 @@ const VOLUME_KEYS: Dictionary[String, String] = {
 	"Master": "master_volume",
 	"Efeitos": "effects_volume",
 	"Ambiente": "ambience_volume",
+	"Música": "music_volume",
 }
+
+## Volume de quem não tem a linha no arquivo (padrão 1.0). Vale também para
+## quem já tinha um config.cfg de antes do canal existir.
+const DEFAULT_VOLUMES: Dictionary[String, float] = {"Música": 0.7}
 
 ## Conteúdo inicial do arquivo (linhas com ";" são comentários).
 const DEFAULT_CONFIG_TEXT: String = """; Configuração do Game Hub.
@@ -170,9 +177,10 @@ func _apply_volumes() -> void:
 
 # --- Som e vídeo -------------------------------------------------------------
 
-## Volume de um canal ("Master", "Efeitos" ou "Ambiente"), de 0.0 a 1.0.
+## Volume de um canal ("Master", "Efeitos", "Ambiente" ou "Música"), de 0.0 a 1.0.
 func get_volume(bus_name: String) -> float:
-	return clampf(float(_config.get_value("audio", VOLUME_KEYS.get(bus_name, ""), 1.0)), 0.0, 1.0)
+	var fallback: float = DEFAULT_VOLUMES.get(bus_name, 1.0)
+	return clampf(float(_config.get_value("audio", VOLUME_KEYS.get(bus_name, ""), fallback)), 0.0, 1.0)
 
 
 ## Muda o volume na hora. save = false só aplica (enquanto o controle está

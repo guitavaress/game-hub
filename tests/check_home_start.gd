@@ -112,6 +112,8 @@ func _start_city() -> void:
 	_check("prédio do Balatro existe (se instalado)", city.has_node("Building_2379780")
 			or root.get_node("SteamLibrary").get_game(2379780) == null)
 	print("   avisos do começo: ", player.get_hud().get_messages())
+	var jingle_hud = player.get_hud()
+	_check("o jingle toca no canal Música", jingle_hud._sound.bus == &"Música" and jingle_hud._sound.stream == city.CITY_READY_SOUND)
 	_check("aviso \"A cidade está pronta\"",
 			Array(player.get_hud().get_messages()).any(func(m: String) -> bool: return m.begins_with("A cidade está pronta")))
 	city.queue_free()

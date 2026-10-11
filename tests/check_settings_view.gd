@@ -22,7 +22,8 @@ func _run() -> void:
 	await process_frame
 
 	print("\n== montagem ==")
-	_check("três abas e três páginas", view._tab_buttons.size() == 3 and view._pages.size() == 3)
+	_check("três abas e três páginas, quatro volumes", view._tab_buttons.size() == 3 and view._pages.size() == 3
+		and view._volume_sliders.size() == 4 and view._volume_sliders.has("Música"))
 	_check("só a primeira página aparece", view._pages[0].visible and not view._pages[1].visible)
 	view.refresh()
 	var shown: bool = app.get_show_map()

@@ -19,10 +19,15 @@ func _run() -> void:
 	var player = city.get_node("Player")
 
 	print("== canais de áudio e volumes ==")
-	for bus_name in ["Master", "Efeitos", "Ambiente"]:
+	for bus_name in ["Master", "Efeitos", "Ambiente", "Música"]:
 		var bus := AudioServer.get_bus_index(bus_name)
 		print("   %-8s índice %d | %.1f dB" % [bus_name, bus, AudioServer.get_bus_volume_db(bus) if bus >= 0 else 0.0])
-	_check("três canais existem", AudioServer.get_bus_index("Efeitos") > 0 and AudioServer.get_bus_index("Ambiente") > 0)
+	_check("quatro canais existem", AudioServer.get_bus_index("Efeitos") > 0 and AudioServer.get_bus_index("Ambiente") > 0
+		and AudioServer.get_bus_index("Música") > 0)
+	var music_bus := AudioServer.get_bus_index("Música")
+	_check("Música envia para o Master", AudioServer.get_bus_send(music_bus) == &"Master")
+	_check("volume de Música (0.7 sem a linha, ou o do arquivo)", absf(AudioServer.get_bus_volume_db(music_bus)
+		- linear_to_db(root.get_node("AppConfig").get_volume("Música"))) < 0.1)
 	_check("volume geral 0.8 aplicado (~ -1.9 dB)", absf(AudioServer.get_bus_volume_db(0) - linear_to_db(0.8)) < 0.1)
 	var config_text := FileAccess.get_file_as_string("user://config.cfg")
 	_check("config.cfg ganhou [audio]", config_text.contains("[audio]") and config_text.contains("[steam]"))

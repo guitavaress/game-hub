@@ -179,7 +179,7 @@ func _ready() -> void:
 		player.world_loading = false
 		_home.get_front_door().locked_reason = ""
 		player.get_hud().show_message("A cidade está pronta", "A porta da rua já abre.",
-				Toast.Kind.INFO, -1.0, "", CITY_READY_SOUND)
+				Toast.Kind.INFO, -1.0, "", CITY_READY_SOUND, &"Música")
 	else:
 		ScreenFade.set_message("")
 		ScreenFade.fade_in(0.8)

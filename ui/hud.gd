@@ -189,10 +189,12 @@ func get_look_text() -> String:
 ## Mostra um aviso no topo: "title" (o que houve) e "text" (o que fazer).
 ## "seconds" < 0 usa o tempo do tipo (info 6 s, erro 10 s, sessão 5 s).
 ## "overline" é um rótulo pequeno opcional acima do título.
-## "sound" troca o som do aviso (null = o do tipo).
+## "sound" troca o som do aviso (null = o do tipo); "sound_bus" é o canal dele
+## (&"Música" para um jingle).
 ## Um aviso igual a outro que já está na tela é ignorado.
 func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kind.INFO,
-		seconds: float = -1.0, overline: String = "", sound: AudioStream = null) -> void:
+		seconds: float = -1.0, overline: String = "", sound: AudioStream = null,
+		sound_bus: StringName = &"Efeitos") -> void:
 	if title.is_empty():
 		return
 	# HUD escondido (abertura) ou cartão de controles na tela: o aviso espera,
@@ -202,7 +204,7 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 		for waiting in _waiting_messages:
 			if waiting[0] == title and waiting[1] == text:
 				return
-		_waiting_messages.append([title, text, kind, seconds, overline, sound])
+		_waiting_messages.append([title, text, kind, seconds, overline, sound, sound_bus])
 		return
 	var showing := _visible_toasts()
 	for toast in showing:
@@ -214,7 +216,7 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 
 	_toasts.add_child(Toast.create(title, text, kind, seconds, overline))
 	if sound != null:
-		_play_sound(sound)
+		_play_sound(sound, sound_bus)
 		return
 	match kind:
 		Toast.Kind.ERROR:
@@ -232,7 +234,7 @@ func _show_waiting_messages() -> void:
 	var waiting := _waiting_messages.duplicate()
 	_waiting_messages.clear()
 	for message in waiting:
-		show_message(message[0], message[1], message[2], message[3], message[4], message[5])
+		show_message(message[0], message[1], message[2], message[3], message[4], message[5], message[6])
 
 
 ## PRIMEIRA VEZ: o cartão "como jogar" no pé da tela (ControlsHint). Enquanto
@@ -341,7 +343,8 @@ func on_player_moved() -> void:
 			toast.close()
 
 
-func _play_sound(stream: AudioStream) -> void:
+func _play_sound(stream: AudioStream, bus: StringName = &"Efeitos") -> void:
+	_sound.bus = bus
 	_sound.stream = stream
 	_sound.play()
 
