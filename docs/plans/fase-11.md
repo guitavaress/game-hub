@@ -181,7 +181,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
 
 ### Bloco D: fechamento (principal, depois da junta)
 
-- [ ] **11.11 Título ao entrar no bairro** (Sonnet · medium) — revisão 3.4
+- [x] **11.11 Título ao entrar no bairro** (Sonnet · medium) — revisão 3.4
   - Faz:
     - `worlds/city/city_map.gd`: `area_games(id)` (quantos jogos o bairro tem).
     - `ui/district_title.gd` (novo, `DistrictTitle`): nome do bairro grande, na cor néon, e "12 jogos" embaixo, no alto da tela, abaixo da bússola; entra com fade e desliza (curvas da 11.1), fica ~2,5 s e sai. Um som curto (`interface-sounds/glass_001.ogg`, baixinho).

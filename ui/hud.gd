@@ -60,6 +60,7 @@ var _minimap: MapView
 var _waiting_messages: Array[Array] = []
 ## O cartão de controles da primeira vez (null = fechado).
 var _controls_hint: ControlsHint
+var _district_title: DistrictTitle
 var _sound: AudioStreamPlayer
 var _click: AudioStreamPlayer
 
@@ -73,6 +74,9 @@ func _ready() -> void:
 	_build_look_card()
 	_build_toasts()
 	_build_compass()
+	_district_title = DistrictTitle.new()
+	_district_title.name = "DistrictTitle"
+	add_child(_district_title)
 	visibility_changed.connect(_show_waiting_messages)
 
 	_sound = AudioStreamPlayer.new()
@@ -466,6 +470,10 @@ func _apply_map_visibility() -> void:
 
 func get_minimap() -> MapView:
 	return _minimap
+
+
+func get_district_title() -> DistrictTitle:
+	return _district_title
 
 
 func get_compass() -> Compass:

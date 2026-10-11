@@ -81,6 +81,11 @@ func get_map_data() -> Dictionary:
 			"gap": CityLayout.STREET_WIDTH}
 
 
+## Quantos jogos o bairro tem (0 = não existe).
+func area_games(id: String) -> int:
+	return int(_areas[_area_index[id]]["games"]) if _area_index.has(id) else 0
+
+
 ## O id do bairro no ponto (x, z) do mundo ("" = praça, rua de fora ou nada).
 func area_id_at(position: Vector3) -> String:
 	var point := Vector2(position.x, position.z)
