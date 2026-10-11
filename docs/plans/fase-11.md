@@ -124,7 +124,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: capturas `praca_dia_chegada` e `praca_noite_chegada`, e uma de costas para a praça, a ~80 m, vendo a torre acima dos telhados.
   - Commit: `Fase 11.5: torre do relógio na praça`
 
-- [ ] **11.6 Marcos por bairro: a estrutura e os três primeiros** (Sonnet · medium; Opus se o letreiro ou a grua brigarem com o marco) — revisão 3.3 e 3.5
+- [x] **11.6 Marcos por bairro: a estrutura e os três primeiros** (Sonnet · medium; Opus se o letreiro ou a grua brigarem com o marco) — revisão 3.3 e 3.5 — `495db53`
   - Faz:
     - `worlds/city/district_landmarks/district_landmark.gd` (novo, `DistrictLandmark`): base com `category_id`, `buildings`, `roof_of_tallest()`, `min_height()` (o que falta para passar do `max_total_height()` + 3 m), um material de néon do bairro e `get_top_y()`.
     - Três marcos: `rpg_tower.gd` (torre de castelo com ameias e flâmula balançando), `sports_floodlights.gd` (torre de refletores de estádio) e `casual_wheel.gd` (roda-gigante girando devagar).
