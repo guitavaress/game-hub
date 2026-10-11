@@ -68,7 +68,50 @@ func _run() -> void:
 				and absf(node.position.x) < plaza_half and absf(node.position.z) < plaza_half:
 			bushes += 1
 	_check("a praça não tem arbusto (%d na praça)" % bushes, bushes == 0)
+
+	city.queue_free()
+	await process_frame
+	await _check_district_landmarks()
 	_finish()
+
+
+## Com 200 jogos falsos: cada bairro com landmark_script tem um marco, o topo
+## passa do prédio mais alto possível e o letreiro fica acima dele.
+func _check_district_landmarks() -> void:
+	print("== marcos dos bairros (200 jogos) ==")
+	var library_script: GDScript = load("res://tests/fake_library.gd")
+	library_script.install(root, 200)
+	var city: Node = load("res://worlds/city/city.tscn").instantiate()
+	city.play_intro = false
+	root.add_child(city)
+	while not city.is_city_ready():
+		await process_frame
+	await process_frame
+	var profiles: GDScript = load("res://profiles/profiles.gd")
+	var variant_class: GDScript = load("res://worlds/city/building_variant.gd")
+	var sign_class: GDScript = load("res://worlds/city/district_sign.gd")
+	var plate_half: float = sign_class.PLATE_HEIGHT * city.DISTRICT_SIGN_TEXT_HEIGHT / sign_class.TEXT_HEIGHT / 2.0
+	var expected := 0
+	var found := 0
+	for id: String in city._district_cells:
+		var profile = profiles.district(id)
+		var landmark: Node = city.get_node_or_null("DistrictLandmark_%s" % id)
+		if profile == null or profile.landmark_script.is_empty():
+			_check("%s sem marco: não cria nada" % id, landmark == null)
+			continue
+		expected += 1
+		if landmark == null:
+			_check("%s tem marco" % id, false)
+			continue
+		found += 1
+		var top: float = landmark.get_top_y()
+		_check("%s: o topo (%.1f m) passa do prédio mais alto possível (%.1f m)" % [id, top, variant_class.max_total_height()],
+				top > variant_class.max_total_height())
+		var district_sign: Node3D = city.get_node("DistrictSign_%s" % id)
+		_check("%s: o letreiro fica acima do marco" % id, district_sign.position.y - plate_half > top)
+	_check("todos os bairros com script têm marco (%d)" % expected, expected > 0 and found == expected)
+	city.queue_free()
+	await process_frame
 
 
 func _finish() -> void:

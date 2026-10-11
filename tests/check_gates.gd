@@ -101,6 +101,23 @@ func _run() -> void:
 	city._on_night_changed(0.0)
 	_check("e quase apagado de dia", gate0._strip_material.emission_energy_multiplier < 0.2)
 
+	# Fase 11.6: com 200 jogos (todos os bairros, muitos quarteirões), ainda há um pórtico por bairro.
+	city.queue_free()
+	await process_frame
+	var library_script: GDScript = load("res://tests/fake_library.gd")
+	library_script.install(root, 200)
+	city = load("res://worlds/city/city.tscn").instantiate()
+	city.play_intro = false
+	root.add_child(city)
+	while not city.is_city_ready():
+		await process_frame
+	var big_gates := 0
+	for child in city.get_children():
+		if child.name.begins_with("DistrictGate_"):
+			big_gates += 1
+	_check("200 jogos: um pórtico por bairro (%d de %d bairros)" % [big_gates, city._district_cells.size()],
+			big_gates == city._district_cells.size())
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 

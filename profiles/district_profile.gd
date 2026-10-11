@@ -52,11 +52,15 @@ extends Resource
 ## com a mesma chance, como sempre foi (Fase 7.5).
 @export var wall_weights: PackedFloat32Array = PackedFloat32Array()
 
+@export_group("Marco")
+## Script do marco alto do bairro (um por bairro, no quarteirão do pórtico),
+## ex.: res://worlds/city/district_landmarks/rpg_tower.gd. Vazio = nenhum
+## (a Simulação, cuja grua já é o marco) (Fase 11.6).
+@export_file("*.gd") var landmark_script: String = ""
+
 @export_group("Reservado (ainda sem efeito)")
 ## Quantos jogos por quarteirão. Reservado: a cidade ainda usa 4 para todos.
 @export var density: int = 4
-## Script de um marco do bairro (como o chafariz da praça). Reservado.
-@export_file("*.gd") var landmark_script: String = ""
 
 
 ## A cor de luz do bairro (calculada, se "neon" estiver transparente).

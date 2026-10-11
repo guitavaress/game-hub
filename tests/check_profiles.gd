@@ -51,7 +51,8 @@ func _run() -> void:
 				profile.tag_names.size() == profile.tags.size() and not profile.tag_names.has("?"))
 		_check("%-14s id válido e campos reservados no padrão" % id,
 				id == id.to_lower() and not id.contains(" ") and profile.shell == "building"
-				and profile.density == 4 and profile.landmark_script.is_empty())
+				and profile.density == 4)
+		_check_landmark(profile)
 
 	print("== GameCategories (a API de sempre) ==")
 	_check("get_category_ids na ordem de antes", categories.get_category_ids() == old_ids)
@@ -225,3 +226,13 @@ func _check(label: String, ok: bool) -> void:
 	print("  [%s] %s" % ["ok" if ok else "FALHOU", label])
 	if not ok:
 		failures += 1
+
+
+## Fase 11.6: o marco do bairro, se houver, é um script que carrega e é um DistrictLandmark.
+func _check_landmark(profile) -> void:
+	if profile.landmark_script.is_empty():
+		return
+	var script := load(profile.landmark_script) as GDScript
+	_check("%-14s o marco carrega e é um DistrictLandmark" % profile.id,
+			script != null and script.get_base_script() != null
+			and script.get_base_script().get_global_name() == "DistrictLandmark")
