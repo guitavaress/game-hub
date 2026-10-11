@@ -3,7 +3,10 @@ extends SceneTree
 ##   - o tema tem as variações e só os 5 tamanhos de letra;
 ##   - o SettingsView sozinho, o menu de pausa e a tela do computador não têm
 ##     estilo solto (nenhuma cor, fonte, tamanho ou caixa escrita no nó);
-##   - dentro do SubViewport do computador, o texto usa o mesmo tema.
+##   - dentro do SubViewport do computador, o texto usa o mesmo tema;
+##   - (12.2) a busca, o metrô, o mapa, os avisos e o cartão de controles
+##     também ficam sem estilo solto. A única exceção é a cor que vem de dado
+##     (o neon do bairro), marcada por HubTheme.tint.
 ## Os espaçamentos ("separation") podem ficar no nó: são arrumação, não estilo.
 
 const SIZES: Array[int] = [14, 16, 20, 28, 46]
@@ -14,6 +17,9 @@ const VARIATIONS: Dictionary = {
 	&"HubButtonPrimary": &"Button", &"HubTab": &"Button", &"HubSegment": &"Button",
 	&"HubPanel": &"PanelContainer", &"HubPanelStrong": &"PanelContainer",
 	&"HubSidePanel": &"PanelContainer", &"HubScreen": &"PanelContainer", &"HubKeyCap": &"PanelContainer",
+	&"HubRow": &"PanelContainer", &"HubRowSelected": &"PanelContainer",
+	&"HubToastInfo": &"PanelContainer", &"HubToastError": &"PanelContainer", &"HubToastSession": &"PanelContainer",
+	&"HubOverlineInfo": &"Label", &"HubOverlineError": &"Label", &"HubOverlineSession": &"Label",
 }
 
 var failures := 0
@@ -82,8 +88,63 @@ func _run() -> void:
 	_check("as configurações da tela usam o mesmo tema", desk.get_settings().theme == theme)
 	desk.queue_free()
 
+	await _check_panels(theme)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## A busca, o metrô, o mapa, os avisos e o cartão de controles (Fase 12.2).
+func _check_panels(theme: Theme) -> void:
+	print("== Painéis ==")
+	var search = load("res://ui/game_search.gd").new()
+	root.add_child(search)
+	await process_frame
+	_check_clean("a busca", search)
+	_check("o campo da busca usa o tema (16 px)", search._field.get_theme_font_size("font_size") == 16)
+
+	var transit = load("res://ui/transit_panel.gd").new()
+	root.add_child(transit)
+	await process_frame
+	_check_clean("o painel do metrô", transit)
+
+	var world_map = load("res://ui/world_map.gd").new()
+	root.add_child(world_map)
+	await process_frame
+	_check_clean("o mapa grande", world_map)
+
+	var hint = load("res://ui/controls_hint.gd").new()
+	root.add_child(hint)
+	await process_frame
+	_check_clean("o cartão de controles", hint)
+	_check("o cartão de controles usa o painel do tema", hint.get_theme_stylebox("panel") == theme.get_stylebox("panel", &"HubPanel"))
+	hint.set_process(false)  # não grava "visto" no config.cfg
+
+	var toast_script: GDScript = load("res://ui/toast.gd")
+	var colors := {}
+	for kind in 3:
+		var toast = toast_script.create("Título", "Frase", kind, 30.0, "ROTULO")
+		root.add_child(toast)
+		await process_frame
+		_check_clean("o aviso do tipo %d" % kind, toast)
+		colors[toast._panel.get_theme_stylebox("panel").border_color] = true
+		toast.queue_free()
+	_check("cada tipo de aviso tem a sua cor", colors.size() == 3)
+
+	# O neon do bairro (dado) passa; qualquer outra cor solta, não.
+	var marked := Label.new()
+	root.add_child(marked)
+	HubTheme.tint(marked, Color.RED)
+	var loose := Label.new()
+	root.add_child(loose)
+	loose.add_theme_color_override("font_color", Color.RED)
+	var found: Array[String] = []
+	_collect_overrides(marked, found)
+	_check("a cor de dado (tint) é aceita", found.is_empty())
+	_collect_overrides(loose, found)
+	_check("uma cor solta qualquer é acusada", found.size() == 1)
+	for node in [search, transit, world_map, hint, marked, loose]:
+		node.queue_free()
 
 
 ## Nenhum Control debaixo de "node" tem cor, fonte, tamanho ou caixa própria.
@@ -102,7 +163,7 @@ func _collect_overrides(node: Node, dirty: Array[String]) -> void:
 		var type := control.get_class()
 		while type != "":
 			for item in defaults.get_color_list(type):
-				if control.has_theme_color_override(item):
+				if control.has_theme_color_override(item) and not control.has_meta("hub_data_color"):
 					dirty.append("%s.color.%s" % [control.name, item])
 			for item in defaults.get_font_list(type):
 				if control.has_theme_font_override(item):

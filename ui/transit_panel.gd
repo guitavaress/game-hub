@@ -14,11 +14,6 @@ signal closed
 
 const WIDTH: float = 460.0
 const TOP: float = 72.0
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.92)
-const TEXT_COLOR: Color = Color("F2F3F5")
-const SECONDARY_COLOR: Color = Color("B8BFCC")
-const HINT_COLOR: Color = Color("8A92A0")
-const SELECTED_COLOR: Color = Color(1.0, 1.0, 1.0, 0.1)
 const CHOOSE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/click_003.ogg")
 ## Som da viagem (gerado por assets/generated/make_sounds.py).
 const RIDE_SOUND: AudioStream = preload("res://assets/generated/metro_ride.wav")
@@ -44,14 +39,8 @@ func _ready() -> void:
 	add_to_group("transit_panel")
 
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 12.0
-	style.content_margin_bottom = 12.0
-	panel.add_theme_stylebox_override("panel", style)
+	panel.theme = HubTheme.get_theme()
+	panel.theme_type_variation = &"HubPanelStrong"
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	panel.offset_left = -WIDTH / 2.0
 	panel.offset_right = WIDTH / 2.0
@@ -62,8 +51,8 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	panel.add_child(column)
-	column.add_child(_label("METRÔ", HubFonts.LIGHT, 13, SECONDARY_COLOR))
-	_title = _label("", HubFonts.TEXT, 20, TEXT_COLOR)
+	column.add_child(_label("METRÔ", &"HubSection"))
+	_title = _label("", &"HubLead")
 	column.add_child(_title)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
@@ -188,7 +177,7 @@ func _make_row(stop: TransitStop, index: int) -> PanelContainer:
 	var content := HBoxContainer.new()
 	content.add_theme_constant_override("separation", 10)
 	row.add_child(content)
-	var key := _label(str(index + 1) if index < 9 else " ", HubFonts.LIGHT, 14, HINT_COLOR)
+	var key := _label(str(index + 1) if index < 9 else " ", &"HubCaption")
 	key.custom_minimum_size.x = 14.0
 	content.add_child(key)
 	var dot := ColorRect.new()
@@ -197,10 +186,10 @@ func _make_row(stop: TransitStop, index: int) -> PanelContainer:
 	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(dot)
-	var stop_label := _label(stop.stop_name, HubFonts.TEXT, 16, TEXT_COLOR)
+	var stop_label := _label(stop.stop_name, &"HubBody")
 	stop_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(stop_label)
-	content.add_child(_label(stop.detail, HubFonts.LIGHT, 14, SECONDARY_COLOR))
+	content.add_child(_label(stop.detail, &"HubCaption"))
 	row.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			choose(index)
@@ -212,27 +201,20 @@ func _make_row(stop: TransitStop, index: int) -> PanelContainer:
 
 func _paint_selection() -> void:
 	for i in _rows.size():
-		var style := StyleBoxFlat.new()
-		style.bg_color = SELECTED_COLOR if i == _selected else Color.TRANSPARENT
-		style.set_corner_radius_all(4)
-		style.content_margin_left = 10.0
-		style.content_margin_right = 10.0
-		style.content_margin_top = 6.0
-		style.content_margin_bottom = 6.0
-		_rows[i].add_theme_stylebox_override("panel", style)
+		_rows[i].theme_type_variation = &"HubRowSelected" if i == _selected else &"HubRow"
 
 
 func _hint_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.add_child(GameScreen.make_key_cap("↑↓"))
-	row.add_child(_label("escolher", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("escolher", &"HubCaption"))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Enter"))
-	row.add_child(_label("viajar", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("viajar", &"HubCaption"))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Esc"))
-	row.add_child(_label("ficar", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("ficar", &"HubCaption"))
 	return row
 
 
@@ -242,11 +224,7 @@ func _spacer(width: float) -> Control:
 	return spacer
 
 
-func _label(text: String, font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
+func _label(text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(text, variation)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label

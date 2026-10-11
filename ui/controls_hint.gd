@@ -15,9 +15,6 @@ const SHOW_SECONDS: float = 15.0
 const FADE_SECONDS: float = 0.4
 ## Acima do cartão do que se olha (que fica a 48 px do pé da tela).
 const BOTTOM_MARGIN: float = 150.0
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.85)
-const TITLE_COLOR: Color = Color("B8BFCC")
-const TEXT_COLOR: Color = Color("E6E9EE")
 ## As teclas, na ordem em que aparecem: [teclas, o que fazem].
 const KEYS: Array[Array] = [
 	[["W", "A", "S", "D"], "andar"],
@@ -34,14 +31,8 @@ var _closing: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 22.0
-	style.content_margin_right = 22.0
-	style.content_margin_top = 10.0
-	style.content_margin_bottom = 12.0
-	add_theme_stylebox_override("panel", style)
+	theme = HubTheme.get_theme()
+	theme_type_variation = &"HubPanel"
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -51,10 +42,7 @@ func _ready() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 8)
 	add_child(column)
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 2
-	var title := _make_label("COMO JOGAR", spaced, 14, TITLE_COLOR)
+	var title := _make_label("COMO JOGAR", &"HubSection")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
@@ -68,7 +56,7 @@ func _ready() -> void:
 		item.add_theme_constant_override("separation", 4)
 		for key_name: String in entry[0]:
 			item.add_child(GameScreen.make_key_cap(key_name))
-		var text := _make_label(entry[1], HubFonts.LIGHT, 16, TEXT_COLOR)
+		var text := _make_label(entry[1], &"HubBody")
 		item.add_child(text)
 		row.add_child(item)
 
@@ -99,11 +87,7 @@ func is_closing() -> bool:
 	return _closing
 
 
-func _make_label(text: String, font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
+func _make_label(text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(text, variation)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label

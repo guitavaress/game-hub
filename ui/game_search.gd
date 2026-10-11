@@ -20,11 +20,6 @@ signal game_chosen(portal: GamePortal)
 const WIDTH: float = 500.0
 const TOP: float = 72.0
 const MAX_RESULTS: int = 8
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.92)
-const TEXT_COLOR: Color = Color("F2F3F5")
-const SECONDARY_COLOR: Color = Color("B8BFCC")
-const HINT_COLOR: Color = Color("8A92A0")
-const SELECTED_COLOR: Color = Color(1.0, 1.0, 1.0, 0.1)
 const CHOOSE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/click_003.ogg")
 ## Letras com acento -> sem acento (para "pokemon" achar "Pokémon").
 const ACCENTS: Dictionary[String, String] = {
@@ -53,14 +48,8 @@ func _ready() -> void:
 	visible = false
 
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 12.0
-	style.content_margin_bottom = 12.0
-	panel.add_theme_stylebox_override("panel", style)
+	panel.theme = HubTheme.get_theme()
+	panel.theme_type_variation = &"HubPanelStrong"
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	panel.offset_left = -WIDTH / 2.0
 	panel.offset_right = WIDTH / 2.0
@@ -74,21 +63,6 @@ func _ready() -> void:
 
 	_field = LineEdit.new()
 	_field.placeholder_text = "Buscar um jogo…"
-	var field_style := StyleBoxFlat.new()
-	field_style.bg_color = Color("16181D")
-	field_style.border_color = Color("5A606B")
-	field_style.set_border_width_all(1)
-	field_style.set_corner_radius_all(4)
-	field_style.content_margin_left = 12.0
-	field_style.content_margin_right = 12.0
-	field_style.content_margin_top = 8.0
-	field_style.content_margin_bottom = 8.0
-	_field.add_theme_stylebox_override("normal", field_style)
-	_field.add_theme_stylebox_override("focus", field_style)
-	_field.add_theme_font_override("font", HubFonts.TEXT)
-	_field.add_theme_font_size_override("font_size", 18)
-	_field.add_theme_color_override("font_color", TEXT_COLOR)
-	_field.add_theme_color_override("font_placeholder_color", HINT_COLOR)
 	_field.text_changed.connect(func(_text: String) -> void: _update_results())
 	_field.text_submitted.connect(func(_text: String) -> void:
 		if Input.is_key_pressed(KEY_SHIFT) or _is_indoors():
@@ -101,7 +75,7 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
 	column.add_child(_list)
-	_empty = _label("Nenhum jogo com esse nome.", HubFonts.LIGHT, 15, HINT_COLOR)
+	_empty = _label("Nenhum jogo com esse nome.", &"HubCaption")
 	column.add_child(_empty)
 	column.add_child(_hint_row())
 
@@ -241,16 +215,17 @@ func _make_row(portal: GamePortal, index: int) -> PanelContainer:
 	var content := HBoxContainer.new()
 	content.add_theme_constant_override("separation", 12)
 	row.add_child(content)
-	var game_name := _label(portal.get_game_name(), HubFonts.TEXT, 16, TEXT_COLOR)
+	var game_name := _label(portal.get_game_name(), &"HubBody")
 	game_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	game_name.clip_text = true
 	game_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	content.add_child(game_name)
 	var category_id := GameCategories.get_category_id(portal.app_id)
 	var district := GameCategories.get_category_name(category_id).split(" e ")[0]
-	var district_label := _label(district, HubFonts.LIGHT, 14, GameCategories.get_neon_color(category_id))
+	var district_label := _label(district, &"HubCaption")
+	HubTheme.tint(district_label, GameCategories.get_neon_color(category_id))  # o neon do bairro é dado
 	content.add_child(district_label)
-	content.add_child(_label("· %d m" % (roundi(_distances[portal] / 10.0) * 10), HubFonts.LIGHT, 14, SECONDARY_COLOR))
+	content.add_child(_label("· %d m" % (roundi(_distances[portal] / 10.0) * 10), &"HubCaption"))
 	row.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			if event.shift_pressed:
@@ -265,14 +240,7 @@ func _make_row(portal: GamePortal, index: int) -> PanelContainer:
 
 func _paint_selection() -> void:
 	for i in _rows.size():
-		var style := StyleBoxFlat.new()
-		style.bg_color = SELECTED_COLOR if i == _selected else Color.TRANSPARENT
-		style.set_corner_radius_all(4)
-		style.content_margin_left = 10.0
-		style.content_margin_right = 10.0
-		style.content_margin_top = 6.0
-		style.content_margin_bottom = 6.0
-		_rows[i].add_theme_stylebox_override("panel", style)
+		_rows[i].theme_type_variation = &"HubRowSelected" if i == _selected else &"HubRow"
 
 
 func _on_field_input(event: InputEvent) -> void:
@@ -320,17 +288,17 @@ func _hint_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.add_child(GameScreen.make_key_cap("↑↓"))
-	row.add_child(_label("escolher", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("escolher", &"HubCaption"))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Enter"))
-	_enter_hint = _label("acender o caminho", HubFonts.LIGHT, 14, HINT_COLOR)
+	_enter_hint = _label("acender o caminho", &"HubCaption")
 	row.add_child(_enter_hint)
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Shift+Enter"))
-	row.add_child(_label("ir até lá", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("ir até lá", &"HubCaption"))
 	row.add_child(_spacer(10))
 	row.add_child(GameScreen.make_key_cap("Esc"))
-	row.add_child(_label("fechar", HubFonts.LIGHT, 14, HINT_COLOR))
+	row.add_child(_label("fechar", &"HubCaption"))
 	return row
 
 
@@ -340,13 +308,9 @@ func _spacer(width: float) -> Control:
 	return spacer
 
 
-func _label(text: String, font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
+func _label(text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(text, variation)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
 
 

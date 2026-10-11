@@ -19,19 +19,13 @@ signal closed
 enum Kind { INFO, ERROR, SESSION }
 
 const WIDTH: float = 500.0
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.78)
-const ACCENTS: Dictionary[Kind, Color] = {
-	Kind.INFO: Color("F2C14E"),
-	Kind.ERROR: Color("E5534B"),
-	Kind.SESSION: Color("5FE3A1"),
-}
+## A cor, a fonte e a caixa vêm do tema do hub (HubTheme): cada tipo tem a sua
+## variação (HubToastInfo, HubToastError, HubToastSession).
 const SECONDS: Dictionary[Kind, float] = {
 	Kind.INFO: 6.0,
 	Kind.ERROR: 10.0,
 	Kind.SESSION: 5.0,
 }
-const TITLE_COLOR: Color = Color("F2F3F5")
-const TEXT_COLOR: Color = Color("B8BFCC")
 const ANIMATION_TIME: float = 0.2
 const SLIDE_PIXELS: float = 12.0
 const EXIT_RISE_PIXELS: float = 6.0
@@ -68,7 +62,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel = PanelContainer.new()
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_panel.add_theme_stylebox_override("panel", _make_style(ACCENTS[kind]))
+	_panel.theme = HubTheme.get_theme()
+	_panel.theme_type_variation = StringName("HubToast" + HubTheme.TOAST_KINDS[kind])
 	_panel.custom_minimum_size = Vector2(WIDTH, 0.0)
 	add_child(_panel)
 
@@ -78,15 +73,11 @@ func _ready() -> void:
 	_panel.add_child(column)
 	_shown_ms = Time.get_ticks_msec()
 	if not overline.is_empty():
-		# Rótulo: Barlow Condensed com 2 px a mais entre as letras, na cor do tipo.
-		var spaced := FontVariation.new()
-		spaced.base_font = HubFonts.SIGN
-		spaced.spacing_glyph = 2
-		column.add_child(_make_label(overline, spaced, 14, ACCENTS[kind]))
-	# Sessão: o título (a duração) é um pouco maior.
-	column.add_child(_make_label(title, HubFonts.TEXT, 20 if kind == Kind.SESSION else 18, TITLE_COLOR))
+		# Rótulo: letras espaçadas, na cor do tipo.
+		column.add_child(_make_label(overline, StringName("HubOverline" + HubTheme.TOAST_KINDS[kind])))
+	column.add_child(_make_label(title, &"HubLead"))
 	if not text.is_empty():
-		column.add_child(_make_label(text, HubFonts.LIGHT, 15, TEXT_COLOR))
+		column.add_child(_make_label(text, &"HubBodyLight"))
 
 	# A "vaga" na pilha tem o tamanho do painel.
 	_panel.minimum_size_changed.connect(_fit_to_panel)
@@ -128,25 +119,8 @@ func _fit_to_panel() -> void:
 	_panel.size = custom_minimum_size
 
 
-func _make_style(accent: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.border_width_left = 4
-	style.border_color = accent
-	style.content_margin_left = 18.0
-	style.content_margin_right = 18.0
-	style.content_margin_top = 9.0
-	style.content_margin_bottom = 11.0
-	return style
-
-
-func _make_label(label_text: String, font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = label_text
+func _make_label(label_text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(label_text, variation)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label

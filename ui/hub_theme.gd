@@ -10,7 +10,8 @@ extends RefCounted
 ## ("separation") é de cada tela: é arrumação, não estilo.
 ##
 ## As variações (o nome vai em theme_type_variation):
-##   Label:          HubCaption (dica), HubBody (texto), HubBodyLight (texto
+##   Label:          HubOverlineInfo/Error/Session (rótulo de um aviso, na cor
+##                   do tipo), HubCaption (dica), HubBody (texto), HubBodyLight (texto
 ##                   secundário), HubValue (número ao lado de um deslizador),
 ##                   HubLead (destaque), HubTitle (título), HubSection (seção),
 ##                   HubBrand ("GAME HUB"), HubKeyLabel (letra de uma tecla),
@@ -19,7 +20,13 @@ extends RefCounted
 ##                   HubSegment (botões lado a lado: Leve | Média | Alta);
 ##   PanelContainer: HubPanel (HUD, avisos, cartões), HubPanelStrong (menus),
 ##                   HubSidePanel (menu de pausa, encostado na borda),
-##                   HubScreen (fundo da tela do computador), HubKeyCap (tecla).
+##                   HubScreen (fundo da tela do computador), HubKeyCap (tecla),
+##                   HubRow e HubRowSelected (linha de uma lista),
+##                   HubToastInfo/Error/Session (aviso, com a barrinha da cor
+##                   do tipo).
+##
+## Cor que vem de DADO (o neon de um bairro, a cor de uma linha) não cabe no
+## tema: use HubTheme.tint(label, cor), que marca o texto como "cor de dado".
 
 # --- Cores ------------------------------------------------------------------------
 
@@ -35,6 +42,11 @@ const FIELD_BORDER: Color = Color("3A3F48")
 const KEY_BORDER: Color = Color("5A606B")
 const OK_COLOR: Color = Color("5FE3A1")
 const ERROR_COLOR: Color = Color("E5534B")
+## A cor de cada tipo de aviso (Toast.Kind: INFO, ERROR, SESSION).
+const TOAST_COLORS: Array[Color] = [Color("F2C14E"), Color("E5534B"), Color("5FE3A1")]
+const TOAST_KINDS: Array[String] = ["Info", "Error", "Session"]
+## Fundo da linha escolhida numa lista (busca, metrô).
+const ROW_SELECTED_COLOR: Color = Color(1.0, 1.0, 1.0, 0.1)
 ## As duas cores de painel: a leve (HUD, avisos, cartões) e a forte (menus).
 const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.85)
 const PANEL_STRONG_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.94)
@@ -83,6 +95,13 @@ static func label(text: String, variation: StringName = &"HubBody") -> Label:
 	label_node.text = text
 	label_node.theme_type_variation = variation
 	return label_node
+
+
+## Pinta um texto com uma cor que vem de dado (ex.: o neon do bairro). É a
+## única exceção ao "nada de cor solta": o teste de tema deixa passar.
+static func tint(label_node: Label, color: Color) -> void:
+	label_node.add_theme_color_override("font_color", color)
+	label_node.set_meta("hub_data_color", true)
 
 
 ## Um botão: "primary" = claro (a ação principal); senão, o escuro de sempre.
@@ -163,6 +182,8 @@ static func _build_labels(theme: Theme) -> void:
 		[&"HubStatusOk", HubFonts.LIGHT, SIZE_CAPTION, OK_COLOR],
 		[&"HubStatusError", HubFonts.LIGHT, SIZE_CAPTION, ERROR_COLOR],
 	]
+	for i in TOAST_KINDS.size():
+		labels.append([StringName("HubOverline" + TOAST_KINDS[i]), spaced_font(2), SIZE_CAPTION, TOAST_COLORS[i]])
 	for entry in labels:
 		theme.set_type_variation(entry[0], &"Label")
 		theme.set_font("font", entry[0], entry[1])
@@ -283,6 +304,23 @@ static func _build_panels(theme: Theme) -> void:
 	for entry in panels:
 		theme.set_type_variation(entry[0], &"PanelContainer")
 		theme.set_stylebox("panel", entry[0], box(entry[1], entry[2], Color.TRANSPARENT, 0, entry[3]))
+
+	# Linha de uma lista: transparente, ou clara quando é a escolhida.
+	var row := box(Color.TRANSPARENT, RADIUS, Color.TRANSPARENT, 0, Vector4(10, 6, 10, 6))
+	theme.set_type_variation(&"HubRow", &"PanelContainer")
+	theme.set_stylebox("panel", &"HubRow", row)
+	var row_selected := row.duplicate() as StyleBoxFlat
+	row_selected.bg_color = ROW_SELECTED_COLOR
+	theme.set_type_variation(&"HubRowSelected", &"PanelContainer")
+	theme.set_stylebox("panel", &"HubRowSelected", row_selected)
+
+	# Aviso: painel leve com a barrinha da cor do tipo na esquerda.
+	for i in TOAST_KINDS.size():
+		var toast := box(PANEL_COLOR, RADIUS, TOAST_COLORS[i], 0, Vector4(18, 9, 18, 11))
+		toast.border_width_left = 4
+		var type := StringName("HubToast" + TOAST_KINDS[i])
+		theme.set_type_variation(type, &"PanelContainer")
+		theme.set_stylebox("panel", type, toast)
 
 	# Tecla desenhada ("Esc", "E"): fundo de campo e a borda de baixo mais grossa.
 	var key := box(FIELD_COLOR, RADIUS, KEY_BORDER, 1, Vector4(8, 2, 8, 2))

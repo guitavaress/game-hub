@@ -7,8 +7,6 @@ extends CanvasLayer
 signal opened
 signal closed
 
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.92)
-const HINT_COLOR: Color = Color("8C93A0")
 const MARGIN: float = 48.0
 
 var _view: MapView
@@ -27,11 +25,8 @@ func _ready() -> void:
 	add_child(dim)
 
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(14.0)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.theme = HubTheme.get_theme()
+	panel.theme_type_variation = &"HubPanelStrong"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = MARGIN
 	panel.offset_right = -MARGIN
@@ -55,11 +50,7 @@ func _ready() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 6)
 	row.add_child(GameScreen.make_key_cap("M"))
-	_hint = Label.new()
-	_hint.text = "fechar o mapa"
-	_hint.add_theme_font_override("font", HubFonts.LIGHT)
-	_hint.add_theme_font_size_override("font_size", 14)
-	_hint.add_theme_color_override("font_color", HINT_COLOR)
+	_hint = HubTheme.label("fechar o mapa", &"HubCaption")
 	row.add_child(_hint)
 	column.add_child(row)
 
