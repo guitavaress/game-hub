@@ -1,0 +1,8 @@
+Sons gerados para o Game Hub por assets/generated/make_sounds.py
+(wind_loop.wav, bird_chirp_*.wav, metro_ride.wav, city_bed.wav).
+
+Dedicados ao domínio público (CC0 1.0 Universal):
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Os arquivos tree_impostor.png e tree_impostor.json são fotos da jacaranda_tree
+da Poly Haven (CC0), geradas por tools/make_tree_impostor.gd.

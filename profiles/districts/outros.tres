@@ -3,6 +3,13 @@
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_4tg3y"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_4fcvh"]
 
+[sub_resource type="Resource" id="Resource_hum01"]
+script = ExtResource("1_4tg3y")
+kind = "loop"
+files = PackedStringArray("res://assets/kenney/sci-fi-sounds/computerNoise_000.ogg")
+volume_db = -16.0
+max_distance = 16.0
+
 [resource]
 script = ExtResource("2_4fcvh")
 id = "outros"
@@ -11,6 +18,7 @@ color = Color(0.49019608, 0.52156866, 0.5647059, 1)
 neon = Color(0.8666667, 0.8901961, 0.91764706, 1)
 tags = PackedInt32Array()
 tag_names = PackedStringArray()
+ambience = Array[ExtResource("1_4tg3y")]([SubResource("Resource_hum01")])
 props_script = "res://worlds/city/district_props/address_totem.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()

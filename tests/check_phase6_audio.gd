@@ -65,6 +65,19 @@ func _run() -> void:
 	_check("vento (WAV gerado) em loop", _is_looping(wind.stream))
 	_check("todos no canal Ambiente", engine_bus_ok and wind.bus == &"Ambiente")
 
+	print("\n== fundo da cidade ==")
+	var bed: AudioStreamPlayer = city.get_ambience_bed()
+	_check("o fundo existe e toca", bed != null and bed.playing)
+	_check("em loop, no canal Ambiente", bed != null and bed.bus == &"Ambiente" and _is_looping(bed.stream))
+	var bed_spec = load("res://profiles/world_profile.tres").ambience_bed
+	_check("vem do perfil do mundo", bed != null and is_equal_approx(bed.stream.get_length(), load(bed_spec.files[0]).get_length())
+		and is_equal_approx(bed.volume_db, bed_spec.volume_db))
+	_check("assets/generated/LICENSE.txt existe", FileAccess.file_exists("res://assets/generated/LICENSE.txt"))
+	var others_emitters: Array = CategoryAmbience.create("outros")
+	_check("\"Outros\" tem som", others_emitters.size() == 1)
+	for emitter in others_emitters:
+		emitter.free()
+
 	print("\n== passos ==")
 	# Atravessa a praça de oeste para leste, ao sul do chafariz: linha livre de
 	# floreiras, postes e da estação de metrô (que fica no vão entre os prédios).

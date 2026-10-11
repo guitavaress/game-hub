@@ -85,6 +85,8 @@ func _run() -> void:
 	print("== som ambiente: cada bairro igual ao retrato ==")
 	var ambience: GDScript = load("res://components/ambient_emitter/category_ambience.gd")
 	for old: Dictionary in old_categories:
+		if old["id"] == "outros":
+			continue  # ganhou som na Fase 11.9 (conferido abaixo)
 		var emitters: Array = ambience.create(old["id"])
 		var expected: Array = old["som"]
 		var sounds_ok := emitters.size() == expected.size()
@@ -94,6 +96,15 @@ func _run() -> void:
 		for emitter in emitters:
 			emitter.free()
 	_check("bairro que não existe: sem som", ambience.create("nao_existe").is_empty())
+
+	print("== Fase 11.9: fundo do mundo e som de Outros ==")
+	var bed = profiles.world().ambience_bed
+	_check("o mundo tem ambience_bed (loop, city_bed.wav, ~-22 dB)", bed != null and bed.kind == "loop"
+		and bed.files.size() == 1 and bed.files[0].ends_with("city_bed.wav") and absf(bed.volume_db + 22.0) < 0.5)
+	var other_sounds: Array = ambience.create("outros")
+	_check("\"outros\" tem um emissor de loop", other_sounds.size() == 1 and other_sounds[0].loop_stream != null)
+	for emitter in other_sounds:
+		emitter.free()
 
 	print("== enfeite: cada bairro igual ao retrato ==")
 	var props_class: GDScript = load("res://worlds/city/district_props/district_props.gd")

@@ -94,6 +94,7 @@ var _shells: Dictionary[String, GDScript] = {
 	"building": CityBuilding,
 	"arch": ArchShell,
 }
+var _ambience_bed: AudioStreamPlayer
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
 ## Relógio de dia e noite (sol, céu, luzes).
@@ -158,6 +159,7 @@ func _ready() -> void:
 	await _keep_frame_light()
 	CityDecor.add_plaza(self)
 	_build_clock_tower()
+	_build_ambience_bed()
 	# Faixa de luz até a porta de um jogo (busca com Tab).
 	var route_guide := CityRouteGuide.new()
 	route_guide.name = "RouteGuide"
@@ -705,6 +707,26 @@ func _build_environment() -> void:
 	_day_night.sun = sun
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	add_child(_day_night)
+
+
+## O fundo da cidade (vento e trânsito ao longe): um loop 2D, sem posição, no
+## canal "Ambiente", vindo do perfil do mundo. Em casa o canal fica abafado.
+func _build_ambience_bed() -> void:
+	var spec := Profiles.world().ambience_bed
+	if spec == null or spec.files.is_empty():
+		return
+	var player := AudioStreamPlayer.new()
+	player.name = "AmbienceBed"
+	player.stream = AmbientEmitter.looping(load(spec.files[0]))
+	player.bus = &"Ambiente"
+	player.volume_db = spec.volume_db
+	add_child(player)
+	player.play()
+	_ambience_bed = player
+
+
+func get_ambience_bed() -> AudioStreamPlayer:
+	return _ambience_bed
 
 
 # --- Casa ----------------------------------------------------------------------

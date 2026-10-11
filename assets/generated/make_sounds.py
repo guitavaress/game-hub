@@ -5,6 +5,8 @@ Cria, nesta mesma pasta:
   - wind_loop.wav      vento (8 s, emenda sem "pulo" quando repete)
   - bird_chirp_1..4    piados curtos de passarinho
   - metro_ride.wav     viagem de metrô (3 s): ronco grave + "tac-tac" dos trilhos
+  - city_bed.wav       fundo da cidade (12 s, emenda sem "pulo"): vento grave +
+                       rumor de trânsito distante que sobe e desce
 
 Só usa a biblioteca padrão do Python (wave, math, random).
 Estes sons foram feitos para o Game Hub e são CC0 (domínio público).
@@ -105,8 +107,40 @@ def metro_ride(seconds=3.0):
     return [s * 0.7 / peak for s in samples]
 
 
+def city_bed(seconds=12.0):
+    """Fundo da cidade: vento grave (rajadas lentas) e um "rumor" de trânsito
+    distante, um ruído um pouco mais agudo que sobe e desce. As ondas lentas
+    fecham ciclos inteiros em "seconds", e a emenda é misturada como no vento."""
+    random.seed(23)
+    count = int(seconds * RATE)
+    samples = []
+    wind_value = 0.0
+    wind_smooth = 0.0
+    traffic_value = 0.0
+    traffic_smooth = 0.0
+    for i in range(count):
+        t = i / RATE
+        wind_value = (wind_value + random.uniform(-0.02, 0.02)) * 0.998
+        wind_smooth += (wind_value - wind_smooth) * 0.06
+        gust = 0.6 + 0.25 * math.sin(2 * math.pi * t / seconds) \
+            + 0.15 * math.sin(2 * math.pi * 2 * t / seconds + 0.7)
+        traffic_value = (traffic_value + random.uniform(-0.03, 0.03)) * 0.99
+        traffic_smooth += (traffic_value - traffic_smooth) * 0.18
+        # Carros passando ao longe: 3 ondas por ciclo, nunca chega a silêncio.
+        swell = 0.55 + 0.45 * math.sin(2 * math.pi * 3 * t / seconds + 2.1)
+        samples.append(wind_smooth * gust * 5.0 + traffic_smooth * swell * 2.2)
+    fade = int(1.0 * RATE)
+    for i in range(fade):
+        w = i / fade
+        samples[i] = samples[i] * w + samples[count - fade + i] * (1 - w)
+    samples = samples[: count - fade]
+    peak = max(abs(s) for s in samples)
+    return [s * 0.7 / peak for s in samples]
+
+
 if __name__ == "__main__":
     save_wav("wind_loop.wav", wind())
     for n in range(1, 5):
         save_wav("bird_chirp_%d.wav" % n, chirp(n))
     save_wav("metro_ride.wav", metro_ride())
+    save_wav("city_bed.wav", city_bed())

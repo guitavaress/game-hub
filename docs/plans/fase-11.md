@@ -159,7 +159,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Teste: `check_phase6_audio` passa a esperar quatro canais; `check_settings_view` confere quatro deslizadores; `check_home_start` confere o canal do jingle.
   - Commit: `Fase 11.8: canal de música`
 
-- [ ] **11.9 Fundo da cidade e som de "Outros"** (Sonnet · medium) — revisão 6.1 e 7.3
+- [x] **11.9 Fundo da cidade e som de "Outros"** (Sonnet · medium) — revisão 6.1 e 7.3
   - Faz:
     - `assets/generated/make_sounds.py`: `city_bed.wav` (12 s, emenda sem pulo): vento grave + um "rumor" de trânsito distante que sobe e desce. `assets/generated/LICENSE.txt` (CC0) e as linhas do `metro_ride.wav` e do `city_bed.wav` nos créditos do README (revisão 7.3).
     - `profiles/world_profile.gd`: `ambience_bed: AmbienceSpec`; `profiles/world_profile.tres` usa o `city_bed.wav` a ~−22 dB.

@@ -11,3 +11,7 @@ extends Resource
 @export var display_name: String = ""
 ## Os bairros, em ordem.
 @export var districts: Array[DistrictProfile] = []
+## O fundo do mundo: um som de loop, sem posição, que toca em qualquer lugar
+## (canal "Ambiente"). Em casa ele fica abafado, como o resto do canal.
+## Só o "loop" faz sentido aqui; a distância e o tamanho são ignorados.
+@export var ambience_bed: AmbienceSpec
