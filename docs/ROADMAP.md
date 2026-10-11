@@ -107,9 +107,13 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop (Alta com MSAA + SMAA). O resto da revisão fica para uma "Fase 11: Sensação e marcos" (game feel da porta e da câmera, marcos altos, tema único, som).
 
-### Fase 11: Sensação e marcos (em andamento)
+### Fase 11: Sensação e marcos ✅ feita (no Linux; falta a conferência no desktop)
 
 **Objetivo:** os itens 5, 6 e 8 da "Ordem sugerida" da [revisão de 2026-10-10](design/revisao-2026-10-10.md): game feel da porta e da câmera, marcos altos (torre do relógio e um marco por bairro), som (música, fundo da cidade, passos de madeira) e itens soltos. Plano e registro: [plans/fase-11.md](plans/fase-11.md).
+
+**O que entregou:** curvas em todas as transições de UI; câmera com balanço, afundada ao pousar e FOV de corrida (com opção para desligar); a porta que "pesa" (FOV, avanço, vão aceso e som novo); sensibilidade do mouse e FOV nas opções; torre do relógio na praça e um marco alto por bairro; canal Música, fundo da cidade, som de "Outros" e passos de madeira com eco em casa; título ao entrar no bairro. A medida no notebook (Leve, 200 jogos) piorou ~0,5 FPS.
+
+**Falta:** a conferência no desktop e ouvir os sons (as escolhas foram feitas pelo nome do arquivo).
 
 ### Fase 12: Tema e controles (depois da 11)
 

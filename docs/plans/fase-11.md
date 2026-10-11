@@ -1,6 +1,6 @@
 # Fase 11: Sensação e marcos
 
-**Status:** em andamento
+**Status:** concluída (no Linux; falta a conferência no desktop)
 **Branch:** `fase-11`, nascida da `fase-10` (`7000288`), no checkout principal (`~/git/game-hub`). A cadeia fica `main` ← `fase-linux` ← … ← `fase-10` ← `fase-11`.
 
 ## Contexto
@@ -190,7 +190,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: atravessar um pórtico a pé e chegar a um bairro por viagem rápida (Shift+Enter).
   - Commit: `Fase 11.11: título ao entrar no bairro`
 
-- [ ] **11.12 Medida e docs** (Sonnet · low)
+- [x] **11.12 Medida e docs** (Sonnet · low)
   - Faz:
     - medida no notebook, `fase-10` × `fase-11` intercaladas (Leve, 22 h, 200 jogos; e 30 jogos ao meio-dia), anotada em "Decisões";
     - README (porta e câmera, opções novas, torre e marcos, sons, título do bairro, créditos), ROADMAP (Fase 11 feita), `tests/README.md` (testes novos), CLAUDE.md ("Feito: fases 1–11");
@@ -221,6 +221,9 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
 - 2026-10-10: fase dividida em 11 (sensação e marcos) e 12 (tema e controles); música = barramento + jingles; marco da praça = torre do relógio; aprovados os pacotes Impact Sounds e Sci-Fi Sounds da Kenney (dono).
 
 - 2026-10-11 (11.7): medida no notebook, 200 jogos, Leve, 22 h, duas rodadas intercaladas com e sem os `landmark_script`: FPS médio 57,0/58,0 com marcos × 57,9/57,5 sem; desenhos 2468/2509 × 2474/2460; em casa 60 FPS e 149 desenhos nos dois. Os marcos ficam dentro do ruído (a torre da praça, 11.5, está nos dois lados).
+- 2026-10-11 (11.12): medida no notebook (Radeon 610M, na tomada, parado), `fase-10` × `fase-11` intercaladas, duas rodadas, Leve. **200 jogos, 22 h:** FPS médio 58,0 e 58,3 (`fase-10`) × 57,6 e 57,6 (`fase-11`), ou seja, ~0,5 FPS a menos; desenhos ~1523 × ~1564 (+40); pior quadro 42–43 ms × 44–59 ms (ruído); memória 266 × 272 MB; textura igual (443 MB). **Em casa:** 60 FPS e 114 × 115 desenhos nos dois. **30 jogos, 12 h:** 59,9 FPS nos dois, desenhos 810 × 865 (+55). Dentro da meta (não piora mais de ~2 FPS na Leve). O desktop continua sendo a régua de verdade.
+- Escolhas de som feitas sem ouvir (só pelo nome e pela duração; conferir de ouvido e ajustar): `spaceEngineLow_000` (carga da porta), `computerNoise_000` (loop de "Outros"), volumes do `city_bed.wav` (−22 dB), do eco dos passos e dos passos de madeira.
+- O título do bairro consulta o mapa por conta própria (a cada 0,25 s), e não pelo `MapView`: assim funciona mesmo com "Bússola e mapa" desligado.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:

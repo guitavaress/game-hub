@@ -21,6 +21,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
 | 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
+| 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
@@ -91,7 +92,7 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | W A S D | Andar |
 | Shift | Correr |
 | Espaço | Pular |
-| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, amigos). Em casa, também devolve a câmera do computador |
+| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, controles, amigos). Em casa, também devolve a câmera do computador |
 | E | Interagir: porta (casa e praça), estante (segurar para jogar), mural dos amigos e computador |
 | Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
 | Shift+Enter (na busca) | Ir direto até a porta do jogo (a tela escurece e você aparece na frente dela; o jogo não abre) |
@@ -107,6 +108,12 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 **Qualidades:** **Alta** liga tudo e alisa as bordas com MSAA 2x + SMAA; **Média** tira os reflexos na tela e usa SMAA; **Leve** é a de cima. As texturas do chão e das paredes têm mipmaps: o asfalto ao longe não "granula" nem cintila. A interface (menus, avisos, mapa) cresce junto com a janela, então ocupa a mesma parte da tela em 720p, 1080p ou 1440p.
 
 **Primeira vez:** ao abrir o hub pela primeira vez, um cartão no pé da tela mostra as teclas principais (some no primeiro E ou depois de 15 s; não aparece de novo). Os outros avisos esperam ele sair. Quando a cidade termina de montar, aparece "A cidade está pronta", com um som curto.
+
+**Sensação (Fase 11):** andando, a câmera balança de leve; ao pousar de um pulo, ela afunda; correndo, o campo de visão abre 5°. Na porta de um jogo, enquanto o anel enche, o FOV fecha, a câmera avança um pouco, o vão e o néon acendem mais forte, e o som da carga é um rumor grave. Em Esc › Controles dá para **desligar o balanço da câmera** (se der enjoo) e mudar a **sensibilidade do mouse** e o **campo de visão**, com efeito na hora.
+
+**Marcos e títulos:** no meio do chafariz da praça há uma **torre do relógio** (~18 m) que marca a hora da cidade e aparece no minimapa. Cada bairro (menos a Simulação, cuja grua já é o marco) tem um **marco alto** no telhado do quarteirão do pórtico: torre de castelo no RPG, torre de refletores nos Esportes, roda-gigante no Casual, torre de rádio na Ação, dado de néon nas Cartas, caixa d'água no Terror, rei de xadrez na Estratégia, farol na Aventura e antena holográfica em Outros. Ao entrar num bairro, aparece o **nome dele e quantos jogos tem** por ~2,5 s.
+
+**Som:** há um canal **Música** (com deslizador) onde tocam os jingles; a cidade tem um **fundo baixinho** de vento e trânsito ao longe, e o bairro Outros tem som próprio. Em casa, os passos são de **madeira, com um eco leve**; na rua, de concreto.
 
 ## Configuração
 

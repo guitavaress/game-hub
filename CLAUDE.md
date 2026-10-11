@@ -5,7 +5,7 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–10, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Feito:** fases 1–11, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -42,7 +42,7 @@ components/    peças reutilizáveis em qualquer mundo
   travel_door/      porta de viagem (E leva a outro lugar; a aparência é de quem usa)
   screen_3d/        tela 3D clicável (o conteúdo é qualquer Control)
   ambient_emitter/  som ambiente por categoria
-player/        primeira pessoa; cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
+player/        primeira pessoa (camera_feel.gd: balanço, pouso e FOV da câmera); cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
 ui/            HUD (bússola, minimapa), avisos, cartão de controles da 1ª vez, telas "Abrindo"/"Jogando", fade, menus, mapa grande, painel do metrô
 worlds/home/   a casa (loft): sala, estante, mural e computador; não conhece nenhum mundo
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
