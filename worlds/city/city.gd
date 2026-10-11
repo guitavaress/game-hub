@@ -157,6 +157,7 @@ func _ready() -> void:
 	CityDecor.add_puddles(self, half)
 	await _keep_frame_light()
 	CityDecor.add_plaza(self)
+	_build_clock_tower()
 	# Faixa de luz até a porta de um jogo (busca com Tab).
 	var route_guide := CityRouteGuide.new()
 	route_guide.name = "RouteGuide"
@@ -502,6 +503,7 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 			spot = candidate
 			break
 	if spot == Vector2.INF:
+		push_warning("O pórtico do bairro %s não coube em nenhuma esquina." % category_id)
 		return
 	_gate_spots[spot] = true
 	_map.set_gate(category_id, spot)
@@ -527,6 +529,9 @@ func _build_district_sign(district_cells: Array, category_id: String) -> void:
 		var props := get_node_or_null("DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y])
 		if props != null and props.has_method("get_top_y"):
 			top = maxf(top, props.get_top_y())
+	var landmark := get_node_or_null("DistrictLandmark_%s" % category_id) as DistrictLandmark
+	if landmark != null:
+		top = maxf(top, landmark.get_top_y())
 	var cell: Vector2i = district_cells[0]
 	var district_sign := DistrictSign.new()
 	district_sign.name = "DistrictSign_%s" % category_id
@@ -535,6 +540,23 @@ func _build_district_sign(district_cells: Array, category_id: String) -> void:
 	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, top + DISTRICT_SIGN_CLEARANCE, 0.0)
 	add_child(district_sign)
 	_district_signs.append(district_sign)
+
+
+## O marco alto do bairro (torre, roda-gigante...), se o perfil tiver um
+## "landmark_script": em cima do prédio mais alto do quarteirão do pórtico.
+func _build_landmark(category_id: String, buildings: Array[CityBuilding]) -> void:
+	var profile := Profiles.district(category_id)
+	if profile == null or profile.landmark_script.is_empty() or buildings.is_empty():
+		return
+	var script := load(profile.landmark_script) as GDScript
+	var landmark := script.new() as DistrictLandmark if script != null else null
+	if landmark == null:
+		push_warning("O marco %s do bairro %s não carregou." % [profile.landmark_script, category_id])
+		return
+	landmark.name = "DistrictLandmark_%s" % category_id
+	landmark.category_id = category_id
+	landmark.buildings = buildings
+	add_child(landmark)
 
 
 ## Placa de rua no poste da esquina do quarteirão mais perto da praça,
@@ -599,6 +621,9 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 			CityDecor.add_park(self, lot)
 	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
 	DistrictProps.decorate(self, category_id, cell, buildings)
+	# O marco do bairro fica no primeiro quarteirão (o do pórtico).
+	if not _district_cells.has(category_id):
+		_build_landmark(category_id, buildings)
 	await _keep_frame_light()
 
 
@@ -761,6 +786,17 @@ func _build_ground_and_walls(half: float) -> void:
 	skyline.name = "Skyline"
 	skyline.environment = _environment
 	add_child(skyline)
+
+
+# --- Torre do relógio ----------------------------------------------------------
+
+## A torre do meio do chafariz: marca a hora da cidade e vira um ponto nos mapas.
+func _build_clock_tower() -> void:
+	var tower := PlazaClockTower.new()
+	tower.name = "ClockTower"
+	tower.day_night = _day_night
+	add_child(tower)
+	_map.add_landmark("marco", "Torre do relógio", Vector2.ZERO, PlazaClockTower.NEON_COLOR)
 
 
 # --- Amigos na praça ---------------------------------------------------------

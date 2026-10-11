@@ -21,3 +21,4 @@ ambience = Array[ExtResource("1_d0gg5")]([SubResource("Resource_d0gg5")])
 props_script = "res://worlds/city/district_props/action_screens.gd"
 floor_weights = PackedFloat32Array(0, 0.2, 0.35, 0.3, 0.15)
 wall_weights = PackedFloat32Array(0.6, 0.3, 0.1)
+landmark_script = "res://worlds/city/district_landmarks/radio_tower.gd"

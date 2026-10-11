@@ -20,3 +20,4 @@ ambience = Array[ExtResource("1_lpw1u")]([SubResource("Resource_lpw1u")])
 props_script = "res://worlds/city/district_props/rpg_banners.gd"
 floor_weights = PackedFloat32Array(0.45, 0.35, 0.2, 0, 0)
 wall_weights = PackedFloat32Array(0.1, 0.1, 0.8)
+landmark_script = "res://worlds/city/district_landmarks/rpg_tower.gd"
