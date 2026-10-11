@@ -82,7 +82,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Faz: cria a branch `fase-12` a partir da `fase-11`, faz o commit deste plano e marca a Fase 12 como "em andamento" no ROADMAP.
   - Commit: `Fase 12.0: plano`
 
-- [ ] **12.1 O tema** (Opus · high: é a fundação, e decide os tamanhos de todas as telas)
+- [x] **12.1 O tema** (Opus · high: é a fundação, e decide os tamanhos de todas as telas) — 59456bf
   - Faz:
     - `ui/hub_theme.gd` (novo), com tudo o que está em "Decisões" (fontes, 5 tamanhos, raio, painéis, botões, campo, deslizador, chave, aba, botões lado a lado, foco, cores);
     - passam a usar o tema as telas de configuração: `ui/settings_view.gd`, `ui/pause_menu.gd` e a tela do computador (`worlds/home/computer_desk.gd`). As funções de estilo do `SettingsView` (`box`, `style_button`, `label`, `_field`, `_style_slider`) somem ou viram uma linha com `theme_type_variation`;
@@ -212,6 +212,13 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
 
 ## Decisões tomadas durante a fase
 - 2026-10-11: controle Xbox, o controle joga tudo, e as dicas trocam com o aparelho usado (dono). Plano aprovado.
+- 2026-10-11 (12.1): **o tema**.
+  - Espaçamentos ("separation") ficam no nó: são arrumação, não estilo. O `check_theme` confere só cor, fonte, tamanho e caixa.
+  - Além das variações do plano: `HubBodyLight` (texto secundário), `HubValue` (número do deslizador), `HubBrand` ("GAME HUB"), `HubKeyLabel` (letra da tecla) e `HubStatusOk`/`HubStatusError` (a linha de situação dos amigos troca de variação, em vez de cor).
+  - O `CheckButton` recebe de volta as caixas vazias do tema padrão da Godot: sem isso, herdava a caixa com borda do `Button` do tema.
+  - Com o texto em 16 px, as frases da aba Controles quebram a linha (antes alargavam o painel) e a tecla desenhada fica no meio da fileira, sem esticar.
+  - A tela do computador usa o painel forte sem transparência (`HubScreen`). O "Leve" escolhido continua apagado na tela 3D, como antes (é o brilho do 3D, não o tema).
+- 2026-10-11: **correção fora do plano** (7bd7867). Com uma chave salva, os amigos de verdade entram na praça; com mais de 10 online, a segunda volta da roda punha um holograma na saída da estação Central (o `check_metro` acusou). Os amigos agora desviam da calçada da estação e da chegada da porta "Casa". Os testes que usam amigos falsos ou andam pela praça chamam `tests/quiet_friends.gd`, e as esperas pela rede do `check_phase5` contam tempo.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
