@@ -114,7 +114,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
 
 ### Bloco B: marcos (paralela, ou principal sem worktree)
 
-- [ ] **11.5 Torre do relógio na praça** (Sonnet · medium) — revisão 1.4 e 7.2
+- [x] **11.5 Torre do relógio na praça** (Sonnet · medium) — revisão 1.4 e 7.2 — `78bdcfd`
   - Faz:
     - `worlds/city/plaza_clock_tower.gd` (novo, `PlazaClockTower`): coluna de concreto (~1,2 m de lado) saindo do meio do chafariz, com ~18 m (a altura do prédio de 3 andares do `BuildingVariant` + 3 m); quatro mostradores de néon claro a ~15 m, com ponteiros de hora e minuto; coroa de néon que acende à noite (`city_night`). Colisão só na coluna.
     - `worlds/city/city.gd`: cria a torre junto da praça e passa o `DayNight`; a torre lê `current_hour()` uma vez por segundo. `_map.add_landmark("marco", "Torre do relógio", …)`.
