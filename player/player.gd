@@ -42,13 +42,28 @@ const INDOOR_AMBIENCE_DB: float = -10.0
 const FOCUS_SLIDE_SECONDS: float = 0.45
 
 ## Sons (pacotes CC0 da Kenney).
-const FOOTSTEP_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_000.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_001.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_002.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_003.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_004.ogg"),
-]
+## Passos por SUPERFÍCIE. Quem monta um chão diz do que ele é com
+## set_meta("footstep", "wood") no corpo de colisão; sem a marca, é concreto.
+const FOOTSTEP_SURFACES: Dictionary[String, Array] = {
+	"concrete": [
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_004.ogg"),
+	],
+	"wood": [
+		preload("res://assets/kenney/impact-sounds/footstep_wood_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_004.ogg"),
+	],
+}
+const DEFAULT_SURFACE: String = "concrete"
+## Eco dos passos em casa (canal "Passos"): sala pequena, pouco eco.
+const INDOOR_ECHO_ROOM: float = 0.35
+const INDOOR_ECHO_WET: float = 0.12
 const JUMP_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/kenney/rpg-audio/cloth1.ogg"),
 	preload("res://assets/kenney/rpg-audio/cloth2.ogg"),
@@ -120,6 +135,8 @@ var _sprinting: bool = false
 ## Multiplicador da sensibilidade (Esc › Controles).
 var _sensitivity_scale: float = 1.0
 var _stride_length: float = WALK_STRIDE
+## Do que é o chão em que se pisa (a marca "footstep" do corpo de colisão).
+var _surface: String = DEFAULT_SURFACE
 
 
 func _ready() -> void:
@@ -212,6 +229,7 @@ func _physics_process(delta: float) -> void:
 
 	var falling_speed := -velocity.y
 	move_and_slide()
+	_update_surface()
 	_update_footsteps(delta, speed, falling_speed)
 	_update_look_target()
 	_update_interact(delta)
@@ -223,6 +241,27 @@ func _process(delta: float) -> void:
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
 			is_on_floor(), _sprinting, _focus_screen == null and not _traveling and not in_intro)
+
+
+## Lê a marca do chão em que o jogador pisa (a colisão de baixo do
+## move_and_slide). Sem marca, é concreto; no ar (ou sem tocar o chão neste quadro), vale a última.
+func _update_surface() -> void:
+	if not is_on_floor():
+		return
+	for i in get_slide_collision_count():
+		var hit := get_slide_collision(i)
+		if hit.get_normal().y > 0.7:
+			var floor_surface := DEFAULT_SURFACE
+			var collider := hit.get_collider() as Node
+			if collider != null and collider.has_meta("footstep"):
+				floor_surface = str(collider.get_meta("footstep"))
+			_surface = floor_surface if FOOTSTEP_SURFACES.has(floor_surface) else DEFAULT_SURFACE
+			return
+
+
+## A superfície em que o jogador pisa agora ("concrete", "wood"...).
+func get_surface() -> String:
+	return _surface
 
 
 ## Passos: um som a cada "passada" (mais longa correndo); e um "tum" ao cair.
@@ -241,7 +280,7 @@ func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void
 		_stride_progress += horizontal_speed * delta
 		if _stride_progress >= stride:
 			_stride_progress = 0.0
-			_play_random(_steps_player, FOOTSTEP_SOUNDS)
+			_play_random(_steps_player, FOOTSTEP_SURFACES[_surface])
 	else:
 		# Parado: o primeiro passo ao voltar a andar sai logo.
 		_stride_progress = stride * 0.7
@@ -249,14 +288,14 @@ func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void
 
 func _make_sound_player(volume_db: float) -> AudioStreamPlayer:
 	var sound := AudioStreamPlayer.new()
-	sound.bus = &"Efeitos"
+	sound.bus = &"Passos"
 	sound.volume_db = volume_db
 	add_child(sound)
 	return sound
 
 
 ## Toca um dos sons da lista, com o tom levemente diferente a cada vez.
-func _play_random(sound: AudioStreamPlayer, streams: Array[AudioStream]) -> void:
+func _play_random(sound: AudioStreamPlayer, streams: Array) -> void:
 	sound.stream = streams.pick_random()
 	sound.pitch_scale = randf_range(0.9, 1.1)
 	sound.play()
@@ -335,6 +374,7 @@ func set_indoors(environment: Environment) -> void:
 	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
 	_hud.set_indoors(_indoors)
 	_muffle_ambience(_indoors)
+	_echo_footsteps(_indoors)
 
 
 func is_indoors() -> bool:
@@ -367,6 +407,25 @@ func _muffle_ambience(on: bool) -> void:
 		quieter = AudioServer.get_bus_effect_count(bus) - 1
 	AudioServer.set_bus_effect_enabled(bus, low_pass, on)
 	AudioServer.set_bus_effect_enabled(bus, quieter, on)
+
+
+## Liga ou desliga o eco no canal "Passos" (criado uma vez só, como o abafado).
+func _echo_footsteps(on: bool) -> void:
+	var bus := AudioServer.get_bus_index(&"Passos")
+	if bus < 0:
+		return
+	var reverb := -1
+	for i in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i) is AudioEffectReverb:
+			reverb = i
+	if reverb < 0:
+		var effect := AudioEffectReverb.new()
+		effect.room_size = INDOOR_ECHO_ROOM
+		effect.wet = INDOOR_ECHO_WET
+		effect.dry = 1.0
+		AudioServer.add_bus_effect(bus, effect)
+		reverb = AudioServer.get_bus_effect_count(bus) - 1
+	AudioServer.set_bus_effect_enabled(bus, reverb, on)
 
 
 func is_traveling() -> bool:

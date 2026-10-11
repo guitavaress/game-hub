@@ -470,6 +470,9 @@ func _add_box(box_name: String, box_size: Vector3, center: Vector3, material: Ma
 		box_shape.size = box_size
 		shape.shape = box_shape
 		body.add_child(shape)
+		# O piso (e tudo o que é sólido na casa) é de madeira: o jogador lê
+		# esta marca para escolher o som dos passos.
+		body.set_meta("footstep", "wood")
 		mesh.add_child(body)
 	return mesh
 

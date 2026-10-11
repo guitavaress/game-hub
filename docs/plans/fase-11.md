@@ -169,7 +169,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: andar entre dois bairros e ouvir o fundo no lugar do silêncio; entrar em casa e ouvir o fundo abafado.
   - Commit: `Fase 11.9: fundo da cidade e som de Outros`
 
-- [ ] **11.10 A casa soa como casa** (Sonnet · medium) — revisão 2.4 e 6.1
+- [x] **11.10 A casa soa como casa** (Sonnet · medium) — revisão 2.4 e 6.1
   - Faz:
     - Baixar o Impact Sounds (tabela de assets) e copiar os cinco `footstep_wood_*.ogg`.
     - `player/player.gd`: `FOOTSTEP_SOUNDS` vira uma tabela por superfície (`"concrete"`, `"wood"`); depois do `move_and_slide`, o jogador lê a marca `footstep` do chão em que pisa (padrão `"concrete"`). Passos e pulo vão para o canal "Passos"; o `set_indoors` liga e desliga o eco (`AudioEffectReverb`, sala pequena, ~12% de eco) nesse canal, como o abafado.
