@@ -8,7 +8,8 @@ extends SceneTree
 ##   - com um jogo abrindo, o painel não abre;
 ##   - com 200 jogos, toda porta fica a no máximo 180 m (pelas ruas) de uma
 ##     estação do seu bairro;
-##   - as estações aparecem no mapa (marcos do world_map).
+##   - as estações aparecem no mapa (marcos do world_map);
+##   - com até 40 amigos na praça, nenhum holograma fica na saída de uma estação.
 
 const MAX_WALK := 180.0
 
@@ -21,10 +22,13 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	load("res://tests/quiet_friends.gd").install(root)  # sem os amigos de verdade
 	print("== biblioteca de verdade ==")
 	var city: Node = await _new_city()
 	await _check_ride(city)
 	_check_reach(city)
+	print("== praça cheia de amigos ==")
+	await _check_plaza_friends(city)
 	city.queue_free()
 	await process_frame
 
@@ -123,17 +127,7 @@ func _check_reach(city: Node) -> void:
 	var landmarks: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"] \
 			.filter(func(landmark: Dictionary) -> bool: return landmark["kind"] == "metro")
 	_check("cada estação é um marco no mapa", landmarks.size() == stops.size())
-	var blocked := 0
-	for stop in stops:
-		var space: PhysicsDirectSpaceState3D = stop.get_world_3d().direct_space_state
-		var query := PhysicsShapeQueryParameters3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(0.6, 1.6, 0.6)
-		query.shape = box
-		query.transform = Transform3D(Basis.IDENTITY, stop.get_exit_transform().origin + Vector3(0, 1.0, 0))
-		query.collision_mask = 1
-		if not space.intersect_shape(query, 1).is_empty():
-			blocked += 1
+	var blocked := _blocked_exits()
 	_check("a saída de toda estação está livre (bloqueadas: %d)" % blocked, blocked == 0)
 	_check_clearance(city, stops)
 
@@ -248,6 +242,33 @@ func _press(action: String) -> void:
 	await process_frame
 
 
+## De 1 a 40 amigos online na praça (fora de qualquer jogo): nenhum fica em
+## cima da saída de uma estação. Com mais de 10, a roda ganha uma segunda
+## volta, que passa pela saída da Central. Devolve os amigos de antes.
+func _check_plaza_friends(city: Node) -> void:
+	var service = root.get_node("FriendsService")
+	var before: Array[SteamFriend] = []
+	before.assign(service.get_online_friends())
+	var worst_total := 0
+	for total in [1, 10, 11, 15, 20, 30, 40]:
+		var friends: Array[SteamFriend] = []
+		for i in total:
+			var friend := SteamFriend.new()
+			friend.steam_id = "765611900000%05d" % i
+			friend.name = "Amigo %d" % i
+			friend.status = SteamFriend.Status.ONLINE
+			friends.append(friend)
+		service._set_friends(friends)
+		await physics_frame
+		await physics_frame
+		if _blocked_exits() > 0 and worst_total == 0:
+			worst_total = total
+	_check("com até 40 amigos na praça, nenhuma saída de estação fica bloqueada (falhou com %d)" % worst_total,
+			worst_total == 0)
+	service._set_friends(before)
+	await physics_frame
+
+
 func _new_city() -> Node:
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
@@ -262,3 +283,19 @@ func _check(label: String, ok: bool) -> void:
 	print("  [%s] %s" % ["ok" if ok else "FALHOU", label])
 	if not ok:
 		failures += 1
+
+
+## Quantas saídas de estação têm alguma coisa sólida em cima.
+func _blocked_exits() -> int:
+	var blocked := 0
+	for stop in get_nodes_in_group("transit_stop"):
+		var space: PhysicsDirectSpaceState3D = stop.get_world_3d().direct_space_state
+		var query := PhysicsShapeQueryParameters3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(0.6, 1.6, 0.6)
+		query.shape = box
+		query.transform = Transform3D(Basis.IDENTITY, stop.get_exit_transform().origin + Vector3(0, 1.0, 0))
+		query.collision_mask = 1
+		if not space.intersect_shape(query, 1).is_empty():
+			blocked += 1
+	return blocked

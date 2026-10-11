@@ -72,6 +72,9 @@ const HOME_DOOR_ARRIVAL: Vector3 = Vector3(6.0, 0.1, 10.0)
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
 const PLAZA_FRIENDS_PER_RING: int = 10
+## Distância mínima entre o meio de um amigo da praça e um trecho reservado
+## (a calçada da estação Central, onde quem sai de casa aparece).
+const PLAZA_FRIEND_CLEARANCE: float = 2.0
 
 ## Céus HDRI (Poly Haven, CC0) misturados pelo relógio (sky_blend.gdshader).
 const SKY_SHADER: Shader = preload("res://worlds/city/sky_blend.gdshader")
@@ -97,6 +100,10 @@ var _shells: Dictionary[String, GDScript] = {
 var _ambience_bed: AudioStreamPlayer
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
+## Trechos da praça onde nenhum amigo pode ficar, cada um [de, até]: a calçada
+## da estação Central (da boca até a saída) e o lugar onde quem sai de casa
+## aparece (um ponto: de = até).
+var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
@@ -401,7 +408,10 @@ func _build_weather(district_cells: Array, category_id: String) -> void:
 ## ruas) da estação mais perto, o bairro ganha outra estação, no quarteirão
 ## dessa porta, até todas ficarem perto.
 func _build_metro(districts: Array[Dictionary]) -> void:
-	_add_metro_stop("Central", Color("F2F4F7"), 0, "Praça", METRO_CENTRAL_SPOT, Vector3(0.0, 0.0, 1.0))
+	var central := _add_metro_stop("Central", Color("F2F4F7"), 0, "Praça", METRO_CENTRAL_SPOT, Vector3(0.0, 0.0, 1.0))
+	# Quem chega pelo metrô sai da boca e aparece na saída: nenhum amigo da
+	# praça fica nesse caminho.
+	_plaza_reserved.append([central.global_position, central.get_exit_transform().origin])
 	var portals_by_district: Dictionary[String, Array] = {}
 	for node in get_tree().get_nodes_in_group("game_portal"):
 		var portal := node as GamePortal
@@ -850,6 +860,8 @@ func _update_plaza_friends() -> void:
 ## norte (de frente para quem nasce na praça) e os seguintes se alternam para
 ## os dois lados; o lado sul, perto de onde o jogador nasce, é o último a encher.
 ## Se não couber, abre um círculo maior.
+## Um ponto reservado no caminho (veja _plaza_reserved): o amigo anda um pouco
+## pela roda até sair de cima dele.
 func _plaza_friend_position(index: int, total: int) -> Vector3:
 	var ring := floori(index / float(PLAZA_FRIENDS_PER_RING))
 	var in_ring := index % PLAZA_FRIENDS_PER_RING
@@ -859,7 +871,24 @@ func _plaza_friend_position(index: int, total: int) -> Vector3:
 	var steps_from_north := ceili(in_ring / 2.0) * (1 if in_ring % 2 == 1 else -1)
 	var angle := steps_from_north * step
 	var radius := PLAZA_FRIEND_RADIUS + ring * PLAZA_FRIEND_RING_STEP
-	return Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	var spot := Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	for attempt in 8:
+		if not _is_plaza_reserved(spot):
+			break
+		angle += PLAZA_FRIEND_CLEARANCE / radius  # ~2 m pela roda
+		spot = Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	return spot
+
+
+func _is_plaza_reserved(spot: Vector3) -> bool:
+	var point := Vector2(spot.x, spot.z)
+	for reserved in _plaza_reserved:
+		var from := Vector2(reserved[0].x, reserved[0].z)
+		var to := Vector2(reserved[1].x, reserved[1].z)
+		var closest := Geometry2D.get_closest_point_to_segment(point, from, to)
+		if point.distance_to(closest) < PLAZA_FRIEND_CLEARANCE:
+			return true
+	return false
 
 
 # --- Jogador e avisos --------------------------------------------------------

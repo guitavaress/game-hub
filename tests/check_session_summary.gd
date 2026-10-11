@@ -22,6 +22,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	load("res://tests/quiet_friends.gd").install(root)  # sem os amigos de verdade
 	city = load("res://worlds/city/city.tscn").instantiate()
 	root.add_child(city)
 	while not city.is_city_ready():
