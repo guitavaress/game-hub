@@ -48,7 +48,7 @@ func _run() -> void:
 	_check("a busca fechou", not search.is_open() and not paused)
 	await create_timer(0.2).timeout
 	_check("viajando: jogador travado", player.is_traveling())
-	_check("a tela está escurecendo", fade.get_amount() > 0.3)
+	_check("a tela está escurecendo", fade.get_amount() > 0.05)
 	_check("durante a viagem a busca não abre", not search.can_open())
 	_check("durante a viagem o menu não abre", not menu.can_open())
 	await create_timer(1.3).timeout

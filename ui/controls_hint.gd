@@ -90,7 +90,8 @@ func close() -> void:
 	AppConfig.set_seen_controls_hint(true)
 	closed.emit()
 	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, FADE_SECONDS)
+	tween.tween_property(self, "modulate:a", 0.0, FADE_SECONDS) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_callback(queue_free)
 
 

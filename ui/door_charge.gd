@@ -87,13 +87,20 @@ func set_progress(progress: float, game_name: String = "", color: Color = Color.
 	if not game_name.is_empty():
 		_title.text = "ENTRANDO EM %s" % game_name.to_upper()
 		_ring.color = color
-	_vignette_material.set_shader_parameter("amount", progress)
+	# A vinheta fecha devagar no começo e rápido no fim; o anel segue linear
+	# (mostra o tempo de verdade).
+	_vignette_material.set_shader_parameter("amount", vignette_amount(progress))
 	_ring.progress = progress
 	_ring.queue_redraw()
 	# Os textos somem no finalzinho, junto com o preto.
 	var text_alpha := 1.0 - smoothstep(0.85, 1.0, progress)
 	_text_plate.modulate.a = text_alpha
 	_ring.modulate.a = text_alpha
+
+
+## Quanto a vinheta fecha para um progresso (curva; 0 e 1 ficam como estão).
+static func vignette_amount(progress: float) -> float:
+	return ease(clampf(progress, 0.0, 1.0), 1.8)
 
 
 func get_progress() -> float:

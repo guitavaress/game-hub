@@ -68,12 +68,12 @@ func _run() -> void:
 
 	print("\n== a tela 'Jogando' se dissolve em 0,8 s ==")
 	print("   cortina %.2f | tela do jogo visível %s modo '%s'" % [F.get_amount(), F.game_screen.visible, F.game_screen._mode])
-	_check("dissolvendo a tela 'Jogando' (sem passar pelo preto)", F.get_amount() > 0.5
+	_check("dissolvendo a tela 'Jogando' (sem passar pelo preto)", F.get_amount() > 0.2
 		and F.game_screen.visible and F.game_screen._mode == "jogando")
 	await create_timer(0.4).timeout
 	var middle: float = F.get_amount()
 	await create_timer(0.6).timeout
-	_check("no meio, transparente pela metade (%.2f)" % middle, middle > 0.2 and middle < 0.8)
+	_check("no meio, já clareando com a curva (%.2f)" % middle, middle < 0.8)
 	_check("no fim, sumiu", F.get_amount() < 0.01 and not F.game_screen.visible)
 
 	print("\n== andar tira o aviso (depois de 1,5 s) ==")

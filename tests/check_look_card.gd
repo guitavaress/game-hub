@@ -62,7 +62,7 @@ func _run() -> void:
 	for i in 4:
 		await physics_frame
 	await process_frame
-	_check("cartão some, volta o ponto", not hud._look_card.visible and not hud.is_crosshair_ring()
+	_check("cartão some, volta o ponto", not hud.is_look_card_shown() and not hud.is_crosshair_ring()
 		and hud._crosshair_dot.visible)
 
 	print("\n== contrato antigo (só get_look_label) ==")

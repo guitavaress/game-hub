@@ -103,7 +103,9 @@ func get_amount() -> float:
 func fade_in(duration: float = 1.0) -> void:
 	_stop_tween()
 	_tween = create_tween()
-	_tween.tween_property(_curtain, "modulate:a", 0.0, duration)
+	# Clareia rápido no começo e assenta no fim (curva de saída).
+	_tween.tween_property(_curtain, "modulate:a", 0.0, duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.finished.connect(func() -> void: game_screen.visible = false)
 
 
@@ -112,7 +114,9 @@ func fade_in(duration: float = 1.0) -> void:
 func fade_out(duration: float = 0.4) -> void:
 	_stop_tween()
 	_tween = create_tween()
-	_tween.tween_property(_curtain, "modulate:a", 1.0, duration)
+	# Escurece devagar no começo e fecha rápido no fim (curva de entrada).
+	_tween.tween_property(_curtain, "modulate:a", 1.0, duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 
 
 func _stop_tween() -> void:

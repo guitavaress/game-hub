@@ -71,7 +71,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Faz: cria a branch `fase-11` a partir da `fase-10`, salva este plano em `docs/plans/fase-11.md`, põe a "Fase 11: Sensação e marcos" no ROADMAP (em andamento) e anota a "Fase 12: Tema e controles" (5.2 e 5.3 sem a sensibilidade e o FOV) em "Próximas fases".
   - Commit: `Fase 11.0: plano`
 
-- [ ] **11.1 Curvas nas transições** (Sonnet · medium) — revisão 2.3
+- [x] **11.1 Curvas nas transições** (Sonnet · medium) — revisão 2.3
   - Faz:
     - `ui/screen_fade.gd`: `fade_out` com `TRANS_CUBIC` + `EASE_IN`, `fade_in` com `TRANS_CUBIC` + `EASE_OUT`.
     - `ui/toast.gd`: entrada `TRANS_CUBIC` + `EASE_OUT`; saída `EASE_IN`, subindo 6 px enquanto some.

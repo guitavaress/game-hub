@@ -133,7 +133,8 @@ func hide_splash(seconds: float = 0.4) -> void:
 	if not visible:
 		return
 	_tween = create_tween()
-	_tween.tween_property(self, "modulate:a", 0.0, seconds)
+	_tween.tween_property(self, "modulate:a", 0.0, seconds) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	_tween.finished.connect(func() -> void: visible = false)
 
 

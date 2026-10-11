@@ -15,6 +15,8 @@ extends CanvasLayer
 ## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
 ## e o resto vira a frase ("Balatro não abriu\nAbra a Steam e entre de novo.").
 
+const LOOK_CARD_BOTTOM: float = -48.0  # distância do cartão ao pé da tela
+const LOOK_CARD_SLIDE: float = 8.0  # quanto ele sobe ao aparecer (px)
 const LABEL_FONT_SIZE: int = 14
 const TITLE_FONT_SIZE: int = 26
 const DETAIL_FONT_SIZE: int = 17
@@ -40,6 +42,9 @@ const LOOK_CLICK_SOUND: AudioStream = preload("res://assets/kenney/interface-sou
 var _crosshair_dot: Control
 var _crosshair_ring: Ring
 var _look_card: PanelContainer
+## O cartão deve estar na tela (a animação de fade pode estar a meio caminho).
+var _look_shown: bool = false
+var _look_tween: Tween
 var _look_label: Label
 var _look_title: Label
 var _look_detail: Label
@@ -109,7 +114,7 @@ func set_look_info(info: Dictionary) -> void:
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
 	# Dica de interação ("Segure E para jogar"), só nos alvos que respondem ao E.
 	_set_line(_look_action, str(info.get("action", "")))
-	_look_card.visible = not title.is_empty()
+	_show_look_card(not title.is_empty())
 
 	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.
 	var has_accent := info.has("accent") and not title.is_empty()
@@ -141,6 +146,34 @@ func is_crosshair_ring() -> bool:
 	return _crosshair_ring.visible
 
 
+## O cartão do que se olha aparece com fade (0,12 s) subindo 8 px e some com
+## fade (0,08 s). Pedir o mesmo estado de novo (trocar de alvo) não repete.
+func _show_look_card(on: bool) -> void:
+	if on == _look_shown:
+		return
+	_look_shown = on
+	if _look_tween != null and _look_tween.is_valid():
+		_look_tween.kill()
+	_look_tween = create_tween().set_parallel()
+	if on:
+		_look_card.visible = true
+		_look_card.modulate.a = 0.0
+		_look_card.offset_bottom = LOOK_CARD_BOTTOM + LOOK_CARD_SLIDE
+		_look_tween.tween_property(_look_card, "modulate:a", 1.0, 0.12) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_look_tween.tween_property(_look_card, "offset_bottom", LOOK_CARD_BOTTOM, 0.12) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	else:
+		_look_tween.tween_property(_look_card, "modulate:a", 0.0, 0.08) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		_look_tween.finished.connect(func() -> void: _look_card.visible = false)
+
+
+## O cartão está (ou está chegando) na tela.
+func is_look_card_shown() -> bool:
+	return _look_shown
+
+
 func _set_line(label: Label, text: String) -> void:
 	label.text = text
 	label.visible = not text.is_empty()
@@ -148,7 +181,7 @@ func _set_line(label: Label, text: String) -> void:
 
 ## O texto completo do que está sendo olhado (o mesmo que set_look_text recebeu).
 func get_look_text() -> String:
-	if not _look_card.visible:
+	if not _look_shown:
 		return ""
 	return _look_title.text if _look_detail.text.is_empty() else "%s — %s" % [_look_title.text, _look_detail.text]
 
@@ -355,7 +388,7 @@ func _build_look_card() -> void:
 	_look_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_look_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_look_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_look_card.offset_bottom = -48.0
+	_look_card.offset_bottom = LOOK_CARD_BOTTOM
 	_look_card.visible = false
 	add_child(_look_card)
 

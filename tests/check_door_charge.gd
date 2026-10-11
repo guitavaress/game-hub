@@ -42,7 +42,7 @@ func _run() -> void:
 	_check("título 'ENTRANDO EM BALATRO'", door.get_title() == "ENTRANDO EM BALATRO")
 	var neon: Color = root.get_node("GameCategories").get_neon_color("cartas")
 	_check("anel na cor do bairro", door._ring.color.is_equal_approx(neon))
-	_check("vinheta acompanha o progresso", is_equal_approx(door._vignette_material.get_shader_parameter("amount"), door.get_progress()))
+	_check("vinheta acompanha o progresso (com a curva)", is_equal_approx(door._vignette_material.get_shader_parameter("amount"), door.vignette_amount(door.get_progress())))
 	_check("sem preto uniforme", fade.get_amount() < 0.01)
 
 	print("\n== recuando (cancela) ==")

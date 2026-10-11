@@ -8,7 +8,8 @@ extends Control
 ##           ERROR   vermelho, 10 s
 ##           SESSION verde, 5 s (a "volta do jogo")
 ##
-## Entra descendo 12 px e aparecendo em 0,2 s; sai sumindo em 0,2 s.
+## Entra descendo 12 px e aparecendo em 0,2 s (curva cúbica de saída); sai
+## subindo 6 px e sumindo em 0,2 s (curva de entrada).
 ## Quem empilha os avisos é o HUD (um VBoxContainer no topo da tela).
 ## Montado por código: Toast (vaga na pilha) › PanelContainer › VBox › Labels.
 
@@ -33,6 +34,7 @@ const TITLE_COLOR: Color = Color("F2F3F5")
 const TEXT_COLOR: Color = Color("B8BFCC")
 const ANIMATION_TIME: float = 0.2
 const SLIDE_PIXELS: float = 12.0
+const EXIT_RISE_PIXELS: float = 6.0
 
 var kind: Kind = Kind.INFO
 var title: String = ""
@@ -94,8 +96,10 @@ func _ready() -> void:
 	_panel.position.y = -SLIDE_PIXELS
 	modulate.a = 0.0
 	var tween := create_tween().set_parallel()
-	tween.tween_property(_panel, "position:y", 0.0, ANIMATION_TIME).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "modulate:a", 1.0, ANIMATION_TIME)
+	tween.tween_property(_panel, "position:y", 0.0, ANIMATION_TIME) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate:a", 1.0, ANIMATION_TIME) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	get_tree().create_timer(get_meta("seconds"), false).timeout.connect(close)
 
@@ -105,8 +109,11 @@ func close() -> void:
 	if _closing or not is_inside_tree():
 		return
 	_closing = true
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, ANIMATION_TIME)
+	var tween := create_tween().set_parallel()
+	tween.tween_property(self, "modulate:a", 0.0, ANIMATION_TIME) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(_panel, "position:y", -EXIT_RISE_PIXELS, ANIMATION_TIME) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.finished.connect(func() -> void:
 		closed.emit()
 		queue_free())
