@@ -157,6 +157,7 @@ func _ready() -> void:
 	CityDecor.add_puddles(self, half)
 	await _keep_frame_light()
 	CityDecor.add_plaza(self)
+	_build_clock_tower()
 	# Faixa de luz até a porta de um jogo (busca com Tab).
 	var route_guide := CityRouteGuide.new()
 	route_guide.name = "RouteGuide"
@@ -761,6 +762,17 @@ func _build_ground_and_walls(half: float) -> void:
 	skyline.name = "Skyline"
 	skyline.environment = _environment
 	add_child(skyline)
+
+
+# --- Torre do relógio ----------------------------------------------------------
+
+## A torre do meio do chafariz: marca a hora da cidade e vira um ponto nos mapas.
+func _build_clock_tower() -> void:
+	var tower := PlazaClockTower.new()
+	tower.name = "ClockTower"
+	tower.day_night = _day_night
+	add_child(tower)
+	_map.add_landmark("marco", "Torre do relógio", Vector2.ZERO, PlazaClockTower.NEON_COLOR)
 
 
 # --- Amigos na praça ---------------------------------------------------------

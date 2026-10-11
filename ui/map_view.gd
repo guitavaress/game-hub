@@ -148,6 +148,11 @@ func _draw() -> void:
 		if landmark["kind"] == "home":
 			_draw_house(at, landmark["color"])
 			continue
+		if landmark["kind"] == "marco":
+			# Ponto alto e visível de longe (a torre): um ponto claro com aro escuro.
+			draw_circle(at, 6.0, Color.BLACK)
+			draw_circle(at, 4.5, landmark["color"])
+			continue
 		draw_circle(at, 5.0, Color.BLACK)
 		draw_circle(at, 3.5, landmark["color"])
 
