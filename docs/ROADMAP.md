@@ -115,9 +115,9 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop e ouvir os sons (as escolhas foram feitas pelo nome do arquivo).
 
-### Fase 12: Tema e controles (depois da 11)
+### Fase 12: Tema e controles (em andamento)
 
-**Objetivo:** tema único para todas as telas (revisão 5.2) e menu por teclado e controle, com as ações de controle no `project.godot` (5.3, sem a sensibilidade do mouse e o FOV, que entram na Fase 11). Ganha plano próprio quando a Fase 11 acabar.
+**Objetivo:** tema único para todas as telas (revisão 5.2), menu pelo teclado e **controle Xbox para jogar tudo** (5.3), com as dicas na tela trocando entre teclas e botões conforme o aparelho usado. Plano e registro: [plans/fase-12.md](plans/fase-12.md).
 
 ### Fase Linux (feita)
 
