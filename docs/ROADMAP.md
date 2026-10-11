@@ -107,6 +107,14 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop (Alta com MSAA + SMAA). O resto da revisão fica para uma "Fase 11: Sensação e marcos" (game feel da porta e da câmera, marcos altos, tema único, som).
 
+### Fase 11: Sensação e marcos (em andamento)
+
+**Objetivo:** os itens 5, 6 e 8 da "Ordem sugerida" da [revisão de 2026-10-10](design/revisao-2026-10-10.md): game feel da porta e da câmera, marcos altos (torre do relógio e um marco por bairro), som (música, fundo da cidade, passos de madeira) e itens soltos. Plano e registro: [plans/fase-11.md](plans/fase-11.md).
+
+### Fase 12: Tema e controles (depois da 11)
+
+**Objetivo:** tema único para todas as telas (revisão 5.2) e menu por teclado e controle, com as ações de controle no `project.godot` (5.3, sem a sensibilidade do mouse e o FOV, que entram na Fase 11). Ganha plano próprio quando a Fase 11 acabar.
+
 ### Fase Linux (feita)
 
 Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O desktop vai ter dual boot, então **Windows e Linux são alvos de primeira classe**. Plano e registro: [plans/fase-linux.md](plans/fase-linux.md).
