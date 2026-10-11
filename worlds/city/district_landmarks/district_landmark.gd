@@ -28,6 +28,10 @@ var _target: CityBuilding
 var _height: float = 0.0
 var _neon_material: StandardMaterial3D
 var _concrete_material: StandardMaterial3D
+## Faixas de luz que varrem o céu (só à noite): o eixo que gira e o material.
+var _beam_pivot: Node3D
+var _beam_material: StandardMaterial3D
+var _beam_speed: float = 0.0
 
 
 func _ready() -> void:
@@ -77,10 +81,20 @@ func get_top_y() -> float:
 	return global_position.y + _height
 
 
+func _process(delta: float) -> void:
+	if _beam_pivot != null and _beam_pivot.visible:
+		_beam_pivot.rotate_y(_beam_speed * delta)
+
+
 ## 0 = dia, 1 = noite (mesma regra de todo o néon da cidade).
 func set_night(night: float) -> void:
 	if _neon_material != null:
 		_neon_material.emission_energy_multiplier = CityDecor.neon_energy(night)
+	if _beam_pivot != null:
+		# Soma de luz (sem sombra, sem luz de verdade): só existe de noite.
+		_beam_pivot.visible = night > 0.05
+		var glow := _neon_material.albedo_color * (0.55 * night)
+		_beam_material.albedo_color = Color(glow.r, glow.g, glow.b)
 
 
 ## Desenha a forma, de y = 0 (telhado) até y = height. Quem herda sobrescreve.
@@ -112,3 +126,45 @@ func _add_box(center: Vector3, box_size: Vector3, material: Material, parent: No
 	instance.material_override = material
 	(parent if parent != null else self).add_child(instance)
 	return instance
+
+
+## Um cilindro (ou cone: raio de cima menor) com a base em "base" (y), no marco
+## ou dentro de "parent".
+func _add_cylinder(base: Vector3, radius_top: float, radius_bottom: float, cylinder_height: float,
+		material: Material, parent: Node3D = null, sides: int = 16) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius_top
+	mesh.bottom_radius = radius_bottom
+	mesh.height = cylinder_height
+	mesh.radial_segments = sides
+	mesh.rings = 1
+	instance.mesh = mesh
+	instance.position = base + Vector3(0.0, cylinder_height / 2.0, 0.0)
+	instance.material_override = material
+	(parent if parent != null else self).add_child(instance)
+	return instance
+
+
+## Faixas de luz (como holofotes) saindo de "at", espalhadas em roda, que
+## giram a "speed" rad/s. Só aparecem de noite (veja set_night).
+func _add_sweeping_beams(at: Vector3, count: int, length: float, width: float,
+		tilt_degrees: float, speed: float) -> void:
+	_beam_material = StandardMaterial3D.new()
+	_beam_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_beam_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_beam_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_beam_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_beam_material.albedo_color = Color.BLACK
+	_beam_speed = speed
+	_beam_pivot = Node3D.new()
+	_beam_pivot.position = at
+	add_child(_beam_pivot)
+	for i in count:
+		var arm := Node3D.new()
+		arm.rotation.y = i * TAU / count
+		_beam_pivot.add_child(arm)
+		var tilt := Node3D.new()
+		tilt.rotation.x = deg_to_rad(tilt_degrees)
+		arm.add_child(tilt)
+		_add_box(Vector3(0.0, 0.0, -length / 2.0), Vector3(width, width, length), _beam_material, tilt)

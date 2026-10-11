@@ -230,6 +230,8 @@ func _check(label: String, ok: bool) -> void:
 
 ## Fase 11.6: o marco do bairro, se houver, é um script que carrega e é um DistrictLandmark.
 func _check_landmark(profile) -> void:
+	_check("%-14s marco: só a Simulação não tem" % profile.id,
+			profile.landmark_script.is_empty() == (profile.id == "simulacao"))
 	if profile.landmark_script.is_empty():
 		return
 	var script := load(profile.landmark_script) as GDScript

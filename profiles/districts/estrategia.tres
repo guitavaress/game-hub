@@ -21,3 +21,4 @@ ambience = Array[ExtResource("1_5s4ip")]([SubResource("Resource_5s4ip")])
 props_script = "res://worlds/city/district_props/strategy_table.gd"
 floor_weights = PackedFloat32Array(0, 0, 0.2, 0.4, 0.4)
 wall_weights = PackedFloat32Array(0.5, 0.5, 0)
+landmark_script = "res://worlds/city/district_landmarks/chess_king.gd"

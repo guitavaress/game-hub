@@ -21,3 +21,4 @@ ambience = Array[ExtResource("1_gaat1")]([SubResource("Resource_gaat1")])
 props_script = "res://worlds/city/district_props/card_marquee.gd"
 floor_weights = PackedFloat32Array(0.2, 0.3, 0.3, 0.2, 0)
 wall_weights = PackedFloat32Array(0.1, 0.4, 0.5)
+landmark_script = "res://worlds/city/district_landmarks/neon_die.gd"

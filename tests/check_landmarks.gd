@@ -75,7 +75,7 @@ func _run() -> void:
 	_finish()
 
 
-## Com 200 jogos falsos: cada bairro com landmark_script tem um marco, o topo
+## Com 200 jogos falsos: todo bairro, menos a Simulação (a grua), tem um marco, o topo
 ## passa do prédio mais alto possível e o letreiro fica acima dele.
 func _check_district_landmarks() -> void:
 	print("== marcos dos bairros (200 jogos) ==")
@@ -96,9 +96,10 @@ func _check_district_landmarks() -> void:
 	for id: String in city._district_cells:
 		var profile = profiles.district(id)
 		var landmark: Node = city.get_node_or_null("DistrictLandmark_%s" % id)
-		if profile == null or profile.landmark_script.is_empty():
-			_check("%s sem marco: não cria nada" % id, landmark == null)
+		if id == "simulacao":
+			_check("simulacao não tem marco (a grua é o marco)", landmark == null and profile.landmark_script.is_empty())
 			continue
+		_check("%s tem landmark_script no perfil" % id, profile != null and not profile.landmark_script.is_empty())
 		expected += 1
 		if landmark == null:
 			_check("%s tem marco" % id, false)
@@ -109,7 +110,7 @@ func _check_district_landmarks() -> void:
 				top > variant_class.max_total_height())
 		var district_sign: Node3D = city.get_node("DistrictSign_%s" % id)
 		_check("%s: o letreiro fica acima do marco" % id, district_sign.position.y - plate_half > top)
-	_check("todos os bairros com script têm marco (%d)" % expected, expected > 0 and found == expected)
+	_check("todos os bairros, menos a Simulação, têm marco (%d)" % expected, expected == city._district_cells.size() - 1 and found == expected)
 	city.queue_free()
 	await process_frame
 

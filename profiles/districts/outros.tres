@@ -14,3 +14,4 @@ tag_names = PackedStringArray()
 props_script = "res://worlds/city/district_props/address_totem.gd"
 floor_weights = PackedFloat32Array()
 wall_weights = PackedFloat32Array()
+landmark_script = "res://worlds/city/district_landmarks/holo_antenna.gd"
