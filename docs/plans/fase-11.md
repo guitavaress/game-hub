@@ -82,7 +82,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: capturas em `/tmp` do cartão no meio da animação (gravação curta ou duas capturas seguidas).
   - Commit: `Fase 11.1: curvas nas transições`
 
-- [ ] **11.2 Câmera com peso** (Sonnet · medium; Opus se o balanço brigar com o foco da tela 3D) — revisão 6.2
+- [x] **11.2 Câmera com peso** (Sonnet · medium; Opus se o balanço brigar com o foco da tela 3D) — revisão 6.2
   - Faz:
     - `player/camera_feel.gd` (novo, `CameraFeel`): balanço vertical de 2,5 cm e lateral de 1,2 cm na fase da passada (`_stride_progress / stride`, que já existe), afundada de 5 cm ao pousar (mola que volta em ~0,25 s, proporcional à velocidade da queda), FOV +5° correndo (suavizado). Tudo some com suavidade ao parar. Não mexe na câmera durante o foco ou a viagem.
     - `player/player.gd`: cria o `CameraFeel`, manda velocidade, passada e pouso; `AIR_CONTROL = 0.35` multiplica o `blend` no ar.

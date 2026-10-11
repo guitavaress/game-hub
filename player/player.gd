@@ -64,6 +64,9 @@ const WALK_STRIDE: float = 2.2
 const SPRINT_STRIDE: float = 3.0
 ## Só toca o som de aterrissar se estiver caindo mais rápido que isso (m/s).
 const LAND_SOUND_MIN_SPEED: float = 4.0
+## No ar o controle é menor: a velocidade horizontal muda neste tanto (0..1)
+## do que mudaria no chão.
+const AIR_CONTROL: float = 0.35
 
 @onready var _head: Node3D = $Head
 @onready var _camera: Camera3D = $Head/Camera3D
@@ -110,6 +113,11 @@ var _body_player: AudioStreamPlayer
 ## Quanto já andou desde o último passo (metros).
 var _stride_progress: float = 0.0
 var _was_on_floor: bool = true
+## Balanço, afundada e FOV da câmera (veja CameraFeel).
+var _camera_feel: CameraFeel
+## Correndo agora (andando com Shift apertado)?
+var _sprinting: bool = false
+var _stride_length: float = WALK_STRIDE
 
 
 func _ready() -> void:
@@ -130,6 +138,10 @@ func _ready() -> void:
 	add_child(_world_map)
 	_transit_panel = TransitPanel.new()
 	add_child(_transit_panel)
+
+	_camera_feel = CameraFeel.new()
+	add_child(_camera_feel)
+	_camera_feel.setup(_camera, _camera_rest)
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -180,6 +192,9 @@ func _physics_process(delta: float) -> void:
 
 	# Aproxima a velocidade atual da desejada aos poucos (movimento mais suave).
 	var blend := 1.0 - exp(-acceleration * delta)
+	if not is_on_floor():
+		blend *= AIR_CONTROL
+	_sprinting = speed > walk_speed and input_dir != Vector2.ZERO
 	velocity.x = lerpf(velocity.x, target_velocity.x, blend)
 	velocity.z = lerpf(velocity.z, target_velocity.z, blend)
 
@@ -190,15 +205,26 @@ func _physics_process(delta: float) -> void:
 	_update_interact(delta)
 
 
+## A câmera ganha o balanço a cada quadro de tela (e não de física), para não
+## engasgar em monitores de taxa alta. Parada durante o foco e a viagem.
+func _process(delta: float) -> void:
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
+			is_on_floor(), _sprinting, _focus_screen == null and not _traveling and not in_intro)
+
+
 ## Passos: um som a cada "passada" (mais longa correndo); e um "tum" ao cair.
 func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void:
 	var on_floor := is_on_floor()
-	if on_floor and not _was_on_floor and falling_speed > LAND_SOUND_MIN_SPEED:
-		_play_random(_body_player, LAND_SOUNDS)
+	if on_floor and not _was_on_floor:
+		_camera_feel.land(falling_speed)
+		if falling_speed > LAND_SOUND_MIN_SPEED:
+			_play_random(_body_player, LAND_SOUNDS)
 	_was_on_floor = on_floor
 
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var stride := SPRINT_STRIDE if speed > walk_speed else WALK_STRIDE
+	_stride_length = stride
 	if on_floor and horizontal_speed > 1.0:
 		_stride_progress += horizontal_speed * delta
 		if _stride_progress >= stride:

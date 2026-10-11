@@ -50,6 +50,7 @@ var _volume_save_timer: Timer
 var _volumes_changed: bool = false
 var _fullscreen_check: CheckButton
 var _map_check: CheckButton
+var _motion_check: CheckButton
 var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
 var _time_buttons: Dictionary[String, Button] = {}
@@ -241,6 +242,21 @@ func _build_controls_page() -> Control:
 		row.add_child(label(control_info[1], HubFonts.LIGHT, 15, SECONDARY_COLOR))
 		page.add_child(row)
 	page.add_child(spacer(6))
+	page.add_child(_section("CÂMERA"))
+	var motion_row := _row("Balanço da câmera")
+	motion_row.add_child(expander())
+	_motion_check = CheckButton.new()
+	_motion_check.focus_mode = Control.FOCUS_NONE
+	_motion_check.toggled.connect(func(on: bool) -> void:
+		if not _refreshing:
+			AppConfig.set_camera_motion(on))
+	motion_row.add_child(_motion_check)
+	page.add_child(motion_row)
+	var motion_hint := label("Balança ao andar, afunda ao pousar e abre a visão correndo. Desligue se der enjoo.",
+			HubFonts.LIGHT, 14, HINT_COLOR)
+	motion_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	page.add_child(motion_hint)
+	page.add_child(spacer(6))
 	var tip := label("Na porta de um prédio, espere o anel encher para abrir o jogo; recue para cancelar.",
 			HubFonts.LIGHT, 14, HINT_COLOR)
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -374,6 +390,7 @@ func refresh() -> void:
 		_volume_values[bus].text = str(int(_volume_sliders[bus].value))
 	_fullscreen_check.button_pressed = HubWindow.is_fullscreen()
 	_map_check.button_pressed = AppConfig.get_show_map()
+	_motion_check.button_pressed = AppConfig.get_camera_motion()
 	var quality := AppConfig.get_quality()
 	_choose(_quality_buttons, quality)
 	_quality_hint.text = GraphicsQuality.describe(quality)

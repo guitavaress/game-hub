@@ -77,6 +77,15 @@ game_monitor=""
 game_fullscreen=false
 """
 
+## Seção dos controles (Fase 11), acrescentada do mesmo jeito.
+const CONTROLS_SECTION_TEXT: String = """
+[controls]
+
+; true = a câmera balança ao andar, afunda ao pousar e abre o campo de visão
+; correndo. Desligue se isso der enjoo.
+camera_motion=true
+"""
+
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
 ## acrescentada no fim.
 const ADDED_SECTIONS: Dictionary[String, String] = {
@@ -84,6 +93,7 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"audio": AUDIO_SECTION_TEXT,
 	"video": VIDEO_SECTION_TEXT,
 	"window": WINDOW_SECTION_TEXT,
+	"controls": CONTROLS_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
@@ -115,7 +125,7 @@ excluded_app_ids=[431960, 993090]
 ;          acao, cartas, aventura, casual, outros
 ; Exemplo (Stardew Valley no bairro de RPG):  overrides={ 413150: "rpg" }
 overrides={}
-""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT + WINDOW_SECTION_TEXT
+""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT + WINDOW_SECTION_TEXT + CONTROLS_SECTION_TEXT
 
 ## Problema ao ler o arquivo, para o HUD avisar ("" = tudo certo).
 var load_problem: String = ""
@@ -205,6 +215,15 @@ func get_show_map() -> bool:
 
 func set_show_map(on: bool) -> void:
 	_set_option("video", "show_map", on)
+
+
+## Balanço da câmera ligado? (Padrão: sim.)
+func get_camera_motion() -> bool:
+	return bool(_config.get_value("controls", "camera_motion", true))
+
+
+func set_camera_motion(on: bool) -> void:
+	_set_option("controls", "camera_motion", on)
 
 
 ## O cartão de controles da primeira vez já foi visto? (Seção [ui]; ela entra
