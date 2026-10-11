@@ -95,7 +95,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Manual: capturas do menu de pausa (as três abas) e do computador focado, antes e depois, em 1280 × 720 e 2560 × 1440, só em `/tmp`.
   - Commit: `Fase 12.1: o tema do hub`
 
-- [ ] **12.2 Tema nos painéis** (Sonnet · medium)
+- [x] **12.2 Tema nos painéis** (Sonnet · medium) — 3fb2012
   - Faz: busca (`ui/game_search.gd`), metrô (`ui/transit_panel.gd`), mapa (`ui/world_map.gd`), avisos (`ui/toast.gd`) e cartão de controles (`ui/controls_hint.gd`) passam a usar o tema, e as constantes de cor repetidas saem desses arquivos.
   - Teste: o `check_theme` ganha os cinco painéis na conferência "sem estilo solto". `check_search`, `check_metro`, `check_toasts`, `check_first_time` e `check_minimap` passam.
   - Manual: capturas dos cinco, antes e depois, em 720p e 1440p.
@@ -219,6 +219,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Com o texto em 16 px, as frases da aba Controles quebram a linha (antes alargavam o painel) e a tecla desenhada fica no meio da fileira, sem esticar.
   - A tela do computador usa o painel forte sem transparência (`HubScreen`). O "Leve" escolhido continua apagado na tela 3D, como antes (é o brilho do 3D, não o tema).
 - 2026-10-11: **correção fora do plano** (7bd7867). Com uma chave salva, os amigos de verdade entram na praça; com mais de 10 online, a segunda volta da roda punha um holograma na saída da estação Central (o `check_metro` acusou). Os amigos agora desviam da calçada da estação e da chegada da porta "Casa". Os testes que usam amigos falsos ou andam pela praça chamam `tests/quiet_friends.gd`, e as esperas pela rede do `check_phase5` contam tempo.
+- 2026-10-11 (12.2): o tema ganhou `HubRow`/`HubRowSelected` (linha escolhida das listas), `HubToast*` (a barrinha da cor do tipo) e `HubOverline*` (rótulo do aviso). A cor que vem de dado (o neon do bairro na busca) passa por `HubTheme.tint`, que marca o texto; o `check_theme` aceita só essa exceção. O painel dos avisos passou de 78% para 85% de opacidade e o da busca e do metrô de 92% para 94% (as duas cores do tema). O cartão de controles ficou com margens um pouco menores.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
