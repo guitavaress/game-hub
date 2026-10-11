@@ -50,6 +50,8 @@ const GLASS_COLORS: Array[Color] = [Color("0D1217"), Color("0E1822"), Color("171
 const WALL_BRIGHTNESS_VARIATION: float = 0.06
 ## Painel de luz da porta: cor do bairro embaixo, quase branco no alto.
 const DOOR_GLOW_ENERGY: float = 1.8
+## Quantas vezes o vão acende a mais no fim da carga.
+const DOOR_CHARGE_BOOST: float = 3.0
 const DOOR_GLOW_TOP_WHITE: float = 0.45
 const DOOR_GLOW_BOTTOM_DIM: float = 0.5
 
@@ -72,6 +74,10 @@ var _poster_label: Label3D
 var _walls_material: ShaderMaterial
 ## Filete de néon da moldura da porta (acompanha o dia e a noite).
 var _door_neon_material: StandardMaterial3D
+var _door_glow_material: StandardMaterial3D
+## 0..1: a carga da porta (o jogador esperando no vão) e a noite suavizada.
+var _charge_ratio: float = 0.0
+var _smooth_night: float = 0.0
 var _logo: Sprite3D
 ## true quando a fachada mostra o hero (e não a capa).
 var _hero_mode: bool = false
@@ -133,7 +139,8 @@ func _build_door_decoration() -> void:
 	quad.size = Vector2(DOOR_WIDTH, DOOR_HEIGHT)
 	door_glow.mesh = quad
 	door_glow.position = Vector3(0.0, DOOR_HEIGHT / 2.0, _front_z() - DOOR_DEPTH + 0.01)
-	door_glow.material_override = _make_door_glow_material()
+	_door_glow_material = _make_door_glow_material()
+	door_glow.material_override = _door_glow_material
 	add_child(door_glow)
 
 	# Moldura de metal escuro, com um filete de néon por dentro.
@@ -305,11 +312,27 @@ func set_night(night: float) -> void:
 			walls.set_shader_parameter("windows_on", clampf(night / all_on, 0.0, 1.0))
 	variant.set_night(night)
 	# Néon: mesma regra das fachadas e dos letreiros (0,15 de dia, 3,2 à noite).
-	if _door_neon_material != null:
-		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(smooth_night)
+	_smooth_night = smooth_night
+	_apply_door_energy()
 	if _logo != null:
 		var glow := 1.0 + 0.6 * night
 		_logo.modulate = Color(glow, glow, glow)
+
+
+## Carregando a porta: o brilho do vão e o néon da moldura ganham força.
+func _on_portal_charge(ratio: float) -> void:
+	_charge_ratio = ratio
+	_apply_door_energy()
+
+
+## O brilho do vão e o néon da porta: o normal (dia/noite) vezes até
+## DOOR_CHARGE_BOOST no fim da carga.
+func _apply_door_energy() -> void:
+	var boost := 1.0 + (DOOR_CHARGE_BOOST - 1.0) * _charge_ratio
+	if _door_neon_material != null:
+		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(_smooth_night) * boost
+	if _door_glow_material != null:
+		_door_glow_material.emission_energy_multiplier = DOOR_GLOW_ENERGY * boost
 
 
 ## Pesos de andares (walls = false) ou de paredes (walls = true) do perfil do

@@ -92,7 +92,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: andar e correr pela praça; pular de um banco; desligar a opção e ver a câmera parar de balançar.
   - Commit: `Fase 11.2: câmera com peso`
 
-- [ ] **11.3 A porta pesa** (Sonnet · medium) — revisão 2.2 e parte da 2.4
+- [x] **11.3 A porta pesa** (Sonnet · medium) — revisão 2.2 e parte da 2.4
   - Faz:
     - `player/camera_feel.gd`: com a carga (`ScreenFade.door_charge.get_progress()`), FOV −6° e avanço de 0,12 m, os dois com `ease` (vale mesmo com o balanço desligado: é parado e pequeno).
     - `components/game_portal/game_portal.gd`: sinal `charge_changed(ratio)`, emitido quando a carga muda (e 0 ao entrar no jogo ou ao cancelar de vez).

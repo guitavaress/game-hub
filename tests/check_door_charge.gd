@@ -45,10 +45,27 @@ func _run() -> void:
 	_check("vinheta acompanha o progresso (com a curva)", is_equal_approx(door._vignette_material.get_shader_parameter("amount"), door.vignette_amount(door.get_progress())))
 	_check("sem preto uniforme", fade.get_amount() < 0.01)
 
+	print("\n== a porta pesa (câmera, vão e som) ==")
+	var camera: Camera3D = player.get_node("Head/Camera3D")
+	var base_fov: float = player._camera_feel.get_base_fov()
+	var building = city.get_node("Building_%d" % BALATRO)
+	print("   FOV %.1f (base %.1f) | brilho do vão %.2f" % [camera.fov, base_fov, building._door_glow_material.emission_energy_multiplier])
+	_check("o FOV fecha com a carga", camera.fov < base_fov - 0.5)
+	_check("a câmera avança um pouco", player._camera_feel.get_offset().length() > 0.001)
+	_check("o vão acende (o sinal chegou à casca)", building._charge_ratio > 0.2
+		and building._door_glow_material.emission_energy_multiplier > building.DOOR_GLOW_ENERGY * 1.3)
+	var hum: String = load("res://components/friend_npc/friend_npc.gd").HUM_SOUND.resource_path
+	_check("o som da carga não é o dos hologramas", portal._charge_sound.stream.resource_path != hum
+		and portal.CHARGE_SOUND.resource_path != hum)
+
 	print("\n== recuando (cancela) ==")
 	player.global_position = outside
 	await create_timer(0.5).timeout
 	_check("anel e vinheta somem", not door.visible and door.get_progress() == 0.0 and portal._charge == 0.0)
+	for i in 30:
+		await process_frame
+	_check("o FOV volta à base", absf(camera.fov - base_fov) < 0.05)
+	_check("o vão volta ao normal", is_equal_approx(building._door_glow_material.emission_energy_multiplier, building.DOOR_GLOW_ENERGY))
 	_check("não abriu nada", opened.is_empty())
 
 	print("\n== esperando até o fim ==")

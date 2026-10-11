@@ -22,6 +22,10 @@ const FOV_FOLLOW: float = 8.0
 const LAND_DIP_MAX: float = 0.05
 const LAND_DIP_PER_SPEED: float = 0.01
 const LAND_SPRING: float = 16.0
+## A porta carregando: o FOV fecha e a câmera avança (com curva). Vale mesmo
+## com o balanço desligado: é parado e pequeno.
+const CHARGE_FOV: float = 6.0
+const CHARGE_FORWARD: float = 0.12
 ## Quedas mais lentas que isso (m/s) não afundam a câmera.
 const LAND_MIN_SPEED: float = 1.5
 ## Velocidade (m/s) em que o balanço chega ao máximo; abaixo, ele é proporcional.
@@ -115,10 +119,14 @@ func update(delta: float, horizontal_speed: float, stride_fraction: float,
 		_land_velocity = 0.0
 
 	_sprint_fov = lerpf(_sprint_fov, fov_bonus, 1.0 - exp(-FOV_FOLLOW * delta))
+
+	# Porta carregando: o ScreenFade guarda o estado "uma porta carregando".
+	var charge := ease(ScreenFade.door_charge.get_progress(), 1.8)
+	target_offset += _rest.basis * Vector3(0.0, 0.0, -CHARGE_FORWARD * charge)
 	if _offset != Vector3.ZERO or target_offset != Vector3.ZERO:
 		_camera.transform = Transform3D(_rest.basis, _rest.origin + target_offset)
 	_offset = target_offset
-	_camera.fov = _base_fov + _sprint_fov
+	_camera.fov = _base_fov + _sprint_fov - CHARGE_FOV * charge
 
 
 ## Fora de ação (foco, viagem): zera tudo sem tocar na câmera. O Player já

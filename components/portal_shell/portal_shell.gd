@@ -50,6 +50,12 @@ func portal_look_size() -> Vector3:
 	return Vector3(size.x, size.y, 1.0)
 
 
+## A porta está carregando (ratio 0..1; 0 = parada). Cada casca decide como
+## reage (o prédio acende o vão). Por padrão não faz nada.
+func _on_portal_charge(_ratio: float) -> void:
+	pass
+
+
 ## Cria o GamePortal na porta (nome do nó: "GamePortal") e pendura nele o som
 ## ambiente do bairro.
 func build_portal() -> GamePortal:
@@ -60,6 +66,7 @@ func build_portal() -> GamePortal:
 	portal.look_size = portal_look_size()
 	portal.position = portal_position()
 	add_child(portal)
+	portal.charge_changed.connect(_on_portal_charge)
 
 	for emitter in CategoryAmbience.create(category_id):
 		emitter.position = AMBIENCE_OFFSET

@@ -16,6 +16,10 @@ extends Node3D
 ##   FriendSpot  : onde NPCs de amigos vão aparecer (fase 5).
 ##   ReturnPoint : onde o jogador reaparece quando o jogo fecha.
 
+## A carga da porta mudou (0..1; 0 = parada). Quem desenha a casca (o prédio)
+## escuta para acender o vão; o portal não sabe quem é.
+signal charge_changed(ratio: float)
+
 ## App ID da Steam do jogo deste portal (0 = nenhum).
 @export var app_id: int = 0
 ## Nome para mostrar. Se ficar vazio, usamos o nome que a Steam conhece.
@@ -35,8 +39,8 @@ const RETURN_FADE_TIME: float = 0.8
 const FRIEND_SPACING: float = 1.5
 const FRIENDS_PER_ROW: int = 6
 
-## Sons (Kenney, CC0): zumbido enquanto a tela escurece e "whoosh" ao entrar.
-const CHARGE_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/forceField_000.ogg")
+## Sons (Kenney, CC0): rumor grave (diferente do zumbido dos hologramas) enquanto a tela escurece e "whoosh" ao entrar.
+const CHARGE_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/spaceEngineLow_000.ogg")
 const ENTER_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/doorOpen_000.ogg")
 ## Tom e volume do zumbido: do começo ao fim da espera na porta.
 const CHARGE_PITCH: Vector2 = Vector2(0.7, 1.7)
@@ -59,6 +63,8 @@ var _charge: float = 0.0
 ## true entre chamar GameLauncher.launch() e receber session_ended.
 var _waiting_for_game: bool = false
 
+## Último valor mandado em charge_changed.
+var _last_ratio: float = 0.0
 var _charge_sound: AudioStreamPlayer3D
 var _enter_sound: AudioStreamPlayer
 
@@ -91,8 +97,16 @@ func _process(delta: float) -> void:
 	ScreenFade.set_door_charge(ratio, get_game_name(),
 			GameCategories.get_neon_color(GameCategories.get_category_id(app_id)))
 	_update_charge_sound(ratio)
+	_emit_charge(ratio)
 	if _charge >= enter_time:
 		_start_game()
+
+
+func _emit_charge(ratio: float) -> void:
+	ratio = clampf(ratio, 0.0, 1.0)
+	if not is_equal_approx(ratio, _last_ratio):
+		_last_ratio = ratio
+		charge_changed.emit(ratio)
 
 
 ## O zumbido sobe de tom e de volume enquanto a tela escurece.
@@ -170,6 +184,7 @@ func _start_game() -> void:
 	ScreenFade.set_door_charge(0.0)  # a vinheta já está toda preta: troca pela cortina
 	ScreenFade.set_amount(1.0)
 	_charge_sound.stop()
+	_emit_charge(0.0)
 	_enter_sound.play()
 	GameLauncher.launch(app_id, self)
 
