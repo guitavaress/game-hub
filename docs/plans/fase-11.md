@@ -134,7 +134,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: capturas `bairro_noite_alto` e `bairro_dia_alto`.
   - Commit: `Fase 11.6: marcos por bairro`
 
-- [ ] **11.7 Os outros seis marcos** (Sonnet · medium)
+- [x] **11.7 Os outros seis marcos** (Sonnet · medium) — `08168da`
   - Faz, um script por bairro em `worlds/city/district_landmarks/`, todos de formas simples + néon (ponto de partida, a ajustar pelas capturas):
 
     | Bairro | Marco |
@@ -219,6 +219,8 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
 
 ## Decisões tomadas durante a fase
 - 2026-10-10: fase dividida em 11 (sensação e marcos) e 12 (tema e controles); música = barramento + jingles; marco da praça = torre do relógio; aprovados os pacotes Impact Sounds e Sci-Fi Sounds da Kenney (dono).
+
+- 2026-10-11 (11.7): medida no notebook, 200 jogos, Leve, 22 h, duas rodadas intercaladas com e sem os `landmark_script`: FPS médio 57,0/58,0 com marcos × 57,9/57,5 sem; desenhos 2468/2509 × 2474/2460; em casa 60 FPS e 149 desenhos nos dois. Os marcos ficam dentro do ruído (a torre da praça, 11.5, está nos dois lados).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, depois **Alta**:
