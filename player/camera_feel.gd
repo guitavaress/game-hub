@@ -52,12 +52,13 @@ var _sprint_fov: float = 0.0
 func setup(camera: Camera3D, rest: Transform3D) -> void:
 	_camera = camera
 	_rest = rest
-	_base_fov = camera.fov
+	_base_fov = AppConfig.get_fov()
+	camera.fov = _base_fov
 	_motion_on = AppConfig.get_camera_motion()
 	AppConfig.settings_changed.connect(_on_settings_changed)
 
 
-## O FOV "de descanso" (parado). A 11.4 liga isto à opção do config.
+## O FOV "de descanso" (parado); vem da opção do config.
 func set_base_fov(fov: float) -> void:
 	_base_fov = fov
 
@@ -140,6 +141,8 @@ func _reset_state() -> void:
 
 
 func _on_settings_changed(section: String, key: String) -> void:
+	if section == "controls" and key == "fov":
+		_base_fov = AppConfig.get_fov()
 	if section == "controls" and key == "camera_motion":
 		_motion_on = AppConfig.get_camera_motion()
 		if not _motion_on and _camera != null:

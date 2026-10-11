@@ -25,7 +25,7 @@ signal look_info_changed(info: Dictionary)
 @export var jump_velocity: float = 4.8
 ## Quão rápido o jogador chega na velocidade desejada (maior = mais "seco").
 @export var acceleration: float = 12.0
-## Radianos girados por pixel de movimento do mouse.
+## Radianos girados por pixel de movimento do mouse (vezes a opção do config).
 @export var mouse_sensitivity: float = 0.0025
 ## Alcance do raio de "olhar", em metros.
 @export var look_distance: float = 30.0
@@ -117,6 +117,8 @@ var _was_on_floor: bool = true
 var _camera_feel: CameraFeel
 ## Correndo agora (andando com Shift apertado)?
 var _sprinting: bool = false
+## Multiplicador da sensibilidade (Esc › Controles).
+var _sensitivity_scale: float = 1.0
 var _stride_length: float = WALK_STRIDE
 
 
@@ -142,6 +144,10 @@ func _ready() -> void:
 	_camera_feel = CameraFeel.new()
 	add_child(_camera_feel)
 	_camera_feel.setup(_camera, _camera_rest)
+	_sensitivity_scale = AppConfig.get_mouse_sensitivity()
+	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
+		if section == "controls" and key == "mouse_sensitivity":
+			_sensitivity_scale = AppConfig.get_mouse_sensitivity())
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -156,21 +162,27 @@ func _unhandled_input(event: InputEvent) -> void:
 	if in_intro or _focus_screen != null:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		var motion := event as InputEventMouseMotion
 		# screen_relative: o movimento em pixels da TELA. O "relative" vem na
 		# escala da UI (que cresce com a janela), e o mouse ficaria mais lento
 		# em telas grandes.
-		# Girar o corpo inteiro para os lados (eixo Y)...
-		rotate_y(-motion.screen_relative.x * mouse_sensitivity)
-		# ...e só a "cabeça" para cima/baixo (eixo X).
-		_head.rotate_x(-motion.screen_relative.y * mouse_sensitivity)
-		var limit := deg_to_rad(MAX_PITCH_DEGREES)
-		_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+		look_by((event as InputEventMouseMotion).screen_relative)
 	elif event is InputEventMouseButton and event.is_pressed() \
 			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		# O Esc agora abre o menu de pausa (que solta o mouse); um clique na
 		# janela prende o mouse de novo.
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Gira a visão por um movimento do mouse em pixels da tela, vezes a
+## sensibilidade (a da cena vezes a opção de Esc › Controles).
+func look_by(screen_motion: Vector2) -> void:
+	var sensitivity := mouse_sensitivity * _sensitivity_scale
+	# Girar o corpo inteiro para os lados (eixo Y)...
+	rotate_y(-screen_motion.x * sensitivity)
+	# ...e só a "cabeça" para cima/baixo (eixo X).
+	_head.rotate_x(-screen_motion.y * sensitivity)
+	var limit := deg_to_rad(MAX_PITCH_DEGREES)
+	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
 
 
 func _physics_process(delta: float) -> void:

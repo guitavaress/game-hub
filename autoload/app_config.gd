@@ -84,6 +84,10 @@ const CONTROLS_SECTION_TEXT: String = """
 ; true = a câmera balança ao andar, afunda ao pousar e abre o campo de visão
 ; correndo. Desligue se isso der enjoo.
 camera_motion=true
+; Sensibilidade do mouse: multiplicador de 0.5 (lento) a 2.0 (rápido).
+mouse_sensitivity=1.0
+; Campo de visão em graus, de 60 a 100.
+fov=75
 """
 
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
@@ -224,6 +228,38 @@ func get_camera_motion() -> bool:
 
 func set_camera_motion(on: bool) -> void:
 	_set_option("controls", "camera_motion", on)
+
+
+## Limites e padrões da sensibilidade do mouse (multiplicador) e do FOV (graus).
+const MOUSE_SENSITIVITY_RANGE: Vector2 = Vector2(0.5, 2.0)
+const FOV_RANGE: Vector2 = Vector2(60.0, 100.0)
+const DEFAULT_FOV: float = 75.0
+
+
+func get_mouse_sensitivity() -> float:
+	return clampf(float(_config.get_value("controls", "mouse_sensitivity", 1.0)),
+			MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y)
+
+
+## save = false só aplica (enquanto o controle é arrastado); true grava.
+func set_mouse_sensitivity(value: float, save: bool = true) -> void:
+	_set_controls_value("mouse_sensitivity", snappedf(clampf(value, MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y), 0.05), save)
+
+
+func get_fov() -> float:
+	return clampf(float(_config.get_value("controls", "fov", DEFAULT_FOV)), FOV_RANGE.x, FOV_RANGE.y)
+
+
+func set_fov(value: float, save: bool = true) -> void:
+	_set_controls_value("fov", roundf(clampf(value, FOV_RANGE.x, FOV_RANGE.y)), save)
+
+
+func _set_controls_value(key: String, value: Variant, save: bool) -> void:
+	if save:
+		_set_option("controls", key, value)
+	else:
+		_config.set_value("controls", key, value)
+		settings_changed.emit("controls", key)
 
 
 ## O cartão de controles da primeira vez já foi visto? (Seção [ui]; ela entra

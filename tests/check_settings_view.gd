@@ -40,6 +40,23 @@ func _run() -> void:
 	_check("mudou na memória", app.get_show_map() == (not shown))
 	_check("gravou no config.cfg", ("show_map=%s" % str(not shown).to_lower()) in FileAccess.get_file_as_string(CONFIG))
 
+	print("\n== sensibilidade e campo de visão ==")
+	view._sensitivity_slider.value = 150.0
+	_check("sensibilidade vale na hora", is_equal_approx(app.get_mouse_sensitivity(), 1.5))
+	view._fov_slider.value = 90.0
+	_check("FOV vale na hora", is_equal_approx(app.get_fov(), 90.0))
+	_check("o texto mostra o valor", view._fov_value.text == "90°" and view._sensitivity_value.text.begins_with("1.50"))
+	view.save_pending()
+	var text := FileAccess.get_file_as_string(CONFIG)
+	_check("gravou no config.cfg", "mouse_sensitivity=1.5" in text and "fov=90.0" in text)
+	app.set_fov(500.0, false)
+	app.set_mouse_sensitivity(0.0, false)
+	_check("os limites valem", is_equal_approx(app.get_fov(), 100.0) and is_equal_approx(app.get_mouse_sensitivity(), 0.5))
+	app.set_fov(75.0)
+	app.set_mouse_sensitivity(1.0)
+	view.refresh()
+	_check("refresh() traz os valores", is_equal_approx(view._fov_slider.value, 75.0) and is_equal_approx(view._sensitivity_slider.value, 100.0))
+
 	print("\n== teclas ==")
 	var has_interact := false
 	for row in view_script.CONTROL_ROWS:

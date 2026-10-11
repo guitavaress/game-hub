@@ -103,7 +103,7 @@ Ordem: o que é só UI primeiro, depois a câmera, os marcos, o som e, por últi
   - Manual: captura `porta_*_carga60` (antes e depois), de dia e de noite.
   - Commit: `Fase 11.3: a porta pesa`
 
-- [ ] **11.4 Sensibilidade do mouse e FOV** (Sonnet · low) — parte da revisão 5.3
+- [x] **11.4 Sensibilidade do mouse e FOV** (Sonnet · low) — parte da revisão 5.3
   - Faz:
     - `autoload/app_config.gd`: `mouse_sensitivity` (0,5 a 2,0; padrão 1,0) e `fov` (60 a 100; padrão 75) na `[controls]`, com get/set.
     - `player/player.gd`: o giro usa `mouse_sensitivity × multiplicador`; o `CameraFeel` usa o FOV do config como base. O foco na tela 3D já lê o `_camera.fov` atual.

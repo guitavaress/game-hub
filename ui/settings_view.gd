@@ -48,9 +48,14 @@ var _volume_sliders: Dictionary[String, HSlider] = {}
 var _volume_values: Dictionary[String, Label] = {}
 var _volume_save_timer: Timer
 var _volumes_changed: bool = false
+var _controls_changed: bool = false
 var _fullscreen_check: CheckButton
 var _map_check: CheckButton
 var _motion_check: CheckButton
+var _sensitivity_slider: HSlider
+var _fov_slider: HSlider
+var _sensitivity_value: Label
+var _fov_value: Label
 var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
 var _time_buttons: Dictionary[String, Button] = {}
@@ -210,11 +215,14 @@ func _on_volume_changed(value: float, bus: String) -> void:
 ## Grava no config.cfg os volumes mexidos (se algum foi mexido).
 func _save_volumes() -> void:
 	_volume_save_timer.stop()
-	if not _volumes_changed:
-		return
-	_volumes_changed = false
-	for bus in _volume_sliders:
-		AppConfig.set_volume(bus, _volume_sliders[bus].value / 100.0)
+	if _volumes_changed:
+		_volumes_changed = false
+		for bus in _volume_sliders:
+			AppConfig.set_volume(bus, _volume_sliders[bus].value / 100.0)
+	if _controls_changed:
+		_controls_changed = false
+		AppConfig.set_mouse_sensitivity(_sensitivity_slider.value / 100.0)
+		AppConfig.set_fov(_fov_slider.value)
 
 
 func _on_quality_chosen(level: String) -> void:
@@ -256,12 +264,59 @@ func _build_controls_page() -> Control:
 			HubFonts.LIGHT, 14, HINT_COLOR)
 	motion_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(motion_hint)
+	_sensitivity_slider = _controls_slider(page, "Sensibilidade do mouse",
+			AppConfig.MOUSE_SENSITIVITY_RANGE * 100.0, 5.0, _on_sensitivity_changed)
+	_sensitivity_value = _last_slider_value
+	_fov_slider = _controls_slider(page, "Campo de visão",
+			AppConfig.FOV_RANGE, 1.0, _on_fov_changed)
+	_fov_value = _last_slider_value
 	page.add_child(spacer(6))
 	var tip := label("Na porta de um prédio, espere o anel encher para abrir o jogo; recue para cancelar.",
 			HubFonts.LIGHT, 14, HINT_COLOR)
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(tip)
 	return page
+
+
+## Uma linha "nome — deslizador — valor" da aba Controles.
+var _last_slider_value: Label
+
+func _controls_slider(page: Control, title: String, limits: Vector2, step: float, on_change: Callable) -> HSlider:
+	var row := _row(title)
+	var slider := HSlider.new()
+	slider.min_value = limits.x
+	slider.max_value = limits.y
+	slider.step = step
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.focus_mode = Control.FOCUS_NONE
+	_style_slider(slider)
+	slider.value_changed.connect(on_change)
+	row.add_child(slider)
+	_last_slider_value = label("", HubFonts.TEXT, 15, SECONDARY_COLOR)
+	_last_slider_value.custom_minimum_size = Vector2(48.0, 0.0)
+	_last_slider_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(_last_slider_value)
+	page.add_child(row)
+	return slider
+
+
+func _on_sensitivity_changed(value: float) -> void:
+	_sensitivity_value.text = "%.2f×" % (value / 100.0)
+	if _refreshing:
+		return
+	AppConfig.set_mouse_sensitivity(value / 100.0, false)  # vale na hora...
+	_controls_changed = true
+	_volume_save_timer.start()                               # ...e grava daqui a pouco
+
+
+func _on_fov_changed(value: float) -> void:
+	_fov_value.text = "%d°" % int(value)
+	if _refreshing:
+		return
+	AppConfig.set_fov(value, false)
+	_controls_changed = true
+	_volume_save_timer.start()
 
 
 # --- Amigos --------------------------------------------------------------------
@@ -391,6 +446,8 @@ func refresh() -> void:
 	_fullscreen_check.button_pressed = HubWindow.is_fullscreen()
 	_map_check.button_pressed = AppConfig.get_show_map()
 	_motion_check.button_pressed = AppConfig.get_camera_motion()
+	_sensitivity_slider.value = roundf(AppConfig.get_mouse_sensitivity() * 100.0)
+	_fov_slider.value = AppConfig.get_fov()
 	var quality := AppConfig.get_quality()
 	_choose(_quality_buttons, quality)
 	_quality_hint.text = GraphicsQuality.describe(quality)

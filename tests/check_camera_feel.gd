@@ -110,6 +110,24 @@ func _run() -> void:
 	var rest_y: float = player._camera_rest.origin.y
 	_check("o jogador tem o CameraFeel", player._camera_feel != null)
 	_check("AIR_CONTROL de 0,35", is_equal_approx(player.AIR_CONTROL, 0.35))
+	# FOV do config e sensibilidade.
+	app.set_fov(90.0)
+	await process_frame
+	await process_frame
+	_check("o FOV base segue o config", is_equal_approx(player._camera_feel.get_base_fov(), 90.0)
+		and absf(pcam.fov - 90.0) < 0.1)
+	var motion := Vector2(100.0, 0.0)
+	var before: float = player.rotation.y
+	player.look_by(motion)
+	var turn_1: float = player.rotation.y - before
+	app.set_mouse_sensitivity(2.0)
+	before = player.rotation.y
+	player.look_by(motion)
+	var turn_2: float = player.rotation.y - before
+	print("   giro %.4f -> %.4f" % [turn_1, turn_2])
+	_check("o giro dobra com o multiplicador 2,0", absf(turn_1) > 0.0 and absf(turn_2 / turn_1 - 2.0) < 0.01)
+	app.set_mouse_sensitivity(1.0)
+	app.set_fov(75.0)
 	# Foco: a câmera fica onde o _slide_camera a deixou.
 	var moved := Transform3D(Basis.IDENTITY, Vector3(10.0, 5.0, 10.0))
 	player._focus_screen = city  # só para marcar "em foco"
