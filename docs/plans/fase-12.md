@@ -78,7 +78,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
 
 ### Bloco A: tema (principal)
 
-- [x] **12.0 Preparação** (Sonnet · low)
+- [x] **12.0 Preparação** (Sonnet · low) — aea55ff
   - Faz: cria a branch `fase-12` a partir da `fase-11`, faz o commit deste plano e marca a Fase 12 como "em andamento" no ROADMAP.
   - Commit: `Fase 12.0: plano`
 
