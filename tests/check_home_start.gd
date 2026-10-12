@@ -26,6 +26,9 @@ func _run() -> void:
 	backup = FileAccess.get_file_as_string(CONFIG)
 	await process_frame
 	root.get_node("AppConfig").set_seen_controls_hint(true)
+	# A casa no padrão (o giro de quem nasce depende da disposição dos móveis).
+	for setter in ["set_home_theme", "set_home_layout", "set_home_wall_color", "set_home_neon_color"]:
+		root.get_node("AppConfig").call(setter, "")
 	print("\n===== biblioteca de verdade =====")
 	await _start_city()
 	print("\n===== %d jogos falsos =====" % FAKE_COUNT)

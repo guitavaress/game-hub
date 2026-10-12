@@ -362,7 +362,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - reabrir a casa mantém o avatar.
   - Manual: E no espelho, trocar a blusa para verde, Esc, fechar e abrir o hub: continua verde.
   - Commit: `Fase 13.11: avatar no espelho`
-- [ ] **13.12 A cabana** (Opus · high: visual) — *trilha paralela, janela 3*
+- [x] **13.12 A cabana** (Opus · high: visual) — *trilha paralela, janela 3* — dd4eed0, junta em 38c265c
   - Faz:
     - `profiles/homes/cabana.tres` (gerado pela Godot) e o item no catálogo;
     - `cabin_decor.gd` (lareira, poltronas, tapete, lampiões e vaso);
@@ -435,6 +435,8 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 
   Textura 168 MB, memória 168 MB. **Como ler na 13.10:** em casa o notebook já está no teto de 60 FPS (VSync), então o FPS médio quase não vai mostrar o espelho. O que mostra é o **p99** e os **desenhos**: olhando para uma parede vazia são 18; o espelho vai somar uma segunda passada da sala (centenas de desenhos). A regra "cair no máximo ~3 FPS" vale se o FPS sair do teto; senão, olhe o p99 (referência ~19 ms) e use ~25 ms como limite. A `MEDIDA_CASA` subiu de 101 para 194 desenhos desde a Fase 9 (móveis, quadro de estatísticas e rótulos de texto), sem custo visível. Para medir com a cabana, trocar o tema no `config.cfg`.
 - 2026-10-12 (13.9): o `tests/check_perf_tool.gd` roda a ferramenta sem janela (os números não valem, só as três linhas e o formato) e leva uns 30 s.
+- 2026-10-12: a 13.12 (cabana, `dd4eed0`) foi junta antes da 13.10, pelo worktree `crystal-oak`. Ela acrescentou o campo `logs` (toras) na `HomeSurface` e no `HomeMaterials.wood` (desligado por padrão: o retrato do loft não muda), o perfil `cabana.tres` (gerado por `tools/gerar_cabana.gd`), o enfeite `cabin_decor.gd`, a vista `home_window_forest.gdshader` e o estalo da lareira gerado (`assets/generated/fire_crackle.wav`).
+- 2026-10-12: depois da junção, `check_home`, `check_home_view` e `check_home_start` falharam porque o `config.cfg` do dono estava com `layout="espelhada"` (do teste manual da 13.4) e eles supunham a disposição padrão. Os três agora põem tema, disposição e cores no padrão no começo e devolvem o arquivo no fim. Regra para testes novos da casa: **nunca depender das escolhas `[home]` de quem roda**.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

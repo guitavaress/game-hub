@@ -22,6 +22,9 @@ func _run() -> void:
 	var app = root.get_node("AppConfig")
 	var backup := FileAccess.get_file_as_string(CONFIG)
 	var original := [app.get_home_theme(), app.get_home_layout(), app.get_home_wall_color(), app.get_home_neon_color()]
+	# Começa no padrão, seja qual for o config.cfg de quem roda o teste.
+	for setter in [app.set_home_theme, app.set_home_layout, app.set_home_wall_color, app.set_home_neon_color]:
+		setter.call("")
 	load("res://tests/quiet_friends.gd").install(root)
 	# Um segundo tema só para o teste (cópia do loft), antes de a casa montar a aba.
 	var catalog := Profiles.home_catalog()

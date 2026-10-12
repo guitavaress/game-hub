@@ -32,6 +32,10 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	# A casa começa no padrão, seja qual for o config.cfg de quem roda o teste
+	# (tema, disposição e cores); o arquivo volta igual no fim.
+	var start_backup := FileAccess.get_file_as_string(CONFIG)
+	_reset_home_choices()
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
@@ -130,8 +134,20 @@ func _run() -> void:
 	await _check_layouts(home, player)
 	await _check_cabin(home, player)
 
+	var restore := FileAccess.open(CONFIG, FileAccess.WRITE)
+	restore.store_string(start_backup)
+	restore.close()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## Tema, disposição e cores da casa no padrão (só na memória e no arquivo do teste).
+func _reset_home_choices() -> void:
+	var app = root.get_node("AppConfig")
+	app.set_home_theme("")
+	app.set_home_layout("")
+	app.set_home_wall_color("")
+	app.set_home_neon_color("")
 
 
 ## A fachada da porta "Casa" (HomeDoorFacade): lugar, folgas, sólida, néon e mapa.
