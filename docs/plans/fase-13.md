@@ -196,7 +196,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - [x] **13.0 Plano** (Opus · high)
   - Faz: cria a branch `fase-13` a partir da `fase-linux` e grava este plano. O `project.godot` modificado no checkout (o editor reordenando as ações `ui_*`) ficou fora do commit.
   - Commit: `Fase 13.0: plano`
-- [x] **13.1 Retrato da casa e o formato do perfil** (Sonnet · medium) — HASH
+- [x] **13.1 Retrato da casa e o formato do perfil** (Sonnet · medium) — 24fe51e
   - Faz:
     - `tools/retrato_casa.gd` grava `tests/fixtures/casa_atual.json` (rodado uma vez, sobre o código de hoje; duas rodadas devem dar arquivos iguais);
     - cria `HomeSurface`, `HomeProfile`, `HomeLayout` e `HomeCatalog`;
