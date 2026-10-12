@@ -18,6 +18,10 @@ extends SceneTree
 ## Depois da caminhada, um segundo trecho mede DENTRO DE CASA (Fase 9): o
 ## jogador gira no lugar por ~3 s olhando a sala, e sai uma segunda linha
 ## MEDIDA_CASA com o mesmo formato.
+## Um terceiro trecho (Fase 13.9) mede DE FRENTE PARA O ESPELHO da casa: o
+## jogador fica a 1,8 m do lugar do espelho, olhando para ele, e balança a
+## câmera por ~3 s. Sai a linha MEDIDA_ESPELHO. Antes da 13.10 (o espelho)
+## ela mede só a parede vazia, e é a referência para comparar depois.
 ## A qualidade escolhida é só para a medida: a do usuário é devolvida no fim.
 
 const SPEED: float = 9.0
@@ -111,6 +115,34 @@ func _run() -> void:
 			home_draws += int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 			home_samples += 1
 	_report("MEDIDA_CASA", games, quality, hour, build_ms, home_deltas, home_draws, home_samples)
+
+	# Trecho de frente para o espelho: a 1,8 m dele, olhando para ele, balançando a câmera.
+	var layout = home.get_layout()
+	var anchor: Transform3D = home.get_anchor_transform(layout.placements.get("espelho", "sul_direita"))
+	var front: Vector3 = home.global_basis * anchor.basis.z
+	var feet: Vector3 = home.to_global(anchor.origin) + front * 1.8
+	feet.y = home.global_position.y + 0.1
+	var facing := Basis.looking_at(-front)
+	player.teleport_to(Transform3D(facing, feet))
+	for i in WARMUP_FRAMES:
+		await process_frame
+	var mirror_deltas: Array[float] = []
+	var mirror_draws := 0
+	var mirror_samples := 0
+	var elapsed := 0.0
+	last_ms = Time.get_ticks_usec()
+	while elapsed < 3.0:
+		await process_frame
+		var now_mirror := Time.get_ticks_usec()
+		var mirror_step := (now_mirror - last_ms) / 1000000.0
+		last_ms = now_mirror
+		mirror_deltas.append(mirror_step)
+		elapsed += mirror_step
+		player.rotation.y = facing.get_euler().y + deg_to_rad(18.0) * sin(elapsed * TAU / 3.0)
+		if mirror_deltas.size() % 10 == 0:
+			mirror_draws += int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+			mirror_samples += 1
+	_report("MEDIDA_ESPELHO", games, quality, hour, build_ms, mirror_deltas, mirror_draws, mirror_samples)
 	config.set_quality(original_quality)
 	quit()
 

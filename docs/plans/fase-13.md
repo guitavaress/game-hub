@@ -320,7 +320,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_screen_3d` e `check_pause_menu` passam.
   - Manual: E no computador, aba Casa, trocar a cor do néon e a disposição, Esc e ver a sala.
   - Commit: `Fase 13.8: aba Casa no computador`
-- [ ] **13.9 Medida de referência** (Sonnet · low)
+- [x] **13.9 Medida de referência** (Sonnet · low) — HASH
   - Faz: o `tools/medir_desempenho.gd` ganha o trecho **`MEDIDA_ESPELHO`**: o jogador fica a ~1,8 m da âncora do espelho, olhando para ela, balançando a câmera por ~3 s. Roda no notebook (Leve, 7 jogos, 22 h, notebook parado) e anota `MEDIDA_CASA` e `MEDIDA_ESPELHO` em "Decisões tomadas durante a fase". Essa é a medida **antes** do espelho, e este commit é a referência.
   - Arquivos: `tools/medir_desempenho.gd`, `docs/plans/fase-13.md`.
   - Teste: `tests/check_perf_tool.gd`, que roda a ferramenta sem janela, com 7 jogos, e confere que as três linhas `MEDIDA*` saem.
@@ -425,6 +425,16 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12 (13.8): a decisão 6 mudou de forma: em vez de dois botões "Configurações | Casa" no alto da tela (que brigariam com as abas, o LB/RB e a ordem de foco do `SettingsView`), a "Casa" é a **4ª aba do próprio `SettingsView`**, só no computador. O `SettingsView` ganhou `add_page(nome, página)` (vale antes ou depois de entrar na árvore; se a página tiver `refresh()`, ele é chamado junto), e o menu de pausa continua com 3 abas. Assim o teclado e o controle (←/→, LB/RB, ↓/↑) funcionam sem código novo. A página é `worlds/home/home_settings_view.gd`: tema e móveis em botões lado a lado, e amostras de cor (8 + "Do tema") para parede e néon.
 - 2026-10-12 (13.8): as amostras de cor têm a cor da caixa vinda da paleta (dado), então levam `meta("hub_data_color")` e o `check_theme` passou a aceitar estilo de caixa com essa marca (como já aceitava a cor do néon do bairro). O ↓ percorre 4 linhas + o rodapé ("Sair do hub") e volta à aba.
 - 2026-10-12 (13.8): o material de brilho é guardado por `color.to_html()`, então duas cores que diferem menos de 1/255 dividem o mesmo material (o néon do loft, 0,95/0,25/0,8, e a amostra `#f240cc` são o mesmo material). Visualmente igual; o teste compara por hexadecimal.
+- 2026-10-12 (13.9): **medida de referência ANTES do espelho** (notebook, Radeon 610M, Leve, 7 jogos, 22 h, com janela 1280×720; duas rodadas seguidas, com o `nimbalyst` e o Hyprland abertos e a carga da máquina em ~2,5 e caindo):
+
+  | Trecho | FPS médio | p99 | pior | desenhos |
+  |---|---|---|---|---|
+  | `MEDIDA` (caminhada) | 40,8 / 40,5 | 34 / 35 ms | 35 / 40 ms | 962 / 958 |
+  | `MEDIDA_CASA` (gira no nascer) | 60,0 / 60,1 | 20 / 21 ms | 23 / 22 ms | 194 / 194 |
+  | `MEDIDA_ESPELHO` (a 1,8 m do lugar do espelho, olhando para a parede) | 60,0 / 60,0 | 18 / 20 ms | 19 / 21 ms | 18 / 18 |
+
+  Textura 168 MB, memória 168 MB. **Como ler na 13.10:** em casa o notebook já está no teto de 60 FPS (VSync), então o FPS médio quase não vai mostrar o espelho. O que mostra é o **p99** e os **desenhos**: olhando para uma parede vazia são 18; o espelho vai somar uma segunda passada da sala (centenas de desenhos). A regra "cair no máximo ~3 FPS" vale se o FPS sair do teto; senão, olhe o p99 (referência ~19 ms) e use ~25 ms como limite. A `MEDIDA_CASA` subiu de 101 para 194 desenhos desde a Fase 9 (móveis, quadro de estatísticas e rótulos de texto), sem custo visível. Para medir com a cabana, trocar o tema no `config.cfg`.
+- 2026-10-12 (13.9): o `tests/check_perf_tool.gd` roda a ferramenta sem janela (os números não valem, só as três linhas e o formato) e leva uns 30 s.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
