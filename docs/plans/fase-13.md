@@ -213,7 +213,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - um id vazio ou desconhecido devolve o loft.
   - Manual: abrir `profiles/homes/loft.tres` no inspetor e ver os grupos (Superfícies, Luz, Janela, Néon, Decoração).
   - Commit: `Fase 13.1: retrato da casa e perfil do tema`
-- [ ] **13.2 A casa lê o perfil** (Opus · high: refatoração do visual sem mudar nada)
+- [x] **13.2 A casa lê o perfil** (Opus · high: refatoração do visual sem mudar nada) — HASH
   - Faz:
     - `HomeMaterials.from_surface`;
     - o `home.gd` separa a `Shell` (refazível) dos móveis e lê o perfil do loft;
@@ -412,6 +412,9 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12: plano aprovado (dono).
 - 2026-10-12 (13.1): o retrato (`tests/fixtures/casa_atual.json`, 120 linhas) é gerado por `tests/home_snapshot.gd`, que o teste da 13.2 reaproveita. Fica fora dele a estante e o mural (dependem da biblioteca e dos amigos). Nomes de nó repetidos (`@MeshInstance3D@N`) viram "auto", porque o número muda com a ordem de criação. O retrato foi gravado à noite (luz do dia com força 0).
 - 2026-10-12 (13.1): o catálogo já traz as paletas de cor (8 de parede, 8 de néon); as disposições (`layouts`) ficam vazias até a 13.4, e `Profiles.home_layout` devolve null enquanto isso. `tools/gerar_perfis_casa.gd` lê as constantes do `home.gd` e só funciona antes da 13.2.
+- 2026-10-12 (13.2): **a casca não é um nó contêiner.** As peças do tema continuam filhas diretas da `Home` (o `check_home` pega `WindowView` e `Daylight` por nome), e a lista `_shell_nodes` guarda quais são casca, para a 13.3 refazer. Pelo mesmo motivo, o `HomeDecor` não é um nó: é um `RefCounted` que põe as peças na casa (`target`).
+- 2026-10-12 (13.2): o perfil ganhou o grupo **Porta** (`door`, `door_frame`, `door_handle`): a aparência da porta da rua é da casca, e a `TravelDoor` (a que funciona) fica fora dela e não é refeita. Os pendentes foram para o enfeite do loft (`loft_decor.gd`); o néon e a arandela da porta ficaram na casca, lidos do perfil. O `HomeDecor.make_box` é a peça comum da casa, dos enfeites e da mesa do computador (a mesa continua sem marca de passos).
+- 2026-10-12 (13.2): o retrato regravado com a casa nova saiu **idêntico** ao de antes (120 linhas). A varredura de ids lê 96 scripts e pula `profiles/`, `tests/`, `tools/` e `assets/`.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

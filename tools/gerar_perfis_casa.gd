@@ -42,6 +42,9 @@ func _run() -> void:
 	loft.window_shader = "res://worlds/home/home_window.gdshader"
 	loft.window_frame = _surface("metal", consts["STEEL_COLOR"], "", 1.0, 0.5)
 	loft.window_sill = _surface("pbr", Color(0.7, 0.7, 0.7), "Concrete034", 1.5)
+	loft.door = _surface("wood", consts["DOOR_WOOD"], "", 1.0, 0.45)
+	loft.door_frame = _surface("matte", Color(0.1, 0.08, 0.07), "", 1.0, 0.5)
+	loft.door_handle = _surface("metal", Color(0.75, 0.62, 0.35), "", 1.0, 0.3)
 	loft.neon_color = consts["NEON_COLOR"]
 	loft.neon_energy = 4.0
 	loft.neon_light_energy = 0.45

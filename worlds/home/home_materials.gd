@@ -13,6 +13,24 @@ const WOOD_SHADER: Shader = preload("res://worlds/home/home_wood.gdshader")
 static var _cache: Dictionary[String, Material] = {}
 
 
+## O material de uma superfície do perfil do tema (HomeSurface, Fase 13).
+## "color" (se não for transparente) troca a cor da superfície: é a cor de
+## parede escolhida pelo usuário. A escolha aqui é pelo TIPO de material, e
+## nunca pelo tema.
+static func from_surface(surface: HomeSurface, color: Color = Color(0, 0, 0, 0)) -> Material:
+	var tint := color if color.a > 0.0 else surface.color
+	match surface.kind:
+		"wood":
+			return wood(tint, surface.planks, surface.roughness)
+		"pbr":
+			return pbr(surface.folder, surface.meters, tint)
+		"metal":
+			return metal(tint, surface.roughness)
+		"fabric":
+			return fabric(tint)
+	return matte(tint, surface.roughness)
+
+
 ## Madeira: "planks" = tábuas com fresta (o piso); sem fresta para móveis.
 static func wood(color: Color, planks: bool = false, roughness: float = 0.5) -> ShaderMaterial:
 	var key := "wood|%s|%s|%.2f" % [color.to_html(), planks, roughness]

@@ -48,6 +48,12 @@ extends Resource
 @export var window_frame: HomeSurface
 @export var window_sill: HomeSurface
 
+@export_group("Porta")
+## A folha da porta da rua, o batente e a maçaneta.
+@export var door: HomeSurface
+@export var door_frame: HomeSurface
+@export var door_handle: HomeSurface
+
 @export_group("Néon")
 ## Cor padrão da faixa de néon (o usuário pode trocar) e quanto ela brilha.
 @export var neon_color: Color = Color(0.95, 0.25, 0.8)

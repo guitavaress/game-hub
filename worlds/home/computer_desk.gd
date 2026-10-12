@@ -164,25 +164,9 @@ func _on_focus_changed(focused: bool) -> void:
 
 # --- Peças --------------------------------------------------------------------
 
-## Caixa com material e, se "solid", colisão (camada 1, como as paredes).
+## Caixa com material e, se "solid", colisão (a mesma peça da casa).
 func _add_box(box_name: String, box_size: Vector3, center: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
-	var mesh := MeshInstance3D.new()
-	mesh.name = box_name
-	var box := BoxMesh.new()
-	box.size = box_size
-	mesh.mesh = box
-	mesh.material_override = material
-	mesh.position = center
-	add_child(mesh)
-	if solid:
-		var body := StaticBody3D.new()
-		var shape := CollisionShape3D.new()
-		var box_shape := BoxShape3D.new()
-		box_shape.size = box_size
-		shape.shape = box_shape
-		body.add_child(shape)
-		mesh.add_child(body)
-	return mesh
+	return HomeDecor.make_box(self, box_name, box_size, center, material, solid)
 
 
 func _material(color: Color, roughness: float) -> StandardMaterial3D:

@@ -5,9 +5,12 @@ extends Node3D
 ## resto, liga a porta da rua a algum lugar (get_front_door) e põe o jogador
 ## no ponto de nascer (get_spawn_transform).
 ##
-## A casa monta tudo por código: chão, paredes, teto, luzes e a porta da rua.
-## Os móveis (estante, mural, computador) entram em _build_furniture, um por
-## linha.
+## A casa monta tudo por código, em duas partes (Fase 13):
+##   - a CASCA: chão, paredes, teto, janela, néon, a aparência da porta, a luz
+##     e o enfeite do tema. Tudo vem do perfil do tema (HomeProfile, em
+##     profiles/homes/), e a casca pode ser refeita ao trocar de tema;
+##   - os MÓVEIS (estante, mural, computador), que entram em _build_furniture,
+##     um por linha, e não são refeitos.
 ##
 ## "Em casa": uma área cobre o interior. Quando o jogador entra nela, a casa
 ## chama player.set_indoors(ambiente da casa); ao sair, set_indoors(null).
@@ -35,24 +38,11 @@ const SPAWN_TURN_DEGREES: float = 35.0
 ## O janelão na parede norte (largura, altura) e a altura do meio dele.
 const WINDOW_SIZE: Vector2 = Vector2(5.2, 2.4)
 const WINDOW_CENTER_Y: float = 1.65
-const WINDOW_SHADER: Shader = preload("res://worlds/home/home_window.gdshader")
-const RUG_SHADER: Shader = preload("res://worlds/home/home_rug.gdshader")
 
-## Cores do loft (noturno e quente; o néon dá o toque de "game").
-const FLOOR_WOOD: Color = Color(0.4, 0.25, 0.15)
-const FURNITURE_WOOD: Color = Color(0.3, 0.19, 0.11)
-const DOOR_WOOD: Color = Color(0.2, 0.12, 0.07)
-const PLASTER_TINT: Color = Color(0.86, 0.8, 0.72)
-const CEILING_TINT: Color = Color(0.32, 0.32, 0.34)
-const STEEL_COLOR: Color = Color(0.09, 0.09, 0.1)
-const SOFA_COLOR: Color = Color(0.13, 0.25, 0.3)
-const CUSHION_COLOR: Color = Color(0.72, 0.42, 0.2)
-const LAMP_COLOR: Color = Color(1.0, 0.74, 0.48)
-const NEON_COLOR: Color = Color(0.95, 0.25, 0.8)
-const DAYLIGHT_COLOR: Color = Color(0.82, 0.88, 1.0)
-## Força da luz do dia que entra pela janela (de dia; à noite, zero).
-const DAYLIGHT_ENERGY: float = 2.2
-
+## O tema da casa (cores, materiais, luz, enfeite).
+var _profile: HomeProfile
+## As peças da casca (filhos diretos da casa), para refazer ao trocar de tema.
+var _shell_nodes: Array[Node] = []
 var _environment: Environment
 var _front_door: TravelDoor
 var _window_material: ShaderMaterial
@@ -66,12 +56,10 @@ func _ready() -> void:
 	# O mundo avisa a hora pelo grupo city_night (set_night): a janela e a luz
 	# do dia acompanham.
 	add_to_group("city_night")
+	_profile = Profiles.home("")
 	_build_environment()
-	_build_room()
-	_build_window()
-	_build_lights()
 	_build_front_door()
-	_build_decor()
+	_build_shell()
 	_build_furniture()
 	_build_indoor_area()
 	_put_on_interior_layer(self)
@@ -101,15 +89,20 @@ func set_night(night: float) -> void:
 	if _window_material != null:
 		_window_material.set_shader_parameter("night", _night)
 	if _daylight != null:
-		_daylight.light_energy = DAYLIGHT_ENERGY * (1.0 - _night)
+		_daylight.light_energy = _profile.daylight_energy * (1.0 - _night)
 		_daylight.visible = _night < 0.98
 	if _environment != null:
-		_environment.ambient_light_color = Color(0.45, 0.4, 0.36).lerp(Color(0.55, 0.6, 0.68), 1.0 - _night)
-		_environment.ambient_light_energy = lerpf(0.7, 0.3, _night)
+		_environment.ambient_light_color = _profile.ambient_night_color.lerp(_profile.ambient_day_color, 1.0 - _night)
+		_environment.ambient_light_energy = lerpf(_profile.ambient_day_energy, _profile.ambient_night_energy, _night)
 
 
 func get_night() -> float:
 	return _night
+
+
+## O tema de agora.
+func get_profile() -> HomeProfile:
+	return _profile
 
 
 # --- Montagem -------------------------------------------------------------------
@@ -119,9 +112,9 @@ func get_night() -> float:
 func _build_environment() -> void:
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_COLOR
-	_environment.background_color = Color(0.015, 0.015, 0.02)
+	_environment.background_color = _profile.background_color
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	_environment.ambient_light_color = Color(0.45, 0.4, 0.36)
+	_environment.ambient_light_color = _profile.ambient_night_color
 	_environment.ambient_light_energy = 0.35
 	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	_environment.tonemap_mode = Environment.TONE_MAPPER_AGX
@@ -144,42 +137,57 @@ func _apply_quality() -> void:
 	_environment.volumetric_fog_enabled = false
 
 
+## A casca do tema: sala, janela, aparência da porta, néon e o enfeite.
+## Tudo entra direto na casa; a lista _shell_nodes guarda o que é casca.
+func _build_shell() -> void:
+	var before := get_children()
+	_build_room()
+	_build_window()
+	_build_door_look()
+	_add_neon()
+	_build_decor()
+	for child in get_children():
+		if not before.has(child):
+			_shell_nodes.append(child)
+
+
 ## Chão, teto e as quatro paredes (com colisão). As paredes ficam do lado de
 ## fora do volume interno, então ROOM_SIZE é o espaço livre de verdade.
-## Piso de tábuas, tijolo aparente na parede da janela, reboco nas outras,
-## teto de concreto com vigas de aço.
+## No loft: piso de tábuas, tijolo aparente na parede da janela, reboco nas
+## outras, teto de concreto com vigas de aço.
 func _build_room() -> void:
 	var w := ROOM_SIZE.x
 	var h := ROOM_SIZE.y
 	var d := ROOM_SIZE.z
 	var t := WALL_THICKNESS
-	_add_box("Floor", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, -t / 2.0, 0.0), HomeMaterials.wood(FLOOR_WOOD, true, 0.42))
-	_add_box("Ceiling", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, h + t / 2.0, 0.0), HomeMaterials.pbr("Concrete048", 4.0, CEILING_TINT))
-	var plaster := HomeMaterials.pbr("Concrete048", 3.0, PLASTER_TINT)
-	_add_box("WallNorth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, -d / 2.0 - t / 2.0), HomeMaterials.pbr("Bricks097", 1.6, Color(0.85, 0.78, 0.74)))
-	_add_box("WallSouth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, d / 2.0 + t / 2.0), plaster)
-	_add_box("WallWest", Vector3(t, h, d), Vector3(-w / 2.0 - t / 2.0, h / 2.0, 0.0), plaster)
-	_add_box("WallEast", Vector3(t, h, d), Vector3(w / 2.0 + t / 2.0, h / 2.0, 0.0), plaster)
+	_add_box("Floor", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, -t / 2.0, 0.0), HomeMaterials.from_surface(_profile.floor))
+	_add_box("Ceiling", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, h + t / 2.0, 0.0), HomeMaterials.from_surface(_profile.ceiling))
+	var walls := HomeMaterials.from_surface(_profile.walls)
+	_add_box("WallNorth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, -d / 2.0 - t / 2.0), HomeMaterials.from_surface(_profile.feature_wall))
+	_add_box("WallSouth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, d / 2.0 + t / 2.0), walls)
+	_add_box("WallWest", Vector3(t, h, d), Vector3(-w / 2.0 - t / 2.0, h / 2.0, 0.0), walls)
+	_add_box("WallEast", Vector3(t, h, d), Vector3(w / 2.0 + t / 2.0, h / 2.0, 0.0), walls)
 
-	# Rodapé escuro nas três paredes de reboco.
-	var skirting := HomeMaterials.matte(Color(0.12, 0.1, 0.09), 0.6)
+	# Rodapé nas três paredes comuns.
+	var skirting := HomeMaterials.from_surface(_profile.skirting)
 	_add_box("SkirtingSouth", Vector3(w, 0.1, 0.02), Vector3(0.0, 0.05, d / 2.0 - 0.01), skirting, false)
 	_add_box("SkirtingWest", Vector3(0.02, 0.1, d), Vector3(-w / 2.0 + 0.01, 0.05, 0.0), skirting, false)
 	_add_box("SkirtingEast", Vector3(0.02, 0.1, d), Vector3(w / 2.0 - 0.01, 0.05, 0.0), skirting, false)
 
-	# Vigas de aço no teto, de leste a oeste.
-	var steel := HomeMaterials.metal(STEEL_COLOR, 0.55)
-	for z in [-d / 3.0, 0.0, d / 3.0]:
-		_add_box("Beam", Vector3(w, 0.22, 0.16), Vector3(0.0, h - 0.11, z), steel, false)
+	# Vigas no teto, de leste a oeste (se o tema tiver).
+	if _profile.beams != null:
+		var beams := HomeMaterials.from_surface(_profile.beams)
+		for z in [-d / 3.0, 0.0, d / 3.0]:
+			_add_box("Beam", Vector3(w, 0.22, 0.16), Vector3(0.0, h - 0.11, z), beams, false)
 
 
-## O janelão da parede norte: o vidro mostra o horizonte (home_window.gdshader)
-## e a moldura de aço o divide em quadros, como num galpão antigo. De dia, uma
+## O janelão da parede norte: o vidro mostra a vista (o shader do tema; no
+## loft, o horizonte da cidade) e a moldura o divide em quadros. De dia, uma
 ## luz fria entra por ele.
 func _build_window() -> void:
 	var inner_z := -ROOM_SIZE.z / 2.0
 	_window_material = ShaderMaterial.new()
-	_window_material.shader = WINDOW_SHADER
+	_window_material.shader = load(_profile.window_shader) as Shader
 	var glass := MeshInstance3D.new()
 	glass.name = "WindowView"
 	var quad := QuadMesh.new()
@@ -190,7 +198,7 @@ func _build_window() -> void:
 	glass.position = Vector3(0.0, WINDOW_CENTER_Y, inner_z + 0.01)
 	add_child(glass)
 
-	var steel := HomeMaterials.metal(STEEL_COLOR, 0.5)
+	var steel := HomeMaterials.from_surface(_profile.window_frame)
 	var half := WINDOW_SIZE / 2.0
 	var bar := 0.06
 	var depth := 0.06
@@ -201,13 +209,13 @@ func _build_window() -> void:
 	for i in 5:
 		var x := -half.x + i * WINDOW_SIZE.x / 4.0
 		_add_box("WindowPost", Vector3(bar, WINDOW_SIZE.y, depth), Vector3(x, WINDOW_CENTER_Y, z), steel, false)
-	# Peitoril de concreto embaixo.
+	# Peitoril embaixo.
 	_add_box("WindowSill", Vector3(WINDOW_SIZE.x + 0.3, 0.06, 0.22),
-			Vector3(0.0, WINDOW_CENTER_Y - half.y - 0.03, inner_z + 0.11), HomeMaterials.pbr("Concrete034", 1.5, Color(0.7, 0.7, 0.7)))
+			Vector3(0.0, WINDOW_CENTER_Y - half.y - 0.03, inner_z + 0.11), HomeMaterials.from_surface(_profile.window_sill))
 
 	_daylight = SpotLight3D.new()
 	_daylight.name = "Daylight"
-	_daylight.light_color = DAYLIGHT_COLOR
+	_daylight.light_color = _profile.daylight_color
 	_daylight.spot_range = 12.0
 	_daylight.spot_angle = 70.0
 	_daylight.spot_attenuation = 0.8
@@ -217,177 +225,67 @@ func _build_window() -> void:
 	set_night(_night)
 
 
-## Três pendentes quentes nas vigas: fio, cúpula de metal, lâmpada e a luz.
-func _build_lights() -> void:
-	for spot in [Vector2(-3.0, 0.0), Vector2(1.6, -ROOM_SIZE.z / 3.0), Vector2(3.0, 0.0)]:
-		_add_pendant(Vector3(spot.x, 0.0, spot.y))
-
-
-func _add_pendant(at: Vector3) -> void:
-	var bulb_y := ROOM_SIZE.y - 0.95
-	var cord := MeshInstance3D.new()
-	cord.name = "PendantCord"
-	var cord_mesh := CylinderMesh.new()
-	cord_mesh.top_radius = 0.008
-	cord_mesh.bottom_radius = 0.008
-	cord_mesh.height = 0.8
-	cord.mesh = cord_mesh
-	cord.material_override = HomeMaterials.matte(Color(0.05, 0.05, 0.05))
-	cord.position = Vector3(at.x, ROOM_SIZE.y - 0.4, at.z)
-	add_child(cord)
-	var shade := MeshInstance3D.new()
-	shade.name = "PendantShade"
-	var shade_mesh := CylinderMesh.new()
-	shade_mesh.top_radius = 0.06
-	shade_mesh.bottom_radius = 0.26
-	shade_mesh.height = 0.22
-	shade_mesh.cap_bottom = false
-	shade.mesh = shade_mesh
-	shade.material_override = HomeMaterials.metal(Color(0.12, 0.1, 0.08), 0.4)
-	shade.position = Vector3(at.x, bulb_y + 0.06, at.z)
-	add_child(shade)
-	var bulb := MeshInstance3D.new()
-	bulb.name = "PendantBulb"
-	var bulb_mesh := SphereMesh.new()
-	bulb_mesh.radius = 0.06
-	bulb_mesh.height = 0.12
-	bulb.mesh = bulb_mesh
-	bulb.material_override = HomeMaterials.glow(LAMP_COLOR, 6.0)
-	bulb.position = Vector3(at.x, bulb_y, at.z)
-	add_child(bulb)
-	var lamp := OmniLight3D.new()
-	lamp.name = "Lamp"
-	lamp.light_color = LAMP_COLOR
-	lamp.light_energy = 1.5
-	lamp.omni_range = 7.0
-	lamp.omni_attenuation = 1.1
-	lamp.position = Vector3(at.x, bulb_y - 0.1, at.z)
-	add_child(lamp)
-
-
 ## Porta da rua, na parede sul, com a frente para dentro da sala (de onde o
-## jogador vem). Para onde ela leva quem decide é o mundo.
+## jogador vem). Para onde ela leva quem decide é o mundo. Esta é a porta que
+## funciona (não é refeita ao trocar de tema); a aparência é da casca.
 func _build_front_door() -> void:
-	var z := ROOM_SIZE.z / 2.0
-	var wood := HomeMaterials.wood(DOOR_WOOD, false, 0.45)
-	_add_box("DoorPanel", Vector3(1.1, 2.2, 0.06), Vector3(0.0, 1.1, z - 0.03), wood, false)
-	# Batente em volta e a maçaneta.
-	var frame := HomeMaterials.matte(Color(0.1, 0.08, 0.07), 0.5)
-	for x in [-0.6, 0.6]:
-		_add_box("DoorJamb", Vector3(0.1, 2.3, 0.1), Vector3(x, 1.15, z - 0.05), frame, false)
-	_add_box("DoorHead", Vector3(1.3, 0.1, 0.1), Vector3(0.0, 2.3, z - 0.05), frame, false)
-	_add_box("DoorHandle", Vector3(0.12, 0.03, 0.05), Vector3(-0.4, 1.0, z - 0.09), HomeMaterials.metal(Color(0.75, 0.62, 0.35), 0.3), false)
-	# Arandela quente em cima da porta: a saída fica fácil de achar.
-	_add_box("DoorSconce", Vector3(0.36, 0.08, 0.1), Vector3(0.0, 2.55, z - 0.05), HomeMaterials.glow(LAMP_COLOR, 4.0), false)
-	var sconce := OmniLight3D.new()
-	sconce.name = "DoorLight"
-	sconce.light_color = LAMP_COLOR
-	sconce.light_energy = 0.9
-	sconce.omni_range = 3.5
-	sconce.position = Vector3(0.0, 2.4, z - 0.35)
-	add_child(sconce)
 	_front_door = TravelDoor.new()
 	_front_door.name = "FrontDoor"
 	_front_door.door_name = "Porta da rua"
 	_front_door.action_text = "{interact} para sair"  # vista de dentro, ela leva para fora
-	_front_door.position = Vector3(0.0, 0.0, z - 0.1)
+	_front_door.position = Vector3(0.0, 0.0, ROOM_SIZE.z / 2.0 - 0.1)
 	_front_door.rotation.y = PI  # a frente (+Z) da porta aponta para dentro da sala
 	add_child(_front_door)
 
 
-## O canto de estar, virado para a janela: tapete, sofá, mesinha e um abajur
-## de chão. Mais a faixa de néon perto do teto, nas paredes do lado.
+## A aparência da porta da rua: folha, batente, maçaneta e uma arandela
+## quente em cima (a saída fica fácil de achar).
+func _build_door_look() -> void:
+	var z := ROOM_SIZE.z / 2.0
+	_add_box("DoorPanel", Vector3(1.1, 2.2, 0.06), Vector3(0.0, 1.1, z - 0.03), HomeMaterials.from_surface(_profile.door), false)
+	var frame := HomeMaterials.from_surface(_profile.door_frame)
+	for x in [-0.6, 0.6]:
+		_add_box("DoorJamb", Vector3(0.1, 2.3, 0.1), Vector3(x, 1.15, z - 0.05), frame, false)
+	_add_box("DoorHead", Vector3(1.3, 0.1, 0.1), Vector3(0.0, 2.3, z - 0.05), frame, false)
+	_add_box("DoorHandle", Vector3(0.12, 0.03, 0.05), Vector3(-0.4, 1.0, z - 0.09), HomeMaterials.from_surface(_profile.door_handle), false)
+	_add_box("DoorSconce", Vector3(0.36, 0.08, 0.1), Vector3(0.0, 2.55, z - 0.05), HomeMaterials.glow(_profile.lamp_color, 4.0), false)
+	var sconce := OmniLight3D.new()
+	sconce.name = "DoorLight"
+	sconce.light_color = _profile.lamp_color
+	sconce.light_energy = 0.9
+	sconce.omni_range = 3.5
+	sconce.position = Vector3(0.0, 2.4, z - 0.35)
+	add_child(sconce)
+
+
+## O enfeite do tema (o script do perfil): no loft, os pendentes e o canto
+## de estar virado para a janela.
 func _build_decor() -> void:
-	_add_rug(Vector3(0.0, 0.0, -2.9), Vector2(3.2, 2.4))
-	_add_sofa(Vector3(0.0, 0.0, -1.9))
-	_add_coffee_table(Vector3(0.0, 0.0, -3.2))
-	_add_floor_lamp(Vector3(-1.6, 0.0, -1.9))
-	_add_neon()
+	if _profile.decor_script.is_empty():
+		return
+	var script := load(_profile.decor_script) as GDScript
+	if script == null:
+		push_warning("Home: não consegui carregar o enfeite %s." % _profile.decor_script)
+		return
+	var decor: HomeDecor = script.new()
+	decor.target = self
+	decor.profile = _profile
+	decor.build()
 
 
-func _add_rug(center: Vector3, rug_size: Vector2) -> void:
-	var rug := MeshInstance3D.new()
-	rug.name = "Rug"
-	var plane := PlaneMesh.new()
-	plane.size = rug_size
-	rug.mesh = plane
-	var material := ShaderMaterial.new()
-	material.shader = RUG_SHADER
-	rug.material_override = material
-	rug.position = center + Vector3(0.0, 0.006, 0.0)
-	add_child(rug)
-
-
-## Sofá de três lugares com a frente para o norte (a janela): assento, encosto,
-## braços e duas almofadas. Tem colisão (o jogador dá a volta).
-func _add_sofa(center: Vector3) -> void:
-	var cloth := HomeMaterials.fabric(SOFA_COLOR)
-	var width := 2.2
-	var depth := 0.9
-	var x := center.x
-	var z := center.z
-	_add_box("SofaBase", Vector3(width, 0.25, depth), Vector3(x, 0.17, z), cloth)
-	_add_box("SofaSeat", Vector3(width - 0.4, 0.14, depth - 0.2), Vector3(x, 0.36, z - 0.07), cloth, false)
-	_add_box("SofaBack", Vector3(width, 0.55, 0.22), Vector3(x, 0.57, z + depth / 2.0 - 0.11), cloth)
-	for side in [-1.0, 1.0]:
-		_add_box("SofaArm", Vector3(0.2, 0.32, depth), Vector3(x + side * (width / 2.0 - 0.1), 0.45, z), cloth, false)
-		_add_box("SofaFoot", Vector3(0.05, 0.05, 0.05), Vector3(x + side * (width / 2.0 - 0.08), 0.025, z - depth / 2.0 + 0.08), HomeMaterials.metal(STEEL_COLOR), false)
-	var cushion := HomeMaterials.fabric(CUSHION_COLOR)
-	for side in [-1.0, 1.0]:
-		var pillow := _add_box("SofaCushion", Vector3(0.42, 0.38, 0.12), Vector3(x + side * 0.6, 0.62, z + depth / 2.0 - 0.3), cushion, false)
-		pillow.rotation = Vector3(deg_to_rad(-12.0), side * deg_to_rad(8.0), 0.0)
-
-
-func _add_coffee_table(center: Vector3) -> void:
-	var wood := HomeMaterials.wood(FURNITURE_WOOD, false, 0.35)
-	_add_box("CoffeeTable", Vector3(1.1, 0.06, 0.55), center + Vector3(0.0, 0.38, 0.0), wood)
-	var steel := HomeMaterials.metal(STEEL_COLOR)
-	for sx in [-0.5, 0.5]:
-		for sz in [-0.22, 0.22]:
-			_add_box("CoffeeTableLeg", Vector3(0.04, 0.35, 0.04), center + Vector3(sx, 0.175, sz), steel, false)
-	# Um controle de videogame em cima da mesa.
-	_add_box("Gamepad", Vector3(0.16, 0.03, 0.1), center + Vector3(0.2, 0.425, 0.05), HomeMaterials.matte(Color(0.08, 0.08, 0.09), 0.4), false)
-
-
-## Abajur de chão ao lado do sofá: pé de metal, cúpula de tecido e luz quente.
-func _add_floor_lamp(at: Vector3) -> void:
-	var steel := HomeMaterials.metal(STEEL_COLOR)
-	_add_box("FloorLampBase", Vector3(0.3, 0.03, 0.3), at + Vector3(0.0, 0.015, 0.0), steel)
-	_add_box("FloorLampPole", Vector3(0.03, 1.45, 0.03), at + Vector3(0.0, 0.75, 0.0), steel, false)
-	var shade := MeshInstance3D.new()
-	shade.name = "FloorLampShade"
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.16
-	mesh.bottom_radius = 0.22
-	mesh.height = 0.3
-	mesh.cap_top = false
-	mesh.cap_bottom = false
-	shade.mesh = mesh
-	var cloth := HomeMaterials.glow(Color(1.0, 0.86, 0.66), 0.9).duplicate() as StandardMaterial3D
-	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
-	shade.material_override = cloth
-	shade.position = at + Vector3(0.0, 1.55, 0.0)
-	add_child(shade)
-	var light := OmniLight3D.new()
-	light.name = "FloorLampLight"
-	light.light_color = LAMP_COLOR
-	light.light_energy = 0.9
-	light.omni_range = 4.0
-	light.position = at + Vector3(0.0, 1.5, 0.0)
-	add_child(light)
-
-
-## Faixa de néon rosa perto do teto, nas paredes oeste e leste (por cima da
-## estante e do mural), com uma luz fraca da mesma cor.
+## Faixa de néon perto do teto, nas paredes oeste e leste (por cima da
+## estante e do mural), com uma luz fraca da mesma cor. Brilho 0 = sem néon.
 func _add_neon() -> void:
+	if _profile.neon_energy <= 0.0:
+		return
 	var y := ROOM_SIZE.y - 0.32
 	for side in [-1.0, 1.0]:
 		var x: float = side * (ROOM_SIZE.x / 2.0 - 0.04)
-		_add_box("NeonStrip", Vector3(0.03, 0.03, ROOM_SIZE.z - 1.0), Vector3(x, y, 0.0), HomeMaterials.glow(NEON_COLOR, 4.0), false)
+		_add_box("NeonStrip", Vector3(0.03, 0.03, ROOM_SIZE.z - 1.0), Vector3(x, y, 0.0), HomeMaterials.glow(_profile.neon_color, _profile.neon_energy), false)
 		var light := OmniLight3D.new()
 		light.name = "NeonLight"
-		light.light_color = NEON_COLOR
-		light.light_energy = 0.45
+		light.light_color = _profile.neon_color
+		light.light_energy = _profile.neon_light_energy
 		light.omni_range = 4.5
 		light.position = Vector3(x - side * 0.4, y - 0.2, 0.0)
 		add_child(light)
@@ -453,28 +351,10 @@ func _build_indoor_area() -> void:
 
 # --- Peças --------------------------------------------------------------------
 
-## Caixa com material e, se "solid", colisão (camada 1, o chão e as paredes).
+## Caixa com material e, se "solid", colisão. O que é sólido na casa leva a
+## marca de passos do tema (o jogador lê para escolher o som).
 func _add_box(box_name: String, box_size: Vector3, center: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
-	var mesh := MeshInstance3D.new()
-	mesh.name = box_name
-	var box := BoxMesh.new()
-	box.size = box_size
-	mesh.mesh = box
-	mesh.material_override = material
-	mesh.position = center
-	add_child(mesh)
-	if solid:
-		var body := StaticBody3D.new()
-		var shape := CollisionShape3D.new()
-		var box_shape := BoxShape3D.new()
-		box_shape.size = box_size
-		shape.shape = box_shape
-		body.add_child(shape)
-		# O piso (e tudo o que é sólido na casa) é de madeira: o jogador lê
-		# esta marca para escolher o som dos passos.
-		body.set_meta("footstep", "wood")
-		mesh.add_child(body)
-	return mesh
+	return HomeDecor.make_box(self, box_name, box_size, center, material, solid, _profile.footstep)
 
 
 ## Tudo o que a casa desenha vai para a camada do interior (o sol do mundo

@@ -2,10 +2,13 @@ extends SceneTree
 ## Teste do perfil do tema da casa (Fase 13.1): o catálogo (profiles/home_catalog.tres)
 ## e o loft (profiles/homes/loft.tres) contra o "retrato" da casa de antes da 13.2
 ## (tests/fixtures/casa_atual.json, gravado por tools/retrato_casa.gd).
-## A comparação da casa montada com o retrato entra na 13.2.
+## Fase 13.2: a casa montada pelo perfil do loft é igual ao retrato, peça por
+## peça, e nenhum id de tema aparece entre aspas fora de profiles/, tests/ e tools/.
 
 const PORTRAIT: String = "res://tests/fixtures/casa_atual.json"
 const HOMES_FOLDER: String = "res://profiles/homes"
+## Pastas que podem citar os ids dos temas (os dados, os testes e as ferramentas).
+const SCAN_SKIP: Array[String] = ["res://profiles", "res://tests", "res://tools", "res://.godot", "res://assets"]
 
 var failures := 0
 
@@ -73,21 +76,56 @@ func _run() -> void:
 	_check("o shader da janela existe", ResourceLoader.exists(loft.window_shader))
 	_check("marca de passos de madeira", loft.footstep == "wood")
 
+	print("== a casa montada pelo perfil é igual ao retrato (13.2) ==")
+	var home: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
+	root.add_child(home)
+	await process_frame
+	var now: Array[String] = snapshot.capture(home)
+	var missing := lines.filter(func(line: String) -> bool: return not now.has(line))
+	var extra := now.filter(func(line: String) -> bool: return not lines.has(line))
+	for line: String in missing.slice(0, 5):
+		print("    falta: %s" % line)
+	for line: String in extra.slice(0, 5):
+		print("    sobra: %s" % line)
+	_check("mesmas peças, posições, materiais, luzes e ambiente (%d linhas)" % now.size(),
+			missing.is_empty() and extra.is_empty() and now.size() == lines.size())
+	_check("a casa usa o loft", home.get_profile() == loft)
+	home.queue_free()
+
+	print("== nenhum id de tema fora de profiles/ ==")
+	var offenders: Array[String] = []
+	var scripts := _scripts("res://")
+	for path in scripts:
+		var code_lines := FileAccess.get_file_as_string(path).split("\n")
+		for i in code_lines.size():
+			var code := code_lines[i].strip_edges()
+			if code.begins_with("#"):
+				continue
+			for id in ids:
+				if code.contains("\"%s\"" % id):
+					offenders.append("%s:%d" % [path, i + 1])
+	_check("nenhum dos %d scripts cita um id de tema %s" % [scripts.size(), str(offenders)],
+			scripts.size() > 50 and offenders.is_empty())
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
 
 
-## O mesmo que o HomeMaterials fará a partir de uma superfície (a 13.2 troca isto
-## por HomeMaterials.from_surface).
 func _material(surface: HomeSurface) -> Material:
-	match surface.kind:
-		"wood":
-			return HomeMaterials.wood(surface.color, surface.planks, surface.roughness)
-		"pbr":
-			return HomeMaterials.pbr(surface.folder, surface.meters, surface.color)
-		"metal":
-			return HomeMaterials.metal(surface.color, surface.roughness)
-	return HomeMaterials.matte(surface.color, surface.roughness)
+	return HomeMaterials.from_surface(surface)
+
+
+## Todos os .gd do projeto, menos as pastas de SCAN_SKIP.
+func _scripts(folder: String) -> Array[String]:
+	var result: Array[String] = []
+	for sub in DirAccess.get_directories_at(folder):
+		var path := folder.path_join(sub)
+		if not SCAN_SKIP.has(path) and not sub.begins_with("."):
+			result.append_array(_scripts(path))
+	for file in DirAccess.get_files_at(folder):
+		if file.ends_with(".gd"):
+			result.append(folder.path_join(file))
+	return result
 
 
 ## O ambiente do retrato foi gravado à noite: cor e força de noite do perfil.
