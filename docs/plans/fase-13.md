@@ -320,7 +320,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_screen_3d` e `check_pause_menu` passam.
   - Manual: E no computador, aba Casa, trocar a cor do néon e a disposição, Esc e ver a sala.
   - Commit: `Fase 13.8: aba Casa no computador`
-- [x] **13.9 Medida de referência** (Sonnet · low) — HASH
+- [x] **13.9 Medida de referência** (Sonnet · low) — 3bca83c
   - Faz: o `tools/medir_desempenho.gd` ganha o trecho **`MEDIDA_ESPELHO`**: o jogador fica a ~1,8 m da âncora do espelho, olhando para ela, balançando a câmera por ~3 s. Roda no notebook (Leve, 7 jogos, 22 h, notebook parado) e anota `MEDIDA_CASA` e `MEDIDA_ESPELHO` em "Decisões tomadas durante a fase". Essa é a medida **antes** do espelho, e este commit é a referência.
   - Arquivos: `tools/medir_desempenho.gd`, `docs/plans/fase-13.md`.
   - Teste: `tests/check_perf_tool.gd`, que roda a ferramenta sem janela, com 7 jogos, e confere que as três linhas `MEDIDA*` saem.
