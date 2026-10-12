@@ -326,7 +326,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
   - Teste: `tests/check_perf_tool.gd`, que roda a ferramenta sem janela, com 7 jogos, e confere que as três linhas `MEDIDA*` saem.
   - Manual: rodar o comando da ferramenta (no cabeçalho dela) e colar as linhas.
   - Commit: `Fase 13.9: medida de referência em casa`
-- [x] **13.10 O espelho** (Opus · high: projeção refletida e desempenho) — HASH
+- [x] **13.10 O espelho** (Opus · high: projeção refletida e desempenho) — f5ee01d
   - Faz:
     - `HomeMirror` (moldura, vidro com a imagem invertida, `SubViewport`, câmera refletida com `FRUSTUM` e deslocamento, regras de "só de perto", Leve a 30 por segundo);
     - o `AvatarBody` do jogador na camada dos reflexos;
