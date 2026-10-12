@@ -150,7 +150,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Manual: abrir o menu e fazer tudo só com o teclado; repetir no computador da casa.
   - Commit: `Fase 12.4: menu pelo teclado`
 
-- [ ] **12.6 Painéis pelo controle** (Sonnet · medium)
+- [x] **12.6 Painéis pelo controle** (Sonnet · medium) — 772aed4
   - Faz:
     - **busca**: Y abre e fecha; o direcional rola por todos os resultados (janela de 8 que acompanha o escolhido); A acende o caminho (em casa, vai até a porta); X vai até a porta; B fecha. O A do controle não pode ser confundido com o Espaço digitado no campo: só o botão do controle conta;
     - **mapa**: View abre e fecha, B fecha;
@@ -232,6 +232,8 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Neste Godot (4.7, Linux), `ui_accept` e `ui_cancel` **não** vêm com botões de controle. O `project.godot` agora declara as seis ações de interface (`ui_accept`, `ui_cancel`, `ui_up/down/left/right`) com as teclas de sempre mais A, B, o direcional e o analógico esquerdo. Sem isso, o B não fecharia os painéis e o direcional não moveria os menus.
   - Olhar com o analógico direito: `Player._look_with_stick`, a cada quadro, com curva quadrática e `STICK_TURN_SPEED` = 3,2 rad/s (uma volta em ~2 s com a sensibilidade em 1,0). Trava como o mouse (abertura, foco na tela 3D e painel aberto).
   - Achado da 12.4: o `SettingsView._link_focus` rodava antes de o rodapé entrar na árvore e acusava erro de caminho; agora só liga o rodapé que já está na árvore.
+- 2026-10-12 (12.6): a busca passou a ter **todos** os resultados, com uma janela de 8 linhas que rola junto com a escolha e a linha "6 a 13 de 30" embaixo (antes só os 8 mais perto apareciam). O A do controle faz o mesmo que o Enter e o X, o que o Shift+Enter (o joypad não depende de o campo de texto ter o foco). O mapa, o metrô, a pausa e a tela "Abrindo" já funcionavam com o controle pelas ações de 12.4 e 12.5; só a tela 3D precisou encaminhar os botões e o analógico para dentro do `SubViewport`.
+  - O cursor do mouse segue visível com o menu aberto, mesmo usando o controle: esconder pelo aparelho usado fica para a 12.7 (`InputDevice`).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
