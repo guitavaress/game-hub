@@ -225,7 +225,8 @@ func _collect_overrides(node: Node, dirty: Array[String]) -> void:
 				if control.has_theme_font_size_override(item):
 					dirty.append("%s.font_size.%s" % [control.name, item])
 			for item in defaults.get_stylebox_list(type):
-				if control.has_theme_stylebox_override(item):
+				# Amostra de cor (13.8): a cor da caixa vem de dado (a paleta da casa), como o neon do bairro.
+				if control.has_theme_stylebox_override(item) and not control.has_meta("hub_data_color"):
 					dirty.append("%s.stylebox.%s" % [control.name, item])
 			type = ClassDB.get_parent_class(type)
 	for child in node.get_children():

@@ -2,7 +2,7 @@ class_name ComputerDesk
 extends Node3D
 ## A MESA DO COMPUTADOR da casa (Fase 9): uma mesa com um monitor. A tela do
 ## monitor é um Screen3D que mostra as configurações (SettingsView, as mesmas
-## abas do menu de pausa) e o botão "Sair do hub". E no monitor aproxima a
+## abas do menu de pausa, mais a aba "Casa") e o botão "Sair do hub". E no monitor aproxima a
 ## câmera; Esc devolve.
 ##
 ## Desenho provisório: o acabamento final da mesa é da subetapa 9.9.
@@ -28,6 +28,7 @@ const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
 
 var _screen: Screen3D
 var _settings: SettingsView
+var _home_view: HomeSettingsView
 
 
 func _ready() -> void:
@@ -42,6 +43,11 @@ func get_screen() -> Screen3D:
 
 func get_settings() -> SettingsView:
 	return _settings
+
+
+## A aba "Casa" (tema, móveis e cores).
+func get_home_view() -> HomeSettingsView:
+	return _home_view
 
 
 # --- Montagem -------------------------------------------------------------------
@@ -122,6 +128,9 @@ func _build_screen_content() -> Control:
 	left.add_child(HubTheme.label("CONFIGURAÇÕES", &"HubTitle"))
 	_settings = SettingsView.new()
 	_settings.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# A aba "Casa" (Fase 13.8): tema, móveis e cores. Só o computador a tem.
+	_home_view = HomeSettingsView.new()
+	_settings.add_page("Casa", _home_view)
 	left.add_child(_settings)
 
 	var right := VBoxContainer.new()

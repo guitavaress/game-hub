@@ -44,6 +44,12 @@ var _pages: Array[Control] = []
 var _current_page: int = 0
 var _footer_controls: Array[Control] = []
 var _tab_buttons: Array[Button] = []
+var _tabs_row: HBoxContainer
+var _tab_group: ButtonGroup
+var _pages_holder: Control
+## Páginas extras de quem usa o SettingsView (ex.: a aba "Casa" do computador),
+## pedidas antes de o nó entrar na árvore: [nome, página].
+var _pending_pages: Array[Array] = []
 var _volume_sliders: Dictionary[String, HSlider] = {}
 var _volume_values: Dictionary[String, Label] = {}
 var _volume_save_timer: Timer
@@ -79,13 +85,16 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 18)
 	add_child(_build_tabs())
 
-	var pages := Control.new()
-	pages.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(pages)
+	_pages_holder = Control.new()
+	_pages_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(_pages_holder)
 	for page in [_build_sound_page(), _build_controls_page(), _build_friends_page()]:
 		page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		pages.add_child(page)
+		_pages_holder.add_child(page)
 		_pages.append(page)
+	for extra in _pending_pages:
+		_add_page_now(extra[0], extra[1])
+	_pending_pages.clear()
 
 	_volume_save_timer = Timer.new()
 	_volume_save_timer.one_shot = true
@@ -106,20 +115,45 @@ func save_pending() -> void:
 # --- Abas ----------------------------------------------------------------------
 
 func _build_tabs() -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 22)
-	var group := ButtonGroup.new()
-	for i in TAB_NAMES.size():
-		var tab := Button.new()
-		tab.text = TAB_NAMES[i]
-		tab.toggle_mode = true
-		tab.button_group = group
-		tab.theme_type_variation = &"HubTab"  # sublinhado claro na escolhida
-		tab.pressed.connect(_show_page.bind(i))
-		tab.gui_input.connect(_on_tab_input.bind(i))
-		row.add_child(tab)
-		_tab_buttons.append(tab)
-	return row
+	_tabs_row = HBoxContainer.new()
+	_tabs_row.add_theme_constant_override("separation", 22)
+	_tab_group = ButtonGroup.new()
+	for tab_name in TAB_NAMES:
+		_add_tab(tab_name)
+	return _tabs_row
+
+
+func _add_tab(tab_name: String) -> void:
+	var index := _tab_buttons.size()
+	var tab := Button.new()
+	tab.text = tab_name
+	tab.toggle_mode = true
+	tab.button_group = _tab_group
+	tab.theme_type_variation = &"HubTab"  # sublinhado claro na escolhida
+	tab.pressed.connect(_show_page.bind(index))
+	tab.gui_input.connect(_on_tab_input.bind(index))
+	_tabs_row.add_child(tab)
+	_tab_buttons.append(tab)
+
+
+## Acrescenta uma aba depois das três de sempre (o menu de pausa não usa;
+## o computador da casa põe a "Casa"). Se a página tiver refresh(), ele é
+## chamado junto com o do SettingsView. Pode ser chamado antes de o nó entrar
+## na árvore.
+func add_page(tab_name: String, page: Control) -> void:
+	if _pages_holder == null:
+		_pending_pages.append([tab_name, page])
+	else:
+		_add_page_now(tab_name, page)
+
+
+func _add_page_now(tab_name: String, page: Control) -> void:
+	_add_tab(tab_name)
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pages_holder.add_child(page)
+	page.visible = false
+	_pages.append(page)
+	_link_focus()
 
 
 func _show_page(index: int) -> void:
@@ -572,6 +606,9 @@ func refresh() -> void:
 	_choose(_time_buttons, AppConfig.get_time_of_day())
 	_refresh_friends_fields()
 	_update_friends_status()
+	for i in range(TAB_NAMES.size(), _pages.size()):
+		if _pages[i].has_method("refresh"):
+			_pages[i].call("refresh")
 	_refreshing = false
 	_link_focus()
 

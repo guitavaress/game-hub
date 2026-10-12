@@ -304,7 +304,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - com 200 jogos, as barras de bairro não passam da moldura.
   - Manual: F5, virar para a parede sul: as suas horas reais, os mais jogados e as barras coloridas. Captura de noite (Leve), fora do repositório.
   - Commit: `Fase 13.7: estatísticas na parede`
-- [ ] **13.8 A aba "Casa" no computador** (Sonnet · medium)
+- [x] **13.8 A aba "Casa" no computador** (Sonnet · medium) — HASH
   - Faz:
     - `HomeSettingsView` (tema, móveis, paredes e néon);
     - a tela do computador ganha as seções Configurações e Casa;
@@ -422,6 +422,9 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12 (13.4): a porta "Casa" da praça guarda o ponto de nascer de quando a cidade montou (`city.gd`); se a disposição mudar depois, só o giro de quem sai da praça fica o da disposição antiga, até reabrir o hub. Não mexi na cidade por isso.
 - 2026-10-12 (13.7): o quadro (`worlds/home/stats_wall.gd`) entrou na tabela `Home.MOVABLE` como `estatisticas`, então segue a disposição (sul_esquerda no padrão). Mede 4,4 × 2,6 m; mostra 5 jogos e 5 bairros (os maiores) — com 10 bairros, o resto fica fora para caber. Os nomes repetidos de nó viram `@Classe@N`, então as barras são achadas por `meta("stats_bar")`, e não pelo nome. O `woke_up` só chama `refresh()`: quem relê o `localconfig.vdf` é o `SteamLibrary` (por isso o teste liga `refresh` direto depois de `set_playtimes`, e confere a conexão do sinal à parte). O retrato da casa ignora o quadro, como a estante e o mural. Capturas da casa conferidas (fora do repositório).
 - 2026-10-12: a 13.6 (avatar, `dd2492a`) foi junta antes da 13.7, pelo mesmo worktree `crystal-oak`.
+- 2026-10-12 (13.8): a decisão 6 mudou de forma: em vez de dois botões "Configurações | Casa" no alto da tela (que brigariam com as abas, o LB/RB e a ordem de foco do `SettingsView`), a "Casa" é a **4ª aba do próprio `SettingsView`**, só no computador. O `SettingsView` ganhou `add_page(nome, página)` (vale antes ou depois de entrar na árvore; se a página tiver `refresh()`, ele é chamado junto), e o menu de pausa continua com 3 abas. Assim o teclado e o controle (←/→, LB/RB, ↓/↑) funcionam sem código novo. A página é `worlds/home/home_settings_view.gd`: tema e móveis em botões lado a lado, e amostras de cor (8 + "Do tema") para parede e néon.
+- 2026-10-12 (13.8): as amostras de cor têm a cor da caixa vinda da paleta (dado), então levam `meta("hub_data_color")` e o `check_theme` passou a aceitar estilo de caixa com essa marca (como já aceitava a cor do néon do bairro). O ↓ percorre 4 linhas + o rodapé ("Sair do hub") e volta à aba.
+- 2026-10-12 (13.8): o material de brilho é guardado por `color.to_html()`, então duas cores que diferem menos de 1/255 dividem o mesmo material (o néon do loft, 0,95/0,25/0,8, e a amostra `#f240cc` são o mesmo material). Visualmente igual; o teste compara por hexadecimal.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
