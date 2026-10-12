@@ -213,7 +213,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - um id vazio ou desconhecido devolve o loft.
   - Manual: abrir `profiles/homes/loft.tres` no inspetor e ver os grupos (Superfícies, Luz, Janela, Néon, Decoração).
   - Commit: `Fase 13.1: retrato da casa e perfil do tema`
-- [x] **13.2 A casa lê o perfil** (Opus · high: refatoração do visual sem mudar nada) — HASH
+- [x] **13.2 A casa lê o perfil** (Opus · high: refatoração do visual sem mudar nada) — 10097ad
   - Faz:
     - `HomeMaterials.from_surface`;
     - o `home.gd` separa a `Shell` (refazível) dos móveis e lê o perfil do loft;
