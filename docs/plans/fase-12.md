@@ -128,7 +128,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
 
 ### Bloco C: menus e dicas (principal, depois de juntar)
 
-- [ ] **12.4 Menu pelo teclado** (Sonnet · medium; Opus se o foco brigar com a tela 3D)
+- [x] **12.4 Menu pelo teclado** (Sonnet · medium; Opus se o foco brigar com a tela 3D) — b00f132
   - Faz:
     - `ui/settings_view.gd`:
       - tira os `FOCUS_NONE` e liga os vizinhos de foco (abas → controles da página → rodapé);
@@ -223,6 +223,11 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
 - 2026-10-12 (12.3): o tema ganhou `HubCard` (cartão do que se olha), `HubPlate` (plaquinha da carga da porta), `HubHeading`, `HubTitleSmall`, `HubDisplay`/`HubDisplaySub` (título do bairro, com sombra) e `HubFs*` (os textos enormes das telas cheias: 104, 96, 72, 52 e 24 px, constantes nomeadas `SIZE_FULLSCREEN_*`). O `check_theme` aceita esses tamanhos só nessas variações; fora delas, só os 5. A bússola, que desenha por código, usa as constantes do tema (cor do painel, raio e os tamanhos 14 e 16: as letras pequenas passaram de 12 para 14 px).
   - O nome no cartão do que se olha passou de 26 para 28 px, e a linha de amigos e a dica, de 15 para 14 e 16 px.
   - A plaquinha da carga da porta passou de 62% para 85% de opacidade (a cor de painel do tema).
+- 2026-10-12 (12.4): feita na principal, **antes** de juntar a paralela 12.5 (o dono seguiu a ordem 12.3 → 12.4). As ações `tab_prev`/`tab_next` (LB e RB) ainda não existem: o `SettingsView` já escuta, mas só se a ação existir (`InputMap.has_action`); a 12.5 as cria no `project.godot`. `next_page()`/`previous_page()` valem desde já.
+  - A ordem do foco é montada à mão (`SettingsView._link_focus`): aba › cada linha de cima para baixo › rodapé (Continuar e Sair, ou o "Sair do hub" do computador) › volta à aba. A busca por geometria do Godot dava a volta pela tela e pulava os botões lado a lado.
+  - O deslizador não tem borda de foco: com o foco, a parte cheia fica branca.
+  - O primeiro Esc na tela 3D só tira o foco de um campo de texto (`LineEdit`). Antes, tirava o foco de qualquer coisa, e com o teclado começando na aba o primeiro Esc seria "gasto".
+  - Busca, mapa, metrô, menu de pausa e tela 3D fecham também com `ui_cancel` (o B do controle). Só o Esc abre o menu de pausa.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
