@@ -343,7 +343,7 @@ func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
 		await process_frame
 		_check("[%s] a casa usa a disposição" % layout.id, home.get_layout() == layout)
 		var boxes := {}
-		for id in ["estante", "mural"]:
+		for id in ["estante", "mural", "estatisticas"]:
 			var piece: Node3D = home.get_furniture(id)
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			_check("[%s] %s está na âncora %s" % [layout.id, id, layout.placements[id]],
@@ -355,13 +355,18 @@ func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
 			_check("[%s] %s não cobre a porta nem a janela" % [layout.id, id],
 					not box.intersects(door_zone) and not box.intersects(window_zone))
 		var desk_box := _bounds(home.get_node("ComputerDesk"), home)
-		_check("[%s] estante e mural não se tocam, nem a mesa" % layout.id, not boxes["estante"].intersects(boxes["mural"])
-				and not boxes["estante"].intersects(desk_box) and not boxes["mural"].intersects(desk_box))
+		var ids: Array = boxes.keys()
+		var overlap := false
+		for i in ids.size():
+			overlap = overlap or boxes[ids[i]].intersects(desk_box)
+			for j in range(i + 1, ids.size()):
+				overlap = overlap or boxes[ids[i]].intersects(boxes[ids[j]])
+		_check("[%s] os móveis não se tocam, nem a mesa" % layout.id, not overlap)
 		_check("[%s] o computador não saiu de norte_direita" % layout.id,
 				home.get_node("ComputerDesk").position.is_equal_approx(home.get_anchor_transform("norte_direita").origin))
 		# Passagem: do ponto de nascer, ao longo de x e depois de z, até 1,4 m na frente de cada móvel.
 		var spawn := Vector2(home.SPAWN_SPOT.x, home.SPAWN_SPOT.z)
-		for id in ["estante", "mural"]:
+		for id in ["estante", "mural", "estatisticas"]:
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			var front := anchor.origin + anchor.basis.z * 1.4
 			var points: Array[Vector2] = [spawn, Vector2(front.x, spawn.y), Vector2(front.x, front.z)]

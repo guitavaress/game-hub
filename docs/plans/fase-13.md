@@ -273,7 +273,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - com 200 jogos, o cálculo leva menos de ~5 ms.
   - Manual: nada visível (o quadro é a 13.7).
   - Commit: `Fase 13.5: números das estatísticas`
-- [ ] **13.6 Avatar: o dado e o corpo** (Opus · high: zonas do UV e mexe nos hologramas) — *trilha paralela, janela 2*
+- [x] **13.6 Avatar: o dado e o corpo** (Opus · high: zonas do UV e mexe nos hologramas) — *trilha paralela, janela 2* — dd2492a, junta em 171f907
   - Faz:
     - `AvatarSpec` (com `to_dict`/`from_dict`);
     - o shader de paleta;
@@ -292,7 +292,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_holograms` e `check_phase5` passam sem mudança.
   - Manual: na praça, os hologramas dos amigos estão iguais.
   - Commit: `Fase 13.6: avatar como dado e corpo`
-- [ ] **13.7 O quadro de estatísticas** (Sonnet · medium)
+- [x] **13.7 O quadro de estatísticas** (Sonnet · medium) — HASH
   - Faz: `StatsWall` (moldura, título, total, top 5 com barras, por bairro nas cores do bairro, último jogado com capa e as três mensagens), na âncora da disposição, atualizando no `HubWindow.woke_up`.
   - Arquivos:
     - novo: `worlds/home/stats_wall.gd`;
@@ -420,6 +420,8 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12: a 13.5 (crystal-oak, `b40c405`) foi junta antes da 13.3; só tocou arquivos próprios e a bateria passou.
 - 2026-10-12 (13.4): as 6 âncoras são a tabela `Home.ANCHORS` (posição e giro); os móveis móveis, a `MOVABLE` (id → script e nome do nó, com `preload`, porque classe não é constante). A estante e o mural são criados uma vez e só se **movem** quando a disposição muda. O computador fica sempre em `norte_direita`. Ids da disposição que a casa ainda não conhece (`estatisticas`, `espelho`) são ignorados até a 13.7 e a 13.10 entrarem na tabela. As 3 disposições foram gravadas no catálogo por `tools/gerar_layouts_casa.gd`; "Estante na entrada" nasce girado 130° para olhar a estante no canto sul-oeste.
 - 2026-10-12 (13.4): a porta "Casa" da praça guarda o ponto de nascer de quando a cidade montou (`city.gd`); se a disposição mudar depois, só o giro de quem sai da praça fica o da disposição antiga, até reabrir o hub. Não mexi na cidade por isso.
+- 2026-10-12 (13.7): o quadro (`worlds/home/stats_wall.gd`) entrou na tabela `Home.MOVABLE` como `estatisticas`, então segue a disposição (sul_esquerda no padrão). Mede 4,4 × 2,6 m; mostra 5 jogos e 5 bairros (os maiores) — com 10 bairros, o resto fica fora para caber. Os nomes repetidos de nó viram `@Classe@N`, então as barras são achadas por `meta("stats_bar")`, e não pelo nome. O `woke_up` só chama `refresh()`: quem relê o `localconfig.vdf` é o `SteamLibrary` (por isso o teste liga `refresh` direto depois de `set_playtimes`, e confere a conexão do sinal à parte). O retrato da casa ignora o quadro, como a estante e o mural. Capturas da casa conferidas (fora do repositório).
+- 2026-10-12: a 13.6 (avatar, `dd2492a`) foi junta antes da 13.7, pelo mesmo worktree `crystal-oak`.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
