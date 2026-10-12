@@ -168,7 +168,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Manual: com o controle, achar um jogo pela busca e viajar até ele; usar o metrô; mudar a qualidade no computador.
   - Commit: `Fase 12.6: painéis pelo controle`
 
-- [ ] **12.7 Dicas que trocam** (Sonnet · medium)
+- [x] **12.7 Dicas que trocam** (Sonnet · medium) — e21a4b7
   - Faz:
     - `autoload/input_device.gd` (novo autoload `InputDevice`: último aparelho, sinal `device_changed`, tabela de rótulos);
     - `GameScreen.make_key_cap` por ação, trocando sozinho; A, B, X e Y nas cores do Xbox;
@@ -234,6 +234,11 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Achado da 12.4: o `SettingsView._link_focus` rodava antes de o rodapé entrar na árvore e acusava erro de caminho; agora só liga o rodapé que já está na árvore.
 - 2026-10-12 (12.6): a busca passou a ter **todos** os resultados, com uma janela de 8 linhas que rola junto com a escolha e a linha "6 a 13 de 30" embaixo (antes só os 8 mais perto apareciam). O A do controle faz o mesmo que o Enter e o X, o que o Shift+Enter (o joypad não depende de o campo de texto ter o foco). O mapa, o metrô, a pausa e a tela "Abrindo" já funcionavam com o controle pelas ações de 12.4 e 12.5; só a tela 3D precisou encaminhar os botões e o analógico para dentro do `SubViewport`.
   - O cursor do mouse segue visível com o menu aberto, mesmo usando o controle: esconder pelo aparelho usado fica para a 12.7 (`InputDevice`).
+- 2026-10-12 (12.7): `InputDevice` (autoload) ouve o sinal `window_input` da janela, e não o `_input`: ele vê o evento **antes** de qualquer painel, que pode "engolir" o botão (o B que fecha um menu, por exemplo). Esse sinal só sai dos eventos de verdade (`Input.parse_input_event`), por isso o `check_input_device` usa esse caminho. Os nomes das dicas ficam na tabela `InputDevice.HINTS`.
+  - A tecla desenhada que troca é o `KeyHint` (`ui/key_hint.gd`, uma dica por nome: `back` = Esc/B, `interact` = E/X...). Nos testes, o `KeyHint` só pode ser carregado com `load()`: citar o nome da classe compila o script antes dos autoloads existirem (armadilha já registrada no `tests/README.md`).
+  - O cartão do que se olha recebe a dica com marcador (`"Segure {interact} para jogar"`); o HUD preenche e refaz o texto quando o aparelho muda. Quem lê `get_look_info()["action"]` (os testes) vê o marcador, e não o texto final.
+  - A aba Controles mostra a lista com **as duas colunas ao mesmo tempo** (teclado e controle). Para caber nos 720 px, os textos ficaram curtos, o "WASD" virou uma tecla só, e a "F8 / F11 / L3" foram para uma linha de dica; a dica "Na porta de um prédio, espere o anel…" saiu (o cartão do prédio já diz como entrar).
+  - O cursor do mouse some com o controle e volta com o teclado ou o mouse (conferido com janela; sem janela o Godot não muda o modo do mouse e o teste só avisa). Fica como estava quando o hub dorme (o mouse é do jogo).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
