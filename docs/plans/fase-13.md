@@ -344,7 +344,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - fora de casa, desligado.
   - Manual: andar até o espelho e se ver; andar de lado e o reflexo acompanhar; F8 e a luz mudar no reflexo. Capturas Leve e Alta, fora do repositório.
   - Commit: `Fase 13.10: o espelho`
-- [x] **13.11 O provador: escolher o avatar no espelho** (Sonnet · medium) — HASH
+- [x] **13.11 O provador: escolher o avatar no espelho** (Sonnet · medium) — 3ec4dc1
   - Faz:
     - o espelho cumpre o contrato do `focus_on` (`get_camera_pose`, `set_focused` e Esc);
     - o painel 2D à direita (combinações prontas e amostras por zona, com o `HubTheme`);
