@@ -109,7 +109,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
 
 ### Bloco B: controle (paralela)
 
-- [ ] **12.5 Andar e olhar com o controle** (Sonnet · medium)
+- [x] **12.5 Andar e olhar com o controle** (Sonnet · medium) — 1e63502
   - Faz:
     - `project.godot`:
       - botões e eixos do controle nas ações que já existem (veja a tabela em "Decisões");
@@ -228,6 +228,10 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - O deslizador não tem borda de foco: com o foco, a parte cheia fica branca.
   - O primeiro Esc na tela 3D só tira o foco de um campo de texto (`LineEdit`). Antes, tirava o foco de qualquer coisa, e com o teclado começando na aba o primeiro Esc seria "gasto".
   - Busca, mapa, metrô, menu de pausa e tela 3D fecham também com `ui_cancel` (o B do controle). Só o Esc abre o menu de pausa.
+- 2026-10-12 (12.5): feita na principal, sem a paralela.
+  - Neste Godot (4.7, Linux), `ui_accept` e `ui_cancel` **não** vêm com botões de controle. O `project.godot` agora declara as seis ações de interface (`ui_accept`, `ui_cancel`, `ui_up/down/left/right`) com as teclas de sempre mais A, B, o direcional e o analógico esquerdo. Sem isso, o B não fecharia os painéis e o direcional não moveria os menus.
+  - Olhar com o analógico direito: `Player._look_with_stick`, a cada quadro, com curva quadrática e `STICK_TURN_SPEED` = 3,2 rad/s (uma volta em ~2 s com a sensibilidade em 1,0). Trava como o mouse (abertura, foco na tela 3D e painel aberto).
+  - Achado da 12.4: o `SettingsView._link_focus` rodava antes de o rodapé entrar na árvore e acusava erro de caminho; agora só liga o rodapé que já está na árvore.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
