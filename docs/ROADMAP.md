@@ -115,9 +115,13 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Falta:** a conferência no desktop e ouvir os sons (as escolhas foram feitas pelo nome do arquivo).
 
-### Fase 12: Tema e controles (em andamento)
+### Fase 12: Tema e controles ✅ feita (no Linux; falta a conferência com o controle no desktop)
 
 **Objetivo:** tema único para todas as telas (revisão 5.2), menu pelo teclado e **controle Xbox para jogar tudo** (5.3), com as dicas na tela trocando entre teclas e botões conforme o aparelho usado. Plano e registro: [plans/fase-12.md](plans/fase-12.md).
+
+**O que entregou:** o `HubTheme` (5 tamanhos de letra, um raio, duas cores de painel) usado por todas as telas; o menu de pausa e o computador da casa navegáveis por setas, Enter e Esc; o controle Xbox andando, olhando, pulando, interagindo e usando busca, mapa, metrô, pausa e computador; a busca rolando por todos os jogos; e as dicas ("Esc", "E", "Segure E para jogar") que viram os botões do controle quando ele é usado.
+
+**Falta:** a conferência à mão com o controle de verdade, no notebook e no desktop (Windows, XInput). Os testes automáticos usam eventos falsos.
 
 ### Fase Linux (feita)
 

@@ -21,6 +21,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
 | 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
+| 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
@@ -52,6 +53,23 @@ Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos.
 - **Bússola e minimapa:** a faixa no topo mostra para onde você olha e o destino da busca, com a distância. O minimapa no canto mostra o quarteirão e o bairro onde você está. Esc › "Bússola e mapa" desliga os dois.
 
 **Metrô:** há uma estação na praça (a noroeste do chafariz) e uma em cada bairro, no vão entre dois prédios. Bairros grandes ganham mais estações, para nenhuma porta ficar a mais de ~20 s correndo.
+
+**Controle Xbox:** joga tudo.
+
+| Botão | Ação |
+|---|---|
+| analógico esquerdo | Andar (apertar o analógico = correr) |
+| analógico direito | Olhar |
+| A | Pular; nos menus, escolher |
+| X | Interagir; na busca, ir até a porta |
+| Y | Busca |
+| View | Mapa |
+| Menu | Pausa |
+| B | Voltar e fechar painéis; cancela a espera do jogo |
+| direcional | Navegar nos menus e na lista da busca (que rola por todos os jogos) |
+| LB e RB | Trocar de aba nos menus |
+
+As dicas desenhadas na tela trocam sozinhas: no teclado mostram "Esc", "E" e "Tab"; ao tocar no controle, viram "B", "X" e "Y" (coloridos como o Xbox), e o cursor do mouse some. Em Esc › Controles há a **Sensibilidade do controle**.
 
 **PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
 
@@ -92,6 +110,7 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | W A S D | Andar |
 | Shift | Correr |
 | Espaço | Pular |
+| Setas, Enter, Esc | Navegar nos menus (pausa e computador) sem o mouse |
 | Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, controles, amigos). Em casa, também devolve a câmera do computador |
 | E | Interagir: porta (casa e praça), estante (segurar para jogar), mural dos amigos e computador |
 | Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
