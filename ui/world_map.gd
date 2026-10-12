@@ -56,7 +56,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if visible and (event.is_action_pressed("release_mouse") or event.is_action_pressed("open_map")):
+	if visible and (event.is_action_pressed("release_mouse") or event.is_action_pressed("ui_cancel") \
+			or event.is_action_pressed("open_map")):
 		close()
 		get_viewport().set_input_as_handled()
 	elif not visible and event.is_action_pressed("open_map") and can_open():

@@ -144,6 +144,7 @@ func _build_screen_content() -> Control:
 	var quit_row := HBoxContainer.new()
 	quit_row.add_child(HubTheme.expander())
 	var quit := HubTheme.button("Sair do hub")
+	_settings.set_footer_controls([quit] as Array[Control])  # o teclado chega nele depois da última linha
 	quit.name = "QuitButton"
 	quit.pressed.connect(HubWindow.quit_hub)
 	quit_row.add_child(quit)
@@ -155,8 +156,10 @@ func _build_screen_content() -> Control:
 func _on_focus_changed(focused: bool) -> void:
 	if focused:
 		_settings.refresh()
+		_settings.grab_tab_focus()  # o teclado e o controle começam na aba
 	else:
 		_settings.save_pending()
+		_settings.drop_focus()
 
 
 # --- Peças --------------------------------------------------------------------

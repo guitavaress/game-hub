@@ -38,6 +38,8 @@ const CONTROL_ROWS: Array[Array] = [
 ]
 
 var _pages: Array[Control] = []
+var _current_page: int = 0
+var _footer_controls: Array[Control] = []
 var _tab_buttons: Array[Button] = []
 var _volume_sliders: Dictionary[String, HSlider] = {}
 var _volume_values: Dictionary[String, Label] = {}
@@ -107,9 +109,9 @@ func _build_tabs() -> Control:
 		tab.text = TAB_NAMES[i]
 		tab.toggle_mode = true
 		tab.button_group = group
-		tab.focus_mode = Control.FOCUS_NONE
 		tab.theme_type_variation = &"HubTab"  # sublinhado claro na escolhida
 		tab.pressed.connect(_show_page.bind(i))
+		tab.gui_input.connect(_on_tab_input.bind(i))
 		row.add_child(tab)
 		_tab_buttons.append(tab)
 	return row
@@ -119,6 +121,122 @@ func _show_page(index: int) -> void:
 	for i in _pages.size():
 		_pages[i].visible = i == index
 		_tab_buttons[i].set_pressed_no_signal(i == index)
+	_current_page = index
+	_link_focus()
+
+
+## ←/→ numa aba trocam de aba (a página muda junto com o foco).
+func _on_tab_input(event: InputEvent, index: int) -> void:
+	if event.is_action_pressed("ui_right"):
+		next_page()
+	elif event.is_action_pressed("ui_left"):
+		previous_page()
+	else:
+		return
+	_tab_buttons[_current_page].accept_event()
+
+
+## Os botões de trocar de aba do controle (LB e RB; ações criadas na 12.5),
+## de qualquer lugar da tela.
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or not (event is InputEventJoypadButton or event is InputEventKey):
+		return
+	if InputMap.has_action("tab_next") and event.is_action_pressed("tab_next"):
+		next_page()
+	elif InputMap.has_action("tab_prev") and event.is_action_pressed("tab_prev"):
+		previous_page()
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+
+func next_page() -> void:
+	_go_to_page(mini(_current_page + 1, _pages.size() - 1))
+
+
+func previous_page() -> void:
+	_go_to_page(maxi(_current_page - 1, 0))
+
+
+func get_page() -> int:
+	return _current_page
+
+
+func _go_to_page(index: int) -> void:
+	_show_page(index)
+	_tab_buttons[index].grab_focus()
+
+
+## Controles que ficam logo abaixo da última linha (o rodapé do menu de
+## pausa: Continuar e Sair). O ↓ da última linha vai para o primeiro deles, e
+## o ↑ deles volta para a última linha.
+func set_footer_controls(controls: Array[Control]) -> void:
+	_footer_controls = controls
+	_link_focus()
+
+
+## A ordem do foco por teclado e controle, montada à mão (a busca por
+## geometria do Godot dá a volta pela tela e pula os botões lado a lado):
+## a aba de agora › cada linha da página, de cima para baixo › o rodapé.
+## ↓ e ↑ andam de linha em linha (para a primeira peça de cada uma); ←/→ andam
+## dentro de uma linha de botões; num deslizador, ←/→ mudam o valor.
+func _link_focus() -> void:
+	if _pages.is_empty() or _tab_buttons.is_empty():
+		return
+	var tab := _tab_buttons[_current_page]
+	var rows: Array[Array] = []  # cada linha: as peças focáveis dela, da esquerda para a direita
+	for row in _pages[_current_page].get_children():
+		var controls := _focusable_in(row)
+		if not controls.is_empty():
+			rows.append(controls)
+	var footer: Array[Control] = []
+	for control in _footer_controls:
+		if is_instance_valid(control) and control.visible:
+			footer.append(control)
+	# Do alto para baixo: [aba] [linhas...] [rodapé]
+	var chain: Array[Array] = [[tab]]
+	chain.append_array(rows)
+	if not footer.is_empty():
+		chain.append(footer)
+	for i in chain.size():
+		var above: Control = chain[maxi(i - 1, 0) if i > 0 else chain.size() - 1][0]
+		var below: Control = chain[i + 1][0] if i + 1 < chain.size() else chain[0][0]
+		var line: Array = chain[i]
+		for j in line.size():
+			var control: Control = line[j]
+			control.focus_neighbor_top = control.get_path_to(above)
+			control.focus_neighbor_bottom = control.get_path_to(below)
+			if line.size() > 1 and i > 0:
+				# Botões lado a lado: ←/→ param nas pontas (não saem da linha).
+				control.focus_neighbor_left = control.get_path_to(line[maxi(j - 1, 0)])
+				control.focus_neighbor_right = control.get_path_to(line[mini(j + 1, line.size() - 1)])
+
+
+## As peças que aceitam foco debaixo de "node" (só as visíveis), em ordem.
+func _focusable_in(node: Node) -> Array[Control]:
+	var found: Array[Control] = []
+	var control := node as Control
+	if control != null:
+		if not control.visible:
+			return found
+		if control.focus_mode != Control.FOCUS_NONE:
+			found.append(control)
+	for child in node.get_children():
+		found.append_array(_focusable_in(child))
+	return found
+
+
+## Ao abrir: o foco vai para a aba da página de agora (o teclado e o controle
+## já começam daqui).
+func grab_tab_focus() -> void:
+	_tab_buttons[_current_page].grab_focus()
+
+
+## Ao fechar: ninguém fica com o foco (as teclas voltam para o jogo).
+func drop_focus() -> void:
+	var owner := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	if owner != null and is_ancestor_of(owner):
+		owner.release_focus()
 
 
 ## Marca só o botão "value" num grupo de botões lado a lado.
@@ -142,7 +260,6 @@ func _build_sound_page() -> Control:
 		slider.step = 1.0
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		slider.focus_mode = Control.FOCUS_NONE
 		slider.value_changed.connect(_on_volume_changed.bind(bus))
 		row.add_child(slider)
 		var value := HubTheme.label("", &"HubValue")
@@ -158,7 +275,6 @@ func _build_sound_page() -> Control:
 	var fullscreen_row := _row("Tela cheia")
 	fullscreen_row.add_child(HubTheme.expander())
 	_fullscreen_check = CheckButton.new()
-	_fullscreen_check.focus_mode = Control.FOCUS_NONE
 	_fullscreen_check.toggled.connect(func(on: bool) -> void:
 		if not _refreshing:
 			HubWindow.set_fullscreen(on))
@@ -168,7 +284,6 @@ func _build_sound_page() -> Control:
 	var map_row := _row("Bússola e mapa")
 	map_row.add_child(HubTheme.expander())
 	_map_check = CheckButton.new()
-	_map_check.focus_mode = Control.FOCUS_NONE
 	_map_check.toggled.connect(func(on: bool) -> void:
 		if not _refreshing:
 			AppConfig.set_show_map(on))
@@ -245,7 +360,6 @@ func _build_controls_page() -> Control:
 	var motion_row := _row("Balanço da câmera")
 	motion_row.add_child(HubTheme.expander())
 	_motion_check = CheckButton.new()
-	_motion_check.focus_mode = Control.FOCUS_NONE
 	_motion_check.toggled.connect(func(on: bool) -> void:
 		if not _refreshing:
 			AppConfig.set_camera_motion(on))
@@ -280,7 +394,6 @@ func _controls_slider(page: Control, title: String, limits: Vector2, step: float
 	slider.step = step
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	slider.focus_mode = Control.FOCUS_NONE
 	slider.value_changed.connect(on_change)
 	row.add_child(slider)
 	_last_slider_value = HubTheme.label("", &"HubValue")
@@ -322,7 +435,6 @@ func _build_friends_page() -> Control:
 	var toggle_row := _row("Mostrar amigos")
 	toggle_row.add_child(HubTheme.expander())
 	_friends_check = CheckButton.new()
-	_friends_check.focus_mode = Control.FOCUS_NONE
 	_friends_check.toggled.connect(_on_friends_toggled)
 	toggle_row.add_child(_friends_check)
 	page.add_child(toggle_row)
@@ -333,7 +445,6 @@ func _build_friends_page() -> Control:
 	page.add_child(_key_field)
 	var link := LinkButton.new()
 	link.text = "Pegar uma chave: steamcommunity.com/dev/apikey"
-	link.focus_mode = Control.FOCUS_NONE
 	link.pressed.connect(func() -> void: OS.shell_open(API_KEY_URL))
 	page.add_child(link)
 	var secret_hint := HubTheme.label("É segredo: fica só neste PC. No site, em \"domínio\", escreva localhost.",
@@ -443,6 +554,7 @@ func refresh() -> void:
 	_refresh_friends_fields()
 	_update_friends_status()
 	_refreshing = false
+	_link_focus()
 
 
 func _refresh_friends_fields() -> void:
@@ -482,7 +594,6 @@ func _segmented(options: Array[Array], buttons: Dictionary[String, Button], on_c
 		button.text = option[1]
 		button.toggle_mode = true
 		button.button_group = group
-		button.focus_mode = Control.FOCUS_NONE
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.theme_type_variation = &"HubSegment"  # o escolhido fica claro
 		var value: String = option[0]

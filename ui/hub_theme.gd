@@ -125,7 +125,6 @@ static func untint(label_node: Label) -> void:
 static func button(text: String, primary: bool = false) -> Button:
 	var button_node := Button.new()
 	button_node.text = text
-	button_node.focus_mode = Control.FOCUS_NONE
 	if primary:
 		button_node.theme_type_variation = &"HubButtonPrimary"
 	return button_node
@@ -321,7 +320,9 @@ static func _build_fields(theme: Theme) -> void:
 	var filled := box(TEXT_COLOR, 2, Color.TRANSPARENT, 0, Vector4(0, 2, 0, 2))
 	theme.set_stylebox("slider", "HSlider", track)
 	theme.set_stylebox("grabber_area", "HSlider", filled)
-	theme.set_stylebox("grabber_area_highlight", "HSlider", filled)
+	# Com o foco (ou o mouse em cima), a parte cheia fica branca: é o sinal de
+	# foco do deslizador, que não tem borda.
+	theme.set_stylebox("grabber_area_highlight", "HSlider", box(Color.WHITE, 2, Color.TRANSPARENT, 0, Vector4(0, 2, 0, 2)))
 
 
 static func _build_panels(theme: Theme) -> void:

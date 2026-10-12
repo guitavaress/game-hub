@@ -180,9 +180,9 @@ func pixel_to_world(pixel: Vector2) -> Vector3:
 func _input(event: InputEvent) -> void:
 	if not _focused:
 		return
-	if event.is_action_pressed("release_mouse"):
+	if event.is_action_pressed("release_mouse") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _viewport.gui_get_focus_owner() != null:
+		if _viewport.gui_get_focus_owner() is LineEdit:
 			_release_text_focus()  # 1º Esc: só tira o cursor do campo
 		elif _player != null and _player.has_method("leave_focus"):
 			_player.leave_focus()  # 2º Esc: devolve a câmera

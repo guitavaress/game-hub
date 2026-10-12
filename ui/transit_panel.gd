@@ -74,7 +74,7 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	if event.is_action_pressed("release_mouse"):
+	if event.is_action_pressed("release_mouse") or event.is_action_pressed("ui_cancel"):
 		close()
 	elif event.is_action_pressed("ui_down") and not _stops.is_empty():
 		_selected = (_selected + 1) % _stops.size()

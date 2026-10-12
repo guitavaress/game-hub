@@ -53,12 +53,11 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("release_mouse"):
-		return
-	if visible:
+	# Aberto: Esc ou B (ui_cancel) fecham. Fechado: só o Esc abre.
+	if visible and (event.is_action_pressed("release_mouse") or event.is_action_pressed("ui_cancel")):
 		close()
 		get_viewport().set_input_as_handled()
-	elif can_open():
+	elif not visible and event.is_action_pressed("release_mouse") and can_open():
 		open()
 		get_viewport().set_input_as_handled()
 
@@ -75,6 +74,7 @@ func can_open() -> bool:
 func open() -> void:
 	_settings.refresh()
 	visible = true
+	_settings.grab_tab_focus()
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	opened.emit()
@@ -84,6 +84,7 @@ func close() -> void:
 	if not visible:
 		return
 	_settings.save_pending()
+	_settings.drop_focus()
 	visible = false
 	# Se o hub foi dormir com o menu aberto (jogo aberto por fora), quem cuida
 	# da pausa e do mouse é o HubWindow.
@@ -118,5 +119,7 @@ func _build_bottom_row() -> Control:
 	var quit := HubTheme.button("Sair do hub")
 	quit.pressed.connect(HubWindow.quit_hub)
 	row.add_child(quit)
+	# O rodapé entra na ordem do foco, logo depois da última linha das abas.
+	_settings.set_footer_controls([resume, quit] as Array[Control])
 	return row
 
