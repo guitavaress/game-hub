@@ -108,6 +108,21 @@ wall_color=""
 neon_color=""
 """
 
+## Seção do avatar (Fase 13.6), acrescentada do mesmo jeito.
+const AVATAR_SECTION_TEXT: String = """
+[avatar]
+
+; O seu avatar: o corpo e a cor de cada parte, como "#rrggbb".
+; Vazio = a cor padrão. As partes: pele (skin: rosto, braços, mãos e pés),
+; olhos e sobrancelhas (eyes), cabelo (hair), camiseta (shirt) e calça (pants).
+body="human"
+skin=""
+eyes=""
+hair=""
+shirt=""
+pants=""
+"""
+
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
 ## acrescentada no fim.
 const ADDED_SECTIONS: Dictionary[String, String] = {
@@ -117,6 +132,7 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"window": WINDOW_SECTION_TEXT,
 	"controls": CONTROLS_SECTION_TEXT,
 	"home": HOME_SECTION_TEXT,
+	"avatar": AVATAR_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
@@ -341,6 +357,32 @@ func get_home_neon_color() -> String:
 
 func set_home_neon_color(html: String) -> void:
 	_set_option("home", "neon_color", html.strip_edges())
+
+
+## O avatar (seção [avatar], Fase 13.6), no formato do AvatarSpec.to_dict():
+##   {"version": 1, "body": "human", "colors": {"skin": "#c68e64", "eyes": "", ...}}
+## O AppConfig guarda só os textos e não sabe quais são as partes: "colors"
+## traz cada linha da seção que não seja "body" ("" = a cor padrão). Quem
+## entende as cores é o AvatarSpec.from_dict.
+func get_avatar() -> Dictionary:
+	var colors := {}
+	if _config.has_section("avatar"):
+		for key in _config.get_section_keys("avatar"):
+			if key != "body":
+				colors[key] = str(_config.get_value("avatar", key, "")).strip_edges()
+	var body := str(_config.get_value("avatar", "body", "human")).strip_edges().to_lower()
+	return {"version": 1, "body": body, "colors": colors}
+
+
+## Grava o avatar (o mesmo formato do get_avatar), uma linha por cor, e avisa
+## uma vez só: settings_changed("avatar", "colors").
+func set_avatar(data: Dictionary) -> void:
+	_set_option("avatar", "body", str(data.get("body", "human")).strip_edges().to_lower(), false)
+	var colors: Variant = data.get("colors", {})
+	if colors is Dictionary:
+		for key: Variant in colors:
+			_set_option("avatar", str(key), str(colors[key]).strip_edges(), false)
+	settings_changed.emit("avatar", "colors")
 
 
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
