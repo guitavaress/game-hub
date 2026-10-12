@@ -50,7 +50,8 @@ func _run() -> void:
 	print("== a aba Casa ==")
 	_check("o computador tem 4 abas, a última é Casa", settings._tab_buttons.size() == 4 and settings._tab_buttons[3].text == "Casa")
 	_check("a aba Casa tem tema, móveis, paredes e néon",
-			view._theme_buttons.size() == 2 and view._layout_buttons.size() == 3
+			view._theme_buttons.size() == catalog.homes.size() and view._theme_buttons.has("teste")
+			and view._layout_buttons.size() == 3
 			and view._wall_buttons.size() == 9 and view._neon_buttons.size() == 9)
 	_check("o menu de pausa não ganha a aba", player.get_pause_menu().get_settings()._tab_buttons.size() == 3)
 

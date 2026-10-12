@@ -13,8 +13,15 @@ extends SceneTree
 ##     e da roda de amigos (até 40 amigos), e fora dos caminhos da praça;
 ##   - é sólida, e o ponto de chegada (quem sai de casa) fica livre, na frente;
 ##   - o néon e a luz acendem à noite; a casa é um marco no mapa.
+## A cabana (Fase 13.12): as mesmas conferências do loft e das 3 disposições, e
+## a lareira, as poltronas e o vaso não tampam nenhum lugar pronto, a mesa do
+## computador, a porta nem a janela. Guarda o config.cfg e devolve no fim.
 
 const INTERIOR_MASK := 1 << 19  # camada de render 20 (Home.INTERIOR_LAYER)
+const CONFIG := "user://config.cfg"
+## A porta da rua e a janela (coordenadas da casa): nada pode ficar na frente.
+const DOOR_ZONE := AABB(Vector3(-0.7, 0.0, 3.9), Vector3(1.4, 2.4, 0.8))
+const WINDOW_ZONE := AABB(Vector3(-2.7, 0.0, -4.6), Vector3(5.4, 3.4, 0.6))
 
 var failures := 0
 
@@ -121,6 +128,7 @@ func _run() -> void:
 
 	await _check_loft(home, player)
 	await _check_layouts(home, player)
+	await _check_cabin(home, player)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
@@ -263,8 +271,8 @@ func _ambience_muffled() -> bool:
 
 
 ## O loft (9.9): tudo dentro da sala, passagens livres e a janela com a hora.
-func _check_loft(home: Node3D, player: CharacterBody3D) -> void:
-	print("== O loft ==")
+func _check_loft(home: Node3D, player: CharacterBody3D, title: String = "O loft") -> void:
+	print("== %s ==" % title)
 	var room: Vector3 = home.ROOM_SIZE
 	var inner := AABB(Vector3(-room.x / 2.0, 0.0, -room.z / 2.0), room).grow(0.03)
 	var outside: Array[String] = []
@@ -324,8 +332,8 @@ func _check_loft(home: Node3D, player: CharacterBody3D) -> void:
 ## As disposições dos móveis (13.4): para cada uma, trocar em jogo move os
 ## móveis, nada sai da sala, ninguém cobre a porta, a janela ou o outro, e há
 ## passagem livre até a frente de cada móvel (e até o ponto de volta da estante).
-func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
-	print("== Disposições dos móveis ==")
+func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disposições dos móveis") -> void:
+	print("== %s ==" % title)
 	var app = root.get_node("AppConfig")
 	var original: String = app.get_home_layout()
 	var catalog := Profiles.home_catalog()
@@ -333,8 +341,8 @@ func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
 	var room: Vector3 = home.ROOM_SIZE
 	var inner := AABB(Vector3(-room.x / 2.0, 0.0, -room.z / 2.0), room).grow(0.03)
 	# A porta da rua e a janela (coordenadas da casa).
-	var door_zone := AABB(Vector3(-0.7, 0.0, 3.9), Vector3(1.4, 2.4, 0.8))
-	var window_zone := AABB(Vector3(-2.7, 0.0, -4.6), Vector3(5.4, 3.4, 0.6))
+	var door_zone := DOOR_ZONE
+	var window_zone := WINDOW_ZONE
 	var shape: Shape3D = player.get_node("CollisionShape3D").shape
 	var space := player.get_world_3d().direct_space_state
 	var positions := {}
@@ -384,6 +392,54 @@ func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
 	_check("disposição desconhecida cai na padrão", home.get_layout() == catalog.layouts[0])
 	app.set_home_layout(original)
 	await process_frame
+
+
+## A cabana: troca o tema pelo config.cfg, repete as conferências do loft e das
+## disposições, e confere que o enfeite não tampa nenhum lugar pronto.
+func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
+	var app = root.get_node("AppConfig")
+	var backup := FileAccess.get_file_as_string(CONFIG)
+	var original_theme: String = app.get_home_theme()
+	app.set_home_theme("cabana")
+	await _frames(3)
+	print("== A cabana ==")
+	_check("a casa virou a cabana", home.get_profile().id == "cabana")
+	await _check_loft(home, player, "A cabana: sala e passagens")
+	await _check_layouts(home, player, "A cabana: disposições dos móveis")
+
+	print("== A cabana: o enfeite não tampa nada ==")
+	var pieces: Array[Node3D] = []
+	for child in home.get_children():
+		if child.has_meta("cabin_piece") and child.get_meta("cabin_piece") in ["lareira", "poltrona", "vaso"]:
+			pieces.append(child)
+	_check("lareira, duas poltronas e o vaso (%d peças)" % pieces.size(), pieces.size() == 4)
+	var blocked: Array[String] = []
+	var desk_box := _bounds(home.get_node("ComputerDesk"), home)
+	for piece in pieces:
+		var box := _bounds(piece, home)
+		var kind: String = piece.get_meta("cabin_piece")
+		if box.intersects(DOOR_ZONE) or box.intersects(WINDOW_ZONE) or box.intersects(desk_box):
+			blocked.append("%s: porta, janela ou mesa" % kind)
+		# Cada móvel que muda de lugar, em cada um dos 6 lugares prontos.
+		for anchor: String in home.ANCHORS:
+			for id in ["estante", "mural", "estatisticas"]:
+				var furniture: Node3D = home.get_furniture(id)
+				furniture.transform = home.get_anchor_transform(anchor)
+				if box.intersects(_bounds(furniture, home)):
+					blocked.append("%s x %s em %s" % [kind, id, anchor])
+	home._place_furniture()  # cada móvel volta para o lugar da disposição
+	if not blocked.is_empty():
+		print("   tampando: ", blocked)
+	_check("a lareira, as poltronas e o vaso não tampam nenhum lugar pronto, a mesa, a porta nem a janela",
+			blocked.is_empty())
+
+	app.set_home_theme(original_theme)
+	await _frames(3)
+	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
+	file.store_string(backup)
+	file.close()
+	_check("o tema de antes voltou e o config.cfg foi devolvido",
+			home.get_profile() == Profiles.home(original_theme) and FileAccess.get_file_as_string(CONFIG) == backup)
 
 
 ## Caixa de tudo o que o móvel desenha, em coordenadas da casa.

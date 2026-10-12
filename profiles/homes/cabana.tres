@@ -1,0 +1,107 @@
+[gd_resource type="Resource" script_class="HomeProfile" format=3]
+
+[ext_resource type="Script" path="res://profiles/home_surface.gd" id="1_3t613"]
+[ext_resource type="Script" path="res://profiles/home_profile.gd" id="2_6vll2"]
+
+[sub_resource type="Resource" id="Resource_vsvlj"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.28, 0.17, 0.1, 1)
+roughness = 0.75
+
+[sub_resource type="Resource" id="Resource_lf4o2"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.36, 0.24, 0.15, 1)
+roughness = 0.7
+planks = true
+
+[sub_resource type="Resource" id="Resource_qqm38"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.3, 0.18, 0.1, 1)
+roughness = 0.6
+
+[sub_resource type="Resource" id="Resource_5t5ca"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.2, 0.12, 0.07, 1)
+roughness = 0.7
+
+[sub_resource type="Resource" id="Resource_seje8"]
+script = ExtResource("1_3t613")
+kind = "metal"
+color = Color(0.12, 0.11, 0.1, 1)
+roughness = 0.55
+
+[sub_resource type="Resource" id="Resource_57daf"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.44, 0.29, 0.17, 1)
+roughness = 0.75
+planks = true
+logs = true
+
+[sub_resource type="Resource" id="Resource_6ienc"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.25, 0.15, 0.09, 1)
+roughness = 0.55
+planks = true
+
+[sub_resource type="Resource" id="Resource_law4d"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.2, 0.12, 0.07, 1)
+roughness = 0.7
+
+[sub_resource type="Resource" id="Resource_etrtx"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.44, 0.29, 0.17, 1)
+roughness = 0.75
+planks = true
+logs = true
+paintable = true
+
+[sub_resource type="Resource" id="Resource_vk1we"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.25, 0.16, 0.09, 1)
+roughness = 0.7
+
+[sub_resource type="Resource" id="Resource_6l5nw"]
+script = ExtResource("1_3t613")
+kind = "wood"
+color = Color(0.3, 0.2, 0.12, 1)
+roughness = 0.6
+
+[resource]
+script = ExtResource("2_6vll2")
+id = "cabana"
+display_name = "Cabana"
+floor = SubResource("Resource_6ienc")
+ceiling = SubResource("Resource_lf4o2")
+feature_wall = SubResource("Resource_57daf")
+walls = SubResource("Resource_etrtx")
+skirting = SubResource("Resource_law4d")
+beams = SubResource("Resource_vsvlj")
+lamp_color = Color(1, 0.68, 0.38, 1)
+lamp_energy = 1.6
+background_color = Color(0.01, 0.012, 0.01, 1)
+ambient_night_color = Color(0.5, 0.36, 0.26, 1)
+ambient_night_energy = 0.34
+ambient_day_color = Color(0.6, 0.64, 0.56, 1)
+ambient_day_energy = 0.65
+daylight_color = Color(0.96, 0.93, 0.82, 1)
+daylight_energy = 2.0
+window_shader = "res://worlds/home/home_window_forest.gdshader"
+window_frame = SubResource("Resource_vk1we")
+window_sill = SubResource("Resource_6l5nw")
+door = SubResource("Resource_qqm38")
+door_frame = SubResource("Resource_5t5ca")
+door_handle = SubResource("Resource_seje8")
+neon_color = Color(1, 0.6, 0.22, 1)
+neon_energy = 1.8
+neon_light_energy = 0.22
+decor_script = "res://worlds/home/themes/cabin_decor.gd"

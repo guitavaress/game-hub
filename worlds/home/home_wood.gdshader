@@ -2,6 +2,9 @@
 // A posição vem do mundo (como um triplanar simples): a face de cima usa X e Z,
 // as laterais usam a horizontal e a altura. Serve para o piso (com frestas
 // entre as tábuas) e para os móveis (sem frestas: planks = false).
+// Fase 13.12: "log_round" > 0 faz de cada tábua das paredes uma TORA (a
+// cabana): sombra arredondada de través e a luz batendo como num cilindro.
+// Nasce em 0 (desligado), então o loft não muda.
 shader_type spatial;
 
 uniform vec3 base_color : source_color = vec3(0.42, 0.27, 0.16);
@@ -14,6 +17,8 @@ uniform float gap = 0.004;
 uniform float variation = 0.16;
 uniform float rough = 0.5;
 uniform bool planks = true;
+// Toras (0 = tábua lisa, 1 = tora redonda). Só nas faces de lado (paredes).
+uniform float log_round = 0.0;
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -60,7 +65,18 @@ void fragment() {
 		float d = min(min(across, plank_width - across), min(lengthwise, plank_length - lengthwise));
 		edge = smoothstep(0.0, gap, d);
 	}
-	ALBEDO = base_color * tone * grain * mix(0.3, 1.0, edge);
+	vec3 albedo = base_color * tone * grain * mix(0.3, 1.0, edge);
+	bool side = n.y < max(n.x, n.z);
+	if (log_round > 0.0 && side) {
+		// a = de -1 (embaixo da tora) a 1 (em cima); a face "redonda" escurece nas bordas.
+		float a = fract(p.y / plank_width) * 2.0 - 1.0;
+		float bulge = sqrt(max(1.0 - a * a, 0.0));
+		albedo *= mix(1.0, 0.45 + 0.55 * bulge, log_round);
+		// A normal se inclina para cima e para baixo, como num cilindro deitado.
+		vec3 bent = normalize(world_normal * max(bulge, 0.25) + vec3(0.0, a * log_round, 0.0));
+		NORMAL = normalize((VIEW_MATRIX * vec4(bent, 0.0)).xyz);
+	}
+	ALBEDO = albedo;
 	ROUGHNESS = mix(0.9, rough + (fine - 0.5) * 0.12, edge);
 	SPECULAR = 0.4;
 }
