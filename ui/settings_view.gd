@@ -181,7 +181,7 @@ func set_footer_controls(controls: Array[Control]) -> void:
 ## ↓ e ↑ andam de linha em linha (para a primeira peça de cada uma); ←/→ andam
 ## dentro de uma linha de botões; num deslizador, ←/→ mudam o valor.
 func _link_focus() -> void:
-	if _pages.is_empty() or _tab_buttons.is_empty():
+	if _pages.is_empty() or _tab_buttons.is_empty() or not is_inside_tree():
 		return
 	var tab := _tab_buttons[_current_page]
 	var rows: Array[Array] = []  # cada linha: as peças focáveis dela, da esquerda para a direita
@@ -191,7 +191,7 @@ func _link_focus() -> void:
 			rows.append(controls)
 	var footer: Array[Control] = []
 	for control in _footer_controls:
-		if is_instance_valid(control) and control.visible:
+		if is_instance_valid(control) and control.visible and control.is_inside_tree():
 			footer.append(control)
 	# Do alto para baixo: [aba] [linhas...] [rodapé]
 	var chain: Array[Array] = [[tab]]

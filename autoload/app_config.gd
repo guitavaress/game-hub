@@ -90,6 +90,8 @@ camera_motion=true
 mouse_sensitivity=1.0
 ; Campo de visão em graus, de 60 a 100.
 fov=75
+; Sensibilidade do analógico direito do controle: de 0.5 (lento) a 2.0 (rápido).
+stick_sensitivity=1.0
 """
 
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
@@ -252,6 +254,16 @@ func get_mouse_sensitivity() -> float:
 ## save = false só aplica (enquanto o controle é arrastado); true grava.
 func set_mouse_sensitivity(value: float, save: bool = true) -> void:
 	_set_controls_value("mouse_sensitivity", snappedf(clampf(value, MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y), 0.05), save)
+
+
+func get_stick_sensitivity() -> float:
+	return clampf(float(_config.get_value("controls", "stick_sensitivity", 1.0)),
+			MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y)
+
+
+## Como o mouse: save = false só aplica; true grava.
+func set_stick_sensitivity(value: float, save: bool = true) -> void:
+	_set_controls_value("stick_sensitivity", snappedf(clampf(value, MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y), 0.05), save)
 
 
 func get_fov() -> float:

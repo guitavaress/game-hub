@@ -30,6 +30,10 @@ signal look_info_changed(info: Dictionary)
 ## Alcance do raio de "olhar", em metros.
 @export var look_distance: float = 30.0
 
+## Giro do analógico direito, no máximo (rad/s, com a sensibilidade em 1,0):
+## uma volta inteira em ~2 s.
+const STICK_TURN_SPEED: float = 3.2
+
 ## Limite para olhar para cima/baixo (evita dar cambalhota com a câmera).
 const MAX_PITCH_DEGREES: float = 89.0
 ## Em casa a câmera enxerga só até aqui (m): o mundo lá fora nem é desenhado.
@@ -134,6 +138,8 @@ var _camera_feel: CameraFeel
 var _sprinting: bool = false
 ## Multiplicador da sensibilidade (Esc › Controles).
 var _sensitivity_scale: float = 1.0
+## Idem, para o analógico direito do controle.
+var _stick_scale: float = 1.0
 var _stride_length: float = WALK_STRIDE
 ## Do que é o chão em que se pisa (a marca "footstep" do corpo de colisão).
 var _surface: String = DEFAULT_SURFACE
@@ -162,9 +168,12 @@ func _ready() -> void:
 	add_child(_camera_feel)
 	_camera_feel.setup(_camera, _camera_rest)
 	_sensitivity_scale = AppConfig.get_mouse_sensitivity()
+	_stick_scale = AppConfig.get_stick_sensitivity()
 	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
 		if section == "controls" and key == "mouse_sensitivity":
-			_sensitivity_scale = AppConfig.get_mouse_sensitivity())
+			_sensitivity_scale = AppConfig.get_mouse_sensitivity()
+		elif section == "controls" and key == "stick_sensitivity":
+			_stick_scale = AppConfig.get_stick_sensitivity())
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -235,9 +244,29 @@ func _physics_process(delta: float) -> void:
 	_update_interact(delta)
 
 
+## OLHAR COM O ANALÓGICO DIREITO: a cada quadro, vira a visão pela inclinação
+## do analógico (zona morta de 0,2 vinda das ações look_*). A curva é
+## quadrática: perto do centro vira devagar (precisão) e na ponta, rápido.
+## Trava nos mesmos casos que o mouse: abertura, foco numa tela 3D e painel
+## aberto.
+func _look_with_stick(delta: float) -> void:
+	if in_intro or _focus_screen != null or is_overlay_open():
+		return
+	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	if stick == Vector2.ZERO:
+		return
+	stick *= stick.length()  # curva quadrática
+	var speed := STICK_TURN_SPEED * _stick_scale * delta
+	rotate_y(-stick.x * speed)
+	_head.rotate_x(-stick.y * speed)
+	var limit := deg_to_rad(MAX_PITCH_DEGREES)
+	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+
+
 ## A câmera ganha o balanço a cada quadro de tela (e não de física), para não
 ## engasgar em monitores de taxa alta. Parada durante o foco e a viagem.
 func _process(delta: float) -> void:
+	_look_with_stick(delta)
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
 			is_on_floor(), _sprinting, _focus_screen == null and not _traveling and not in_intro)

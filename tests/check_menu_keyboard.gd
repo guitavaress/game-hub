@@ -71,10 +71,10 @@ func _run() -> void:
 	var quality_before: String = app.get_quality()
 	var target := "media" if quality_before != "media" else "leve"
 	steps = 0
-	while not settings._quality_buttons.values().has(_focus()) and steps < 12:
+	while not _is_quality_button(settings, _focus()) and steps < 12:
 		await _key(KEY_DOWN)
 		steps += 1
-	_check("↓ chega na linha de qualidade (em %d passos)" % steps, settings._quality_buttons.values().has(_focus()))
+	_check("↓ chega na linha de qualidade (em %d passos)" % steps, _is_quality_button(settings, _focus()))
 	steps = 0
 	while _focus() != settings._quality_buttons[target] and steps < 4:
 		await _key(KEY_RIGHT if _focus() == settings._quality_buttons["leve"] or target == "alta" else KEY_LEFT)
@@ -187,6 +187,14 @@ func _go_to(_settings, target: Control, keycode: Key) -> void:
 	while _focus() != target and steps < 10:
 		await _key(keycode)
 		steps += 1
+
+
+## O botão está entre os de qualidade? (Sem usar "has" na lista tipada: o foco pode ser um deslizador.)
+func _is_quality_button(settings, control: Control) -> bool:
+	for button in settings._quality_buttons.values():
+		if button == control:
+			return true
+	return false
 
 
 func _focus() -> Control:
