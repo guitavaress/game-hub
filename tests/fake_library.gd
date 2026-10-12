@@ -12,6 +12,11 @@ extends RefCounted
 ## Os bairros recebem fatias desiguais de propósito (RPG fica com 30%): é o
 ## caso difícil para o metrô e para o mapa.
 ##
+## Horas falsas (opcional): "install(root, 200, true)" dá a cada jogo minutos
+## jogados (a maioria com horas, uns 20% com zero) e uma "última vez". Sem o
+## terceiro argumento nada muda: o SteamLibrary segue lendo o localconfig.vdf
+## de verdade. Para casos exatos, use set_playtimes.
+##
 ## Uso (num script de teste, depois de "await process_frame"):
 ##   var library = load("res://tests/fake_library.gd")
 ##   library.install(root, 200)
@@ -22,7 +27,7 @@ const SHARES: Dictionary = {"rpg": 0.30, "acao": 0.15, "aventura": 0.12, "sobrev
 
 
 ## Instala "count" jogos falsos. Devolve a lista (em ordem alfabética).
-static func install(root: Node, count: int) -> Array[SteamGame]:
+static func install(root: Node, count: int, fake_playtimes: bool = false) -> Array[SteamGame]:
 	var library := root.get_node("SteamLibrary")
 	var store := root.get_node("StoreInfo")
 	root.get_node("GameArt").allow_downloads = false
@@ -42,7 +47,17 @@ static func install(root: Node, count: int) -> Array[SteamGame]:
 	library._games_by_id = by_id
 	library._games_loaded = true
 	_spread_tags(store, games)
+	if fake_playtimes:
+		_spread_playtimes(library, games)
 	return games
+
+
+## Põe minutos e "última vez" exatos, só na memória. "minutes" é app_id → minutos;
+## {} = horas DESCONHECIDAS (get_playtime_minutes devolve -1, como sem usuário logado).
+## "last_played" é app_id → segundos desde 1970 (opcional).
+static func set_playtimes(root: Node, minutes: Dictionary, last_played: Dictionary = {}) -> void:
+	var library := root.get_node("SteamLibrary")
+	_apply_playtimes(library, minutes, last_played)
 
 
 ## Com 200 jogos, quantos ficaram em cada bairro (para os testes lerem).
@@ -92,6 +107,32 @@ static func _spread_tags(store: Node, games: Array[SteamGame]) -> void:
 		var tags: Array = [profile.tags[0]] if profile.tags.size() > 0 else []
 		store._cache[str(game.app_id)] = {"fetched": now, "tags": tags,
 				"capsule": "", "capsule_2x": "", "hero": "", "header": ""}
+
+
+## Copia para os dicionários tipados (Dictionary[int, int]) do SteamLibrary.
+static func _apply_playtimes(library: Node, minutes: Dictionary, last_played: Dictionary) -> void:
+	library._playtime_minutes.clear()
+	library._playtime_minutes.merge(minutes)
+	library._local_last_played.clear()
+	library._local_last_played.merge(last_played)
+	library._playtimes_loaded = true
+
+
+## Horas inventadas (sempre as mesmas): cerca de 20% dos jogos com 0 min, o resto
+## entre 1 min e 400 h, e uma última vez nos últimos 90 dias.
+static func _spread_playtimes(library: Node, games: Array[SteamGame]) -> void:
+	var minutes: Dictionary = {}
+	var last_played: Dictionary = {}
+	var now := int(Time.get_unix_time_from_system())
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 13
+	for game in games:
+		if rng.randf() < 0.2:
+			minutes[game.app_id] = 0
+		else:
+			minutes[game.app_id] = rng.randi_range(1, 24000)
+			last_played[game.app_id] = now - rng.randi_range(0, 90 * 86400)
+	_apply_playtimes(library, minutes, last_played)
 
 
 ## O arquivo começa como um JPEG? (Alguns da cache da Steam são outra coisa.)
