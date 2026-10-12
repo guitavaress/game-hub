@@ -8,15 +8,15 @@ extends Node3D
 ## O projetor faz um zumbido baixinho, que só se ouve de perto.
 ##
 ## Uso:  var npc := FriendNpc.new();  npc.friend = ficha;  add_child(npc)
+## O corpo é um AvatarBody (Fase 13.6). Com "avatar" (opcional), ele ganha as
+## cores escolhidas pelo amigo, com o holograma por cima.
 ## A origem deste nó fica no chão, no centro do projetor; o amigo olha para +Z.
 ##
 ## Olhar para ele (raio da câmera) mostra "Nome — status" no HUD, pelo mesmo
 ## "contrato" dos portais: o método get_look_label().
 
 const HOLOGRAM_SHADER: Shader = preload("res://components/friend_npc/hologram.gdshader")
-const BODY_SCENE: PackedScene = preload("res://assets/quaternius/animated_human.glb")
 const HUM_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/forceField_000.ogg")
-const IDLE_ANIMATION: String = "Human Armature|Idle"
 ## Altura do corpo (m) e quanto ele flutua acima do projetor.
 const FIGURE_HEIGHT: float = 1.7
 const FIGURE_BASE: float = 0.105  # topo do projetor (0,065) + 4 cm
@@ -39,9 +39,13 @@ var friend: SteamFriend
 ## Mostrar o nome do jogo no rótulo? Na porta do próprio jogo é redundante
 ## (o letreiro do prédio já diz), então lá o rótulo fica só "Jogando agora".
 var show_game_name: bool = true
+## As cores do avatar que o amigo escolheu (V4). null = o holograma de sempre,
+## de uma cor só (a do status).
+var avatar: AvatarSpec
 
-var _avatar: Sprite3D
+var _avatar: Sprite3D  # a FOTO da Steam no lugar do rosto (não é o "avatar" acima)
 var _figure: Node3D
+var _body: AvatarBody
 var _skeleton: Skeleton3D
 var _head_bone: int = -1
 var _phase: float = 0.0
@@ -124,26 +128,23 @@ func _build_figure() -> void:
 	_figure.position.y = FIGURE_BASE
 	add_child(_figure)
 
-	var body := BODY_SCENE.instantiate() as Node3D
-	_figure.add_child(body)
 	var hologram := ShaderMaterial.new()
 	hologram.shader = HOLOGRAM_SHADER
 	hologram.set_shader_parameter("color", _status_color())
-	for node in body.find_children("*", "MeshInstance3D", true, false):
-		var mesh := node as MeshInstance3D
-		mesh.material_override = hologram
-		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-	_skeleton = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	_body = AvatarBody.new()
+	_body.height = FIGURE_HEIGHT
+	_body.cast_shadows = false
+	_body.spec = avatar
+	if avatar == null:
+		_body.override_material = hologram  # só o holograma, como sempre
+	else:
+		_body.overlay_material = hologram  # as cores do amigo, com o holograma por cima
+	_figure.add_child(_body)
+	_skeleton = _body.get_skeleton()
 	_head_bone = _skeleton.find_bone("Head")
-	_fit_body(body)
 
 	# Respirando: a animação Idle, em loop, cada amigo começando num ponto.
-	var player := body.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
-	if player.has_animation(IDLE_ANIMATION):
-		player.get_animation(IDLE_ANIMATION).loop_mode = Animation.LOOP_LINEAR
-		player.play(IDLE_ANIMATION)
-		player.seek(_phase / TAU * player.current_animation_length, true)
+	_body.play_idle(_phase / TAU)
 
 	# Avatar da Steam no lugar do rosto, sempre virado para quem olha.
 	_avatar = Sprite3D.new()
@@ -158,28 +159,6 @@ func _build_figure() -> void:
 		_show_avatar(texture)
 	else:
 		FriendsService.avatar_ready.connect(_on_avatar_ready)
-
-
-## Deixa o corpo com FIGURE_HEIGHT de altura, em pé no chão do _figure e
-## olhando para +Z (o modelo vem noutra escala e virado para o lado).
-func _fit_body(body: Node3D) -> void:
-	var top := _bone_position(_skeleton.find_bone("HeadTop_End"))
-	var foot := _bone_position(_skeleton.find_bone("LeftToe_End"))
-	var height := top.y - minf(foot.y, _figure.global_position.y)
-	if height > 0.01:
-		body.scale *= FIGURE_HEIGHT / height
-	# Frente = do braço direito para o esquerdo, girado 90° (esquerda x cima).
-	var left := _bone_position(_skeleton.find_bone("LeftArm"))
-	var right := _bone_position(_skeleton.find_bone("RightArm"))
-	var forward := (left - right).cross(Vector3.UP)
-	forward.y = 0.0
-	if forward.length() > 0.001:
-		var local_forward := global_basis.inverse() * forward.normalized()
-		body.rotation.y -= atan2(local_forward.x, local_forward.z)
-
-
-func _bone_position(bone: int) -> Vector3:
-	return (_skeleton.global_transform * _skeleton.get_bone_global_rest(bone)).origin
 
 
 ## Nome e status sobre uma plaquinha escura, sempre virados para quem olha.
