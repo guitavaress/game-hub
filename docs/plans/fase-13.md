@@ -292,7 +292,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_holograms` e `check_phase5` passam sem mudança.
   - Manual: na praça, os hologramas dos amigos estão iguais.
   - Commit: `Fase 13.6: avatar como dado e corpo`
-- [x] **13.7 O quadro de estatísticas** (Sonnet · medium) — HASH
+- [x] **13.7 O quadro de estatísticas** (Sonnet · medium) — ff810c0
   - Faz: `StatsWall` (moldura, título, total, top 5 com barras, por bairro nas cores do bairro, último jogado com capa e as três mensagens), na âncora da disposição, atualizando no `HubWindow.woke_up`.
   - Arquivos:
     - novo: `worlds/home/stats_wall.gd`;
