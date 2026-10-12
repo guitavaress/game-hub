@@ -43,6 +43,9 @@ const WINDOW_CENTER_Y: float = 1.65
 var _profile: HomeProfile
 ## As peças da casca (filhos diretos da casa), para refazer ao trocar de tema.
 var _shell_nodes: Array[Node] = []
+## Cores escolhidas pelo usuário (transparente = a do tema).
+var _wall_override: Color = Color(0, 0, 0, 0)
+var _neon_override: Color = Color(0, 0, 0, 0)
 var _environment: Environment
 var _front_door: TravelDoor
 var _window_material: ShaderMaterial
@@ -56,7 +59,7 @@ func _ready() -> void:
 	# O mundo avisa a hora pelo grupo city_night (set_night): a janela e a luz
 	# do dia acompanham.
 	add_to_group("city_night")
-	_profile = Profiles.home("")
+	_read_choices()
 	_build_environment()
 	_build_front_door()
 	_build_shell()
@@ -112,10 +115,9 @@ func get_profile() -> HomeProfile:
 func _build_environment() -> void:
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_COLOR
-	_environment.background_color = _profile.background_color
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	_environment.ambient_light_color = _profile.ambient_night_color
 	_environment.ambient_light_energy = 0.35
+	_apply_profile_to_environment()
 	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	_environment.tonemap_mode = Environment.TONE_MAPPER_AGX
 	_environment.glow_enabled = true
@@ -125,9 +127,59 @@ func _build_environment() -> void:
 	AppConfig.settings_changed.connect(_on_settings_changed)
 
 
+## Fundo e luz ambiente do tema (a hora lá fora acerta o resto em set_night).
+func _apply_profile_to_environment() -> void:
+	_environment.background_color = _profile.background_color
+	_environment.ambient_light_color = _profile.ambient_night_color
+
+
+## Lê do config.cfg o tema e as cores escolhidas. Tema desconhecido cai no padrão.
+func _read_choices() -> void:
+	_profile = Profiles.home(AppConfig.get_home_theme())
+	_wall_override = _parse_color(AppConfig.get_home_wall_color())
+	_neon_override = _parse_color(AppConfig.get_home_neon_color())
+
+
+## "#rrggbb" vira cor; vazio ou inválido vira transparente (= a do tema).
+func _parse_color(html: String) -> Color:
+	if html.is_empty() or not html.is_valid_html_color():
+		return Color(0, 0, 0, 0)
+	return Color.html(html)
+
+
+## Algo do config.cfg mudou ([home]): refaz só a casca, na hora. Os móveis, a
+## porta que funciona e a área "em casa" ficam onde estão (quem está olhando
+## o computador continua olhando).
+func _apply_choices() -> void:
+	_read_choices()
+	for node in _shell_nodes:
+		if is_instance_valid(node):
+			remove_child(node)  # sai já, para os nomes novos não ganharem "@"
+			node.queue_free()
+	_shell_nodes.clear()
+	_window_material = null
+	_daylight = null
+	_apply_profile_to_environment()
+	_build_shell()
+	for node in _shell_nodes:
+		_put_on_interior_layer(node)
+	set_night(_night)
+
+
+## A superfície vira material; a cor de parede escolhida pinta as "paintable".
+func _material_of(surface: HomeSurface) -> Material:
+	return HomeMaterials.from_surface(surface, _wall_override if surface.paintable else Color(0, 0, 0, 0))
+
+
+func _neon_color() -> Color:
+	return _neon_override if _neon_override.a > 0.0 else _profile.neon_color
+
+
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality":
 		_apply_quality()
+	elif section == "home":
+		_apply_choices()
 
 
 ## A qualidade gráfica vale aqui também. Névoa volumétrica, não: dentro de
@@ -160,23 +212,23 @@ func _build_room() -> void:
 	var h := ROOM_SIZE.y
 	var d := ROOM_SIZE.z
 	var t := WALL_THICKNESS
-	_add_box("Floor", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, -t / 2.0, 0.0), HomeMaterials.from_surface(_profile.floor))
-	_add_box("Ceiling", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, h + t / 2.0, 0.0), HomeMaterials.from_surface(_profile.ceiling))
-	var walls := HomeMaterials.from_surface(_profile.walls)
-	_add_box("WallNorth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, -d / 2.0 - t / 2.0), HomeMaterials.from_surface(_profile.feature_wall))
+	_add_box("Floor", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, -t / 2.0, 0.0), _material_of(_profile.floor))
+	_add_box("Ceiling", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, h + t / 2.0, 0.0), _material_of(_profile.ceiling))
+	var walls := _material_of(_profile.walls)
+	_add_box("WallNorth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, -d / 2.0 - t / 2.0), _material_of(_profile.feature_wall))
 	_add_box("WallSouth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, d / 2.0 + t / 2.0), walls)
 	_add_box("WallWest", Vector3(t, h, d), Vector3(-w / 2.0 - t / 2.0, h / 2.0, 0.0), walls)
 	_add_box("WallEast", Vector3(t, h, d), Vector3(w / 2.0 + t / 2.0, h / 2.0, 0.0), walls)
 
 	# Rodapé nas três paredes comuns.
-	var skirting := HomeMaterials.from_surface(_profile.skirting)
+	var skirting := _material_of(_profile.skirting)
 	_add_box("SkirtingSouth", Vector3(w, 0.1, 0.02), Vector3(0.0, 0.05, d / 2.0 - 0.01), skirting, false)
 	_add_box("SkirtingWest", Vector3(0.02, 0.1, d), Vector3(-w / 2.0 + 0.01, 0.05, 0.0), skirting, false)
 	_add_box("SkirtingEast", Vector3(0.02, 0.1, d), Vector3(w / 2.0 - 0.01, 0.05, 0.0), skirting, false)
 
 	# Vigas no teto, de leste a oeste (se o tema tiver).
 	if _profile.beams != null:
-		var beams := HomeMaterials.from_surface(_profile.beams)
+		var beams := _material_of(_profile.beams)
 		for z in [-d / 3.0, 0.0, d / 3.0]:
 			_add_box("Beam", Vector3(w, 0.22, 0.16), Vector3(0.0, h - 0.11, z), beams, false)
 
@@ -198,7 +250,7 @@ func _build_window() -> void:
 	glass.position = Vector3(0.0, WINDOW_CENTER_Y, inner_z + 0.01)
 	add_child(glass)
 
-	var steel := HomeMaterials.from_surface(_profile.window_frame)
+	var steel := _material_of(_profile.window_frame)
 	var half := WINDOW_SIZE / 2.0
 	var bar := 0.06
 	var depth := 0.06
@@ -211,7 +263,7 @@ func _build_window() -> void:
 		_add_box("WindowPost", Vector3(bar, WINDOW_SIZE.y, depth), Vector3(x, WINDOW_CENTER_Y, z), steel, false)
 	# Peitoril embaixo.
 	_add_box("WindowSill", Vector3(WINDOW_SIZE.x + 0.3, 0.06, 0.22),
-			Vector3(0.0, WINDOW_CENTER_Y - half.y - 0.03, inner_z + 0.11), HomeMaterials.from_surface(_profile.window_sill))
+			Vector3(0.0, WINDOW_CENTER_Y - half.y - 0.03, inner_z + 0.11), _material_of(_profile.window_sill))
 
 	_daylight = SpotLight3D.new()
 	_daylight.name = "Daylight"
@@ -242,12 +294,12 @@ func _build_front_door() -> void:
 ## quente em cima (a saída fica fácil de achar).
 func _build_door_look() -> void:
 	var z := ROOM_SIZE.z / 2.0
-	_add_box("DoorPanel", Vector3(1.1, 2.2, 0.06), Vector3(0.0, 1.1, z - 0.03), HomeMaterials.from_surface(_profile.door), false)
-	var frame := HomeMaterials.from_surface(_profile.door_frame)
+	_add_box("DoorPanel", Vector3(1.1, 2.2, 0.06), Vector3(0.0, 1.1, z - 0.03), _material_of(_profile.door), false)
+	var frame := _material_of(_profile.door_frame)
 	for x in [-0.6, 0.6]:
 		_add_box("DoorJamb", Vector3(0.1, 2.3, 0.1), Vector3(x, 1.15, z - 0.05), frame, false)
 	_add_box("DoorHead", Vector3(1.3, 0.1, 0.1), Vector3(0.0, 2.3, z - 0.05), frame, false)
-	_add_box("DoorHandle", Vector3(0.12, 0.03, 0.05), Vector3(-0.4, 1.0, z - 0.09), HomeMaterials.from_surface(_profile.door_handle), false)
+	_add_box("DoorHandle", Vector3(0.12, 0.03, 0.05), Vector3(-0.4, 1.0, z - 0.09), _material_of(_profile.door_handle), false)
 	_add_box("DoorSconce", Vector3(0.36, 0.08, 0.1), Vector3(0.0, 2.55, z - 0.05), HomeMaterials.glow(_profile.lamp_color, 4.0), false)
 	var sconce := OmniLight3D.new()
 	sconce.name = "DoorLight"
@@ -281,10 +333,10 @@ func _add_neon() -> void:
 	var y := ROOM_SIZE.y - 0.32
 	for side in [-1.0, 1.0]:
 		var x: float = side * (ROOM_SIZE.x / 2.0 - 0.04)
-		_add_box("NeonStrip", Vector3(0.03, 0.03, ROOM_SIZE.z - 1.0), Vector3(x, y, 0.0), HomeMaterials.glow(_profile.neon_color, _profile.neon_energy), false)
+		_add_box("NeonStrip", Vector3(0.03, 0.03, ROOM_SIZE.z - 1.0), Vector3(x, y, 0.0), HomeMaterials.glow(_neon_color(), _profile.neon_energy), false)
 		var light := OmniLight3D.new()
 		light.name = "NeonLight"
-		light.light_color = _profile.neon_color
+		light.light_color = _neon_color()
 		light.light_energy = _profile.neon_light_energy
 		light.omni_range = 4.5
 		light.position = Vector3(x - side * 0.4, y - 0.2, 0.0)

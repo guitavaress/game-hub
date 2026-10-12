@@ -229,7 +229,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_home`, `check_home_start`, `check_shelf`, `check_friends_wall` e `check_screen_3d` passam sem mudança.
   - Manual: F5. O loft está igual ao de antes (de noite e de dia, F8).
   - Commit: `Fase 13.2: a casa lê o perfil do tema`
-- [ ] **13.3 Escolhas da casa no config e troca na hora** (Sonnet · medium; Opus se a troca com foco teimar)
+- [x] **13.3 Escolhas da casa no config e troca na hora** (Sonnet · medium; Opus se a troca com foco teimar) — HASH
   - Faz:
     - seção `[home]` no `AppConfig` (`theme`, `layout`, `wall_color`, `neon_color`), com `get_`/`set_` e `settings_changed`;
     - a `Home` ouve e aplica: refaz a `Shell` no tema novo e pinta as superfícies `paintable` e o néon.
@@ -258,7 +258,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - trocar a disposição em jogo move os móveis.
   - Manual: `layout="espelhada"` no `config.cfg`: a estante aparece a leste.
   - Commit: `Fase 13.4: posições prontas dos móveis`
-- [ ] **13.5 Estatísticas: os números** (Sonnet · medium) — *trilha paralela, janela 1*
+- [x] **13.5 Estatísticas: os números** (Sonnet · medium) — *trilha paralela, janela 1* — b40c405, junta em a431f9a
   - Faz: `LibraryStats` (total, top 5, por bairro com horas e quantidade de jogos, último jogado, "horas conhecidas?"), só com jogos instalados.
   - Arquivos:
     - novo: `components/library_stats/library_stats.gd`;
@@ -415,6 +415,9 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12 (13.2): **a casca não é um nó contêiner.** As peças do tema continuam filhas diretas da `Home` (o `check_home` pega `WindowView` e `Daylight` por nome), e a lista `_shell_nodes` guarda quais são casca, para a 13.3 refazer. Pelo mesmo motivo, o `HomeDecor` não é um nó: é um `RefCounted` que põe as peças na casa (`target`).
 - 2026-10-12 (13.2): o perfil ganhou o grupo **Porta** (`door`, `door_frame`, `door_handle`): a aparência da porta da rua é da casca, e a `TravelDoor` (a que funciona) fica fora dela e não é refeita. Os pendentes foram para o enfeite do loft (`loft_decor.gd`); o néon e a arandela da porta ficaram na casca, lidos do perfil. O `HomeDecor.make_box` é a peça comum da casa, dos enfeites e da mesa do computador (a mesa continua sem marca de passos).
 - 2026-10-12 (13.2): o retrato regravado com a casa nova saiu **idêntico** ao de antes (120 linhas). A varredura de ids lê 96 scripts e pula `profiles/`, `tests/`, `tools/` e `assets/`.
+
+- 2026-10-12 (13.3): `Home._apply_choices()` refaz só a casca: tira as peças da lista `_shell_nodes` (com `remove_child` antes do `queue_free`, para os nomes novos não ganharem "@"), reaplica fundo e luz ambiente no **mesmo** `Environment` (o jogador guarda a referência) e põe as peças novas na camada do interior. Móveis, porta que funciona e área "em casa" não são tocados, e a troca com o foco no computador não mexe na câmera (teste). Cor de parede inválida vale como "do tema". A seção `[home]` já traz `layout`, que só passa a valer na 13.4.
+- 2026-10-12: a 13.5 (crystal-oak, `b40c405`) foi junta antes da 13.3; só tocou arquivos próprios e a bateria passou.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

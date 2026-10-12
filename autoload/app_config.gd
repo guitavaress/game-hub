@@ -94,6 +94,20 @@ fov=75
 stick_sensitivity=1.0
 """
 
+## Seção da casa (Fase 13.3), acrescentada do mesmo jeito.
+const HOME_SECTION_TEXT: String = """
+[home]
+
+; Tema da casa: o id de um tema (vazio = o padrão). Os temas ficam em
+; profiles/homes/ e na lista de profiles/home_catalog.tres.
+theme=""
+; Posição dos móveis: vazio = a padrão (as disposições vêm na Fase 13.4).
+layout=""
+; Cor das paredes e do néon, como "#rrggbb". Vazio = a cor do tema.
+wall_color=""
+neon_color=""
+"""
+
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
 ## acrescentada no fim.
 const ADDED_SECTIONS: Dictionary[String, String] = {
@@ -102,6 +116,7 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"video": VIDEO_SECTION_TEXT,
 	"window": WINDOW_SECTION_TEXT,
 	"controls": CONTROLS_SECTION_TEXT,
+	"home": HOME_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
@@ -290,6 +305,42 @@ func get_seen_controls_hint() -> bool:
 
 func set_seen_controls_hint(seen: bool) -> void:
 	_set_option("ui", "seen_controls_hint", seen)
+
+
+## A casa (seção [home], Fase 13.3). O AppConfig guarda só os textos: quem sabe
+## o que é "loft" ou "espelhada" é o Profiles. "" = o padrão do tema.
+func get_home_theme() -> String:
+	return str(_config.get_value("home", "theme", "")).strip_edges().to_lower()
+
+
+func set_home_theme(id: String) -> void:
+	_set_option("home", "theme", id.strip_edges().to_lower())
+
+
+func get_home_layout() -> String:
+	return str(_config.get_value("home", "layout", "")).strip_edges().to_lower()
+
+
+func set_home_layout(id: String) -> void:
+	_set_option("home", "layout", id.strip_edges().to_lower())
+
+
+## Cor das paredes escolhida ("#rrggbb"), ou "" = a do tema.
+func get_home_wall_color() -> String:
+	return str(_config.get_value("home", "wall_color", "")).strip_edges()
+
+
+func set_home_wall_color(html: String) -> void:
+	_set_option("home", "wall_color", html.strip_edges())
+
+
+## Cor do néon escolhida ("#rrggbb"), ou "" = a do tema.
+func get_home_neon_color() -> String:
+	return str(_config.get_value("home", "neon_color", "")).strip_edges()
+
+
+func set_home_neon_color(html: String) -> void:
+	_set_option("home", "neon_color", html.strip_edges())
 
 
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
