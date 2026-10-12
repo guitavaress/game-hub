@@ -196,7 +196,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - [x] **13.0 Plano** (Opus · high)
   - Faz: cria a branch `fase-13` a partir da `fase-linux` e grava este plano. O `project.godot` modificado no checkout (o editor reordenando as ações `ui_*`) ficou fora do commit.
   - Commit: `Fase 13.0: plano`
-- [ ] **13.1 Retrato da casa e o formato do perfil** (Sonnet · medium)
+- [x] **13.1 Retrato da casa e o formato do perfil** (Sonnet · medium) — HASH
   - Faz:
     - `tools/retrato_casa.gd` grava `tests/fixtures/casa_atual.json` (rodado uma vez, sobre o código de hoje; duas rodadas devem dar arquivos iguais);
     - cria `HomeSurface`, `HomeProfile`, `HomeLayout` e `HomeCatalog`;
@@ -410,6 +410,8 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 
 ## Decisões tomadas durante a fase
 - 2026-10-12: plano aprovado (dono).
+- 2026-10-12 (13.1): o retrato (`tests/fixtures/casa_atual.json`, 120 linhas) é gerado por `tests/home_snapshot.gd`, que o teste da 13.2 reaproveita. Fica fora dele a estante e o mural (dependem da biblioteca e dos amigos). Nomes de nó repetidos (`@MeshInstance3D@N`) viram "auto", porque o número muda com a ordem de criação. O retrato foi gravado à noite (luz do dia com força 0).
+- 2026-10-12 (13.1): o catálogo já traz as paletas de cor (8 de parede, 8 de néon); as disposições (`layouts`) ficam vazias até a 13.4, e `Profiles.home_layout` devolve null enquanto isso. `tools/gerar_perfis_casa.gd` lê as constantes do `home.gd` e só funciona antes da 13.2.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
