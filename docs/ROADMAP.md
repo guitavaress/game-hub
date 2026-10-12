@@ -24,11 +24,11 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | Versão | O que é | Situação |
 |---|---|---|
 | **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
-| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🟡 primeiro passo feito na [Fase 9](#fase-9-a-casa); avatar e casa personalizável em [Depois](#depois) |
-| **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](#fase-7-world-profile); biomas em [Depois](#depois) |
-| **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔭 horizonte |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)) + 🔭 horizonte (desktop) |
-| **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔭 horizonte |
+| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🟡 primeiro passo feito na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](#fase-13-casa-parte-2) |
+| **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
+| **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
+| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); primeiro passo de desktop na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
+| **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔜 perfis do usuário (local) na [Fase 18](#fase-18-mundos-abertos); compartilhamento e loja no [Horizonte](#horizonte-sem-compromisso) |
 
 ## O que já foi feito
 
@@ -135,20 +135,131 @@ Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O de
 
 **Falta:** a conferência à mão no Windows (checklist no fim do plano). A bateria passa inteira no Linux (25 testes), com Balatro, Skyrim, Valheim e Stardew instalados, e o GitHub Actions já confere o backend do Windows (`reg.exe` e `tasklist` de verdade); falta abrir um jogo de verdade e ver a janela.
 
+### A ordem a partir da Fase 13
+
+Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeon 610M, qualidade Leve); o **desktop** (RTX 4070, Windows e Linux) é a régua de desempenho e de visual. Por isso vêm primeiro as fases que rodam bem no notebook (13 e 14), depois os biomas, que pedem o desktop para o visual final. O que só o desktop responde fica numa trilha à parte.
+
+| Fase | Nome | Versão | Onde dá para fazer |
+|---|---|---|---|
+| [13](#fase-13-casa-parte-2) | Casa, parte 2 | V2 | notebook ✅ |
+| [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy | V5 | notebook ✅ (é o lugar ideal) |
+| [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
+| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha | V3 | notebook (Leve) + desktop (Alta) |
+| [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
+| [17](#fase-17-visitar-a-cidade-de-um-amigo) | Visitar a cidade de um amigo | V4 (sem servidor) | notebook ✅ |
+| [18](#fase-18-mundos-abertos) | Mundos abertos | V6 (local) | notebook ✅ |
+
+Cada fase ganha o seu `docs/plans/fase-N.md` (Opus, modo plan, aprovado) só quando começar.
+
+### Fase 13: Casa, parte 2
+
+**Versão:** V2. **Onde testar:** notebook ✅.
+
+**Objetivo:** a casa vira "sua": dá para mudar, mostra a sua história de jogador e você ganha um rosto.
+
+**Entregas:**
+- **Estatísticas na parede:** horas totais, os mais jogados, horas por bairro e o jogado mais recente (dados que o `SteamLibrary` já lê do `localconfig.vdf`).
+- **Temas da casa como dado** (regra 4): um `HomeProfile` (`.tres`) com materiais, cores, luzes e móveis. O loft atual vira o primeiro perfil, e entra um segundo tema (cabana). A troca é pelo computador da casa.
+- **Personalizar:** cor das paredes, do néon e posições prontas de móveis (lugares fixos, sem arrastar livre).
+- **Avatar:** escolher a aparência (o modelo da Quaternius que já está no projeto, com cores) e vê-la num espelho na casa. É a mesma figura que os amigos verão na V4.
+
+**Pronto quando:** trocar de loft para cabana pelo computador muda a casa na hora, sem código novo por tema; a parede mostra as estatísticas reais; o espelho mostra o avatar escolhido, que fica salvo no `config.cfg`.
+
+### Fase 14: O hub no Omarchy
+
+**Versão:** V5 (primeiro passo de desktop). **Onde testar:** notebook ✅ (é o lugar ideal).
+
+**Objetivo:** o hub começa a ser parte do desktop no Linux, e não só um launcher da Steam.
+
+**Entregas:**
+- **Apps além da Steam:** os programas instalados (arquivos `.desktop` no Linux; atalhos do Menu Iniciar no Windows) viram portais, num bairro "Apps" ou numa estante de apps na casa. Abrir um app usa o mesmo fluxo de "Abrindo" e de voltar.
+- **Sistema dentro da casa:** relógio real, bateria, rede e volume num painel físico (uma parede ou o computador).
+- **Iniciar com o sistema e atalho global:** entrada de autostart e um atalho do Hyprland para chamar o hub.
+- Tudo de sistema operacional só em `autoload/platform/` (regra 5), com o backend do Windows mínimo (só a lista de apps).
+
+**Pronto quando:** no notebook, abrir o Firefox ou o terminal pelo hub funciona como abrir um jogo (o hub some e volta), e a casa mostra a bateria certa.
+
+### Trilha do desktop
+
+**Versão:** todas. **Onde testar:** só no desktop, a partir de 18/10/2026, entre duas fases (sem número fixo).
+
+**Objetivo:** fazer tudo o que só o desktop responde e juntar o trabalho na `main`.
+
+**Entregas:**
+- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12) e ouvir os sons da Fase 11.
+- **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
+- Juntar a `fase-linux` na `main`, se o dono pedir.
+
+**Quando começar:** ganha o próximo número livre e um plano curto.
+
+### Fase 15: Primeiro bioma, o bairro RPG na montanha
+
+**Versão:** V3. **Onde testar:** notebook (Leve) + desktop (Alta).
+
+**Objetivo:** provar a ideia "a biblioteca decide o mundo" com um bioma só (antigo P3.27), feito nos quarteirões do próprio bairro, no mesmo mapa da cidade (não é um mundo separado).
+
+**Entregas:**
+- O perfil do bairro ganha um **bioma** (dado): chão (neve e pedra no lugar do asfalto), invólucro dos portais (o arco de pedra, que já existe), enfeites espalhados (pinheiros e rochas), clima (neve, reaproveitando a garoa), névoa e som.
+- Morros de fundo e uma subida no setor do bairro (terreno simples, feito por código), sem quebrar ruas, metrô e minimapa.
+- A cidade continua igual nos outros bairros.
+
+**Risco a decidir no plano:** hoje os quarteirões de um bairro seguem os anéis em volta da praça (um arco, e não uma área compacta). O plano decide se o layout passa a agrupar o bairro num setor contíguo.
+
+**Assets:** pinheiro e rocha CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
+
+**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela, e a medida no notebook (Leve) não piora mais de ~3 FPS.
+
+### Fase 16: Biomas pela biblioteca
+
+**Versão:** V3. **Onde testar:** notebook (Leve) + desktop (Alta).
+
+**Objetivo:** cada categoria pode ter o seu bioma, e o que você joga molda o lugar.
+
+**Entregas:**
+- Um tipo de bioma genérico (`BiomeSpec`) com 3 ou 4 biomas além da montanha (floresta, pista e garagens, neblina e abandono), escolhidos pelo perfil de cada bairro. "Cidade" continua sendo o padrão.
+- O bioma reage à biblioteca: o tamanho e o marco do bairro crescem com as horas jogadas, e os jogos mais jogados ficam no ponto mais alto ou mais central.
+- Escolher o bioma de um bairro pelo `config.cfg` (como já se escolhe o bairro de um jogo).
+
+**Pronto quando:** criar um bioma novo é escrever um perfil, sem mexer em código da cidade (como a Fase 7 fez com os bairros).
+
+### Fase 17: Visitar a cidade de um amigo
+
+**Versão:** V4, sem servidor. **Onde testar:** notebook ✅.
+
+**Objetivo:** o primeiro passo de "visitar o mundo dos amigos", com custo zero.
+
+**Entregas:**
+- Ler a biblioteca **pública** de um amigo pela Steam Web API (`GetOwnedGames`, com a mesma chave já configurada).
+- A cidade passa a ser montada a partir de uma "fonte de biblioteca" (a sua ou a de um amigo), e não direto do `SteamLibrary`.
+- No mural da casa, "Visitar a cidade de Ana": a tela escurece e você anda na cidade dela, com os bairros e biomas que a biblioteca dela gera. Portas de jogos que você não tem mostram "Ver na loja" em vez de abrir.
+- O amigo aparece como o holograma de sempre (com o avatar da Steam) na praça da cidade dele. O avatar escolhido na Fase 13 só chega aos outros com servidor (V4 ao vivo, no Horizonte).
+
+**Pronto quando:** com um amigo de perfil público, dá para visitar a cidade dele e voltar para casa, sem nenhuma conta ou servidor novo.
+
+### Fase 18: Mundos abertos
+
+**Versão:** V6, primeiro passo (local). **Onde testar:** notebook ✅.
+
+**Objetivo:** o usuário cria bairros, biomas e casas sem programar, com **perfis do usuário**.
+
+**Entregas:**
+- Uma pasta de perfis do usuário em `user://` (bairros, biomas e temas de casa), lida junto com os do projeto.
+- Formato documentado, com validação e aviso amigável de erro.
+- Um exemplo pronto e um guia curto no README.
+
+**Pronto quando:** copiar um perfil de bioma para a pasta do usuário e reabrir o hub faz o bioma aparecer, sem tocar no projeto.
+
 ## Depois
 
-- **Casa, parte 2:** avatar visível, personalizar a casa (mover móveis, trocar cores), outros temas (cabana...) e estatísticas na parede.
-
-- **Primeiro bioma** (antigo P3.27): uma montanha de gelo, com HDRI próprio, terreno e o mesmo HUD. Usa o World Profile.
-- **Biomas gerados por código** a partir da biblioteca: RPG vira floresta ou castelo, corrida vira pista e garagens, terror vira neblina e abandono.
+Vazio: em 2026-10-12, tudo o que estava aqui virou fase (13 a 18).
 
 ## Horizonte (sem compromisso)
 
 Ideias guardadas para não se perderem. Nada aqui está planejado.
 
-- **Multiplayer e visitas** (V4): visitar o mundo dos amigos. É o primeiro item com **custo de servidor**.
-- **Desktop no Hyprland** (V5): o hub como ambiente de desktop no Linux.
-- **Plataforma e comunidade** (V6): mundos, biomas e enfeites criados por usuários; loja.
+- **V4 ao vivo:** ver o amigo andando na cidade, com o avatar que ele escolheu, e eventos. É o primeiro item com **custo de servidor**. A visita sem servidor é a [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo).
+- **V5 completo:** o hub como a sessão inteira do Hyprland, e não um programa dentro dela. O primeiro passo é a [Fase 14](#fase-14-o-hub-no-omarchy).
+- **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários, trocados entre eles. O primeiro passo, local, é a [Fase 18](#fase-18-mundos-abertos).
 - **Veículos**, em degraus do mais simples ao mais caro:
   1. carros decorativos seguindo caminhos;
   2. dirigir um veículo simples;
@@ -162,6 +273,7 @@ Ideias guardadas para não se perderem. Nada aqui está planejado.
 - **Engine: seguir na Godot.** O hub fica aberto junto com os jogos, então ser leve é requisito. A Unreal 5 só entraria se o foco visual ou procedural justificar, e o World Profile em dados mantém essa porta aberta.
 - **Sem protótipo paralelo agora** (Astra, web 3D...). Ele dividiria o esforço antes de a experiência atual estar validada.
 - **Monetização depois.** Primeiro, validar que o hub continua divertido depois que passa a novidade.
+- **Ordem das fases 13 a 18** (2026-10-12): a V2 vem primeiro (Casa, parte 2); **o bairro vira o bioma**, nos quarteirões do próprio bairro e no mesmo mapa da cidade; e a **V4 começa sem servidor**, visitando a cidade gerada da biblioteca pública de um amigo.
 
 ## Regras que já valem
 
