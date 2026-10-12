@@ -101,7 +101,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Manual: capturas dos cinco, antes e depois, em 720p e 1440p.
   - Commit: `Fase 12.2: tema nos painéis`
 
-- [ ] **12.3 Tema no HUD e nas telas cheias** (Sonnet · medium)
+- [x] **12.3 Tema no HUD e nas telas cheias** (Sonnet · medium) — fb47845
   - Faz: o HUD (`ui/hud.gd`: cartão do que se olha, bússola, moldura do minimapa), o título do bairro (`ui/district_title.gd`), a carga da porta (`ui/door_charge.gd`, só o texto), a tela "Abrindo"/"Jogando" (`ui/game_screen.gd`) e o splash (`ui/splash_screen.gd`) passam a usar o tema. Os números grandes viram as constantes de tela cheia do `HubTheme`.
   - Teste: o `check_theme` cobre essas telas. `check_look_card`, `check_compass`, `check_door_charge`, `check_session_summary`, `check_home_start` e `check_transitions` passam.
   - Manual: capturas da tela "Abrindo", do cartão do prédio, do título do bairro e da carga da porta.
@@ -220,6 +220,9 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - A tela do computador usa o painel forte sem transparência (`HubScreen`). O "Leve" escolhido continua apagado na tela 3D, como antes (é o brilho do 3D, não o tema).
 - 2026-10-11: **correção fora do plano** (7bd7867). Com uma chave salva, os amigos de verdade entram na praça; com mais de 10 online, a segunda volta da roda punha um holograma na saída da estação Central (o `check_metro` acusou). Os amigos agora desviam da calçada da estação e da chegada da porta "Casa". Os testes que usam amigos falsos ou andam pela praça chamam `tests/quiet_friends.gd`, e as esperas pela rede do `check_phase5` contam tempo.
 - 2026-10-11 (12.2): o tema ganhou `HubRow`/`HubRowSelected` (linha escolhida das listas), `HubToast*` (a barrinha da cor do tipo) e `HubOverline*` (rótulo do aviso). A cor que vem de dado (o neon do bairro na busca) passa por `HubTheme.tint`, que marca o texto; o `check_theme` aceita só essa exceção. O painel dos avisos passou de 78% para 85% de opacidade e o da busca e do metrô de 92% para 94% (as duas cores do tema). O cartão de controles ficou com margens um pouco menores.
+- 2026-10-12 (12.3): o tema ganhou `HubCard` (cartão do que se olha), `HubPlate` (plaquinha da carga da porta), `HubHeading`, `HubTitleSmall`, `HubDisplay`/`HubDisplaySub` (título do bairro, com sombra) e `HubFs*` (os textos enormes das telas cheias: 104, 96, 72, 52 e 24 px, constantes nomeadas `SIZE_FULLSCREEN_*`). O `check_theme` aceita esses tamanhos só nessas variações; fora delas, só os 5. A bússola, que desenha por código, usa as constantes do tema (cor do painel, raio e os tamanhos 14 e 16: as letras pequenas passaram de 12 para 14 px).
+  - O nome no cartão do que se olha passou de 26 para 28 px, e a linha de amigos e a dica, de 15 para 14 e 16 px.
+  - A plaquinha da carga da porta passou de 62% para 85% de opacidade (a cor de painel do tema).
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**, com o controle Xbox ligado:
