@@ -21,7 +21,7 @@ static func from_surface(surface: HomeSurface, color: Color = Color(0, 0, 0, 0))
 	var tint := color if color.a > 0.0 else surface.color
 	match surface.kind:
 		"wood":
-			return wood(tint, surface.planks, surface.roughness)
+			return wood(tint, surface.planks, surface.roughness, surface.logs)
 		"pbr":
 			return pbr(surface.folder, surface.meters, tint)
 		"metal":
@@ -32,8 +32,11 @@ static func from_surface(surface: HomeSurface, color: Color = Color(0, 0, 0, 0))
 
 
 ## Madeira: "planks" = tábuas com fresta (o piso); sem fresta para móveis.
-static func wood(color: Color, planks: bool = false, roughness: float = 0.5) -> ShaderMaterial:
+## "logs" = toras deitadas (paredes de cabana): largas, compridas e redondas.
+static func wood(color: Color, planks: bool = false, roughness: float = 0.5, logs: bool = false) -> ShaderMaterial:
 	var key := "wood|%s|%s|%.2f" % [color.to_html(), planks, roughness]
+	if logs:
+		key += "|toras"
 	if not _cache.has(key):
 		var material := ShaderMaterial.new()
 		material.shader = WOOD_SHADER
@@ -45,6 +48,14 @@ static func wood(color: Color, planks: bool = false, roughness: float = 0.5) -> 
 			material.set_shader_parameter("plank_width", 0.5)
 			material.set_shader_parameter("plank_length", 4.0)
 			material.set_shader_parameter("variation", 0.05)
+		if logs:
+			# Só aqui o parâmetro é posto: o loft continua sem ele (o retrato não muda).
+			material.set_shader_parameter("planks", true)
+			material.set_shader_parameter("plank_width", 0.26)
+			material.set_shader_parameter("plank_length", 30.0)
+			material.set_shader_parameter("gap", 0.012)
+			material.set_shader_parameter("variation", 0.1)
+			material.set_shader_parameter("log_round", 1.0)
 		_cache[key] = material
 	return _cache[key]
 

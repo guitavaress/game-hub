@@ -7,6 +7,10 @@ Cria, nesta mesma pasta:
   - metro_ride.wav     viagem de metrô (3 s): ronco grave + "tac-tac" dos trilhos
   - city_bed.wav       fundo da cidade (12 s, emenda sem "pulo"): vento grave +
                        rumor de trânsito distante que sobe e desce
+  - fire_crackle.wav   lareira da cabana (6 s, emenda sem "pulo"): chiado
+                       baixo do fogo + estalos da lenha (Fase 13.12)
+
+Para gerar só alguns:  python assets/generated/make_sounds.py fire_crackle.wav
 
 Só usa a biblioteca padrão do Python (wave, math, random).
 Estes sons foram feitos para o Game Hub e são CC0 (domínio público).
@@ -16,6 +20,7 @@ import math
 import os
 import random
 import struct
+import sys
 import wave
 
 RATE = 22050
@@ -138,9 +143,58 @@ def city_bed(seconds=12.0):
     return [s * 0.7 / peak for s in samples]
 
 
+def fire_crackle(seconds=6.0):
+    """Lareira: um chiado baixo e abafado (o fogo) e estalos da lenha, curtos
+    e secos, em momentos sorteados; de vez em quando um estalo maior. A emenda
+    é misturada como no vento, e nenhum estalo cai no trecho da emenda."""
+    random.seed(31)
+    count = int(seconds * RATE)
+    fade = int(0.5 * RATE)
+    samples = []
+    value = 0.0
+    smooth = 0.0
+    for i in range(count):
+        value = (value + random.uniform(-0.02, 0.02)) * 0.995
+        smooth += (value - smooth) * 0.12
+        t = i / RATE
+        breath = 0.7 + 0.3 * math.sin(2 * math.pi * 2 * t / seconds + 0.5)
+        samples.append(smooth * breath * 1.6)
+    # Estalos: um ruído agudo que some em poucos milésimos (os grandes, mais longos).
+    pops = []
+    t = 0.05
+    while t < seconds - 0.6:
+        pops.append((t, random.random() < 0.15))
+        t += random.uniform(0.04, 0.45)
+    for start, big in pops:
+        length = int((0.05 if big else 0.018) * RATE)
+        decay = 90.0 if big else 260.0
+        strength = random.uniform(0.6, 1.0) * (1.0 if big else 0.55)
+        tone = random.uniform(1800, 3800)
+        first = int(start * RATE)
+        for k in range(length):
+            if first + k >= count:
+                break
+            kt = k / RATE
+            hiss = random.uniform(-1.0, 1.0) * 0.7 + math.sin(2 * math.pi * tone * kt) * 0.3
+            samples[first + k] += hiss * math.exp(-kt * decay) * strength
+    for i in range(fade):
+        w = i / fade
+        samples[i] = samples[i] * w + samples[count - fade + i] * (1 - w)
+    samples = samples[: count - fade]
+    peak = max(abs(s) for s in samples)
+    return [s * 0.7 / peak for s in samples]
+
+
+SOUNDS = {
+    "wind_loop.wav": wind,
+    "metro_ride.wav": metro_ride,
+    "city_bed.wav": city_bed,
+    "fire_crackle.wav": fire_crackle,
+}
+for _n in range(1, 5):
+    SOUNDS["bird_chirp_%d.wav" % _n] = (lambda n: lambda: chirp(n))(_n)
+
+
 if __name__ == "__main__":
-    save_wav("wind_loop.wav", wind())
-    for n in range(1, 5):
-        save_wav("bird_chirp_%d.wav" % n, chirp(n))
-    save_wav("metro_ride.wav", metro_ride())
-    save_wav("city_bed.wav", city_bed())
+    for name in (sys.argv[1:] or SOUNDS.keys()):
+        save_wav(name, SOUNDS[name]())

@@ -17,5 +17,7 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var roughness: float = 0.5
 ## Só em "wood": true = tábuas com fresta (piso); false = veio de móvel.
 @export var planks: bool = false
+## Só em "wood": true = toras deitadas (paredes de cabana, Fase 13.12).
+@export var logs: bool = false
 ## true = a cor de parede escolhida pelo usuário pinta esta superfície.
 @export var paintable: bool = false

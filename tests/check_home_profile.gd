@@ -4,8 +4,12 @@ extends SceneTree
 ## (tests/fixtures/casa_atual.json, gravado por tools/retrato_casa.gd).
 ## Fase 13.2: a casa montada pelo perfil do loft é igual ao retrato, peça por
 ## peça, e nenhum id de tema aparece entre aspas fora de profiles/, tests/ e tools/.
+## Fase 13.12: a cabana carrega e monta sem erro (com a lareira, o fogo que
+## tremula, as poltronas, os lampiões e o vaso), com paredes de tora e a vista
+## de floresta. Guarda o config.cfg e devolve no fim.
 
 const PORTRAIT: String = "res://tests/fixtures/casa_atual.json"
+const CONFIG: String = "user://config.cfg"
 const HOMES_FOLDER: String = "res://profiles/homes"
 ## Pastas que podem citar os ids dos temas (os dados, os testes e as ferramentas).
 const SCAN_SKIP: Array[String] = ["res://profiles", "res://tests", "res://tools", "res://.godot", "res://assets"]
@@ -92,6 +96,8 @@ func _run() -> void:
 	_check("a casa usa o loft", home.get_profile() == loft)
 	home.queue_free()
 
+	await _check_cabin()
+
 	print("== nenhum id de tema fora de profiles/ ==")
 	var offenders: Array[String] = []
 	var scripts := _scripts("res://")
@@ -109,6 +115,66 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
+
+
+## A cabana: o perfil e a casa montada com ele.
+func _check_cabin() -> void:
+	print("== a cabana (13.12) ==")
+	var catalog := Profiles.home_catalog()
+	var cabin := Profiles.home("cabana")
+	_check("a cabana existe e vem depois do loft", cabin != null and cabin.id == "cabana"
+			and catalog.homes.find(cabin) > 0 and catalog.homes[0] == Profiles.home("loft"))
+	_check("nome, superfícies e enfeite preenchidos", cabin.display_name == "Cabana" and cabin.floor != null
+			and cabin.ceiling != null and cabin.beams != null and cabin.window_frame != null
+			and load(cabin.decor_script) is GDScript)
+	_check("paredes de tora, e só as comuns são pintáveis", cabin.walls.logs and cabin.feature_wall.logs
+			and cabin.walls.paintable and not cabin.feature_wall.paintable and not cabin.floor.logs)
+	_check("piso, teto e vigas de madeira", cabin.floor.kind == "wood" and cabin.floor.planks
+			and cabin.ceiling.kind == "wood" and cabin.beams.kind == "wood")
+	var window_shader: Shader = load(cabin.window_shader)
+	_check("a vista de floresta tem o \"night\"", window_shader != null
+			and window_shader.get_shader_uniform_list().any(func(u: Dictionary) -> bool: return u["name"] == "night"))
+	_check("néon âmbar mais fraco que o do loft", cabin.neon_energy > 0.0
+			and cabin.neon_energy < Profiles.home("loft").neon_energy and cabin.neon_color.r > cabin.neon_color.b)
+
+	var app = root.get_node("AppConfig")
+	var backup := FileAccess.get_file_as_string(CONFIG)
+	var original_theme: String = app.get_home_theme()
+	app.set_home_theme("cabana")
+	var home: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
+	root.add_child(home)
+	await process_frame
+	_check("a casa monta com a cabana", home.get_profile() == cabin)
+	var kinds := {}
+	for child in home.get_children():
+		if child.has_meta("cabin_piece"):
+			var kind: String = child.get_meta("cabin_piece")
+			kinds[kind] = int(kinds.get(kind, 0)) + 1
+	print("    peças: ", kinds)
+	_check("lareira, 2 poltronas, tapete, 3 lampiões e o vaso", kinds == {"lareira": 1, "tapete": 1, "poltrona": 2, "lampiao": 3, "vaso": 1})
+	var walls: MeshInstance3D = home.get_node("WallWest")
+	var wall_material := walls.material_override as ShaderMaterial
+	_check("as paredes são toras (log_round = 1)", wall_material != null and wall_material.get_shader_parameter("log_round") == 1.0)
+	var glass: MeshInstance3D = home.get_node("WindowView")
+	_check("a janela mostra a floresta", (glass.material_override as ShaderMaterial).shader == window_shader)
+	var fire: OmniLight3D = home.find_child("FireLight", true, false)
+	var energies := {}
+	for i in 8:
+		await process_frame
+		energies[snappedf(fire.light_energy, 0.001)] = true
+	_check("a luz do fogo é laranja e tremula (%d valores em 8 quadros)" % energies.size(),
+			fire.light_color.r > fire.light_color.b * 2.0 and energies.size() > 3)
+	var crackle: AudioStreamPlayer3D = home.find_child("FireCrackle", true, false)
+	_check("a lenha estala baixinho, no canal Ambiente", crackle != null and crackle.stream != null and crackle.bus == &"Ambiente")
+	_check("o arbusto do vaso entrou", home.find_child("PlantBush", true, false) != null)
+	home.queue_free()
+	await process_frame
+
+	app.set_home_theme(original_theme)
+	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
+	file.store_string(backup)
+	file.close()
+	_check("config.cfg devolvido", FileAccess.get_file_as_string(CONFIG) == backup)
 
 
 func _material(surface: HomeSurface) -> Material:
