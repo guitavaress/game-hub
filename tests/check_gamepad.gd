@@ -4,7 +4,11 @@ extends SceneTree
 ##   - o analógico esquerdo anda; a zona morta segura o analógico parado;
 ##   - o analógico direito gira a câmera, e a sensibilidade do controle muda o giro;
 ##   - A pula, o analógico apertado corre e X vira "interagir";
-##   - com o menu aberto (ou sem foco no jogo), o analógico não gira a câmera.
+##   - com o menu aberto (ou sem foco no jogo), o analógico não gira a câmera;
+##   - (12.6) os painéis pelo controle: Y abre a busca, o direcional desce até o
+##     12º resultado (de 30), X viaja e B fecha; View abre o mapa; Menu abre a
+##     pausa, RB troca de aba; no computador da casa, o direcional navega, A
+##     aperta e B sai do foco.
 ## Guarda o config.cfg antes e devolve no fim.
 
 const CONFIG := "user://config.cfg"
@@ -21,6 +25,7 @@ func _run() -> void:
 	backup = FileAccess.get_file_as_string(CONFIG)
 	await process_frame
 	load("res://tests/quiet_friends.gd").install(root)
+	load("res://tests/fake_library.gd").install(root, 30)  # 30 jogos falsos (a lista da busca precisa rolar)
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
@@ -146,6 +151,8 @@ func _run() -> void:
 	_check("na abertura, também não gira", absf(player.rotation.y - angle_before) < 0.001)
 	player.finish_intro()
 
+	await _check_panels(city, player, app)
+
 	# Devolve o config.cfg como estava.
 	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
 	file.store_string(backup)
@@ -153,6 +160,115 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## Os painéis pelo controle (Fase 12.6).
+func _check_panels(city: Node, player, app) -> void:
+	print("== Busca ==")
+	var search = player.get_game_search()
+	var map = player.get_world_map()
+	var menu = player.get_pause_menu()
+	player.global_position = Vector3(30.0, 0.1, 30.0)
+	await _frames(5)
+	await _pad(JOY_BUTTON_Y)
+	_check("Y abre a busca", search.is_open())
+	_check("a lista tem todos os 30 jogos, e a tela mostra %d" % search.MAX_RESULTS,
+			search.get_result_names().size() == 30 and search.get_visible_count() == search.MAX_RESULTS)
+	for i in 11:
+		await _pad(JOY_BUTTON_DPAD_DOWN)
+	_check("o direcional desce até o 12º resultado (%d)" % (search.get_selected_index() + 1), search.get_selected_index() == 11)
+	_check("e a janela acompanha: ainda 8 linhas, com a escolhida dentro", search.get_visible_count() == search.MAX_RESULTS
+			and search._scroll <= 11 and 11 < search._scroll + search.MAX_RESULTS)
+	await _pad(JOY_BUTTON_DPAD_UP)
+	_check("↑ volta um", search.get_selected_index() == 10)
+	for i in 20:
+		await _pad(JOY_BUTTON_DPAD_DOWN)
+	_check("passar do último dá a volta ao primeiro, com a janela de volta ao topo",
+			search.get_selected_index() == 0 and search._scroll == 0)
+	await _pad(JOY_BUTTON_DPAD_UP)
+	_check("e ↑ no primeiro vai ao último (30º), com a janela no fim",
+			search.get_selected_index() == 29 and search._scroll == 22 and search.get_visible_count() == 8)
+	var chosen_name: String = search.get_result_names()[search.get_selected_index()]
+	await _pad(JOY_BUTTON_X)
+	await create_timer(0.2).timeout
+	_check("X vai até a porta (a busca fechou e o jogador está viajando)", not search.is_open() and player.is_traveling())
+	await create_timer(1.3).timeout
+	print("   viajou até: ", chosen_name)
+	await _pad(JOY_BUTTON_Y)
+	_check("Y abre de novo", search.is_open())
+	await _pad(JOY_BUTTON_Y)
+	_check("Y fecha", not search.is_open())
+	await _pad(JOY_BUTTON_Y)
+	var guide = city.get_node("RouteGuide")
+	await _pad(JOY_BUTTON_A)
+	await _frames(3)
+	_check("A acende o caminho até o jogo (a busca fecha)", not search.is_open() and guide.has_route())
+	guide.clear_route()
+	await _pad(JOY_BUTTON_Y)
+	await _pad(JOY_BUTTON_B)
+	_check("B fecha a busca", not search.is_open())
+
+	print("== Mapa e pausa ==")
+	await _pad(JOY_BUTTON_BACK)
+	_check("View abre o mapa", map.is_open())
+	await _pad(JOY_BUTTON_B)
+	_check("B fecha o mapa", not map.is_open())
+	await _pad(JOY_BUTTON_START)
+	_check("Menu abre a pausa", menu.is_open())
+	await _pad(JOY_BUTTON_RIGHT_SHOULDER)
+	_check("RB troca para a aba Controles", menu.get_settings().get_page() == 1)
+	await _pad(JOY_BUTTON_LEFT_SHOULDER)
+	_check("LB volta para a aba Som e vídeo", menu.get_settings().get_page() == 0)
+	await _pad(JOY_BUTTON_B)
+	_check("B fecha a pausa", not menu.is_open())
+	await _pad(JOY_BUTTON_START)
+	await _pad(JOY_BUTTON_START)
+	_check("Menu abre e fecha a pausa", not menu.is_open())
+
+	print("== Computador ==")
+	var home = city.get_home()
+	var screen = home.get_node("ComputerDesk").get_screen()
+	var desk_settings = home.get_node("ComputerDesk").get_settings()
+	player.teleport_to(home.get_spawn_transform())
+	player.set_indoors(home.get_environment())
+	await _frames(3)
+	player.focus_on(screen)
+	await create_timer(1.0).timeout
+	var viewport: Viewport = screen._viewport
+	var steps := 0
+	while viewport.gui_get_focus_owner() != desk_settings._map_check and steps < 12:
+		await _pad(JOY_BUTTON_DPAD_DOWN)
+		steps += 1
+	_check("o direcional chega no 'Bússola e mapa' (em %d passos)" % steps, viewport.gui_get_focus_owner() == desk_settings._map_check)
+	var before: bool = app.get_show_map()
+	await _pad(JOY_BUTTON_A)
+	_check("A aperta (troca a opção)", app.get_show_map() == (not before))
+	await _pad(JOY_BUTTON_A)
+	app.set_show_map(before)
+	_check("o menu de pausa não abriu por baixo", not menu.is_open())
+	await _pad(JOY_BUTTON_B)
+	await create_timer(1.0).timeout
+	_check("B sai do foco e devolve a câmera", not player.is_focused())
+
+	print("== Sensibilidade do controle no menu ==")
+	var view = menu.get_settings()
+	view.refresh()
+	view._stick_slider.value = 150.0
+	_check("o deslizador vale na hora", is_equal_approx(app.get_stick_sensitivity(), 1.5))
+	_check("e o texto mostra o valor", view._stick_value.text.begins_with("1.50"))
+	app.set_stick_sensitivity(1.0, false)
+	view.refresh()
+
+
+## Aperta e solta um botão do controle, entregue à janela (como o aparelho de verdade).
+func _pad(index: int) -> void:
+	for pressed in [true, false]:
+		var event := InputEventJoypadButton.new()
+		event.device = 0
+		event.button_index = index
+		event.pressed = pressed
+		root.push_input(event)
+	await _frames(2)
 
 
 ## Inclina um analógico (axis: 0/1 = esquerdo X/Y, 2/3 = direito X/Y).

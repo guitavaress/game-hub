@@ -2,7 +2,11 @@ class_name GameSearch
 extends CanvasLayer
 ## Busca de jogos (Tab): um campo de 500 px no alto da tela e, embaixo, os
 ## jogos que combinam com o que foi digitado ("Balatro · Cartas · 140 m").
-## Setas escolhem, Enter (ou clique) confirma, Esc ou Tab fecham.
+## Setas escolhem, Enter (ou clique) confirma, Esc ou Tab fecham. A lista tem
+## todos os jogos que combinam; a tela mostra uma janela de MAX_RESULTS que
+## rola junto com a escolha (o direcional do controle também desce até o fim).
+## Controle: Y abre e fecha, ↑↓ do direcional escolhem, A acende o caminho
+## (em casa, vai até a porta), X vai até a porta e B fecha.
 ## Shift+Enter (ou Shift+clique) viaja direto até a porta, sem abrir o jogo.
 ##
 ## Ao escolher, o mundo desenha uma faixa de luz no chão até a porta: a busca
@@ -19,6 +23,7 @@ signal game_chosen(portal: GamePortal)
 
 const WIDTH: float = 500.0
 const TOP: float = 72.0
+## Quantos jogos aparecem de uma vez (a janela da lista).
 const MAX_RESULTS: int = 8
 const CHOOSE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/click_003.ogg")
 ## Letras com acento -> sem acento (para "pokemon" achar "Pokémon").
@@ -35,6 +40,10 @@ var _empty: Label
 var _results: Array[GamePortal] = []
 var _rows: Array[PanelContainer] = []
 var _selected: int = 0
+## O primeiro resultado que aparece na janela.
+var _scroll: int = 0
+## "9 a 16 de 30" (só com mais de MAX_RESULTS resultados).
+var _more: Label
 ## Distância (m) do jogador até cada portal, medida ao abrir.
 var _distances: Dictionary[GamePortal, float] = {}
 var _sound: AudioStreamPlayer
@@ -64,11 +73,7 @@ func _ready() -> void:
 	_field = LineEdit.new()
 	_field.placeholder_text = "Buscar um jogo…"
 	_field.text_changed.connect(func(_text: String) -> void: _update_results())
-	_field.text_submitted.connect(func(_text: String) -> void:
-		if Input.is_key_pressed(KEY_SHIFT) or _is_indoors():
-			travel_to_selected()
-		else:
-			_choose(_selected))
+	_field.text_submitted.connect(func(_text: String) -> void: _confirm())
 	_field.gui_input.connect(_on_field_input)
 	column.add_child(_field)
 
@@ -77,6 +82,8 @@ func _ready() -> void:
 	column.add_child(_list)
 	_empty = _label("Nenhum jogo com esse nome.", &"HubCaption")
 	column.add_child(_empty)
+	_more = _label("", &"HubCaption")
+	column.add_child(_more)
 	column.add_child(_hint_row())
 
 	_sound = AudioStreamPlayer.new()
@@ -93,6 +100,15 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif not visible and event.is_action_pressed("search_game") and can_open():
 		open()
+		get_viewport().set_input_as_handled()
+	elif visible and event is InputEventJoypadButton and event.pressed:
+		# Controle: A escolhe (como o Enter) e X vai até a porta (como o Shift+Enter).
+		if event.button_index == JOY_BUTTON_A:
+			_confirm()
+		elif event.button_index == JOY_BUTTON_X:
+			travel_to_selected()
+		else:
+			return
 		get_viewport().set_input_as_handled()
 
 
@@ -132,7 +148,17 @@ func is_open() -> bool:
 	return visible
 
 
-## Os nomes na lista agora (para os testes).
+## O resultado escolhido (para os testes e para quem quiser saber).
+func get_selected_index() -> int:
+	return _selected
+
+
+## Quantos resultados aparecem na janela agora.
+func get_visible_count() -> int:
+	return _rows.size()
+
+
+## Os nomes na lista agora, TODOS os que combinam (para os testes).
 func get_result_names() -> PackedStringArray:
 	var names := PackedStringArray()
 	for portal in _results:
@@ -192,8 +218,9 @@ func _update_results() -> void:
 		if a_starts != b_starts:
 			return a_starts
 		return _distances[a] < _distances[b])
-	_results = matches.slice(0, MAX_RESULTS)
+	_results = matches
 	_selected = 0
+	_scroll = 0
 	_rebuild_rows()
 
 
@@ -202,11 +229,13 @@ func _rebuild_rows() -> void:
 		_list.remove_child(row)
 		row.queue_free()
 	_rows.clear()
-	for i in _results.size():
+	for i in range(_scroll, mini(_scroll + MAX_RESULTS, _results.size())):
 		var row := _make_row(_results[i], i)
 		_list.add_child(row)
 		_rows.append(row)
 	_empty.visible = _results.is_empty()
+	_more.visible = _results.size() > MAX_RESULTS
+	_more.text = "%d a %d de %d" % [_scroll + 1, _scroll + _rows.size(), _results.size()]
 	_paint_selection()
 
 
@@ -241,20 +270,37 @@ func _make_row(portal: GamePortal, index: int) -> PanelContainer:
 
 func _paint_selection() -> void:
 	for i in _rows.size():
-		_rows[i].theme_type_variation = &"HubRowSelected" if i == _selected else &"HubRow"
+		_rows[i].theme_type_variation = &"HubRowSelected" if _scroll + i == _selected else &"HubRow"
+
+
+## Enter (ou o A do controle): acende o caminho; com Shift, ou em casa, viaja.
+func _confirm() -> void:
+	if Input.is_key_pressed(KEY_SHIFT) or _is_indoors():
+		travel_to_selected()
+	else:
+		_choose(_selected)
 
 
 func _on_field_input(event: InputEvent) -> void:
 	if _results.is_empty():
 		return
 	if event.is_action_pressed("ui_down"):
-		_selected = (_selected + 1) % _results.size()
-		_paint_selection()
+		_select((_selected + 1) % _results.size())
 		_field.accept_event()
 	elif event.is_action_pressed("ui_up"):
-		_selected = (_selected - 1 + _results.size()) % _results.size()
-		_paint_selection()
+		_select((_selected - 1 + _results.size()) % _results.size())
 		_field.accept_event()
+
+
+## Escolhe o resultado "index" e rola a janela até ele.
+func _select(index: int) -> void:
+	_selected = index
+	var first := clampi(_scroll, maxi(index - MAX_RESULTS + 1, 0), index)
+	if first != _scroll:
+		_scroll = first
+		_rebuild_rows()
+	else:
+		_paint_selection()
 
 
 func _choose(index: int) -> void:

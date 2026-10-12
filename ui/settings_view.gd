@@ -52,8 +52,10 @@ var _fullscreen_check: CheckButton
 var _map_check: CheckButton
 var _motion_check: CheckButton
 var _sensitivity_slider: HSlider
+var _stick_slider: HSlider
 var _fov_slider: HSlider
 var _sensitivity_value: Label
+var _stick_value: Label
 var _fov_value: Label
 var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
@@ -324,6 +326,7 @@ func _save_volumes() -> void:
 	if _controls_changed:
 		_controls_changed = false
 		AppConfig.set_mouse_sensitivity(_sensitivity_slider.value / 100.0)
+		AppConfig.set_stick_sensitivity(_stick_slider.value / 100.0)
 		AppConfig.set_fov(_fov_slider.value)
 
 
@@ -372,6 +375,9 @@ func _build_controls_page() -> Control:
 	_sensitivity_slider = _controls_slider(page, "Sensibilidade do mouse",
 			AppConfig.MOUSE_SENSITIVITY_RANGE * 100.0, 5.0, _on_sensitivity_changed)
 	_sensitivity_value = _last_slider_value
+	_stick_slider = _controls_slider(page, "Sensibilidade do controle",
+			AppConfig.MOUSE_SENSITIVITY_RANGE * 100.0, 5.0, _on_stick_changed)
+	_stick_value = _last_slider_value
 	_fov_slider = _controls_slider(page, "Campo de visão",
 			AppConfig.FOV_RANGE, 1.0, _on_fov_changed)
 	_fov_value = _last_slider_value
@@ -411,6 +417,15 @@ func _on_sensitivity_changed(value: float) -> void:
 	AppConfig.set_mouse_sensitivity(value / 100.0, false)  # vale na hora...
 	_controls_changed = true
 	_volume_save_timer.start()                               # ...e grava daqui a pouco
+
+
+func _on_stick_changed(value: float) -> void:
+	_stick_value.text = "%.2f×" % (value / 100.0)
+	if _refreshing:
+		return
+	AppConfig.set_stick_sensitivity(value / 100.0, false)
+	_controls_changed = true
+	_volume_save_timer.start()
 
 
 func _on_fov_changed(value: float) -> void:
@@ -546,6 +561,7 @@ func refresh() -> void:
 	_map_check.button_pressed = AppConfig.get_show_map()
 	_motion_check.button_pressed = AppConfig.get_camera_motion()
 	_sensitivity_slider.value = roundf(AppConfig.get_mouse_sensitivity() * 100.0)
+	_stick_slider.value = roundf(AppConfig.get_stick_sensitivity() * 100.0)
 	_fov_slider.value = AppConfig.get_fov()
 	var quality := AppConfig.get_quality()
 	_choose(_quality_buttons, quality)

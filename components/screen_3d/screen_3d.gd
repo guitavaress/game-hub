@@ -194,7 +194,9 @@ func _input(event: InputEvent) -> void:
 		# O mouse é todo da tela durante o foco (mesmo fora dela): um clique
 		# não pode "prender" o mouse de volta no jogador.
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey:
+	elif event is InputEventKey or event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		# Teclas e controle (direcional, A, analógico) vão para a tela: é assim
+		# que se navega e se aperta um botão sem o mouse.
 		_viewport.push_input(event, true)
 		# Só fica com a tecla se a tela usou (ex.: digitar num campo). As
 		# outras seguem (ex.: F11 para tela cheia).
