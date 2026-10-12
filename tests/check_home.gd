@@ -120,6 +120,7 @@ func _run() -> void:
 	_check("virando para trás, a porta Casa está ali", hud.get_look_text().begins_with(plaza_door.door_name))
 
 	await _check_loft(home, player)
+	await _check_layouts(home, player)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
@@ -318,6 +319,93 @@ func _check_loft(home: Node3D, player: CharacterBody3D) -> void:
 	_check("de noite: janela escura e sem luz do dia", window.get_shader_parameter("night") == 1.0
 			and not daylight.visible)
 	home.set_night(night_before)
+
+
+## As disposições dos móveis (13.4): para cada uma, trocar em jogo move os
+## móveis, nada sai da sala, ninguém cobre a porta, a janela ou o outro, e há
+## passagem livre até a frente de cada móvel (e até o ponto de volta da estante).
+func _check_layouts(home: Node3D, player: CharacterBody3D) -> void:
+	print("== Disposições dos móveis ==")
+	var app = root.get_node("AppConfig")
+	var original: String = app.get_home_layout()
+	var catalog := Profiles.home_catalog()
+	_check("o catálogo tem as 3 disposições", catalog.layouts.size() == 3)
+	var room: Vector3 = home.ROOM_SIZE
+	var inner := AABB(Vector3(-room.x / 2.0, 0.0, -room.z / 2.0), room).grow(0.03)
+	# A porta da rua e a janela (coordenadas da casa).
+	var door_zone := AABB(Vector3(-0.7, 0.0, 3.9), Vector3(1.4, 2.4, 0.8))
+	var window_zone := AABB(Vector3(-2.7, 0.0, -4.6), Vector3(5.4, 3.4, 0.6))
+	var shape: Shape3D = player.get_node("CollisionShape3D").shape
+	var space := player.get_world_3d().direct_space_state
+	var positions := {}
+	for layout in catalog.layouts:
+		app.set_home_layout(layout.id)
+		await process_frame
+		_check("[%s] a casa usa a disposição" % layout.id, home.get_layout() == layout)
+		var boxes := {}
+		for id in ["estante", "mural"]:
+			var piece: Node3D = home.get_furniture(id)
+			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
+			_check("[%s] %s está na âncora %s" % [layout.id, id, layout.placements[id]],
+					piece.position.is_equal_approx(anchor.origin) and piece.transform.basis.is_equal_approx(anchor.basis))
+			positions["%s|%s" % [layout.id, id]] = piece.position
+			var box := _bounds(piece, home)
+			boxes[id] = box
+			_check("[%s] %s fica dentro da sala" % [layout.id, id], inner.encloses(box))
+			_check("[%s] %s não cobre a porta nem a janela" % [layout.id, id],
+					not box.intersects(door_zone) and not box.intersects(window_zone))
+		var desk_box := _bounds(home.get_node("ComputerDesk"), home)
+		_check("[%s] estante e mural não se tocam, nem a mesa" % layout.id, not boxes["estante"].intersects(boxes["mural"])
+				and not boxes["estante"].intersects(desk_box) and not boxes["mural"].intersects(desk_box))
+		_check("[%s] o computador não saiu de norte_direita" % layout.id,
+				home.get_node("ComputerDesk").position.is_equal_approx(home.get_anchor_transform("norte_direita").origin))
+		# Passagem: do ponto de nascer, ao longo de x e depois de z, até 1,4 m na frente de cada móvel.
+		var spawn := Vector2(home.SPAWN_SPOT.x, home.SPAWN_SPOT.z)
+		for id in ["estante", "mural"]:
+			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
+			var front := anchor.origin + anchor.basis.z * 1.4
+			var points: Array[Vector2] = [spawn, Vector2(front.x, spawn.y), Vector2(front.x, front.z)]
+			_check("[%s] passagem livre até: %s" % [layout.id, id], _walk_is_free(home, space, shape, player, points))
+		var back: Vector3 = home.to_local(home.get_furniture("estante").get_return_transform().origin)
+		_check("[%s] o ponto de volta da estante está dentro e livre" % layout.id, inner.has_point(Vector3(back.x, 1.0, back.z))
+				and _walk_is_free(home, space, shape, player, [Vector2(back.x, back.z), Vector2(back.x, back.z + 0.01)] as Array[Vector2]))
+		var spawn_tf: Transform3D = home.get_spawn_transform()
+		_check("[%s] o giro de quem nasce é o da disposição" % layout.id,
+				absf(rad_to_deg(Basis(Vector3.UP, deg_to_rad(layout.spawn_turn_degrees)).get_euler().y - (home.global_basis.inverse() * spawn_tf.basis).get_euler().y)) < 0.5)
+	_check("trocar a disposição moveu a estante", positions["padrao|estante"] != positions["espelhada|estante"]
+			and positions["padrao|estante"] != positions["estante_na_entrada|estante"])
+	app.set_home_layout("nao_existe")
+	await process_frame
+	_check("disposição desconhecida cai na padrão", home.get_layout() == catalog.layouts[0])
+	app.set_home_layout(original)
+	await process_frame
+
+
+## Caixa de tudo o que o móvel desenha, em coordenadas da casa.
+func _bounds(piece: Node3D, home: Node3D) -> AABB:
+	var result := AABB()
+	var first := true
+	for mesh in _geometry(piece):
+		var box: AABB = mesh.global_transform * mesh.get_aabb()
+		box.position -= home.global_position
+		result = box if first else result.merge(box)
+		first = false
+	return result
+
+
+## O corpo do jogador anda de ponto em ponto (x, z da casa) sem bater em nada.
+func _walk_is_free(home: Node3D, space: PhysicsDirectSpaceState3D, shape: Shape3D, player: CharacterBody3D, points: Array[Vector2]) -> bool:
+	for i in points.size() - 1:
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.collision_mask = 1
+		query.exclude = [player.get_rid()]
+		query.transform = Transform3D(Basis.IDENTITY, home.to_global(Vector3(points[i].x, 1.05, points[i].y)))
+		var step := points[i + 1] - points[i]
+		query.motion = home.global_basis * Vector3(step.x, 0.0, step.y)
+		if space.cast_motion(query)[0] < 1.0:
+			return false
+	return true
 
 
 func _geometry(node: Node) -> Array[GeometryInstance3D]:

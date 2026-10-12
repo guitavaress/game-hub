@@ -5,8 +5,44 @@
 [ext_resource type="Script" path="res://profiles/home_layout.gd" id="3_a6vov"]
 [ext_resource type="Script" path="res://profiles/home_catalog.gd" id="4_gtuvm"]
 
+[sub_resource type="Resource" id="Resource_48tiu"]
+script = ExtResource("3_a6vov")
+id = "padrao"
+display_name = "Padrão"
+placements = Dictionary[String, String]({
+"espelho": "sul_direita",
+"estante": "oeste",
+"estatisticas": "sul_esquerda",
+"mural": "leste"
+})
+
+[sub_resource type="Resource" id="Resource_lkv67"]
+script = ExtResource("3_a6vov")
+id = "espelhada"
+display_name = "Espelhada"
+placements = Dictionary[String, String]({
+"espelho": "sul_esquerda",
+"estante": "leste",
+"estatisticas": "sul_direita",
+"mural": "oeste"
+})
+spawn_turn_degrees = -35.0
+
+[sub_resource type="Resource" id="Resource_a6vov"]
+script = ExtResource("3_a6vov")
+id = "estante_na_entrada"
+display_name = "Estante na entrada"
+placements = Dictionary[String, String]({
+"espelho": "sul_direita",
+"estante": "sul_esquerda",
+"estatisticas": "oeste",
+"mural": "leste"
+})
+spawn_turn_degrees = 130.0
+
 [resource]
 script = ExtResource("4_gtuvm")
 homes = Array[ExtResource("1_48tiu")]([ExtResource("2_lkv67")])
+layouts = Array[ExtResource("3_a6vov")]([SubResource("Resource_48tiu"), SubResource("Resource_lkv67"), SubResource("Resource_a6vov")])
 wall_palette = PackedColorArray(0.85882354, 0.8039216, 0.72156864, 1, 0.9098039, 0.8862745, 0.8392157, 1, 0.6627451, 0.72156864, 0.7764706, 1, 0.22745098, 0.43137255, 0.64705884, 1, 0.43529412, 0.56078434, 0.44705883, 1, 0.70980394, 0.45882353, 0.41960785, 1, 0.5411765, 0.4862745, 0.65882355, 1, 0.2901961, 0.2901961, 0.32156864, 1)
 neon_palette = PackedColorArray(0.9490196, 0.2509804, 0.8, 1, 0.2509804, 0.8784314, 1, 1, 0.3647059, 1, 0.47843137, 1, 1, 0.72156864, 0.2901961, 1, 1, 0.3529412, 0.3529412, 1, 0.6039216, 0.41960785, 1, 1, 1, 0.9490196, 0.7607843, 1, 0.2901961, 0.5529412, 1, 1)

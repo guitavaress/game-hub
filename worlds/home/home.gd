@@ -41,6 +41,8 @@ const WINDOW_CENTER_Y: float = 1.65
 
 ## O tema da casa (cores, materiais, luz, enfeite).
 var _profile: HomeProfile
+## A disposição dos móveis (lugares prontos).
+var _layout: HomeLayout
 ## As peças da casca (filhos diretos da casa), para refazer ao trocar de tema.
 var _shell_nodes: Array[Node] = []
 ## Cores escolhidas pelo usuário (transparente = a do tema).
@@ -71,7 +73,8 @@ func _ready() -> void:
 ## Onde (e para onde virado) o jogador aparece ao entrar em casa.
 func get_spawn_transform() -> Transform3D:
 	# Girar +Y leva a frente (-Z, o norte) para o oeste (-X).
-	var turn := Basis(Vector3.UP, deg_to_rad(SPAWN_TURN_DEGREES))
+	var degrees := _layout.spawn_turn_degrees if _layout != null else SPAWN_TURN_DEGREES
+	var turn := Basis(Vector3.UP, deg_to_rad(degrees))
 	return Transform3D(global_basis * turn, to_global(SPAWN_SPOT))
 
 
@@ -136,6 +139,7 @@ func _apply_profile_to_environment() -> void:
 ## Lê do config.cfg o tema e as cores escolhidas. Tema desconhecido cai no padrão.
 func _read_choices() -> void:
 	_profile = Profiles.home(AppConfig.get_home_theme())
+	_layout = Profiles.home_layout(AppConfig.get_home_layout())
 	_wall_override = _parse_color(AppConfig.get_home_wall_color())
 	_neon_override = _parse_color(AppConfig.get_home_neon_color())
 
@@ -163,6 +167,7 @@ func _apply_choices() -> void:
 	_build_shell()
 	for node in _shell_nodes:
 		_put_on_interior_layer(node)
+	_place_furniture()
 	set_night(_night)
 
 
@@ -343,40 +348,75 @@ func _add_neon() -> void:
 		add_child(light)
 
 
-## Os móveis, um por linha (cada um é um script em worlds/home/).
+## Os lugares prontos da sala (Fase 13.4): onde o móvel encosta na parede.
+## [posição (x, z), giro em Y]. A frente (+Z) do móvel aponta para dentro da
+## sala. Os nomes são os de HomeLayout.ANCHORS.
+const ANCHORS: Dictionary[String, Array] = {
+	"oeste": [Vector2(-6.0, -0.5), PI / 2.0],
+	"leste": [Vector2(6.0, -0.5), -PI / 2.0],
+	"sul_esquerda": [Vector2(-3.5, 4.5), PI],
+	"sul_direita": [Vector2(3.5, 4.5), PI],
+	"norte_esquerda": [Vector2(-4.5, -4.5), 0.0],
+	"norte_direita": [Vector2(3.6, -4.1), 0.0],
+}
+## Os móveis que mudam de lugar com a disposição: id (o mesmo de
+## HomeLayout.placements) → [script, nome do nó]. Um móvel que a disposição cita
+## e que ainda não está aqui é ignorado (as estatísticas e o espelho entram nas
+## subetapas 13.7 e 13.10).
+const MOVABLE: Dictionary[String, Array] = {
+	"estante": [preload("res://worlds/home/library_shelf.gd"), "LibraryShelf"],
+	"mural": [preload("res://worlds/home/friends_wall.gd"), "FriendsWall"],
+}
+## O computador não muda de lugar: a troca de tema e de disposição é feita por
+## ele, e a mesa não pode sair de baixo da câmera.
+const COMPUTER_ANCHOR: String = "norte_direita"
+
+## Os móveis que já existem (id → nó), para a disposição só movê-los.
+var _furniture: Dictionary[String, Node3D] = {}
+
+
+## Os móveis: cada um é um script em worlds/home/. Os que mudam de lugar
+## (MOVABLE) são criados uma vez e só se movem quando a disposição muda.
 func _build_furniture() -> void:
-	_add_shelf()
-	_add_friends_wall()
-	_add_computer()
-
-
-## A estante da biblioteca, na parede oeste, de frente para o leste.
-func _add_shelf() -> void:
-	var shelf := LibraryShelf.new()
-	shelf.name = "LibraryShelf"
-	shelf.position = Vector3(-ROOM_SIZE.x / 2.0, 0.0, -0.5)
-	shelf.rotation.y = PI / 2.0  # a frente (+Z) da estante aponta para o leste
-	add_child(shelf)
-
-
-## O mural dos amigos, na parede leste, de frente para o oeste. Amigo que não
-## joga nada da biblioteca leva até onde a porta da rua leva (a praça).
-func _add_friends_wall() -> void:
-	var wall := FriendsWall.new()
-	wall.name = "FriendsWall"
-	wall.position = Vector3(ROOM_SIZE.x / 2.0, 0.0, -0.5)
-	wall.rotation.y = -PI / 2.0  # a frente (+Z) do mural aponta para o oeste
-	wall.fallback_door = _front_door
-	add_child(wall)
-
-
-## A mesa do computador, encostada na parede norte, à direita da janela, de
-## frente para a sala.
-func _add_computer() -> void:
+	for id in MOVABLE:
+		var node := (MOVABLE[id][0] as GDScript).new() as Node3D
+		node.name = MOVABLE[id][1]
+		if "fallback_door" in node:
+			node.set("fallback_door", _front_door)  # amigo que não joga nada da biblioteca leva à porta da rua
+		add_child(node)
+		_furniture[id] = node
 	var desk := ComputerDesk.new()
 	desk.name = "ComputerDesk"
-	desk.position = Vector3(3.6, 0.0, -ROOM_SIZE.z / 2.0 + ComputerDesk.DESK_SIZE.z / 2.0 + 0.05)
 	add_child(desk)
+	_place_on_anchor(desk, COMPUTER_ANCHOR)
+	_place_furniture()
+
+
+## Põe cada móvel no lugar que a disposição manda.
+func _place_furniture() -> void:
+	for id in _furniture:
+		_place_on_anchor(_furniture[id], _layout.placements.get(id, "oeste") if _layout != null else "oeste")
+
+
+## A posição e o giro de um lugar pronto, em coordenadas da casa.
+func get_anchor_transform(anchor: String) -> Transform3D:
+	var info: Array = ANCHORS.get(anchor, ANCHORS["oeste"])
+	var spot: Vector2 = info[0]
+	return Transform3D(Basis(Vector3.UP, float(info[1])), Vector3(spot.x, 0.0, spot.y))
+
+
+## O móvel de um id (estante, mural...), ou null.
+func get_furniture(id: String) -> Node3D:
+	return _furniture.get(id)
+
+
+func _place_on_anchor(node: Node3D, anchor: String) -> void:
+	node.transform = get_anchor_transform(anchor)
+
+
+## A disposição de agora.
+func get_layout() -> HomeLayout:
+	return _layout
 
 
 ## Área "em casa": avisa o jogador quando ele entra e quando sai.

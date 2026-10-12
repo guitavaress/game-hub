@@ -243,7 +243,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - tudo o que foi refeito está na camada do interior.
   - Manual: editar `[home] wall_color="#3a6ea5"` no `config.cfg`, abrir o hub e ver as paredes azuis.
   - Commit: `Fase 13.3: escolhas da casa no config.cfg`
-- [ ] **13.4 Posições prontas dos móveis** (Sonnet · medium)
+- [x] **13.4 Posições prontas dos móveis** (Sonnet · medium) — HASH
   - Faz:
     - as 6 âncoras na `Home`;
     - a tabela de móveis (id → classe);
@@ -418,6 +418,8 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 
 - 2026-10-12 (13.3): `Home._apply_choices()` refaz só a casca: tira as peças da lista `_shell_nodes` (com `remove_child` antes do `queue_free`, para os nomes novos não ganharem "@"), reaplica fundo e luz ambiente no **mesmo** `Environment` (o jogador guarda a referência) e põe as peças novas na camada do interior. Móveis, porta que funciona e área "em casa" não são tocados, e a troca com o foco no computador não mexe na câmera (teste). Cor de parede inválida vale como "do tema". A seção `[home]` já traz `layout`, que só passa a valer na 13.4.
 - 2026-10-12: a 13.5 (crystal-oak, `b40c405`) foi junta antes da 13.3; só tocou arquivos próprios e a bateria passou.
+- 2026-10-12 (13.4): as 6 âncoras são a tabela `Home.ANCHORS` (posição e giro); os móveis móveis, a `MOVABLE` (id → script e nome do nó, com `preload`, porque classe não é constante). A estante e o mural são criados uma vez e só se **movem** quando a disposição muda. O computador fica sempre em `norte_direita`. Ids da disposição que a casa ainda não conhece (`estatisticas`, `espelho`) são ignorados até a 13.7 e a 13.10 entrarem na tabela. As 3 disposições foram gravadas no catálogo por `tools/gerar_layouts_casa.gd`; "Estante na entrada" nasce girado 130° para olhar a estante no canto sul-oeste.
+- 2026-10-12 (13.4): a porta "Casa" da praça guarda o ponto de nascer de quando a cidade montou (`city.gd`); se a disposição mudar depois, só o giro de quem sai da praça fica o da disposição antiga, até reabrir o hub. Não mexi na cidade por isso.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
