@@ -344,7 +344,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - fora de casa, desligado.
   - Manual: andar até o espelho e se ver; andar de lado e o reflexo acompanhar; F8 e a luz mudar no reflexo. Capturas Leve e Alta, fora do repositório.
   - Commit: `Fase 13.10: o espelho`
-- [ ] **13.11 O provador: escolher o avatar no espelho** (Sonnet · medium)
+- [x] **13.11 O provador: escolher o avatar no espelho** (Sonnet · medium) — HASH
   - Faz:
     - o espelho cumpre o contrato do `focus_on` (`get_camera_pose`, `set_focused` e Esc);
     - o painel 2D à direita (combinações prontas e amostras por zona, com o `HubTheme`);
@@ -454,6 +454,14 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
   | `MEDIDA` (caminhada) | 40,8 / 40,5 FPS | 39,4 / 41,7 FPS |
 
   De frente para o espelho o p99 não mudou (limite combinado: ~25 ms), então **o plano B (espelho falso na Leve) não entrou**. A primeira rodada da `MEDIDA_CASA` (p99 26 ms) foi ruído: no ponto de nascer o espelho fica desligado (os desenhos não mudaram), e a segunda rodada voltou a 21 ms. Capturas com janela (noite e dia, Leve e Alta, e de lado) conferidas, fora do repositório: a sala refletida do lado certo, o avatar de frente, e de lado o recorte acompanha a moldura.
+- 2026-10-12 (13.11): **o provador.** O `HomeMirror` cumpre o contrato do `focus_on` (`get_look_info`, `interact`, `get_camera_pose`, `set_focused`) e trata o Esc como a tela do computador. Escolhas:
+  - **o painel é 2D** (`ui/avatar_panel.gd`, um `CanvasLayer` na janela, à direita), e não uma tela 3D: o espelho já ocupa a vista, e um painel na janela dá cliques, teclado e controle sem o conserto de coordenadas da `Screen3D`. Ele é filho do espelho e só aparece com o foco;
+  - **câmera do provador:** 2,4 m de frente para o vidro, 1 m para o lado e a 1,25 m de altura, para o espelho cair à esquerda e o painel à direita;
+  - **o avatar fica parado** (`FITTING_SPOT` = 1,1 m na frente do vidro, de frente para ele, em Idle), porque o jogador está com a câmera noutro lugar; ao sair do foco o corpo volta a seguir o jogador;
+  - **visuais e cores** em `profiles/avatar_catalog.tres` (gerado por `tools/gerar_avatar_catalogo.gd`): 5 visuais (Clássico, Verde, Noturno, Solar, Neon) e 6 a 8 cores por parte. "Clássico" é o avatar padrão do `AvatarSpec`;
+  - cada clique grava pelo `AppConfig.set_avatar` (o mesmo formato do `AvatarSpec.to_dict`), e o espelho e o painel se atualizam pelo `settings_changed("avatar")`;
+  - a ordem do foco é montada à mão (como no `SettingsView`): ↓ passa pelas 6 linhas e volta; →/← param nas pontas.
+  - Em testes `-s`, um script que cita `AvatarPanel` como tipo não compila (ele usa o autoload `AppConfig`): o teste usa a variável sem tipo.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
