@@ -229,7 +229,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_home`, `check_home_start`, `check_shelf`, `check_friends_wall` e `check_screen_3d` passam sem mudança.
   - Manual: F5. O loft está igual ao de antes (de noite e de dia, F8).
   - Commit: `Fase 13.2: a casa lê o perfil do tema`
-- [x] **13.3 Escolhas da casa no config e troca na hora** (Sonnet · medium; Opus se a troca com foco teimar) — HASH
+- [x] **13.3 Escolhas da casa no config e troca na hora** (Sonnet · medium; Opus se a troca com foco teimar) — b0a5c9f
   - Faz:
     - seção `[home]` no `AppConfig` (`theme`, `layout`, `wall_color`, `neon_color`), com `get_`/`set_` e `settings_changed`;
     - a `Home` ouve e aplica: refaz a `Shell` no tema novo e pinta as superfícies `paintable` e o néon.
