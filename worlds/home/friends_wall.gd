@@ -281,9 +281,9 @@ class FriendCard extends Area3D:
 		if not destination["found"]:
 			info["friends"] = "Montando a cidade…"
 		elif destination["to_game"]:
-			info["action"] = "E para ir até a porta"
+			info["action"] = "{interact} para ir até a porta"
 		else:
-			info["action"] = "E para ir até a praça"
+			info["action"] = "{interact} para ir até a praça"
 		return info
 
 	func interact(player: Node) -> void:

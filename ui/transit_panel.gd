@@ -207,13 +207,13 @@ func _paint_selection() -> void:
 func _hint_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	row.add_child(GameScreen.make_key_cap("↑↓"))
+	row.add_child(KeyHint.create("nav"))
 	row.add_child(_label("escolher", &"HubCaption"))
 	row.add_child(_spacer(10))
-	row.add_child(GameScreen.make_key_cap("Enter"))
+	row.add_child(KeyHint.create("confirm"))
 	row.add_child(_label("viajar", &"HubCaption"))
 	row.add_child(_spacer(10))
-	row.add_child(GameScreen.make_key_cap("Esc"))
+	row.add_child(KeyHint.create("back"))
 	row.add_child(_label("ficar", &"HubCaption"))
 	return row
 

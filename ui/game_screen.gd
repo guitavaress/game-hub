@@ -267,7 +267,7 @@ func _build_opening() -> void:
 	hint.offset_top = -80.0
 	hint.offset_bottom = -48.0
 	_opening.add_child(hint)
-	hint.add_child(make_key_cap("Esc"))
+	hint.add_child(KeyHint.create("back"))
 	hint.add_child(_make_label(&"HubCaption", "cancela a espera"))
 
 

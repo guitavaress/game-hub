@@ -347,7 +347,7 @@ class ShelfBox extends Area3D:
 
 	func get_look_info() -> Dictionary:
 		var info := GameInfo.look_info(app_id)
-		info["action"] = "Segure E para jogar"
+		info["action"] = "Segure {interact} para jogar"
 		return info
 
 	func get_hold_seconds() -> float:
@@ -395,7 +395,7 @@ class ShelfButton extends Area3D:
 		add_child(label)
 
 	func get_look_info() -> Dictionary:
-		return {"title": hint, "action": "E para usar"}
+		return {"title": hint, "action": "{interact} para usar"}
 
 	func interact(_player: Node) -> void:
 		action.call()

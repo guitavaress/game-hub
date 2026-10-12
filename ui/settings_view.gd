@@ -22,20 +22,23 @@ const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], 
 ## [valor no config.cfg, nome na tela]
 const QUALITY_OPTIONS: Array[Array] = [["leve", "Leve"], ["media", "Média"], ["alta", "Alta"]]
 const TIME_OPTIONS: Array[Array] = [["relogio", "Relógio"], ["dia", "Dia"], ["noite", "Noite"]]
-## [tecla, o que faz]
+## [tecla, botão do controle (Xbox), o que faz]. Esta lista mostra os dois
+## ao mesmo tempo (as dicas soltas pela tela é que trocam conforme o aparelho).
+## Textos curtos: cada linha cabe numa linha do painel.
 const CONTROL_ROWS: Array[Array] = [
-	["WASD", "andar"],
-	["Mouse", "olhar em volta"],
-	["Shift", "correr"],
-	["Espaço", "pular"],
-	["E", "interagir (porta, estante, mural, computador)"],
-	["Tab", "achar um jogo (acende o caminho até a porta)"],
-	["M", "mapa da cidade (o minimapa fica no canto)"],
-	["Shift+Enter", "na busca: ir direto até a porta (sem abrir o jogo)"],
-	["F8", "adiantar o relógio da cidade em 3 horas"],
-	["F11", "tela cheia"],
-	["Esc", "pausa (este menu)"],
+	[["WASD"], ["LS"], "andar"],
+	[["Mouse"], ["RS"], "olhar em volta"],
+	[["Shift"], ["L3"], "correr"],
+	[["Espaço"], ["A"], "pular"],
+	[["E"], ["X"], "interagir"],
+	[["Tab"], ["Y"], "achar um jogo"],
+	[["M"], ["View"], "mapa da cidade"],
+	[["Shift+Enter"], ["X"], "na busca: ir até a porta"],
+	[["←→"], ["LB", "RB"], "trocar de aba"],
+	[["Esc"], ["Menu"], "pausa (este menu)"],
 ]
+## Teclas que só existem no teclado, numa linha de dica embaixo da lista.
+const KEYBOARD_ONLY_TIP: String = "F8 adianta o relógio · F11 tela cheia · L3 = apertar o analógico"
 
 var _pages: Array[Control] = []
 var _current_page: int = 0
@@ -343,21 +346,26 @@ func _on_time_chosen(mode: String) -> void:
 
 func _build_controls_page() -> Control:
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
-	page.add_child(_section("TECLAS"))
+	page.add_theme_constant_override("separation", 8)
+	page.add_child(_section("TECLAS E CONTROLE"))
+	var keys_box := VBoxContainer.new()
+	keys_box.add_theme_constant_override("separation", 5)
 	for control_info in CONTROL_ROWS:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 14)
-		var cap_box := HBoxContainer.new()
-		cap_box.custom_minimum_size = Vector2(84.0, 0.0)
-		cap_box.add_child(GameScreen.make_key_cap(control_info[0]))
-		row.add_child(cap_box)
+		row.add_theme_constant_override("separation", 10)
+		row.add_child(_caps(control_info[0], false, 112.0))  # teclado
+		row.add_child(_caps(control_info[1], true, 74.0))    # controle
 		# A frase quebra a linha em vez de alargar o painel.
-		var description := HubTheme.label(control_info[1], &"HubBodyLight")
+		var description := HubTheme.label(control_info[2], &"HubBodyLight")
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(description)
-		page.add_child(row)
+		keys_box.add_child(row)
+	page.add_child(keys_box)
+	var keyboard_tip := HubTheme.label(KEYBOARD_ONLY_TIP, &"HubCaption")
+	keyboard_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	page.add_child(keyboard_tip)
 	page.add_child(HubTheme.spacer(6))
 	page.add_child(_section("CÂMERA"))
 	var motion_row := _row("Balanço da câmera")
@@ -381,11 +389,6 @@ func _build_controls_page() -> Control:
 	_fov_slider = _controls_slider(page, "Campo de visão",
 			AppConfig.FOV_RANGE, 1.0, _on_fov_changed)
 	_fov_value = _last_slider_value
-	page.add_child(HubTheme.spacer(6))
-	var tip := HubTheme.label("Na porta de um prédio, espere o anel encher para abrir o jogo; recue para cancelar.",
-			&"HubCaption")
-	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	page.add_child(tip)
 	return page
 
 
@@ -587,6 +590,21 @@ func _refresh_friends_fields() -> void:
 
 func _section(text: String) -> Label:
 	return HubTheme.label(text, &"HubSection")
+
+
+## Uma coluna de teclas desenhadas (do teclado, ou do controle com as cores do
+## Xbox), com uma largura mínima para as colunas alinharem.
+func _caps(labels: Array, pad: bool, width: float) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	box.custom_minimum_size = Vector2(width, 0.0)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for key_label: String in labels:
+		var cap := GameScreen.make_key_cap(key_label)
+		if pad and InputDevice.PAD_COLORS.has(key_label):
+			HubTheme.tint(cap.get_child(0), InputDevice.PAD_COLORS[key_label])
+		box.add_child(cap)
+	return box
 
 
 ## Linha "Nome ....... [controle]": o nome tem largura fixa.

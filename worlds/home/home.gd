@@ -289,7 +289,7 @@ func _build_front_door() -> void:
 	_front_door = TravelDoor.new()
 	_front_door.name = "FrontDoor"
 	_front_door.door_name = "Porta da rua"
-	_front_door.action_text = "E para sair"  # vista de dentro, ela leva para fora
+	_front_door.action_text = "{interact} para sair"  # vista de dentro, ela leva para fora
 	_front_door.position = Vector3(0.0, 0.0, z - 0.1)
 	_front_door.rotation.y = PI  # a frente (+Z) da porta aponta para dentro da sala
 	add_child(_front_door)

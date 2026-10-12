@@ -334,17 +334,17 @@ func _travel(index: int) -> void:
 func _hint_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	row.add_child(GameScreen.make_key_cap("↑↓"))
+	row.add_child(KeyHint.create("nav"))
 	row.add_child(_label("escolher", &"HubCaption"))
 	row.add_child(_spacer(10))
-	row.add_child(GameScreen.make_key_cap("Enter"))
+	row.add_child(KeyHint.create("confirm"))
 	_enter_hint = _label("acender o caminho", &"HubCaption")
 	row.add_child(_enter_hint)
 	row.add_child(_spacer(10))
-	row.add_child(GameScreen.make_key_cap("Shift+Enter"))
+	row.add_child(KeyHint.create("travel"))
 	row.add_child(_label("ir até lá", &"HubCaption"))
 	row.add_child(_spacer(10))
-	row.add_child(GameScreen.make_key_cap("Esc"))
+	row.add_child(KeyHint.create("back"))
 	row.add_child(_label("fechar", &"HubCaption"))
 	return row
 

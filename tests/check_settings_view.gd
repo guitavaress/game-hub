@@ -61,7 +61,7 @@ func _run() -> void:
 	print("\n== teclas ==")
 	var has_interact := false
 	for row in view_script.CONTROL_ROWS:
-		if row[0] == "E":
+		if row[0] == ["E"] and row[1] == ["X"]:
 			has_interact = true
 	_check("linha nova do E (interagir)", has_interact)
 

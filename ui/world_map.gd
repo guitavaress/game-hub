@@ -49,7 +49,7 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 6)
-	row.add_child(GameScreen.make_key_cap("M"))
+	row.add_child(KeyHint.create("map"))
 	_hint = HubTheme.label("fechar o mapa", &"HubCaption")
 	row.add_child(_hint)
 	column.add_child(row)

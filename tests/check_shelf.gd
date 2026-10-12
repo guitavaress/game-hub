@@ -96,7 +96,7 @@ func _run() -> void:
 			same = false
 	_check("o cartão da caixa é igual ao do portal (menos a ação)", same)
 	_check("o portal diz como entrar", portal_info.get("action", "") == "Entre pela porta para jogar")
-	_check("a caixa pede para segurar E", box_info.get("action", "") == "Segure E para jogar")
+	_check("a caixa pede para segurar E (o marcador {interact} vira E no teclado)", box_info.get("action", "") == "Segure {interact} para jogar")
 
 	print("== Olhando a caixa ==")
 	player.teleport_to(shelf.get_return_transform())

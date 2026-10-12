@@ -15,14 +15,15 @@ const SHOW_SECONDS: float = 15.0
 const FADE_SECONDS: float = 0.4
 ## Acima do cartão do que se olha (que fica a 48 px do pé da tela).
 const BOTTOM_MARGIN: float = 150.0
-## As teclas, na ordem em que aparecem: [teclas, o que fazem].
+## As dicas, na ordem em que aparecem: [nome em InputDevice.HINTS, o que fazem].
+## As teclas trocam sozinhas para os botões do controle (KeyHint).
 const KEYS: Array[Array] = [
-	[["W", "A", "S", "D"], "andar"],
-	[["Shift"], "correr"],
-	[["E"], "usar"],
-	[["Tab"], "buscar"],
-	[["M"], "mapa"],
-	[["Esc"], "menu"],
+	["move", "andar"],
+	["sprint", "correr"],
+	["interact", "usar"],
+	["search", "buscar"],
+	["map", "mapa"],
+	["menu", "menu"],
 ]
 
 var _time_left: float = SHOW_SECONDS
@@ -54,8 +55,7 @@ func _ready() -> void:
 		var item := HBoxContainer.new()
 		item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		item.add_theme_constant_override("separation", 4)
-		for key_name: String in entry[0]:
-			item.add_child(GameScreen.make_key_cap(key_name))
+		item.add_child(KeyHint.create(entry[0]))
 		var text := _make_label(entry[1], &"HubBody")
 		item.add_child(text)
 		row.add_child(item)

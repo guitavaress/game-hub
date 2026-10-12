@@ -16,7 +16,7 @@ var door_name: String = ""
 ## Linha de baixo do cartão quando a porta está aberta ("Ir para a praça").
 var detail: String = ""
 ## Dica do E no cartão.
-var action_text: String = "E para entrar"
+var action_text: String = "{interact} para entrar"
 ## Mensagem na tela escura durante a viagem.
 var travel_message: String = ""
 ## Para onde a porta leva. O jogador fica virado para o -Z deste transform

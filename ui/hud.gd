@@ -43,6 +43,9 @@ var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
 var _look_action: Label
+## A dica como veio do alvo, com os marcadores ({interact}), para refazer o
+## texto quando o jogador troca de aparelho.
+var _look_action_raw: String = ''
 ## Dentro de casa (o jogador avisa): sem bússola e sem minimapa.
 var _indoors: bool = false
 var _toasts: VBoxContainer
@@ -71,6 +74,8 @@ func _ready() -> void:
 	_district_title.name = "DistrictTitle"
 	add_child(_district_title)
 	visibility_changed.connect(_show_waiting_messages)
+	InputDevice.device_changed.connect(func(_gamepad: bool) -> void:
+		_set_line(_look_action, InputDevice.fill(_look_action_raw)))
 
 	_sound = AudioStreamPlayer.new()
 	_sound.bus = &"Efeitos"
@@ -113,8 +118,10 @@ func set_look_info(info: Dictionary) -> void:
 	_set_line(_look_detail, str(info.get("detail", "")))
 	var friends := str(info.get("friends", ""))
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
-	# Dica de interação ("Segure E para jogar"), só nos alvos que respondem ao E.
-	_set_line(_look_action, str(info.get("action", "")))
+	# Dica de interação ("Segure {interact} para jogar"), só nos alvos que
+	# respondem ao E. O marcador vira a tecla do aparelho de agora.
+	_look_action_raw = str(info.get("action", ""))
+	_set_line(_look_action, InputDevice.fill(_look_action_raw))
 	_show_look_card(not title.is_empty())
 
 	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.

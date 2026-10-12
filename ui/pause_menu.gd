@@ -114,7 +114,7 @@ func _build_bottom_row() -> Control:
 	var resume := HubTheme.button("Continuar", true)
 	resume.pressed.connect(close)
 	row.add_child(resume)
-	row.add_child(GameScreen.make_key_cap("Esc"))
+	row.add_child(KeyHint.create("back"))
 	row.add_child(HubTheme.expander())
 	var quit := HubTheme.button("Sair do hub")
 	quit.pressed.connect(HubWindow.quit_hub)

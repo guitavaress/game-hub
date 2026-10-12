@@ -33,7 +33,7 @@ var screen_name: String = "Tela"
 ## Linha de baixo do cartão ("Configurações").
 var detail: String = ""
 ## Dica do E no cartão.
-var action_text: String = "E para usar"
+var action_text: String = "{interact} para usar"
 ## Tamanho do retângulo, em metros (largura, altura).
 var screen_size: Vector2 = Vector2(0.8, 0.45)
 ## Tamanho do conteúdo, em pixels. Mesma proporção do screen_size.

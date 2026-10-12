@@ -134,7 +134,7 @@ func _build_screen_content() -> Control:
 	right.add_child(hint)
 	var esc_row := HBoxContainer.new()
 	esc_row.add_theme_constant_override("separation", 10)
-	esc_row.add_child(GameScreen.make_key_cap("Esc"))
+	esc_row.add_child(KeyHint.create("back"))
 	esc_row.add_child(HubTheme.label("voltar para a sala", &"HubBodyLight"))
 	right.add_child(esc_row)
 	var filler := Control.new()
