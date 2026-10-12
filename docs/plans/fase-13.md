@@ -377,7 +377,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_home` roda as 3 disposições também na cabana (nada fora da sala, passagens livres; a lareira e as poltronas não tampam nenhuma âncora).
   - Manual: aba Casa › Cabana; capturas de dia e de noite, na Leve e na Alta, fora do repositório; e o FPS na Leve perto do de loft.
   - Commit: `Fase 13.12: tema cabana`
-- [x] **13.13 Medida final e documentação** (Sonnet · low) — HASH
+- [x] **13.13 Medida final e documentação** (Sonnet · low) — 7601f97
   - Faz:
     - a medida no notebook (loft e cabana, Leve), anotada;
     - README (temas, cores, móveis, estatísticas, espelho e avatar; como criar um tema novo);
