@@ -184,7 +184,7 @@ Ordem: primeiro o tema (fundação, quase nada muda na tela), depois o teclado n
   - Manual: na estante, olhar uma capa, tocar no controle e ver "Segure X para jogar"; mexer no mouse e voltar a "Segure E".
   - Commit: `Fase 12.7: dicas que trocam com o controle`
 
-- [x] **12.8 Docs** (Sonnet · low)
+- [x] **12.8 Docs** (Sonnet · low) — f5372d9
   - Faz:
     - README: tabela de controles com a coluna do Xbox e uma linha sobre o menu pelo teclado;
     - ROADMAP: Fase 12 feita;
