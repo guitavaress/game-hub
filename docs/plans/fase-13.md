@@ -243,7 +243,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - tudo o que foi refeito está na camada do interior.
   - Manual: editar `[home] wall_color="#3a6ea5"` no `config.cfg`, abrir o hub e ver as paredes azuis.
   - Commit: `Fase 13.3: escolhas da casa no config.cfg`
-- [x] **13.4 Posições prontas dos móveis** (Sonnet · medium) — HASH
+- [x] **13.4 Posições prontas dos móveis** (Sonnet · medium) — 406ba87
   - Faz:
     - as 6 âncoras na `Home`;
     - a tabela de móveis (id → classe);
