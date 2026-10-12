@@ -150,6 +150,8 @@ func _ready() -> void:
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	_outdoor_camera_far = _camera.far
+	# O seu corpo só aparece no espelho (Fase 13.10): a câmera não vê essa camada.
+	_camera.cull_mask &= ~AvatarBody.reflection_layers()
 	_camera_rest = _camera.transform
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

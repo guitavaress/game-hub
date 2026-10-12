@@ -126,7 +126,8 @@ func _run() -> void:
 	var wrong := 0
 	var steps := 0
 	for node in home.find_children("*", "GeometryInstance3D", true, false):
-		if (node as GeometryInstance3D).layers != INTERIOR_MASK:
+		var layers := (node as GeometryInstance3D).layers
+		if layers != INTERIOR_MASK and layers != 1 << 18:  # 1 << 18 = o corpo do espelho (só no reflexo)
 			wrong += 1
 	for body in home.find_children("*", "StaticBody3D", true, false):
 		if body.get_meta("footstep", "") == "wood":

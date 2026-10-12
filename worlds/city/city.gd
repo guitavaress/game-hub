@@ -750,6 +750,7 @@ func _build_home() -> void:
 	_home.position = HOME_ORIGIN
 	add_child(_home)
 	_sun.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+	_sun.light_cull_mask &= ~AvatarBody.reflection_layers()  # o corpo do espelho também fica dentro de casa
 
 	_home_door = TravelDoor.new()
 	_home_door.name = "HomeDoor"

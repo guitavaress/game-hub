@@ -326,7 +326,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
   - Teste: `tests/check_perf_tool.gd`, que roda a ferramenta sem janela, com 7 jogos, e confere que as três linhas `MEDIDA*` saem.
   - Manual: rodar o comando da ferramenta (no cabeçalho dela) e colar as linhas.
   - Commit: `Fase 13.9: medida de referência em casa`
-- [ ] **13.10 O espelho** (Opus · high: projeção refletida e desempenho)
+- [x] **13.10 O espelho** (Opus · high: projeção refletida e desempenho) — HASH
   - Faz:
     - `HomeMirror` (moldura, vidro com a imagem invertida, `SubViewport`, câmera refletida com `FRUSTUM` e deslocamento, regras de "só de perto", Leve a 30 por segundo);
     - o `AvatarBody` do jogador na camada dos reflexos;
@@ -437,6 +437,23 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
 - 2026-10-12 (13.9): o `tests/check_perf_tool.gd` roda a ferramenta sem janela (os números não valem, só as três linhas e o formato) e leva uns 30 s.
 - 2026-10-12: a 13.12 (cabana, `dd4eed0`) foi junta antes da 13.10, pelo worktree `crystal-oak`. Ela acrescentou o campo `logs` (toras) na `HomeSurface` e no `HomeMaterials.wood` (desligado por padrão: o retrato do loft não muda), o perfil `cabana.tres` (gerado por `tools/gerar_cabana.gd`), o enfeite `cabin_decor.gd`, a vista `home_window_forest.gdshader` e o estalo da lareira gerado (`assets/generated/fire_crackle.wav`).
 - 2026-10-12: depois da junção, `check_home`, `check_home_view` e `check_home_start` falharam porque o `config.cfg` do dono estava com `layout="espelhada"` (do teste manual da 13.4) e eles supunham a disposição padrão. Os três agora põem tema, disposição e cores no padrão no começo e devolvem o arquivo no fim. Regra para testes novos da casa: **nunca depender das escolhas `[home]` de quem roda**.
+- 2026-10-12 (13.10): **o espelho** (`worlds/home/home_mirror.gd` + `home_mirror.gdshader`) entrou na tabela `Home.MOVABLE` como `espelho` (sul_direita no padrão). Vidro de 1,0 × 1,875 m (a proporção 8:15 das resoluções). Escolhas de implementação:
+  - **o corpo é do espelho, não do jogador:** o `HomeMirror` cria o próprio `AvatarBody` e o põe onde o jogador está, só enquanto desenha (escondido e sem animar no resto do tempo). O jogador continua só uma câmera, e a cidade nunca carrega o corpo. A casa põe tudo na camada do interior depois dos móveis, então o corpo volta para a camada 19 com `call_deferred`;
+  - **"na tela" sem `VisibleOnScreenNotifier3D`:** o espelho confere se o meio ou algum canto do vidro está no campo de visão da câmera do jogador (`is_position_in_frustum`). O notificador contaria também a câmera do próprio espelho. Assim também dá para testar sem janela;
+  - **filme neutro na câmera do espelho** (`TONE_MAPPER_LINEAR`): a imagem do vidro passa de novo pelo AgX da tela; com AgX nas duas, o reflexo saía escuro demais (visto na primeira captura);
+  - a câmera do espelho vê só a camada do interior e a do reflexo; o vidro (de costas para ela) some pelo `cull_back`, e o corte perto fica no plano do vidro;
+  - o sol da cidade também deixou de iluminar a camada 19 (`city.gd`), senão o corpo levaria sol através das paredes de dia;
+  - o `player.gd` só tira a camada 19 da câmera;
+  - cores: o espelho ouve `settings_changed("avatar")` e repinta o corpo (a escolha pelo provador é a 13.11).
+- 2026-10-12 (13.10): **medida DEPOIS do espelho** (mesmas condições da 13.9; carga da máquina ~2):
+
+  | Trecho | Antes (13.9) | Depois (13.10) |
+  |---|---|---|
+  | `MEDIDA_ESPELHO` | 60,0 FPS · p99 18–20 ms · 18 desenhos | **60,0 FPS · p99 19–20 ms · 68 desenhos** |
+  | `MEDIDA_CASA` | 60,0 FPS · p99 20–21 ms · 194 desenhos | 58,7 / 60,0 FPS · p99 26 / 21 ms · 195–202 desenhos |
+  | `MEDIDA` (caminhada) | 40,8 / 40,5 FPS | 39,4 / 41,7 FPS |
+
+  De frente para o espelho o p99 não mudou (limite combinado: ~25 ms), então **o plano B (espelho falso na Leve) não entrou**. A primeira rodada da `MEDIDA_CASA` (p99 26 ms) foi ruído: no ponto de nascer o espelho fica desligado (os desenhos não mudaram), e a segunda rodada voltou a 21 ms. Capturas com janela (noite e dia, Leve e Alta, e de lado) conferidas, fora do repositório: a sala refletida do lado certo, o avatar de frente, e de lado o recorte acompanha a moldura.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:

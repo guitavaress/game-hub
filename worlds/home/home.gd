@@ -361,11 +361,12 @@ const ANCHORS: Dictionary[String, Array] = {
 }
 ## Os móveis que mudam de lugar com a disposição: id (o mesmo de
 ## HomeLayout.placements) → [script, nome do nó]. Um móvel que a disposição cita
-## e que ainda não está aqui é ignorado (o espelho entra na 13.10).
+## e que ainda não está aqui é ignorado.
 const MOVABLE: Dictionary[String, Array] = {
 	"estante": [preload("res://worlds/home/library_shelf.gd"), "LibraryShelf"],
 	"mural": [preload("res://worlds/home/friends_wall.gd"), "FriendsWall"],
 	"estatisticas": [preload("res://worlds/home/stats_wall.gd"), "StatsWall"],
+	"espelho": [preload("res://worlds/home/home_mirror.gd"), "HomeMirror"],
 }
 ## O computador não muda de lugar: a troca de tema e de disposição é feita por
 ## ele, e a mesa não pode sair de baixo da câmera.

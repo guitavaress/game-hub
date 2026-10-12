@@ -18,6 +18,7 @@ extends SceneTree
 ## computador, a porta nem a janela. Guarda o config.cfg e devolve no fim.
 
 const INTERIOR_MASK := 1 << 19  # camada de render 20 (Home.INTERIOR_LAYER)
+const REFLECTION_MASK := 1 << 18  # camada 19 (AvatarBody.REFLECTION_LAYER): o corpo do espelho
 const CONFIG := "user://config.cfg"
 ## A porta da rua e a janela (coordenadas da casa): nada pode ficar na frente.
 const DOOR_ZONE := AABB(Vector3(-0.7, 0.0, 3.9), Vector3(1.4, 2.4, 0.8))
@@ -61,10 +62,16 @@ func _run() -> void:
 	_check("o sol continua iluminando a cidade (camada 1)", sun.light_cull_mask & 1 == 1)
 	var meshes := _geometry(home)
 	var all_interior := not meshes.is_empty()
+	var reflection_only := 0
 	for mesh in meshes:
-		if mesh.layers != INTERIOR_MASK:
+		if mesh.layers == REFLECTION_MASK:
+			reflection_only += 1  # o corpo do espelho (13.10): só o reflexo o vê
+		elif mesh.layers != INTERIOR_MASK:
 			all_interior = false
 	_check("tudo o que a casa desenha está na camada do interior (%d peças)" % meshes.size(), all_interior)
+	_check("só o corpo do espelho fica na camada do reflexo (%d malhas)" % reflection_only, reflection_only >= 1
+			and home.get_furniture("espelho").get_body().find_children("*", "MeshInstance3D", true, false).size() == reflection_only)
+	_check("o sol não ilumina o corpo do espelho", sun.light_cull_mask & REFLECTION_MASK == 0)
 	_check("as duas portas estão abertas", plaza_door.is_open() and front_door.is_open())
 
 	_check_facade(city, plaza_door)
@@ -367,7 +374,7 @@ func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disp
 		await process_frame
 		_check("[%s] a casa usa a disposição" % layout.id, home.get_layout() == layout)
 		var boxes := {}
-		for id in ["estante", "mural", "estatisticas"]:
+		for id in ["estante", "mural", "estatisticas", "espelho"]:
 			var piece: Node3D = home.get_furniture(id)
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			_check("[%s] %s está na âncora %s" % [layout.id, id, layout.placements[id]],
@@ -390,7 +397,7 @@ func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disp
 				home.get_node("ComputerDesk").position.is_equal_approx(home.get_anchor_transform("norte_direita").origin))
 		# Passagem: do ponto de nascer, ao longo de x e depois de z, até 1,4 m na frente de cada móvel.
 		var spawn := Vector2(home.SPAWN_SPOT.x, home.SPAWN_SPOT.z)
-		for id in ["estante", "mural", "estatisticas"]:
+		for id in ["estante", "mural", "estatisticas", "espelho"]:
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			var front := anchor.origin + anchor.basis.z * 1.4
 			var points: Array[Vector2] = [spawn, Vector2(front.x, spawn.y), Vector2(front.x, front.z)]
@@ -438,7 +445,7 @@ func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
 			blocked.append("%s: porta, janela ou mesa" % kind)
 		# Cada móvel que muda de lugar, em cada um dos 6 lugares prontos.
 		for anchor: String in home.ANCHORS:
-			for id in ["estante", "mural", "estatisticas"]:
+			for id in ["estante", "mural", "estatisticas", "espelho"]:
 				var furniture: Node3D = home.get_furniture(id)
 				furniture.transform = home.get_anchor_transform(anchor)
 				if box.intersects(_bounds(furniture, home)):
@@ -463,6 +470,8 @@ func _bounds(piece: Node3D, home: Node3D) -> AABB:
 	var result := AABB()
 	var first := true
 	for mesh in _geometry(piece):
+		if not mesh.is_visible_in_tree():
+			continue  # o corpo do espelho, escondido enquanto ninguém se olha
 		var box: AABB = mesh.global_transform * mesh.get_aabb()
 		box.position -= home.global_position
 		result = box if first else result.merge(box)

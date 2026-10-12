@@ -73,6 +73,22 @@ static func weather_amount(level: String) -> float:
 	return 1.0
 
 
+## Tamanho (px) da imagem do espelho da casa (Fase 13.10). Mesma proporção do
+## vidro (8:15): na Leve, 240 × 450.
+static func mirror_resolution(level: String) -> Vector2i:
+	match level:
+		"leve":
+			return Vector2i(240, 450)
+		"media":
+			return Vector2i(320, 600)
+	return Vector2i(480, 900)
+
+
+## Na Leve, o espelho desenha um quadro sim, um não (30 vezes por segundo).
+static func mirror_every_other_frame(level: String) -> bool:
+	return level == "leve"
+
+
 ## Nome para mostrar ("Média") e uma frase explicando.
 static func describe(level: String) -> String:
 	match level:
