@@ -10,23 +10,20 @@ extends CanvasLayer
 ## - AVISOS no topo (Toast): título + frase de ação, com uma barrinha de cor
 ##   (amarela = info, vermelha = erro, verde = sessão). Até 3 empilhados; um
 ##   quarto aviso tira o mais antigo. Somem sozinhos.
-## A fonte (Barlow) vem do tema do projeto (project.godot).
+## Cores, fontes e caixas vêm do tema do hub (HubTheme).
 ##
 ## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
 ## e o resto vira a frase ("Balatro não abriu\nAbra a Steam e entre de novo.").
 
-const LABEL_FONT_SIZE: int = 14
-const TITLE_FONT_SIZE: int = 26
-const DETAIL_FONT_SIZE: int = 17
-const FRIENDS_FONT_SIZE: int = 15
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.78)
-const DETAIL_COLOR: Color = Color("B8BFCC")
-const FRIENDS_COLOR: Color = Color("5FE3A1")
+const LOOK_CARD_BOTTOM: float = -48.0  # distância do cartão ao pé da tela
+const LOOK_CARD_SLIDE: float = 8.0  # quanto ele sobe ao aparecer (px)
 const RING_SIZE: float = 12.0
 const MAX_TOASTS: int = 3
 ## O aviso de volta do jogo fica pelo menos isto (s) antes de sumir ao andar.
 const SESSION_MIN_SECONDS: float = 1.5
 const TOASTS_TOP: float = 12.0
+## Minimapa no canto superior direito.
+const MINIMAP_SIZE: Vector2 = Vector2(168.0, 168.0)
 const TOASTS_GAP: int = 8
 
 ## Sons (Kenney, CC0).
@@ -38,13 +35,28 @@ const LOOK_CLICK_SOUND: AudioStream = preload("res://assets/kenney/interface-sou
 var _crosshair_dot: Control
 var _crosshair_ring: Ring
 var _look_card: PanelContainer
+## O cartão deve estar na tela (a animação de fade pode estar a meio caminho).
+var _look_shown: bool = false
+var _look_tween: Tween
 var _look_label: Label
 var _look_title: Label
 var _look_detail: Label
 var _look_friends: Label
+var _look_action: Label
+## A dica como veio do alvo, com os marcadores ({interact}), para refazer o
+## texto quando o jogador troca de aparelho.
+var _look_action_raw: String = ''
+## Dentro de casa (o jogador avisa): sem bússola e sem minimapa.
+var _indoors: bool = false
 var _toasts: VBoxContainer
-## Avisos que chegaram com o HUD escondido: [título, frase, tipo, segundos, rótulo].
+var _compass: Compass
+var _minimap: MapView
+## Avisos que chegaram com o HUD escondido (ou com o cartão de controles na
+## tela): [título, frase, tipo, segundos, rótulo, som].
 var _waiting_messages: Array[Array] = []
+## O cartão de controles da primeira vez (null = fechado).
+var _controls_hint: ControlsHint
+var _district_title: DistrictTitle
 var _sound: AudioStreamPlayer
 var _click: AudioStreamPlayer
 
@@ -57,7 +69,13 @@ func _ready() -> void:
 	_build_crosshair()
 	_build_look_card()
 	_build_toasts()
+	_build_compass()
+	_district_title = DistrictTitle.new()
+	_district_title.name = "DistrictTitle"
+	add_child(_district_title)
 	visibility_changed.connect(_show_waiting_messages)
+	InputDevice.device_changed.connect(func(_gamepad: bool) -> void:
+		_set_line(_look_action, InputDevice.fill(_look_action_raw)))
 
 	_sound = AudioStreamPlayer.new()
 	_sound.bus = &"Efeitos"
@@ -92,11 +110,19 @@ func set_look_info(info: Dictionary) -> void:
 		_click.play()  # o alvo mudou
 	_look_title.text = title
 	_set_line(_look_label, str(info.get("label", "")))
-	_look_label.add_theme_color_override("font_color", info.get("label_color", DETAIL_COLOR))
+	# A cor do rótulo (o neon do bairro) é dado; sem ela, vale a do tema.
+	if info.has("label_color"):
+		HubTheme.tint(_look_label, info["label_color"])
+	else:
+		HubTheme.untint(_look_label)
 	_set_line(_look_detail, str(info.get("detail", "")))
 	var friends := str(info.get("friends", ""))
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
-	_look_card.visible = not title.is_empty()
+	# Dica de interação ("Segure {interact} para jogar"), só nos alvos que
+	# respondem ao E. O marcador vira a tecla do aparelho de agora.
+	_look_action_raw = str(info.get("action", ""))
+	_set_line(_look_action, InputDevice.fill(_look_action_raw))
+	_show_look_card(not title.is_empty())
 
 	# Mira: anel na cor do alvo (se ele tiver uma), senão o pontinho.
 	var has_accent := info.has("accent") and not title.is_empty()
@@ -116,12 +142,44 @@ func set_look_text(text: String) -> void:
 
 
 ## As linhas extras do cartão (rótulo do bairro e amigos) sobre o que se olha.
+func get_look_action() -> String:
+	return _look_action.text
+
+
 func get_look_extras() -> PackedStringArray:
 	return PackedStringArray([_look_label.text, _look_friends.text])
 
 
 func is_crosshair_ring() -> bool:
 	return _crosshair_ring.visible
+
+
+## O cartão do que se olha aparece com fade (0,12 s) subindo 8 px e some com
+## fade (0,08 s). Pedir o mesmo estado de novo (trocar de alvo) não repete.
+func _show_look_card(on: bool) -> void:
+	if on == _look_shown:
+		return
+	_look_shown = on
+	if _look_tween != null and _look_tween.is_valid():
+		_look_tween.kill()
+	_look_tween = create_tween().set_parallel()
+	if on:
+		_look_card.visible = true
+		_look_card.modulate.a = 0.0
+		_look_card.offset_bottom = LOOK_CARD_BOTTOM + LOOK_CARD_SLIDE
+		_look_tween.tween_property(_look_card, "modulate:a", 1.0, 0.12) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_look_tween.tween_property(_look_card, "offset_bottom", LOOK_CARD_BOTTOM, 0.12) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	else:
+		_look_tween.tween_property(_look_card, "modulate:a", 0.0, 0.08) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		_look_tween.finished.connect(func() -> void: _look_card.visible = false)
+
+
+## O cartão está (ou está chegando) na tela.
+func is_look_card_shown() -> bool:
+	return _look_shown
 
 
 func _set_line(label: Label, text: String) -> void:
@@ -131,7 +189,7 @@ func _set_line(label: Label, text: String) -> void:
 
 ## O texto completo do que está sendo olhado (o mesmo que set_look_text recebeu).
 func get_look_text() -> String:
-	if not _look_card.visible:
+	if not _look_shown:
 		return ""
 	return _look_title.text if _look_detail.text.is_empty() else "%s — %s" % [_look_title.text, _look_detail.text]
 
@@ -139,18 +197,22 @@ func get_look_text() -> String:
 ## Mostra um aviso no topo: "title" (o que houve) e "text" (o que fazer).
 ## "seconds" < 0 usa o tempo do tipo (info 6 s, erro 10 s, sessão 5 s).
 ## "overline" é um rótulo pequeno opcional acima do título.
+## "sound" troca o som do aviso (null = o do tipo); "sound_bus" é o canal dele
+## (&"Música" para um jingle).
 ## Um aviso igual a outro que já está na tela é ignorado.
 func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kind.INFO,
-		seconds: float = -1.0, overline: String = "") -> void:
+		seconds: float = -1.0, overline: String = "", sound: AudioStream = null,
+		sound_bus: StringName = &"Efeitos") -> void:
 	if title.is_empty():
 		return
-	# HUD escondido (abertura): o aviso espera o HUD aparecer, senão o tempo
-	# dele passaria sem ninguém ver.
-	if not visible:
+	# HUD escondido (abertura) ou cartão de controles na tela: o aviso espera,
+	# senão o tempo dele passaria sem ninguém ver (ou ele seria a primeira
+	# coisa na tela antes de "como jogar").
+	if not visible or _controls_hint != null:
 		for waiting in _waiting_messages:
 			if waiting[0] == title and waiting[1] == text:
 				return
-		_waiting_messages.append([title, text, kind, seconds, overline])
+		_waiting_messages.append([title, text, kind, seconds, overline, sound, sound_bus])
 		return
 	var showing := _visible_toasts()
 	for toast in showing:
@@ -161,6 +223,9 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 		showing[i].close()
 
 	_toasts.add_child(Toast.create(title, text, kind, seconds, overline))
+	if sound != null:
+		_play_sound(sound, sound_bus)
+		return
 	match kind:
 		Toast.Kind.ERROR:
 			_play_sound(ERROR_SOUND)
@@ -169,14 +234,37 @@ func show_message(title: String, text: String = "", kind: Toast.Kind = Toast.Kin
 				_play_sound(MESSAGE_SOUND)
 
 
-## O HUD apareceu: mostra os avisos que estavam esperando.
+## O HUD apareceu (ou o cartão de controles saiu): mostra os avisos que
+## estavam esperando.
 func _show_waiting_messages() -> void:
-	if not visible:
+	if not visible or _controls_hint != null:
 		return
 	var waiting := _waiting_messages.duplicate()
 	_waiting_messages.clear()
 	for message in waiting:
-		show_message(message[0], message[1], message[2], message[3], message[4])
+		show_message(message[0], message[1], message[2], message[3], message[4], message[5], message[6])
+
+
+## PRIMEIRA VEZ: o cartão "como jogar" no pé da tela (ControlsHint). Enquanto
+## ele está aberto, os avisos esperam na fila; quando ele some, eles aparecem.
+func show_controls_hint() -> void:
+	if _controls_hint != null:
+		return
+	_controls_hint = ControlsHint.new()
+	_controls_hint.name = "ControlsHint"
+	_controls_hint.closed.connect(func() -> void:
+		_controls_hint = null
+		_show_waiting_messages())
+	add_child(_controls_hint)
+
+
+func is_controls_hint_open() -> bool:
+	return _controls_hint != null
+
+
+## O cartão de controles (null = fechado), para os testes.
+func get_controls_hint() -> ControlsHint:
+	return _controls_hint
 
 
 ## Aviso num texto só: a primeira linha vira o título, o resto vira a frase.
@@ -263,7 +351,8 @@ func on_player_moved() -> void:
 			toast.close()
 
 
-func _play_sound(stream: AudioStream) -> void:
+func _play_sound(stream: AudioStream, bus: StringName = &"Efeitos") -> void:
+	_sound.bus = bus
 	_sound.stream = stream
 	_sound.play()
 
@@ -306,11 +395,12 @@ func _build_crosshair() -> void:
 func _build_look_card() -> void:
 	_look_card = PanelContainer.new()
 	_look_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_look_card.add_theme_stylebox_override("panel", _make_panel_style(0))
+	_look_card.theme = HubTheme.get_theme()
+	_look_card.theme_type_variation = &"HubCard"
 	_look_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_look_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_look_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_look_card.offset_bottom = -48.0
+	_look_card.offset_bottom = LOOK_CARD_BOTTOM
 	_look_card.visible = false
 	add_child(_look_card)
 
@@ -319,18 +409,17 @@ func _build_look_card() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_look_card.add_child(column)
 
-	# Rótulo da categoria: Barlow Condensed com 2 px a mais entre as letras.
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 2
-	_look_label = _make_label(LABEL_FONT_SIZE, DETAIL_COLOR, spaced)
+	# Rótulo da categoria (letras espaçadas), nome, detalhes, amigos e dica.
+	_look_label = _make_label(&"HubSection")
 	column.add_child(_look_label)
-	_look_title = _make_label(TITLE_FONT_SIZE, Color(0.97, 0.97, 0.98), HubFonts.TEXT)
+	_look_title = _make_label(&"HubHeading")
 	column.add_child(_look_title)
-	_look_detail = _make_label(DETAIL_FONT_SIZE, DETAIL_COLOR, HubFonts.LIGHT)
+	_look_detail = _make_label(&"HubBodyLight")
 	column.add_child(_look_detail)
-	_look_friends = _make_label(FRIENDS_FONT_SIZE, FRIENDS_COLOR, HubFonts.LIGHT)
+	_look_friends = _make_label(&"HubStatusOk")
 	column.add_child(_look_friends)
+	_look_action = _make_label(&"HubValue")
+	column.add_child(_look_action)
 
 
 ## Pilha de avisos no topo, centralizada, 500 px de largura.
@@ -346,26 +435,57 @@ func _build_toasts() -> void:
 	add_child(_toasts)
 
 
-func _make_panel_style(left_border: int) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 22.0
-	style.content_margin_right = 22.0
-	style.content_margin_top = 10.0
-	style.content_margin_bottom = 12.0
-	style.border_width_left = left_border
-	return style
+## A bússola no topo; os avisos descem para ficar abaixo dela.
+func _build_compass() -> void:
+	_compass = Compass.new()
+	_compass.name = "Compass"
+	add_child(_compass)
+	_minimap = MapView.new()
+	_minimap.name = "Minimap"
+	_minimap.follow_player = true
+	_minimap.show_area_name = true
+	_minimap.custom_minimum_size = MINIMAP_SIZE
+	_minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.offset_left = -MINIMAP_SIZE.x - 12.0
+	_minimap.offset_right = -12.0
+	_minimap.offset_top = 12.0
+	_minimap.offset_bottom = 12.0 + MINIMAP_SIZE.y
+	add_child(_minimap)
+	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
+		if section == "video" and key == "show_map":
+			_apply_map_visibility())
+	_apply_map_visibility()
 
 
-func _make_label(font_size: int, color: Color, font: Font = null) -> Label:
-	var label := Label.new()
+## Em casa a bússola e o minimapa somem (eles falam do mundo lá fora).
+func set_indoors(on: bool) -> void:
+	_indoors = on
+	_apply_map_visibility()
+
+
+func _apply_map_visibility() -> void:
+	var on := AppConfig.get_show_map() and not _indoors
+	_compass.visible = on
+	_minimap.visible = on
+	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)
+
+
+func get_minimap() -> MapView:
+	return _minimap
+
+
+func get_district_title() -> DistrictTitle:
+	return _district_title
+
+
+func get_compass() -> Compass:
+	return _compass
+
+
+func _make_label(variation: StringName) -> Label:
+	var label := HubTheme.label("", variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if font != null:
-		label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
 
 

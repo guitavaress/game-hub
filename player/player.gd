@@ -5,6 +5,8 @@ extends CharacterBody3D
 ## - Mouse gira a visão; W/A/S/D anda; Espaço pula; Shift corre.
 ## - Esc abre o menu de pausa (PauseMenu) e Tab abre a busca de jogos
 ##   (GameSearch); os dois vêm junto com o jogador, como o HUD.
+## - E numa tela 3D (Screen3D) aproxima a câmera dela (focus_on); Esc devolve
+##   (leave_focus).
 ## - Um raio invisível (RayCast3D) sai da câmera. Se ele acertar algo que tenha
 ##   o método get_look_label(), o texto aparece no HUD. É um "contrato" simples:
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
@@ -23,22 +25,49 @@ signal look_info_changed(info: Dictionary)
 @export var jump_velocity: float = 4.8
 ## Quão rápido o jogador chega na velocidade desejada (maior = mais "seco").
 @export var acceleration: float = 12.0
-## Radianos girados por pixel de movimento do mouse.
+## Radianos girados por pixel de movimento do mouse (vezes a opção do config).
 @export var mouse_sensitivity: float = 0.0025
 ## Alcance do raio de "olhar", em metros.
 @export var look_distance: float = 30.0
 
+## Giro do analógico direito, no máximo (rad/s, com a sensibilidade em 1,0):
+## uma volta inteira em ~2 s.
+const STICK_TURN_SPEED: float = 3.2
+
 ## Limite para olhar para cima/baixo (evita dar cambalhota com a câmera).
 const MAX_PITCH_DEGREES: float = 89.0
+## Em casa a câmera enxerga só até aqui (m): o mundo lá fora nem é desenhado.
+const INDOOR_CAMERA_FAR: float = 60.0
+## Em casa o som do mundo (canal "Ambiente") fica abafado: só os graves
+## passam (filtro passa-baixa) e o volume cai um pouco.
+const INDOOR_AMBIENCE_CUTOFF_HZ: float = 900.0
+const INDOOR_AMBIENCE_DB: float = -10.0
+## Quanto tempo (s) a câmera leva para chegar à tela 3D e para voltar.
+const FOCUS_SLIDE_SECONDS: float = 0.45
 
 ## Sons (pacotes CC0 da Kenney).
-const FOOTSTEP_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_000.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_001.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_002.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_003.ogg"),
-	preload("res://assets/kenney/impact-sounds/footstep_concrete_004.ogg"),
-]
+## Passos por SUPERFÍCIE. Quem monta um chão diz do que ele é com
+## set_meta("footstep", "wood") no corpo de colisão; sem a marca, é concreto.
+const FOOTSTEP_SURFACES: Dictionary[String, Array] = {
+	"concrete": [
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_concrete_004.ogg"),
+	],
+	"wood": [
+		preload("res://assets/kenney/impact-sounds/footstep_wood_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_wood_004.ogg"),
+	],
+}
+const DEFAULT_SURFACE: String = "concrete"
+## Eco dos passos em casa (canal "Passos"): sala pequena, pouco eco.
+const INDOOR_ECHO_ROOM: float = 0.35
+const INDOOR_ECHO_WET: float = 0.12
 const JUMP_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/kenney/rpg-audio/cloth1.ogg"),
 	preload("res://assets/kenney/rpg-audio/cloth2.ogg"),
@@ -54,8 +83,12 @@ const WALK_STRIDE: float = 2.2
 const SPRINT_STRIDE: float = 3.0
 ## Só toca o som de aterrissar se estiver caindo mais rápido que isso (m/s).
 const LAND_SOUND_MIN_SPEED: float = 4.0
+## No ar o controle é menor: a velocidade horizontal muda neste tanto (0..1)
+## do que mudaria no chão.
+const AIR_CONTROL: float = 0.35
 
 @onready var _head: Node3D = $Head
+@onready var _camera: Camera3D = $Head/Camera3D
 @onready var _look_ray: RayCast3D = $Head/Camera3D/LookRay
 @onready var _hud: Hud = $HUD
 
@@ -64,21 +97,62 @@ var _current_look_text: String = ""
 var _current_look_info: Dictionary = {}
 var _pause_menu: PauseMenu
 var _game_search: GameSearch
-## true durante a abertura (câmera olhando o céu enquanto a cidade monta):
-## o jogador fica parado e sem controles.
+var _world_map: WorldMap
+var _transit_panel: TransitPanel
+## true durante a abertura (a tela "GAME HUB" por cima da casa): o jogador
+## fica parado, sem controles e sem HUD.
 var in_intro: bool = false
+## true enquanto o mundo ainda está montando (o jogador já anda pela casa):
+## a busca e o mapa não abrem (o mundo lá fora ainda não existe inteiro).
+var world_loading: bool = false
+## true durante uma viagem rápida (travel_to): sem andar, sem busca, sem menu.
+var _traveling: bool = false
+## Dentro de casa (veja set_indoors).
+var _indoors: bool = false
+## Até onde a câmera enxerga fora de casa (o valor da cena).
+var _outdoor_camera_far: float = 4000.0
+
+## FOCO numa tela 3D (veja focus_on): a tela focada (null = sem foco), se a
+## câmera está voltando, a animação da câmera e a posição normal da câmera
+## dentro da cabeça.
+var _focus_screen: Node3D = null
+var _focus_leaving: bool = false
+var _focus_tween: Tween
+var _camera_rest: Transform3D = Transform3D.IDENTITY
+
+## INTERAGIR (E): quem está sendo olhado e responde ao E, há quanto tempo o E
+## está segurado nele, e se o E já disparou nesta segurada.
+var _interact_target: Node = null
+var _interact_hold: float = 0.0
+var _interact_fired: bool = false
+var _interact_was_pressed: bool = false
 
 var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
 ## Quanto já andou desde o último passo (metros).
 var _stride_progress: float = 0.0
 var _was_on_floor: bool = true
+## Balanço, afundada e FOV da câmera (veja CameraFeel).
+var _camera_feel: CameraFeel
+## Correndo agora (andando com Shift apertado)?
+var _sprinting: bool = false
+## Multiplicador da sensibilidade (Esc › Controles).
+var _sensitivity_scale: float = 1.0
+## Idem, para o analógico direito do controle.
+var _stick_scale: float = 1.0
+var _stride_length: float = WALK_STRIDE
+## Do que é o chão em que se pisa (a marca "footstep" do corpo de colisão).
+var _surface: String = DEFAULT_SURFACE
 
 
 func _ready() -> void:
 	# O grupo "player" é como os portais reconhecem o jogador.
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
+	_outdoor_camera_far = _camera.far
+	# O seu corpo só aparece no espelho (Fase 13.10): a câmera não vê essa camada.
+	_camera.cull_mask &= ~AvatarBody.reflection_layers()
+	_camera_rest = _camera.transform
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
@@ -87,22 +161,39 @@ func _ready() -> void:
 	add_child(_pause_menu)
 	_game_search = GameSearch.new()
 	add_child(_game_search)
+	_world_map = WorldMap.new()
+	add_child(_world_map)
+	_transit_panel = TransitPanel.new()
+	add_child(_transit_panel)
+
+	_camera_feel = CameraFeel.new()
+	add_child(_camera_feel)
+	_camera_feel.setup(_camera, _camera_rest)
+	_sensitivity_scale = AppConfig.get_mouse_sensitivity()
+	_stick_scale = AppConfig.get_stick_sensitivity()
+	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
+		if section == "controls" and key == "mouse_sensitivity":
+			_sensitivity_scale = AppConfig.get_mouse_sensitivity()
+		elif section == "controls" and key == "stick_sensitivity":
+			_stick_scale = AppConfig.get_stick_sensitivity())
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
 
+	# Um jogo que abre (por exemplo, por fora do hub) tira o foco na hora,
+	# como fecha o menu de pausa.
+	GameLauncher.game_started.connect(func(_app_id: int, _source: Node) -> void:
+		leave_focus(true))
+
 
 func _unhandled_input(event: InputEvent) -> void:
-	if in_intro:
+	if in_intro or _focus_screen != null:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		var motion := event as InputEventMouseMotion
-		# Girar o corpo inteiro para os lados (eixo Y)...
-		rotate_y(-motion.relative.x * mouse_sensitivity)
-		# ...e só a "cabeça" para cima/baixo (eixo X).
-		_head.rotate_x(-motion.relative.y * mouse_sensitivity)
-		var limit := deg_to_rad(MAX_PITCH_DEGREES)
-		_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+		# screen_relative: o movimento em pixels da TELA. O "relative" vem na
+		# escala da UI (que cresce com a janela), e o mouse ficaria mais lento
+		# em telas grandes.
+		look_by((event as InputEventMouseMotion).screen_relative)
 	elif event is InputEventMouseButton and event.is_pressed() \
 			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		# O Esc agora abre o menu de pausa (que solta o mouse); um clique na
@@ -110,17 +201,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## Gira a visão por um movimento do mouse em pixels da tela, vezes a
+## sensibilidade (a da cena vezes a opção de Esc › Controles).
+func look_by(screen_motion: Vector2) -> void:
+	var sensitivity := mouse_sensitivity * _sensitivity_scale
+	# Girar o corpo inteiro para os lados (eixo Y)...
+	rotate_y(-screen_motion.x * sensitivity)
+	# ...e só a "cabeça" para cima/baixo (eixo X).
+	_head.rotate_x(-screen_motion.y * sensitivity)
+	var limit := deg_to_rad(MAX_PITCH_DEGREES)
+	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+
+
 func _physics_process(delta: float) -> void:
 	# Gravidade: enquanto estiver no ar, cai.
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	if Input.is_action_just_pressed("jump") and is_on_floor() and not _is_movement_locked():
 		velocity.y = jump_velocity
 		_play_random(_body_player, JUMP_SOUNDS)
 
 	# Direção pedida pelo teclado, convertida para "para onde o jogador está virado".
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input_dir := Vector2.ZERO if _is_movement_locked() else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input_dir != Vector2.ZERO:
 		_hud.on_player_moved()  # o aviso de volta do jogo pode sair
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
@@ -129,29 +232,86 @@ func _physics_process(delta: float) -> void:
 
 	# Aproxima a velocidade atual da desejada aos poucos (movimento mais suave).
 	var blend := 1.0 - exp(-acceleration * delta)
+	if not is_on_floor():
+		blend *= AIR_CONTROL
+	_sprinting = speed > walk_speed and input_dir != Vector2.ZERO
 	velocity.x = lerpf(velocity.x, target_velocity.x, blend)
 	velocity.z = lerpf(velocity.z, target_velocity.z, blend)
 
 	var falling_speed := -velocity.y
 	move_and_slide()
+	_update_surface()
 	_update_footsteps(delta, speed, falling_speed)
 	_update_look_target()
+	_update_interact(delta)
+
+
+## OLHAR COM O ANALÓGICO DIREITO: a cada quadro, vira a visão pela inclinação
+## do analógico (zona morta de 0,2 vinda das ações look_*). A curva é
+## quadrática: perto do centro vira devagar (precisão) e na ponta, rápido.
+## Trava nos mesmos casos que o mouse: abertura, foco numa tela 3D e painel
+## aberto.
+func _look_with_stick(delta: float) -> void:
+	if in_intro or _focus_screen != null or is_overlay_open():
+		return
+	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	if stick == Vector2.ZERO:
+		return
+	stick *= stick.length()  # curva quadrática
+	var speed := STICK_TURN_SPEED * _stick_scale * delta
+	rotate_y(-stick.x * speed)
+	_head.rotate_x(-stick.y * speed)
+	var limit := deg_to_rad(MAX_PITCH_DEGREES)
+	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+
+
+## A câmera ganha o balanço a cada quadro de tela (e não de física), para não
+## engasgar em monitores de taxa alta. Parada durante o foco e a viagem.
+func _process(delta: float) -> void:
+	_look_with_stick(delta)
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
+			is_on_floor(), _sprinting, _focus_screen == null and not _traveling and not in_intro)
+
+
+## Lê a marca do chão em que o jogador pisa (a colisão de baixo do
+## move_and_slide). Sem marca, é concreto; no ar (ou sem tocar o chão neste quadro), vale a última.
+func _update_surface() -> void:
+	if not is_on_floor():
+		return
+	for i in get_slide_collision_count():
+		var hit := get_slide_collision(i)
+		if hit.get_normal().y > 0.7:
+			var floor_surface := DEFAULT_SURFACE
+			var collider := hit.get_collider() as Node
+			if collider != null and collider.has_meta("footstep"):
+				floor_surface = str(collider.get_meta("footstep"))
+			_surface = floor_surface if FOOTSTEP_SURFACES.has(floor_surface) else DEFAULT_SURFACE
+			return
+
+
+## A superfície em que o jogador pisa agora ("concrete", "wood"...).
+func get_surface() -> String:
+	return _surface
 
 
 ## Passos: um som a cada "passada" (mais longa correndo); e um "tum" ao cair.
 func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void:
 	var on_floor := is_on_floor()
-	if on_floor and not _was_on_floor and falling_speed > LAND_SOUND_MIN_SPEED:
-		_play_random(_body_player, LAND_SOUNDS)
+	if on_floor and not _was_on_floor:
+		_camera_feel.land(falling_speed)
+		if falling_speed > LAND_SOUND_MIN_SPEED:
+			_play_random(_body_player, LAND_SOUNDS)
 	_was_on_floor = on_floor
 
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var stride := SPRINT_STRIDE if speed > walk_speed else WALK_STRIDE
+	_stride_length = stride
 	if on_floor and horizontal_speed > 1.0:
 		_stride_progress += horizontal_speed * delta
 		if _stride_progress >= stride:
 			_stride_progress = 0.0
-			_play_random(_steps_player, FOOTSTEP_SOUNDS)
+			_play_random(_steps_player, FOOTSTEP_SURFACES[_surface])
 	else:
 		# Parado: o primeiro passo ao voltar a andar sai logo.
 		_stride_progress = stride * 0.7
@@ -159,14 +319,14 @@ func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void
 
 func _make_sound_player(volume_db: float) -> AudioStreamPlayer:
 	var sound := AudioStreamPlayer.new()
-	sound.bus = &"Efeitos"
+	sound.bus = &"Passos"
 	sound.volume_db = volume_db
 	add_child(sound)
 	return sound
 
 
 ## Toca um dos sons da lista, com o tom levemente diferente a cada vez.
-func _play_random(sound: AudioStreamPlayer, streams: Array[AudioStream]) -> void:
+func _play_random(sound: AudioStreamPlayer, streams: Array) -> void:
 	sound.stream = streams.pick_random()
 	sound.pitch_scale = randf_range(0.9, 1.1)
 	sound.play()
@@ -181,28 +341,41 @@ func get_pause_menu() -> PauseMenu:
 	return _pause_menu
 
 
+func get_transit_panel() -> TransitPanel:
+	return _transit_panel
+
+
+## Algum painel por cima do jogo (menu, busca, mapa, metrô) está aberto, ou o
+## jogador está usando uma tela 3D? Cada painel confere isto antes de abrir:
+## só um de cada vez.
+func is_overlay_open() -> bool:
+	return _pause_menu.is_open() or _game_search.is_open() or _world_map.is_open() \
+			or _transit_panel.is_open() or _focus_screen != null
+
+
+func get_world_map() -> WorldMap:
+	return _world_map
+
+
 func get_game_search() -> GameSearch:
 	return _game_search
 
 
-## Abertura: parado (sem gravidade: o chão ainda nem existe), sem controles,
-## sem HUD e olhando "pitch_degrees" para cima (só céu).
-func start_intro(pitch_degrees: float) -> void:
+## Abertura: a tela "GAME HUB" por cima (o mundo pode estar montando). O
+## jogador fica parado, sem controles e sem HUD.
+func start_intro() -> void:
 	in_intro = true
 	set_physics_process(false)
 	_hud.visible = false
-	_head.rotation.x = deg_to_rad(pitch_degrees)
 
 
-## Fim da abertura: a câmera desce até o horizonte em "seconds" segundos e
-## aí o jogador ganha os controles e o HUD. Dá para esperar com await.
-func finish_intro(seconds: float) -> void:
-	var tween := create_tween()
-	tween.tween_property(_head, "rotation:x", 0.0, seconds) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	await tween.finished
+## Fim da abertura: o jogador ganha os controles e o HUD. Na primeira vez,
+## o cartão de controles aparece antes do HUD (os avisos esperam ele sair).
+func finish_intro() -> void:
 	in_intro = false
 	set_physics_process(true)
+	if not AppConfig.get_seen_controls_hint():
+		_hud.show_controls_hint()
 	_hud.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -219,9 +392,177 @@ func teleport_to(target: Transform3D) -> void:
 	velocity = Vector3.ZERO
 
 
+## EM CASA: quem cobre um interior (a Home) chama isto quando o jogador entra
+## (com o ambiente de dentro) e quando sai (null). Dentro:
+##   - a câmera usa o ambiente de dentro, e não o do mundo;
+##   - a câmera enxerga só INDOOR_CAMERA_FAR metros (o mundo lá fora fica longe
+##     e nem é desenhado);
+##   - o HUD esconde a bússola e o minimapa;
+##   - o som do mundo fica abafado.
+func set_indoors(environment: Environment) -> void:
+	_indoors = environment != null
+	_camera.environment = environment
+	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
+	_hud.set_indoors(_indoors)
+	_muffle_ambience(_indoors)
+	_echo_footsteps(_indoors)
+
+
+func is_indoors() -> bool:
+	return _indoors
+
+
+## Liga ou desliga o "abafado" no canal "Ambiente". Os dois efeitos são
+## criados uma vez só e depois só ligados e desligados.
+func _muffle_ambience(on: bool) -> void:
+	var bus := AudioServer.get_bus_index(&"Ambiente")
+	if bus < 0:
+		return
+	var low_pass := -1
+	var quieter := -1
+	for i in AudioServer.get_bus_effect_count(bus):
+		var effect := AudioServer.get_bus_effect(bus, i)
+		if effect is AudioEffectLowPassFilter:
+			low_pass = i
+		elif effect is AudioEffectAmplify:
+			quieter = i
+	if low_pass < 0:
+		var filter := AudioEffectLowPassFilter.new()
+		filter.cutoff_hz = INDOOR_AMBIENCE_CUTOFF_HZ
+		AudioServer.add_bus_effect(bus, filter)
+		low_pass = AudioServer.get_bus_effect_count(bus) - 1
+	if quieter < 0:
+		var amplify := AudioEffectAmplify.new()
+		amplify.volume_db = INDOOR_AMBIENCE_DB
+		AudioServer.add_bus_effect(bus, amplify)
+		quieter = AudioServer.get_bus_effect_count(bus) - 1
+	AudioServer.set_bus_effect_enabled(bus, low_pass, on)
+	AudioServer.set_bus_effect_enabled(bus, quieter, on)
+
+
+## Liga ou desliga o eco no canal "Passos" (criado uma vez só, como o abafado).
+func _echo_footsteps(on: bool) -> void:
+	var bus := AudioServer.get_bus_index(&"Passos")
+	if bus < 0:
+		return
+	var reverb := -1
+	for i in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i) is AudioEffectReverb:
+			reverb = i
+	if reverb < 0:
+		var effect := AudioEffectReverb.new()
+		effect.room_size = INDOOR_ECHO_ROOM
+		effect.wet = INDOOR_ECHO_WET
+		effect.dry = 1.0
+		AudioServer.add_bus_effect(bus, effect)
+		reverb = AudioServer.get_bus_effect_count(bus) - 1
+	AudioServer.set_bus_effect_enabled(bus, reverb, on)
+
+
+func is_traveling() -> bool:
+	return _traveling
+
+
+## Viajando ou usando uma tela 3D: o jogador não anda nem pula.
+func _is_movement_locked() -> bool:
+	return _traveling or _focus_screen != null
+
+
+## FOCO NUMA TELA 3D: a câmera desliza até a frente da tela
+## (screen.get_camera_pose), o mouse aparece, o jogador para e o HUD some. A
+## tela recebe set_focused(true, jogador) e passa a cuidar do mouse e do
+## teclado; o Esc dela chama leave_focus. Enquanto isso, is_overlay_open() é
+## true: o menu de pausa, a busca e o mapa não abrem.
+func focus_on(screen: Node3D) -> void:
+	if _focus_screen != null or not _can_interact() or not screen.has_method("get_camera_pose"):
+		return
+	_focus_screen = screen
+	_focus_leaving = false
+	_reset_interact_hold()
+	velocity = Vector3(0.0, velocity.y, 0.0)
+	_hud.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	var window := get_viewport().get_visible_rect().size
+	var pose: Transform3D = screen.get_camera_pose(_camera.fov, window.x / maxf(window.y, 1.0))
+	_slide_camera(pose)
+	screen.set_focused(true, self)
+
+
+## Sai do foco: a câmera volta para a cabeça e o jogador ganha os controles
+## de novo. "instant" pula a animação (ex.: um jogo abriu).
+func leave_focus(instant: bool = false) -> void:
+	if _focus_screen == null or (_focus_leaving and not instant):
+		return
+	_focus_leaving = true
+	if is_instance_valid(_focus_screen):
+		_focus_screen.set_focused(false)
+	if instant:
+		_end_focus()
+	else:
+		_slide_camera(_head.global_transform * _camera_rest, _end_focus)
+
+
+func is_focused() -> bool:
+	return _focus_screen != null
+
+
+func get_focused_screen() -> Node3D:
+	return _focus_screen
+
+
+## Anima a câmera da posição atual até "target" (no mundo), suavizando a
+## partida e a chegada. "on_done" é chamado no fim.
+func _slide_camera(target: Transform3D, on_done: Callable = Callable()) -> void:
+	if _focus_tween != null:
+		_focus_tween.kill()
+	var start := _camera.global_transform
+	_focus_tween = create_tween()
+	_focus_tween.tween_method(func(t: float) -> void:
+		_camera.global_transform = start.interpolate_with(target, t),
+		0.0, 1.0, FOCUS_SLIDE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if on_done.is_valid():
+		_focus_tween.tween_callback(on_done)
+
+
+## Fim do foco: câmera no lugar, HUD de volta e mouse preso (se o hub não foi
+## dormir por causa de um jogo; aí quem cuida do mouse é o HubWindow).
+func _end_focus() -> void:
+	if _focus_tween != null:
+		_focus_tween.kill()
+		_focus_tween = null
+	_camera.transform = _camera_rest
+	_focus_screen = null
+	_focus_leaving = false
+	_hud.visible = not in_intro
+	if not HubWindow.is_sleeping:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## VIAGEM RÁPIDA: escurece a tela, leva o jogador até "target" (ele fica
+## virado para a frente do transform, como no teleport_to), apaga a faixa de
+## luz e clareia. Espere com "await". Durante a viagem o jogador não anda e a
+## busca e o menu não abrem. Não abre jogo nenhum.
+func travel_to(target: Transform3D, message: String = "", fade_seconds: float = 0.35, hold_seconds: float = 0.15) -> void:
+	if _traveling:
+		return
+	_traveling = true
+	velocity = Vector3.ZERO
+	ScreenFade.set_message(message)
+	ScreenFade.fade_out(fade_seconds)
+	await get_tree().create_timer(fade_seconds).timeout
+	teleport_to(target)
+	get_tree().call_group("route_guide", "clear_route")
+	await get_tree().create_timer(hold_seconds).timeout
+	ScreenFade.set_message("")
+	ScreenFade.fade_in(fade_seconds)
+	await get_tree().create_timer(fade_seconds).timeout
+	_traveling = false
+
+
 func _update_look_target() -> void:
 	var info := {}
-	if _look_ray.is_colliding():
+	# Com o foco numa tela, o cartão some (o raio continua preso à câmera).
+	if _focus_screen == null and _look_ray.is_colliding():
 		info = _find_look_info(_look_ray.get_collider())
 	if info != _current_look_info:
 		_current_look_info = info
@@ -232,6 +573,66 @@ func _update_look_target() -> void:
 		if text != _current_look_text:
 			_current_look_text = text
 			look_target_changed.emit(text)
+
+
+## INTERAGIR com E. Contrato de quem quer responder (o jogador sobe pela
+## árvore a partir do que o raio acertou, como no cartão):
+##   interact(player)      : chamado num toque de E (ou quando a segurada enche);
+##   get_hold_seconds()    : opcional; > 0 = precisa SEGURAR o E por esse tempo;
+##   set_hold(ratio)       : opcional; avisa o progresso (0 a 1) da segurada,
+##                           e 0 quando solta ou o jogador olha para outro lado.
+## O cartão mostra a dica pela chave "action" do get_look_info().
+func _update_interact(delta: float) -> void:
+	var pressed := Input.is_action_pressed("interact")
+	var target: Node = null
+	if _can_interact() and _look_ray.is_colliding():
+		target = _find_interactable(_look_ray.get_collider())
+	if target != _interact_target:
+		_reset_interact_hold()
+		_interact_target = target
+	if target != null:
+		var hold_seconds: float = target.get_hold_seconds() if target.has_method("get_hold_seconds") else 0.0
+		if hold_seconds <= 0.0:
+			if pressed and not _interact_was_pressed:
+				target.interact(self)
+		elif pressed:
+			if not _interact_fired:
+				_interact_hold += delta
+				_set_interact_hold(_interact_hold / hold_seconds)
+				if _interact_hold >= hold_seconds:
+					_interact_fired = true
+					_set_interact_hold(0.0)
+					target.interact(self)
+		else:
+			_reset_interact_hold()
+	_interact_was_pressed = pressed
+
+
+## Dá para interagir agora? Não na abertura, em viagem, com painel aberto ou
+## com um jogo abrindo/rodando.
+func _can_interact() -> bool:
+	return not in_intro and not _traveling and not is_overlay_open() and not GameLauncher.is_busy()
+
+
+func _find_interactable(hit: Object) -> Node:
+	var node := hit as Node
+	while node != null:
+		if node.has_method("interact"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _reset_interact_hold() -> void:
+	if _interact_hold > 0.0:
+		_set_interact_hold(0.0)
+	_interact_hold = 0.0
+	_interact_fired = false
+
+
+func _set_interact_hold(ratio: float) -> void:
+	if is_instance_valid(_interact_target) and _interact_target.has_method("set_hold"):
+		_interact_target.set_hold(clampf(ratio, 0.0, 1.0))
 
 
 ## Sobe pela árvore de nós a partir do que o raio acertou, procurando alguém

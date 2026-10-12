@@ -16,6 +16,10 @@ extends Node3D
 ##   FriendSpot  : onde NPCs de amigos vão aparecer (fase 5).
 ##   ReturnPoint : onde o jogador reaparece quando o jogo fecha.
 
+## A carga da porta mudou (0..1; 0 = parada). Quem desenha a casca (o prédio)
+## escuta para acender o vão; o portal não sabe quem é.
+signal charge_changed(ratio: float)
+
 ## App ID da Steam do jogo deste portal (0 = nenhum).
 @export var app_id: int = 0
 ## Nome para mostrar. Se ficar vazio, usamos o nome que a Steam conhece.
@@ -35,8 +39,8 @@ const RETURN_FADE_TIME: float = 0.8
 const FRIEND_SPACING: float = 1.5
 const FRIENDS_PER_ROW: int = 6
 
-## Sons (Kenney, CC0): zumbido enquanto a tela escurece e "whoosh" ao entrar.
-const CHARGE_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/forceField_000.ogg")
+## Sons (Kenney, CC0): rumor grave (diferente do zumbido dos hologramas) enquanto a tela escurece e "whoosh" ao entrar.
+const CHARGE_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/spaceEngineLow_000.ogg")
 const ENTER_SOUND: AudioStream = preload("res://assets/kenney/sci-fi-sounds/doorOpen_000.ogg")
 ## Tom e volume do zumbido: do começo ao fim da espera na porta.
 const CHARGE_PITCH: Vector2 = Vector2(0.7, 1.7)
@@ -59,6 +63,8 @@ var _charge: float = 0.0
 ## true entre chamar GameLauncher.launch() e receber session_ended.
 var _waiting_for_game: bool = false
 
+## Último valor mandado em charge_changed.
+var _last_ratio: float = 0.0
 var _charge_sound: AudioStreamPlayer3D
 var _enter_sound: AudioStreamPlayer
 
@@ -91,8 +97,16 @@ func _process(delta: float) -> void:
 	ScreenFade.set_door_charge(ratio, get_game_name(),
 			GameCategories.get_neon_color(GameCategories.get_category_id(app_id)))
 	_update_charge_sound(ratio)
+	_emit_charge(ratio)
 	if _charge >= enter_time:
 		_start_game()
+
+
+func _emit_charge(ratio: float) -> void:
+	ratio = clampf(ratio, 0.0, 1.0)
+	if not is_equal_approx(ratio, _last_ratio):
+		_last_ratio = ratio
+		charge_changed.emit(ratio)
 
 
 ## O zumbido sobe de tom e de volume enquanto a tela escurece.
@@ -126,12 +140,7 @@ func _build_sounds() -> void:
 func get_game_name() -> String:
 	if not display_name.is_empty():
 		return display_name
-	if app_id <= 0:
-		return ""
-	var steam_name := SteamLibrary.get_game_name(app_id)
-	if steam_name.is_empty():
-		return "Jogo %d (não encontrado na Steam)" % app_id
-	return steam_name
+	return GameInfo.game_name(app_id)
 
 
 ## "Contrato" com o jogador: o texto que aparece no HUD ao olhar para cá.
@@ -139,7 +148,7 @@ func get_game_name() -> String:
 func get_look_label() -> String:
 	if app_id <= 0:
 		return "Portal sem jogo configurado"
-	var info := _play_info()
+	var info := GameInfo.play_info(app_id)
 	return get_game_name() if info.is_empty() else "%s — %s" % [get_game_name(), info]
 
 
@@ -147,67 +156,16 @@ func get_look_label() -> String:
 ##   label/label_color: a categoria do jogo ("CARTAS E TABULEIRO", na cor néon);
 ##   title/detail: o nome e "24 h jogadas · jogado ontem";
 ##   friends: "Ana e Bruno jogando agora" ("" = ninguém);
-##   accent: cor da mira enquanto olha para cá.
+##   accent: cor da mira enquanto olha para cá;
+##   action: como entrar ("Entre pela porta para jogar"). O texto é genérico
+##   (vale para prédio, arco ou o que for a casca). Fica aqui, e não no
+##   GameInfo, porque a estante usa o mesmo cartão com outra ação.
 func get_look_info() -> Dictionary:
 	if app_id <= 0:
 		return {"title": "Portal sem jogo configurado"}
-	var category := GameCategories.get_category_id(app_id)
-	var neon := GameCategories.get_neon_color(category)
-	var friends := FriendsService.get_friends_playing(app_id)
-	var friends_text := ""
-	if not friends.is_empty():
-		friends_text = SteamFriend.join_names(friends) + " jogando agora"
-	return {
-		"label": GameCategories.get_category_name(category).to_upper(),
-		"label_color": neon,
-		"title": get_game_name(),
-		"detail": _play_info(),
-		"friends": friends_text,
-		"accent": neon,
-	}
-
-
-## "24 h jogadas · jogado ontem" (ou "" se a Steam não souber).
-func _play_info() -> String:
-	var minutes := SteamLibrary.get_playtime_minutes(app_id)
-	var last_played := SteamLibrary.get_last_played(app_id)
-	if minutes <= 0 and last_played <= 0:
-		return "nunca jogado" if minutes == 0 else ""
-	var parts := PackedStringArray()
-	if minutes > 0:
-		parts.append(_format_playtime(minutes))
-	if last_played > 0:
-		parts.append(_format_last_played(last_played))
-	return " · ".join(parts)
-
-
-static func _format_playtime(minutes: int) -> String:
-	if minutes < 60:
-		return "%d min jogados" % minutes
-	var hours := minutes / 60.0
-	if hours < 10.0:
-		# Uma casa decimal, com vírgula: "2,5 h" (e "2 h" em vez de "2,0 h").
-		return "%s h jogadas" % ("%.1f" % hours).replace(".", ",").trim_suffix(",0")
-	return "%d h jogadas" % floori(hours)
-
-
-static func _format_last_played(unix_time: int) -> String:
-	# Compara DIAS do calendário no fuso do PC (ontem às 23h = "ontem").
-	var bias_seconds := int(Time.get_time_zone_from_system().get("bias", 0)) * 60
-	var today := floori((Time.get_unix_time_from_system() + bias_seconds) / 86400.0)
-	var day := floori((unix_time + bias_seconds) / 86400.0)
-	var days := maxi(today - day, 0)
-	if days == 0:
-		return "jogado hoje"
-	if days == 1:
-		return "jogado ontem"
-	if days < 30:
-		return "jogado há %d dias" % days
-	if days < 365:
-		var months := floori(days / 30.0)
-		return "jogado há 1 mês" if months == 1 else "jogado há %d meses" % months
-	var years := floori(days / 365.0)
-	return "jogado há 1 ano" if years == 1 else "jogado há %d anos" % years
+	var info := GameInfo.look_info(app_id, get_game_name())
+	info["action"] = "Entre pela porta para jogar"
+	return info
 
 
 ## Posição e direção onde o jogador reaparece ao voltar do jogo.
@@ -215,11 +173,18 @@ func get_return_transform() -> Transform3D:
 	return _return_point.global_transform
 
 
+## Na frente da porta, virado PARA ela (o ReturnPoint olha para a rua). É o
+## destino da busca (Shift+Enter) e do mural de amigos da casa.
+func get_arrival_transform() -> Transform3D:
+	return Transform3D(global_basis, _return_point.global_position)
+
+
 func _start_game() -> void:
 	_waiting_for_game = true
 	ScreenFade.set_door_charge(0.0)  # a vinheta já está toda preta: troca pela cortina
 	ScreenFade.set_amount(1.0)
 	_charge_sound.stop()
+	_emit_charge(0.0)
 	_enter_sound.play()
 	GameLauncher.launch(app_id, self)
 
@@ -237,8 +202,11 @@ func _on_session_ended(ended_app_id: int, source: Node, _success: bool, _message
 			ScreenFade.fade_in(RETURN_FADE_TIME)
 	elif source == null and ended_app_id == app_id and app_id > 0:
 		# Este jogo foi aberto POR FORA do hub e fechou: o jogador volta na
-		# porta deste portal, como se tivesse entrado por aqui.
-		_teleport_player_to_door(null)
+		# porta deste portal, como se tivesse entrado por aqui. Em casa, não:
+		# quem está na estante ou no computador não é puxado para a rua.
+		var player := get_tree().get_first_node_in_group("player") as Player
+		if player == null or not player.is_indoors():
+			_teleport_player_to_door(player)
 
 
 ## Leva o jogador para o ReturnPoint. Se não soubermos quem é (null), procuramos

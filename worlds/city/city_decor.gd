@@ -133,8 +133,9 @@ static func add_park(parent: Node3D, lot: Transform3D) -> void:
 
 
 ## Floreira de concreto (com colisão) com uma árvore (impostora: só uma foto,
-## veja TreeImpostor) e três arbustos baixos em volta.
-static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator) -> void:
+## veja TreeImpostor) e, se with_bushes, três arbustos baixos em volta (a praça
+## fica só com a árvore).
+static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator, with_bushes: bool = true) -> void:
 	var planter := CSGBox3D.new()
 	planter.size = Vector3(1.8, 0.55, 1.8)
 	planter.position = base + Vector3(0.0, 0.275, 0.0)
@@ -142,9 +143,10 @@ static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerato
 	planter.use_collision = true
 	parent.add_child(planter)
 	add_pad(parent, base + Vector3(0.0, 0.5, 0.0), Vector2(1.6, 1.6), make_material(Color(0.1, 0.08, 0.06)), 0.06)
-	for spot in PLANTER_BUSH_SPOTS:
-		add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
-				BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
+	if with_bushes:
+		for spot in PLANTER_BUSH_SPOTS:
+			add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
+					BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
 	var tree := TreeImpostor.new()
 	tree.height = rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
 	tree.position = base + Vector3(0.0, 0.5, 0.0)
@@ -225,7 +227,7 @@ static func add_plaza(parent: Node3D) -> void:
 	var corner := size / 2.0 - 4.0
 	for sx in [-1.0, 1.0]:
 		for sz in [-1.0, 1.0]:
-			add_planter(parent, Vector3(sx * corner, 0.0, sz * corner), rng)
+			add_planter(parent, Vector3(sx * corner, 0.0, sz * corner), rng, false)
 	add_block_lights(parent, Vector3.ZERO)
 
 

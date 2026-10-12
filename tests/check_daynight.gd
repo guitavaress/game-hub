@@ -42,8 +42,10 @@ func _run() -> void:
 
 	print("\n== à noite, postes e janelas acendem ==")
 	_set_hour(day_night, city, 23.0)
-	# (postes queimados de propósito, como o do bairro Terror, não contam)
-	var lights := root.find_children("*", "SpotLight3D", true, false).filter(func(l): return not l.get_parent().get("broken"))
+	# (postes queimados de propósito, como o do bairro Terror, não contam; nem
+	# a luz do dia que entra pela janela da casa, que faz o contrário)
+	var home: Node = city.get_home()
+	var lights := root.find_children("*", "SpotLight3D", true, false).filter(func(l): return not l.get_parent().get("broken") and not home.is_ancestor_of(l))
 	var lit := lights.filter(func(l): return l.visible and l.light_energy > 0.5).size()
 	var building = city.get_node("Building_2379780")
 	print("   23h: %d de %d postes acesos | janelas: brilho %.2f | sol %.2f" % [lit, lights.size(), building._walls_material.get_shader_parameter("night"), day_night.sun.light_energy])

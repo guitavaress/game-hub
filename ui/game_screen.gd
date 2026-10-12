@@ -16,9 +16,6 @@ extends Control
 ## Tudo é montado por código; medidas pensadas para 1280x720 (escala junto).
 
 const BACKGROUND: Color = Color("08090C")
-const TEXT_SECONDARY: Color = Color("B8BFCC")
-const TEXT_HINT: Color = Color("8A92A0")
-const SESSION_GREEN: Color = Color("5FE3A1")
 ## O hero ocupa a largura toda: 1280 x 413 em 1280x720 (proporção de 1920x620).
 const HERO_HEIGHT_FRACTION: float = 413.0 / 720.0
 const LOGO_MAX_SIZE: Vector2 = Vector2(480.0, 170.0)
@@ -56,6 +53,7 @@ var _blur_cache: Dictionary[int, Texture2D] = {}
 
 
 func _ready() -> void:
+	theme = HubTheme.get_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
@@ -132,8 +130,12 @@ func get_status() -> String:
 # --- Conteúdo ----------------------------------------------------------------
 
 func _fill_common(app_id: int) -> void:
-	var hero := GameArt.get_hero(app_id)
-	var logo := GameArt.get_logo(app_id)
+	# A tela inteira usa as imagens originais (as do mundo são menores). Se o
+	# original ainda não existe (vai ser baixado), vale a versão do mundo.
+	var hero := GameArt.get_hero_full(app_id)
+	if hero == null:
+		hero = GameArt.get_hero(app_id)
+	var logo := GameArt.get_logo_full(app_id)
 	_hero.texture = hero
 	_hero.visible = hero != null
 	_hero_fade.visible = hero != null
@@ -240,7 +242,7 @@ func _build_opening() -> void:
 	_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_logo)
 
-	_name_label = _make_label(HubFonts.SIGN, 96, Color.WHITE)
+	_name_label = _make_label(&"HubFsName")
 	_name_label.custom_minimum_size = Vector2(0.0, LOGO_MAX_SIZE.y)
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_name_label)
@@ -253,7 +255,7 @@ func _build_opening() -> void:
 	_spinner = Spinner.new()
 	_spinner.custom_minimum_size = Vector2(22.0, 22.0)
 	status_row.add_child(_spinner)
-	_status_label = _make_label(HubFonts.LIGHT, 24, TEXT_SECONDARY)
+	_status_label = _make_label(&"HubFsStatus")
 	status_row.add_child(_status_label)
 
 	# Dica da tecla Esc, embaixo.
@@ -265,8 +267,8 @@ func _build_opening() -> void:
 	hint.offset_top = -80.0
 	hint.offset_bottom = -48.0
 	_opening.add_child(hint)
-	hint.add_child(make_key_cap("Esc"))
-	hint.add_child(_make_label(HubFonts.LIGHT, 14, TEXT_HINT, "cancela a espera"))
+	hint.add_child(KeyHint.create("back"))
+	hint.add_child(_make_label(&"HubCaption", "cancela a espera"))
 
 
 func _build_playing() -> void:
@@ -300,14 +302,10 @@ func _build_playing() -> void:
 	column.offset_right = -PLAYING_MARGIN
 	_playing.add_child(column)
 
-	# Rótulo: Barlow Condensed com 2 px a mais entre as letras.
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 2
-	_playing_tag = _make_label(spaced, 15, SESSION_GREEN)
+	_playing_tag = _make_label(&"HubOverlineSession")
 	_playing_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	column.add_child(_playing_tag)
-	_playing_name = _make_label(HubFonts.SIGN, 72, Color.WHITE)
+	_playing_name = _make_label(&"HubFsPlaying")
 	_playing_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	column.add_child(_playing_name)
 
@@ -322,10 +320,10 @@ func _build_playing() -> void:
 	_friends_row.add_theme_constant_override("separation", 6)
 	_friends_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_friends_row)
-	_friends_label = _make_label(HubFonts.LIGHT, 15, TEXT_SECONDARY)
+	_friends_label = _make_label(&"HubBodyLight")
 	_friends_row.add_child(_friends_label)
 
-	var footer := _make_label(HubFonts.LIGHT, 14, TEXT_HINT, "O hub volta sozinho quando o jogo fechar.")
+	var footer := _make_label(&"HubCaption", "O hub volta sozinho quando o jogo fechar.")
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_set_anchors(footer, 0.0, 1.0, 1.0, 1.0)
 	footer.offset_left = PLAYING_MARGIN
@@ -340,9 +338,9 @@ func _add_number(parent: HBoxContainer, caption: String) -> Label:
 	box.add_theme_constant_override("separation", 10)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(box)
-	var number := _make_label(HubFonts.SIGN, 52, Color.WHITE)
+	var number := _make_label(&"HubFsNumber")
 	box.add_child(number)
-	var label := _make_label(HubFonts.LIGHT, 15, TEXT_SECONDARY, caption)
+	var label := _make_label(&"HubBodyLight", caption)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	label.size_flags_vertical = Control.SIZE_SHRINK_END
 	box.add_child(label)
@@ -364,36 +362,23 @@ func _gradient(from: Vector2, to: Vector2, start: float, end_alpha: float) -> Gr
 
 ## "Tecla" desenhada: um quadradinho com borda e o nome da tecla.
 static func make_key_cap(key_name: String) -> PanelContainer:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("16181D")
-	style.border_color = Color("5A606B")
-	style.set_border_width_all(1)
-	style.border_width_bottom = 2
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 2.0
-	style.content_margin_bottom = 2.0
 	var cap := PanelContainer.new()
-	cap.add_theme_stylebox_override("panel", style)
+	# O tema vai na própria tecla: ela aparece em telas que ainda não usam o
+	# tema do hub (e dentro da tela 3D do computador).
+	cap.theme = HubTheme.get_theme()
+	cap.theme_type_variation = &"HubKeyCap"
 	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := Label.new()
-	label.text = key_name
-	label.add_theme_font_override("font", HubFonts.TEXT)
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color("E6E9EE"))
-	cap.add_child(label)
+	# Numa fileira mais alta (ex.: uma frase de duas linhas ao lado), a tecla
+	# fica no meio, sem esticar.
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cap.add_child(HubTheme.label(key_name, &"HubKeyLabel"))
 	return cap
 
 
-func _make_label(font: Font, font_size: int, color: Color, text: String = "") -> Label:
-	var label := Label.new()
-	label.text = text
+func _make_label(variation: StringName, text: String = "") -> Label:
+	var label := HubTheme.label(text, variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
 
 

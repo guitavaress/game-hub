@@ -2,7 +2,8 @@ extends Node
 ## AppConfig: lê as preferências do usuário em user://config.cfg (autoload).
 ##
 ## Onde fica o arquivo: %APPDATA%\Godot\app_userdata\Game Hub\config.cfg
-## (no editor: menu Projeto > Abrir Pasta de Dados do Usuário).
+## (no Linux: ~/.local/share/godot/app_userdata/Game Hub/config.cfg;
+## no editor: menu Projeto > Abrir Pasta de Dados do Usuário).
 ##
 ## Na primeira vez, o arquivo é criado com comentários explicando cada opção.
 ## Depois disso o hub mexe no arquivo só de dois jeitos, sem nunca apagar o que
@@ -46,6 +47,8 @@ master_volume=0.8
 effects_volume=1.0
 ; Sons dos bairros (motor, cartas, vento...).
 ambience_volume=0.8
+; Jingles (a faixa "cidade pronta" e as próximas).
+music_volume=0.7
 """
 
 ## Seção de vídeo (P2: menu de pausa), acrescentada do mesmo jeito.
@@ -57,6 +60,67 @@ const VIDEO_SECTION_TEXT: String = """
 quality="alta"
 ; Hora da cidade: "relogio" (segue o relógio do PC), "dia" ou "noite".
 time_of_day="relogio"
+; Bússola e minimapa na tela: true ou false.
+show_map=true
+"""
+
+## Seção da janela (Fase Linux), acrescentada do mesmo jeito.
+const WINDOW_SECTION_TEXT: String = """
+[window]
+
+; Só no Linux com Hyprland: em qual monitor os jogos abrem (num workspace
+; novo). Use o nome que aparece em "hyprctl monitors", ex.: game_monitor="HDMI-A-1".
+; Vazio (ou um monitor desligado) = o monitor que estiver em foco.
+game_monitor=""
+; Só no Linux com Hyprland: true = o hub força o jogo para a tela cheia.
+; CUIDADO: jogos antigos que não mudam de tamanho (ex.: Undertale) ficam
+; desenhados num canto. false (padrão) = o próprio jogo decide; use a opção
+; de tela cheia dele (no Undertale, F4).
+game_fullscreen=false
+"""
+
+## Seção dos controles (Fase 11), acrescentada do mesmo jeito.
+const CONTROLS_SECTION_TEXT: String = """
+[controls]
+
+; true = a câmera balança ao andar, afunda ao pousar e abre o campo de visão
+; correndo. Desligue se isso der enjoo.
+camera_motion=true
+; Sensibilidade do mouse: multiplicador de 0.5 (lento) a 2.0 (rápido).
+mouse_sensitivity=1.0
+; Campo de visão em graus, de 60 a 100.
+fov=75
+; Sensibilidade do analógico direito do controle: de 0.5 (lento) a 2.0 (rápido).
+stick_sensitivity=1.0
+"""
+
+## Seção da casa (Fase 13.3), acrescentada do mesmo jeito.
+const HOME_SECTION_TEXT: String = """
+[home]
+
+; Tema da casa: o id de um tema (vazio = o padrão). Os temas ficam em
+; profiles/homes/ e na lista de profiles/home_catalog.tres.
+theme=""
+; Posição dos móveis: vazio = a padrão (as disposições vêm na Fase 13.4).
+layout=""
+; Cor das paredes e do néon, como "#rrggbb". Vazio = a cor do tema.
+wall_color=""
+neon_color=""
+"""
+
+## Seção do avatar (Fase 13.6), acrescentada do mesmo jeito.
+const AVATAR_SECTION_TEXT: String = """
+[avatar]
+
+; O seu avatar: o corpo e a cor de cada parte, como "#rrggbb".
+; Vazio = a cor padrão. As partes: pele (skin: rosto, braços, mãos e pés),
+; olhos e sobrancelhas (eyes), cabelo (hair), camiseta (shirt) e calça (pants).
+body="human"
+skin=""
+eyes=""
+hair=""
+shirt=""
+pants=""
 """
 
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
@@ -65,6 +129,10 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"steam": STEAM_SECTION_TEXT,
 	"audio": AUDIO_SECTION_TEXT,
 	"video": VIDEO_SECTION_TEXT,
+	"window": WINDOW_SECTION_TEXT,
+	"controls": CONTROLS_SECTION_TEXT,
+	"home": HOME_SECTION_TEXT,
+	"avatar": AVATAR_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
@@ -76,7 +144,12 @@ const VOLUME_KEYS: Dictionary[String, String] = {
 	"Master": "master_volume",
 	"Efeitos": "effects_volume",
 	"Ambiente": "ambience_volume",
+	"Música": "music_volume",
 }
+
+## Volume de quem não tem a linha no arquivo (padrão 1.0). Vale também para
+## quem já tinha um config.cfg de antes do canal existir.
+const DEFAULT_VOLUMES: Dictionary[String, float] = {"Música": 0.7}
 
 ## Conteúdo inicial do arquivo (linhas com ";" são comentários).
 const DEFAULT_CONFIG_TEXT: String = """; Configuração do Game Hub.
@@ -96,7 +169,7 @@ excluded_app_ids=[431960, 993090]
 ;          acao, cartas, aventura, casual, outros
 ; Exemplo (Stardew Valley no bairro de RPG):  overrides={ 413150: "rpg" }
 overrides={}
-""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT
+""" + STEAM_SECTION_TEXT + AUDIO_SECTION_TEXT + VIDEO_SECTION_TEXT + WINDOW_SECTION_TEXT + CONTROLS_SECTION_TEXT
 
 ## Problema ao ler o arquivo, para o HUD avisar ("" = tudo certo).
 var load_problem: String = ""
@@ -137,9 +210,10 @@ func _apply_volumes() -> void:
 
 # --- Som e vídeo -------------------------------------------------------------
 
-## Volume de um canal ("Master", "Efeitos" ou "Ambiente"), de 0.0 a 1.0.
+## Volume de um canal ("Master", "Efeitos", "Ambiente" ou "Música"), de 0.0 a 1.0.
 func get_volume(bus_name: String) -> float:
-	return clampf(float(_config.get_value("audio", VOLUME_KEYS.get(bus_name, ""), 1.0)), 0.0, 1.0)
+	var fallback: float = DEFAULT_VOLUMES.get(bus_name, 1.0)
+	return clampf(float(_config.get_value("audio", VOLUME_KEYS.get(bus_name, ""), fallback)), 0.0, 1.0)
 
 
 ## Muda o volume na hora. save = false só aplica (enquanto o controle está
@@ -177,6 +251,148 @@ func get_time_of_day() -> String:
 func set_time_of_day(mode: String) -> void:
 	if mode in TIME_OF_DAY_MODES:
 		_set_option("video", "time_of_day", mode)
+
+
+## Bússola e minimapa ligados? (Padrão: sim.)
+func get_show_map() -> bool:
+	return bool(_config.get_value("video", "show_map", true))
+
+
+func set_show_map(on: bool) -> void:
+	_set_option("video", "show_map", on)
+
+
+## Balanço da câmera ligado? (Padrão: sim.)
+func get_camera_motion() -> bool:
+	return bool(_config.get_value("controls", "camera_motion", true))
+
+
+func set_camera_motion(on: bool) -> void:
+	_set_option("controls", "camera_motion", on)
+
+
+## Limites e padrões da sensibilidade do mouse (multiplicador) e do FOV (graus).
+const MOUSE_SENSITIVITY_RANGE: Vector2 = Vector2(0.5, 2.0)
+const FOV_RANGE: Vector2 = Vector2(60.0, 100.0)
+const DEFAULT_FOV: float = 75.0
+
+
+func get_mouse_sensitivity() -> float:
+	return clampf(float(_config.get_value("controls", "mouse_sensitivity", 1.0)),
+			MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y)
+
+
+## save = false só aplica (enquanto o controle é arrastado); true grava.
+func set_mouse_sensitivity(value: float, save: bool = true) -> void:
+	_set_controls_value("mouse_sensitivity", snappedf(clampf(value, MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y), 0.05), save)
+
+
+func get_stick_sensitivity() -> float:
+	return clampf(float(_config.get_value("controls", "stick_sensitivity", 1.0)),
+			MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y)
+
+
+## Como o mouse: save = false só aplica; true grava.
+func set_stick_sensitivity(value: float, save: bool = true) -> void:
+	_set_controls_value("stick_sensitivity", snappedf(clampf(value, MOUSE_SENSITIVITY_RANGE.x, MOUSE_SENSITIVITY_RANGE.y), 0.05), save)
+
+
+func get_fov() -> float:
+	return clampf(float(_config.get_value("controls", "fov", DEFAULT_FOV)), FOV_RANGE.x, FOV_RANGE.y)
+
+
+func set_fov(value: float, save: bool = true) -> void:
+	_set_controls_value("fov", roundf(clampf(value, FOV_RANGE.x, FOV_RANGE.y)), save)
+
+
+func _set_controls_value(key: String, value: Variant, save: bool) -> void:
+	if save:
+		_set_option("controls", key, value)
+	else:
+		_config.set_value("controls", key, value)
+		settings_changed.emit("controls", key)
+
+
+## O cartão de controles da primeira vez já foi visto? (Seção [ui]; ela entra
+## no arquivo na primeira gravação.)
+func get_seen_controls_hint() -> bool:
+	return bool(_config.get_value("ui", "seen_controls_hint", false))
+
+
+func set_seen_controls_hint(seen: bool) -> void:
+	_set_option("ui", "seen_controls_hint", seen)
+
+
+## A casa (seção [home], Fase 13.3). O AppConfig guarda só os textos: quem sabe
+## o que é "loft" ou "espelhada" é o Profiles. "" = o padrão do tema.
+func get_home_theme() -> String:
+	return str(_config.get_value("home", "theme", "")).strip_edges().to_lower()
+
+
+func set_home_theme(id: String) -> void:
+	_set_option("home", "theme", id.strip_edges().to_lower())
+
+
+func get_home_layout() -> String:
+	return str(_config.get_value("home", "layout", "")).strip_edges().to_lower()
+
+
+func set_home_layout(id: String) -> void:
+	_set_option("home", "layout", id.strip_edges().to_lower())
+
+
+## Cor das paredes escolhida ("#rrggbb"), ou "" = a do tema.
+func get_home_wall_color() -> String:
+	return str(_config.get_value("home", "wall_color", "")).strip_edges()
+
+
+func set_home_wall_color(html: String) -> void:
+	_set_option("home", "wall_color", html.strip_edges())
+
+
+## Cor do néon escolhida ("#rrggbb"), ou "" = a do tema.
+func get_home_neon_color() -> String:
+	return str(_config.get_value("home", "neon_color", "")).strip_edges()
+
+
+func set_home_neon_color(html: String) -> void:
+	_set_option("home", "neon_color", html.strip_edges())
+
+
+## O avatar (seção [avatar], Fase 13.6), no formato do AvatarSpec.to_dict():
+##   {"version": 1, "body": "human", "colors": {"skin": "#c68e64", "eyes": "", ...}}
+## O AppConfig guarda só os textos e não sabe quais são as partes: "colors"
+## traz cada linha da seção que não seja "body" ("" = a cor padrão). Quem
+## entende as cores é o AvatarSpec.from_dict.
+func get_avatar() -> Dictionary:
+	var colors := {}
+	if _config.has_section("avatar"):
+		for key in _config.get_section_keys("avatar"):
+			if key != "body":
+				colors[key] = str(_config.get_value("avatar", key, "")).strip_edges()
+	var body := str(_config.get_value("avatar", "body", "human")).strip_edges().to_lower()
+	return {"version": 1, "body": body, "colors": colors}
+
+
+## Grava o avatar (o mesmo formato do get_avatar), uma linha por cor, e avisa
+## uma vez só: settings_changed("avatar", "colors").
+func set_avatar(data: Dictionary) -> void:
+	_set_option("avatar", "body", str(data.get("body", "human")).strip_edges().to_lower(), false)
+	var colors: Variant = data.get("colors", {})
+	if colors is Dictionary:
+		for key: Variant in colors:
+			_set_option("avatar", str(key), str(colors[key]).strip_edges(), false)
+	settings_changed.emit("avatar", "colors")
+
+
+## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).
+func get_game_monitor() -> String:
+	return str(_config.get_value("window", "game_monitor", "")).strip_edges()
+
+
+## No Hyprland, o hub força o jogo para a tela cheia? (Padrão: não, o jogo decide.)
+func get_game_fullscreen() -> bool:
+	return bool(_config.get_value("window", "game_fullscreen", false))
 
 
 ## Chave da Steam Web API ("" = não configurada). É SEGREDO: nunca imprima.

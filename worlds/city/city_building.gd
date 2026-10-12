@@ -1,23 +1,23 @@
 class_name CityBuilding
-extends Node3D
+extends PortalShell
 ## Prédio de um jogo na cidade:
 ##   - bloco com o vão da porta recortado (CSG), com fachada realista (concreto
 ##     ou tijolo), janelas de vidro e faixas de néon na cor do bairro
 ##     (building_facade.gdshader);
 ##   - LOGO do jogo como letreiro acima da porta (ou o nome, se não houver logo);
 ##   - a CAPA do jogo num painel grande na fachada (vem do GameArt);
-##   - um GamePortal no vão da porta.
+##   - um GamePortal no vão da porta (criado pela base, PortalShell).
 ##
-## A porta fica na face +Z (a "frente"). Para virar o prédio, gire este nó.
-## Preencha "game", "size", "accent_color" e "category_id" ANTES de adicionar
-## o prédio à cena.
+## É a casca padrão de um GamePortal (veja components/portal_shell/): a porta
+## fica na face +Z (a "frente"). Para virar o prédio, gire este nó.
+## Preencha "game", "size", "accent_color" e "category_id" (da PortalShell) e,
+## se quiser, "variant" ANTES de adicionar o prédio à cena.
 ##
 ## Isto é DECORAÇÃO da cidade: toda a lógica de abrir o jogo está no GamePortal.
 
 ## O painel da fachada mudou de tamanho ou de lugar (chegou o hero ou a capa).
 signal poster_changed
 
-const PORTAL_SCENE: PackedScene = preload("res://components/game_portal/game_portal.tscn")
 const FACADE_SHADER: Shader = preload("res://worlds/city/building_facade.gdshader")
 
 ## Vão da porta (largura, altura, profundidade), em metros.
@@ -50,6 +50,8 @@ const GLASS_COLORS: Array[Color] = [Color("0D1217"), Color("0E1822"), Color("171
 const WALL_BRIGHTNESS_VARIATION: float = 0.06
 ## Painel de luz da porta: cor do bairro embaixo, quase branco no alto.
 const DOOR_GLOW_ENERGY: float = 1.8
+## Quantas vezes o vão acende a mais no fim da carga.
+const DOOR_CHARGE_BOOST: float = 3.0
 const DOOR_GLOW_TOP_WHITE: float = 0.45
 const DOOR_GLOW_BOTTOM_DIM: float = 0.5
 
@@ -61,12 +63,6 @@ const WALL_STYLES: Array[Dictionary] = [
 	{"folder": "Bricks097", "meters": 2.2, "tint": Color(0.9, 0.88, 0.86)},
 ]
 
-var game: SteamGame
-var size: Vector3 = Vector3(10.0, 14.0, 10.0)
-## Cor do bairro: vira o néon e um leve tom na parede.
-var accent_color: Color = Color.GRAY
-## Categoria do jogo (define o som ambiente da porta).
-var category_id: String = ""
 ## Andares, recuo, platibanda, marquise, janelas e telhado (sorteados pelo
 ## App ID). Se ficar vazio, é sorteado no _ready.
 var variant: BuildingVariant
@@ -78,6 +74,10 @@ var _poster_label: Label3D
 var _walls_material: ShaderMaterial
 ## Filete de néon da moldura da porta (acompanha o dia e a noite).
 var _door_neon_material: StandardMaterial3D
+var _door_glow_material: StandardMaterial3D
+## 0..1: a carga da porta (o jogador esperando no vão) e a noite suavizada.
+var _charge_ratio: float = 0.0
+var _smooth_night: float = 0.0
 var _logo: Sprite3D
 ## true quando a fachada mostra o hero (e não a capa).
 var _hero_mode: bool = false
@@ -87,14 +87,14 @@ func _ready() -> void:
 	# O relógio da cidade (DayNight) acende as janelas de todo mundo nesse grupo.
 	add_to_group("city_night")
 	if variant == null:
-		variant = BuildingVariant.from_app_id(game.app_id)
+		variant = BuildingVariant.from_app_id(game.app_id, _profile_weights(false))
 	_build_body()
 	# Recuo, platibanda, marquise e telhado (o que o sorteio deste jogo pedir).
 	variant.build(self, size, _walls_material, _make_metal_material(), neon_color())
 	_build_door_decoration()
 	_build_sign()
 	_build_poster()
-	_build_portal()
+	build_portal()
 
 	# Preferimos o hero; sem ele, a capa. Continuamos ouvindo o GameArt porque
 	# as imagens podem chegar depois (download), ou chegar uma capa melhor (HD).
@@ -107,13 +107,6 @@ func _ready() -> void:
 		var texture := GameArt.get_art(game.app_id)
 		if texture != null:
 			_show_art(texture)
-
-
-## Cor viva do néon do bairro (a mesma dos letreiros, da mira e das telas).
-func neon_color() -> Color:
-	if not category_id.is_empty():
-		return GameCategories.get_neon_color(category_id)
-	return Color.from_hsv(accent_color.h, 0.7, 1.0)
 
 
 func _build_body() -> void:
@@ -146,7 +139,8 @@ func _build_door_decoration() -> void:
 	quad.size = Vector2(DOOR_WIDTH, DOOR_HEIGHT)
 	door_glow.mesh = quad
 	door_glow.position = Vector3(0.0, DOOR_HEIGHT / 2.0, _front_z() - DOOR_DEPTH + 0.01)
-	door_glow.material_override = _make_door_glow_material()
+	_door_glow_material = _make_door_glow_material()
+	door_glow.material_override = _door_glow_material
 	add_child(door_glow)
 
 	# Moldura de metal escuro, com um filete de néon por dentro.
@@ -304,21 +298,6 @@ func _on_hero_ready(app_id: int, texture: Texture2D) -> void:
 		_show_hero(texture)
 
 
-func _build_portal() -> void:
-	var portal := PORTAL_SCENE.instantiate() as GamePortal
-	portal.name = "GamePortal"
-	portal.app_id = game.app_id
-	portal.display_name = game.name
-	portal.look_size = Vector3(size.x, size.y, 1.0)  # olhar para a fachada inteira mostra o nome
-	portal.position = Vector3(0.0, 0.0, _front_z())
-	add_child(portal)
-
-	# Som ambiente do bairro, saindo da porta.
-	for emitter in CategoryAmbience.create(category_id):
-		emitter.position = Vector3(0.0, 2.0, 0.5)
-		portal.add_child(emitter)
-
-
 ## 0 = dia, 1 = noite: à noite, parte das janelas acende, o néon fica mais
 ## forte e o logo brilha um pouco.
 func set_night(night: float) -> void:
@@ -333,11 +312,44 @@ func set_night(night: float) -> void:
 			walls.set_shader_parameter("windows_on", clampf(night / all_on, 0.0, 1.0))
 	variant.set_night(night)
 	# Néon: mesma regra das fachadas e dos letreiros (0,15 de dia, 3,2 à noite).
-	if _door_neon_material != null:
-		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(smooth_night)
+	_smooth_night = smooth_night
+	_apply_door_energy()
 	if _logo != null:
 		var glow := 1.0 + 0.6 * night
 		_logo.modulate = Color(glow, glow, glow)
+
+
+## Carregando a porta: o brilho do vão e o néon da moldura ganham força.
+func _on_portal_charge(ratio: float) -> void:
+	_charge_ratio = ratio
+	_apply_door_energy()
+
+
+## O brilho do vão e o néon da porta: o normal (dia/noite) vezes até
+## DOOR_CHARGE_BOOST no fim da carga.
+func _apply_door_energy() -> void:
+	var boost := 1.0 + (DOOR_CHARGE_BOOST - 1.0) * _charge_ratio
+	if _door_neon_material != null:
+		_door_neon_material.emission_energy_multiplier = CityDecor.neon_energy(_smooth_night) * boost
+	if _door_glow_material != null:
+		_door_glow_material.emission_energy_multiplier = DOOR_GLOW_ENERGY * boost
+
+
+## Pesos de andares (walls = false) ou de paredes (walls = true) do perfil do
+## bairro; vazio = o padrão da cidade.
+func _profile_weights(walls: bool) -> PackedFloat32Array:
+	var profile := Profiles.district(category_id)
+	if profile == null:
+		return PackedFloat32Array()
+	return profile.wall_weights if walls else profile.floor_weights
+
+
+## Qual estilo de parede sai do sorteio. Sem pesos (ou com o tamanho errado):
+## todos com a mesma chance, no mesmo sorteio de sempre (randi_range).
+static func wall_index(rng: RandomNumberGenerator, weights: PackedFloat32Array) -> int:
+	if weights.size() != WALL_STYLES.size():
+		return rng.randi_range(0, WALL_STYLES.size() - 1)
+	return rng.rand_weighted(weights)
 
 
 ## Fachada: material realista sorteado (sempre o mesmo para o mesmo jogo),
@@ -345,7 +357,7 @@ func set_night(night: float) -> void:
 func _make_walls_material() -> ShaderMaterial:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = game.app_id
-	var style: Dictionary = WALL_STYLES[rng.randi_range(0, WALL_STYLES.size() - 1)]
+	var style: Dictionary = WALL_STYLES[wall_index(rng, _profile_weights(true))]
 	var textures := CityDecor.pbr_textures(style["folder"])
 
 	_walls_material = ShaderMaterial.new()

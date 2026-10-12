@@ -10,9 +10,12 @@ extends Node3D
 ## Quem sabe quais jogos existem e de que categoria são são os sistemas
 ## (SteamLibrary, StoreInfo, GameCategories); aqui só perguntamos a eles.
 ##
-## ABERTURA: o jogador nasce primeiro, parado e olhando o céu (já na hora
-## certa), com a tela "GAME HUB" por cima mostrando o progresso. Quando a
-## cidade fica pronta, a tela some e a câmera desce até o horizonte.
+## ABERTURA (Fase 9): o jogador nasce DENTRO DE CASA (a Home), com a tela
+## "GAME HUB" por um instante, e já pode andar pela casa enquanto a cidade é
+## montada lá fora, aos poucos (um pedaço por quadro, sem travar a casa).
+## A porta da rua fica trancada, mostrando "Montando a cidade… N%", até a
+## cidade ficar pronta. Sem janela (testes), play_intro = false: a tela fica
+## preta, a cidade monta de uma vez e o jogador nasce na praça.
 
 ## A cidade terminou de montar (e a abertura acabou).
 signal city_ready
@@ -25,30 +28,53 @@ const BORDER_WALL_HEIGHT: float = 1.0
 const BORDER_RAILING_HEIGHT: float = 1.1
 const BORDER_RAILING_SPACING: float = 0.25
 const BORDER_BARRIER_HEIGHT: float = 3.0
-## Onde o jogador nasce: na praça, virado para o norte (-Z).
+## Onde o jogador nasce sem a abertura (testes): na praça, virado para o norte (-Z).
+## Com a abertura, ele nasce dentro de casa.
 const PLAYER_SPAWN: Vector3 = Vector3(0.0, 0.1, 8.0)
-## Abertura: a câmera começa olhando INTRO_PITCH graus para cima; a tela
-## "GAME HUB" fica pelo menos INTRO_MIN_SECONDS; depois some em
-## INTRO_FADE_SECONDS enquanto a câmera desce em INTRO_DESCENT_SECONDS.
-const INTRO_PITCH: float = 70.0
-const INTRO_MIN_SECONDS: float = 1.2
+## Abertura: a tela "GAME HUB" fica INTRO_SPLASH_SECONDS por cima da casa e
+## some em INTRO_FADE_SECONDS.
+const INTRO_SPLASH_SECONDS: float = 0.8
 const INTRO_FADE_SECONDS: float = 0.4
-const INTRO_DESCENT_SECONDS: float = 2.5
+## Montagem em segundo plano: quanto da montagem cabe num quadro (ms). Passou
+## disso, o resto fica para o próximo quadro (a casa continua lisinha).
+const BUILD_BUDGET_MS: float = 6.0
 ## Quanto tempo esperamos a loja responder na primeira vez (segundos).
 const STORE_WAIT_SECONDS: float = 8.0
 ## Base dos prédios (a altura vem do número de andares: BuildingVariant).
 const BUILDING_FOOTPRINT: float = 10.0
-## Altura da placa flutuante com o nome do bairro (por cima da rua, na frente
-## do bairro; na altura do olhar ficam os pórticos).
-const DISTRICT_SIGN_HEIGHT: float = 17.0
-const DISTRICT_SIGN_TEXT_HEIGHT: float = 1.8
+## Letreiro do bairro: um por bairro, em cima do meio do primeiro quarteirão,
+## acima de todos os telhados (o prédio mais alto possível, BuildingVariant,
+## mais esta folga até o meio da placa). Na altura do olhar ficam os pórticos.
+const DISTRICT_SIGN_CLEARANCE: float = 5.0
+const DISTRICT_SIGN_TEXT_HEIGHT: float = 4.0
 ## Distância (m) da quina do quarteirão até o pórtico, andando pela rua do
 ## próprio quarteirão (fica antes do cruzamento, longe do pórtico vizinho).
 const GATE_SETBACK: float = 3.5
+## Estação da praça: a noroeste do chafariz, de frente para o sul (a escada
+## desce para o norte). Fica fora do eixo de quem nasce e anda reto para o
+## norte: ninguém cai no painel do metrô sem querer.
+const METRO_CENTRAL_SPOT: Vector3 = Vector3(-6.0, 0.0, -6.0)
+## Nenhuma porta fica a mais disto (m, pelas ruas) da estação do seu bairro:
+## 20 s correndo (9 m/s).
+const METRO_MAX_WALK: float = 180.0
+const METRO_MAX_PER_DISTRICT: int = 4
+## A CASA (Fase 9): fica longe da cidade (fora de qualquer tamanho de
+## cidade), ao sul. Ninguém a vê de fora: entra-se pela porta "Casa" da praça.
+const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
+## Porta "Casa" na praça: na beira sul, a leste do eixo, de frente para o
+## norte (o chafariz). Fica fora dos caminhos de quem anda pela praça (os
+## eixos que levam às quatro ruas e o lado sul do chafariz), longe da estação
+## Central (a noroeste) e da roda de amigos. Quem sai de casa aparece um
+## pouco à frente dela, olhando para o norte.
+const HOME_DOOR_SPOT: Vector3 = Vector3(6.0, 0.0, 12.2)
+const HOME_DOOR_ARRIVAL: Vector3 = Vector3(6.0, 0.1, 10.0)
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
 const PLAZA_FRIENDS_PER_RING: int = 10
+## Distância mínima entre o meio de um amigo da praça e um trecho reservado
+## (a calçada da estação Central, onde quem sai de casa aparece).
+const PLAZA_FRIEND_CLEARANCE: float = 2.0
 
 ## Céus HDRI (Poly Haven, CC0) misturados pelo relógio (sky_blend.gdshader).
 const SKY_SHADER: Shader = preload("res://worlds/city/sky_blend.gdshader")
@@ -62,49 +88,85 @@ const SKY_SUNSET_GLOW_U: float = 0.607
 ## Rugosidade do asfalto: seco de dia, "molhado" (reflete o néon) à noite.
 const ASPHALT_ROUGHNESS_DAY: float = 0.55
 const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
+## Som do aviso "A cidade está pronta" (Kenney Music Jingles, CC0).
+const CITY_READY_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI00.ogg")
 
+## As cascas que a cidade sabe montar, pelo nome que vai no perfil ("shell").
+## (Variável, e não constante: a Godot não aceita classes num dicionário constante.)
+var _shells: Dictionary[String, GDScript] = {
+	"building": CityBuilding,
+	"arch": ArchShell,
+}
+var _ambience_bed: AudioStreamPlayer
 ## Bonequinhos dos amigos que estão na praça.
 var _plaza_friends: Array[FriendNpc] = []
+## Trechos da praça onde nenhum amigo pode ficar, cada um [de, até]: a calçada
+## da estação Central (da boca até a saída) e o lugar onde quem sai de casa
+## aparece (um ponto: de = até).
+var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
-## Tocar a abertura pelo céu? (Nos testes sem janela, pula direto.)
+## O sol (e a lua) da cidade.
+var _sun: DirectionalLight3D
+## A casa do jogador e a porta "Casa" da praça.
+var _home: Home
+var _home_door: TravelDoor
+## Abrir dentro de casa, com a cidade montando lá fora? (Nos testes sem
+## janela, não: tela preta, cidade de uma vez e jogador na praça.)
 var play_intro: bool = DisplayServer.get_name() != "headless"
+## Quando o quadro atual começou a montar (para o orçamento BUILD_BUDGET_MS).
+var _frame_started_us: int = 0
 var _is_ready: bool = false
 ## Lugares (x, z) que já têm pórtico.
 var _gate_spots: Dictionary[Vector2, bool] = {}
 ## Asfalto: fica "molhado" (reflete mais) à noite.
 var _asphalt: StandardMaterial3D
+## A planta da cidade (quem ocupa cada quarteirão), para os mapas.
+var _map: CityMap
+## Quarteirões de cada bairro, na ordem em que foram montados.
+var _district_cells: Dictionary[String, Array] = {}
+
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
 
 
 func _ready() -> void:
 	_build_environment()
-	# O jogador nasce antes da cidade, olhando o céu (na abertura).
+	_build_home()
+	_home.set_night(_day_night.get_night())  # a janela da casa já nasce na hora certa
+	# O jogador nasce antes da cidade: dentro de casa (na abertura).
 	var player := _spawn_player()
-	var started_ms := Time.get_ticks_msec()
+	_frame_started_us = Time.get_ticks_usec()
 	if play_intro:
-		player.start_intro(INTRO_PITCH)
-		ScreenFade.show_splash(_clock_text())
+		_open_at_home(player)  # sem await: a casa abre enquanto a cidade monta
 	else:
 		ScreenFade.set_amount(1.0)  # tela preta enquanto a cidade é montada
 
-	_splash_status("Lendo a biblioteca…", 0.05)
+	_report_progress("Lendo a biblioteca…", 0.05)
 	var games := SteamLibrary.get_installed_games()
 	ScreenFade.splash.complete_stage("biblioteca")
-	_splash_status("Buscando capas e categorias…", 0.12)
+	_report_progress("Buscando capas e categorias…", 0.12)
 	await _update_store_info(games)
 	ScreenFade.splash.complete_stage("capas")
 
 	var districts := _group_into_districts(games)
 	var cells := await _build_districts(districts, games.size())
 	var half := CityLayout.half_extent(cells)
+	_map.set_bounds(half)
+	await _build_metro(districts)
+	# A porta "Casa" vira um marco nos mapas (depois das estações: fica por cima).
+	_map.add_landmark("home", "Casa", Vector2(HOME_DOOR_SPOT.x, HOME_DOOR_SPOT.z), HomeDoorFacade.NEON_COLOR)
+	await _keep_frame_light()
 	_build_ground_and_walls(half)
+	await _keep_frame_light()
 	CityDecor.add_street_markings(self, cells, half)
 	CityDecor.add_puddles(self, half)
+	await _keep_frame_light()
 	CityDecor.add_plaza(self)
+	_build_clock_tower()
+	_build_ambience_bed()
 	# Faixa de luz até a porta de um jogo (busca com Tab).
 	var route_guide := CityRouteGuide.new()
 	route_guide.name = "RouteGuide"
@@ -122,16 +184,17 @@ func _ready() -> void:
 	_on_night_changed(_day_night.get_night())
 
 	if play_intro:
-		_splash_status("Pronto!", 1.0)
-		while (Time.get_ticks_msec() - started_ms) / 1000.0 < INTRO_MIN_SECONDS:
-			await get_tree().process_frame
-		ScreenFade.hide_splash(INTRO_FADE_SECONDS)
-		await player.finish_intro(INTRO_DESCENT_SECONDS)
+		# A cidade lá fora está pronta: a porta da rua destranca.
+		_report_progress("Pronto!", 1.0)
+		player.world_loading = false
+		_home.get_front_door().locked_reason = ""
+		player.get_hud().show_message("A cidade está pronta", "A porta da rua já abre.",
+				Toast.Kind.INFO, -1.0, "", CITY_READY_SOUND, &"Música")
 	else:
 		ScreenFade.set_message("")
 		ScreenFade.fade_in(0.8)
 
-	# Os avisos só agora: durante a abertura o HUD está escondido.
+	# Os avisos só agora, com a cidade pronta (e o HUD já de volta).
 	_show_startup_messages(player, games)
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
 		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
@@ -146,11 +209,53 @@ func is_city_ready() -> bool:
 
 # --- Abertura ----------------------------------------------------------------
 
-## Frase e barra de progresso da abertura (se ela estiver na tela).
-func _splash_status(text: String, progress: float) -> void:
-	if play_intro:
-		ScreenFade.splash.set_status(text)
-		ScreenFade.splash.set_progress(progress)
+## ABERTURA EM CASA: o jogador aparece no ponto de nascer da casa, com a tela
+## "GAME HUB" por um instante (sem andar e sem HUD). Depois a tela some e ele
+## anda pela casa. Enquanto a cidade monta, a porta da rua fica trancada e a
+## busca e o mapa não abrem (player.world_loading).
+func _open_at_home(player: Player) -> void:
+	player.teleport_to(_home.get_spawn_transform())
+	player.set_indoors(_home.get_environment())  # já no primeiro quadro
+	player.world_loading = true
+	player.start_intro()
+	_home.get_front_door().locked_reason = "Montando a cidade…"
+	ScreenFade.show_splash(_clock_text())
+	await get_tree().create_timer(INTRO_SPLASH_SECONDS).timeout
+	ScreenFade.hide_splash(INTRO_FADE_SECONDS)
+	player.finish_intro()
+
+
+## Progresso da montagem: na tela "GAME HUB" (enquanto ela aparece) e na
+## porta da rua ("Montando a cidade… 40%").
+func _report_progress(text: String, progress: float) -> void:
+	if not play_intro:
+		return
+	ScreenFade.splash.set_status(text)
+	ScreenFade.splash.set_progress(progress)
+	if _is_ready:
+		return
+	_home.get_front_door().locked_reason = "Montando a cidade… %d%%" % roundi(progress * 100.0)
+
+
+## Montagem em segundo plano: espera (quadro a quadro) a arte do prédio ficar
+## pronta nas threads do GameArt. Sem a abertura, não espera: o get_hero
+## termina o carregamento na hora.
+func _wait_for_art(app_id: int) -> void:
+	if not play_intro:
+		return
+	while not GameArt.is_world_art_ready(app_id):
+		await get_tree().process_frame
+		_frame_started_us = Time.get_ticks_usec()
+
+
+## Montagem em segundo plano: se este quadro já gastou BUILD_BUDGET_MS
+## montando, espera o próximo quadro (a casa continua andando lisinha).
+func _keep_frame_light() -> void:
+	if not play_intro:
+		return
+	if Time.get_ticks_usec() - _frame_started_us >= int(BUILD_BUDGET_MS * 1000.0):
+		await get_tree().process_frame
+		_frame_started_us = Time.get_ticks_usec()
 
 
 ## A etapa "AMIGOS" fica pronta quando a lista de amigos chega (ou na hora,
@@ -179,6 +284,7 @@ func _clock_text() -> String:
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality" and _environment != null:
 		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
+		GraphicsQuality.apply_to_sun(_sun, AppConfig.get_quality())
 
 
 func _on_night_changed(night: float) -> void:
@@ -236,25 +342,155 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	for district in districts:
 		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
 	var cells := CityLayout.block_cells(block_count)
+	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
+	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
+	var app_ids: Array[int] = []
+	for district in districts:
+		for game: SteamGame in district["games"]:
+			app_ids.append(game.app_id)
+	GameArt.preload_world_art(app_ids)
+
+	_map = CityMap.new()
+	_map.name = "CityMap"
+	add_child(_map)
 
 	var next_cell := 0
 	var built := 0
 	for district in districts:
 		var district_games: Array = district["games"]
+		var first_cell := next_cell
 		# Cada quarteirão recebe até 4 jogos do bairro.
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
-			_build_block(cells[next_cell], district["id"], block_games)
+			await _build_block(cells[next_cell], district["id"], block_games)
+			_map.add_block(district["id"], cells[next_cell], block_games.size())
+			if not _district_cells.has(district["id"]):
+				_district_cells[district["id"]] = [] as Array[Vector2i]
+			_district_cells[district["id"]].append(cells[next_cell])
 			if first == 0:
 				# O pórtico fica no primeiro quarteirão do bairro (o mais perto da praça).
 				_build_gate(cells[next_cell], district["id"])
 			next_cell += 1
 			built += block_games.size()
-			if play_intro:
-				_splash_status("Construindo bairros… %d de %d jogos" % [built, total_games],
-						lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
-				await get_tree().process_frame
+			_report_progress("Construindo bairros… %d de %d jogos" % [built, total_games],
+					lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
+		_build_weather(cells.slice(first_cell, next_cell), district["id"])
+		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
+		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
+		_build_district_sign(cells.slice(first_cell, next_cell), district["id"])
 	return cells
+
+
+## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; a área
+## cobre todos os quarteirões dele e metade da rua em volta.
+func _build_weather(district_cells: Array, category_id: String) -> void:
+	var profile := Profiles.district(category_id)
+	if profile == null or profile.weather == null or district_cells.is_empty():
+		return
+	var reach := CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0
+	var area := Rect2()
+	for i in district_cells.size():
+		var center := CityLayout.block_center(district_cells[i])
+		var block := Rect2(center.x - reach, center.z - reach, reach * 2.0, reach * 2.0)
+		area = block if i == 0 else area.merge(block)
+	var weather := DistrictWeather.new()
+	weather.name = "DistrictWeather_%s" % category_id
+	weather.spec = profile.weather
+	weather.area = area
+	add_child(weather)
+
+
+# --- Metrô ----------------------------------------------------------------------
+
+## Estações de metrô: a "Central" na praça e uma por bairro, no quarteirão
+## do pórtico (o primeiro do bairro, o mais perto da praça).
+## Se alguma porta do bairro ficar a mais de METRO_MAX_WALK metros (pelas
+## ruas) da estação mais perto, o bairro ganha outra estação, no quarteirão
+## dessa porta, até todas ficarem perto.
+func _build_metro(districts: Array[Dictionary]) -> void:
+	var central := _add_metro_stop("Central", Color("F2F4F7"), 0, "Praça", METRO_CENTRAL_SPOT, Vector3(0.0, 0.0, 1.0))
+	# Quem chega pelo metrô sai da boca e aparece na saída: nenhum amigo da
+	# praça fica nesse caminho.
+	_plaza_reserved.append([central.global_position, central.get_exit_transform().origin])
+	var portals_by_district: Dictionary[String, Array] = {}
+	for node in get_tree().get_nodes_in_group("game_portal"):
+		var portal := node as GamePortal
+		if portal != null and portal.app_id > 0 and is_ancestor_of(portal):
+			var id := GameCategories.get_category_id(portal.app_id)
+			if not portals_by_district.has(id):
+				portals_by_district[id] = []
+			portals_by_district[id].append(portal)
+
+	for i in districts.size():
+		var id: String = districts[i]["id"]
+		var cells: Array = _district_cells.get(id, [])
+		if cells.is_empty():
+			continue
+		var stop_name := GameCategories.get_category_name(id)
+		var neon := GameCategories.get_neon_color(id)
+		var detail := "%d jogos" % (districts[i]["games"] as Array).size()
+		var stops: Array[TransitStop] = []
+		var first: Array = _block_station_spot(cells[0])
+		stops.append(_add_metro_stop(stop_name, neon, (i + 1) * 10, detail, first[0], first[1]))
+		var portals: Array = portals_by_district.get(id, [])
+		while stops.size() < METRO_MAX_PER_DISTRICT:
+			var farthest: GamePortal = null
+			var farthest_length := METRO_MAX_WALK
+			for portal: GamePortal in portals:
+				var length := _nearest_stop_walk(stops, portal)
+				if length > farthest_length:
+					farthest_length = length
+					farthest = portal
+			if farthest == null:
+				break
+			var spot: Array = _block_station_spot(_cell_of(farthest.global_position))
+			stops.append(_add_metro_stop("%s · %d" % [stop_name, stops.size() + 1], neon,
+					(i + 1) * 10 + stops.size(), detail, spot[0], spot[1]))
+		await _keep_frame_light()  # com 200 jogos, as contas do metrô pesam: um bairro por vez
+
+
+## Quanto se anda pelas ruas da estação mais perto (das dadas) até a porta.
+static func _nearest_stop_walk(stops: Array[TransitStop], portal: GamePortal) -> float:
+	var best := INF
+	for stop in stops:
+		var points := CityRouteGuide.route_points(stop.get_exit_transform().origin, portal)
+		var length := 0.0
+		for k in points.size() - 1:
+			length += points[k].distance_to(points[k + 1])
+		best = minf(best, length)
+	return best
+
+
+## Lugar da estação num quarteirão: no vão de 4 m entre os dois prédios da
+## rua das portas (a do lado da praça), com a frente na linha das fachadas,
+## virada para a rua. A escada desce para dentro do vão: não ocupa a calçada
+## e fica longe das portas, dos postes e do pórtico. Devolve [posição, frente].
+func _block_station_spot(cell: Vector2i) -> Array:
+	var center := CityLayout.block_center(cell)
+	var street_z := _door_street_z(cell)
+	var side := signf(center.z - street_z)
+	var facade := CityLayout.STREET_WIDTH / 2.0 + (CityLayout.LOT_SIZE - BUILDING_FOOTPRINT) / 2.0
+	return [Vector3(center.x, 0.0, street_z + side * facade), Vector3(0.0, 0.0, -side)]
+
+
+## Quarteirão onde fica um ponto do mundo.
+static func _cell_of(position: Vector3) -> Vector2i:
+	return Vector2i(roundi(position.x / CityLayout.BLOCK_PITCH), roundi(position.z / CityLayout.BLOCK_PITCH))
+
+
+func _add_metro_stop(stop_name: String, color: Color, order: int, detail: String,
+		position: Vector3, front: Vector3) -> TransitStop:
+	var stop := MetroEntrance.new()
+	stop.name = "Metro_%d" % order
+	stop.stop_name = stop_name
+	stop.color = color
+	stop.order = order
+	stop.detail = detail
+	stop.position = position
+	stop.basis = Basis.looking_at(-front)  # a frente (+Z) da estação aponta para "front"
+	add_child(stop)
+	_map.add_landmark("metro", stop_name, Vector2(position.x, position.z), color)
+	return stop
 
 
 ## Pórtico do bairro: por cima da rua das portas do quarteirão (a do lado da
@@ -279,8 +515,10 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 			spot = candidate
 			break
 	if spot == Vector2.INF:
+		push_warning("O pórtico do bairro %s não coube em nenhuma esquina." % category_id)
 		return
 	_gate_spots[spot] = true
+	_map.set_gate(category_id, spot)
 	var gate := DistrictGate.new()
 	gate.name = "DistrictGate_%s" % category_id
 	gate.setup(GameCategories.get_category_name(category_id).to_upper(),
@@ -288,6 +526,49 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 	gate.position = Vector3(spot.x, 0.0, spot.y)
 	gate.rotation.y = PI / 2.0  # a rua corre de leste a oeste: passa-se por baixo no eixo X
 	add_child(gate)
+
+
+## Letreiro do bairro (néon sobre placa escura, sempre virado para quem olha),
+## um só por bairro, em cima do meio do primeiro quarteirão: acima do prédio
+## mais alto possível, e também dos enfeites que sobem acima dos telhados nos
+## quarteirões do bairro (a grua da Simulação diz até onde vai pelo
+## get_top_y). Assim ele aparece de longe, por cima da cidade.
+func _build_district_sign(district_cells: Array, category_id: String) -> void:
+	if district_cells.is_empty():
+		return
+	var top := BuildingVariant.max_total_height()
+	for cell: Vector2i in district_cells:
+		var props := get_node_or_null("DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y])
+		if props != null and props.has_method("get_top_y"):
+			top = maxf(top, props.get_top_y())
+	var landmark := get_node_or_null("DistrictLandmark_%s" % category_id) as DistrictLandmark
+	if landmark != null:
+		top = maxf(top, landmark.get_top_y())
+	var cell: Vector2i = district_cells[0]
+	var district_sign := DistrictSign.new()
+	district_sign.name = "DistrictSign_%s" % category_id
+	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
+	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, top + DISTRICT_SIGN_CLEARANCE, 0.0)
+	add_child(district_sign)
+	_district_signs.append(district_sign)
+
+
+## O marco alto do bairro (torre, roda-gigante...), se o perfil tiver um
+## "landmark_script": em cima do prédio mais alto do quarteirão do pórtico.
+func _build_landmark(category_id: String, buildings: Array[CityBuilding]) -> void:
+	var profile := Profiles.district(category_id)
+	if profile == null or profile.landmark_script.is_empty() or buildings.is_empty():
+		return
+	var script := load(profile.landmark_script) as GDScript
+	var landmark := script.new() as DistrictLandmark if script != null else null
+	if landmark == null:
+		push_warning("O marco %s do bairro %s não carregou." % [profile.landmark_script, category_id])
+		return
+	landmark.name = "DistrictLandmark_%s" % category_id
+	landmark.category_id = category_id
+	landmark.buildings = buildings
+	add_child(landmark)
 
 
 ## Placa de rua no poste da esquina do quarteirão mais perto da praça,
@@ -331,54 +612,55 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	# Calçada em volta e o miolo do quarteirão na cor do bairro; postes nos cantos.
 	CityDecor.add_block_ground(self, center, category_color)
 	CityDecor.add_block_lights(self, center)
+	await _keep_frame_light()
 
-	# Letreiro flutuante com o nome do bairro (néon sobre placa escura), sempre
-	# virado para quem olha.
-	var district_sign := DistrictSign.new()
-	district_sign.name = "DistrictSign_%s" % category_id
-	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
-			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
-	# Por cima da rua ao lado do quarteirão, do lado da praça: nenhum prédio
-	# fica na frente nem atravessa a placa, qualquer que seja a altura dele.
-	# Quarteirões nas diagonais usam a rua norte-sul (senão três letreiros
-	# dividiriam a mesma rua e se encostariam).
-	var toward_plaza := Vector3(0.0, 0.0, _toward_center(cell.y)) if cell.x == 0 \
-			else Vector3(_toward_center(cell.x), 0.0, 0.0)
-	district_sign.position = center + toward_plaza * (CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0) \
-			+ Vector3(0.0, DISTRICT_SIGN_HEIGHT, 0.0)
-	add_child(district_sign)
-	_district_signs.append(district_sign)
 	_build_street_sign(cell, category_id)
 
 	# Prédios nos terrenos; o que sobrar vira pracinha.
 	var lots := CityLayout.lots_facing_center_first(cell)
+	# Os enfeites só recebem as cascas que são prédios (eles usam a fachada,
+	# o cartaz e o néon do prédio).
 	var buildings: Array[CityBuilding] = []
 	for i in lots.size():
 		var lot := CityLayout.lot_transform(cell, lots[i])
 		if i < block_games.size():
-			buildings.append(_build_game_building(lot, block_games[i], category_id))
+			await _wait_for_art(block_games[i].app_id)
+			var shell := _build_game_building(lot, block_games[i], category_id)
+			if shell is CityBuilding:
+				buildings.append(shell)
+			await _keep_frame_light()  # um prédio (com as capas) pesa: divide os quadros
 		else:
 			CityDecor.add_park(self, lot)
 	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
 	DistrictProps.decorate(self, category_id, cell, buildings)
+	# O marco do bairro fica no primeiro quarteirão (o do pórtico).
+	if not _district_cells.has(category_id):
+		_build_landmark(category_id, buildings)
+	await _keep_frame_light()
 
 
-func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> CityBuilding:
+## A porta de um jogo num terreno: a casca que o perfil do bairro pede
+## ("building" = prédio, o padrão; "arch" = arco). O nó se chama sempre
+## Building_<app_id>, qualquer que seja a casca.
+func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String) -> PortalShell:
 	# Sorteio com "semente" = app_id: o mesmo jogo tem sempre o mesmo prédio
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
-	var variant := BuildingVariant.from_app_id(game.app_id)
-	var category_color := GameCategories.get_category_color(category_id)
+	var profile := Profiles.district(category_id)
+	var variant := BuildingVariant.from_app_id(game.app_id, profile.floor_weights if profile != null else PackedFloat32Array())
+	var kind := profile.shell if profile != null else "building"
+	var shell_script: GDScript = _shells.get(kind, CityBuilding)
 
-	var building := CityBuilding.new()
-	building.name = "Building_%d" % game.app_id
-	building.game = game
-	building.category_id = category_id
-	building.variant = variant
-	building.size = Vector3(BUILDING_FOOTPRINT, variant.body_height(), BUILDING_FOOTPRINT)
-	building.accent_color = category_color
-	building.transform = lot
-	add_child(building)
-	return building
+	var shell := shell_script.new() as PortalShell
+	shell.name = "Building_%d" % game.app_id
+	shell.game = game
+	shell.category_id = category_id
+	shell.size = Vector3(BUILDING_FOOTPRINT, variant.body_height(), BUILDING_FOOTPRINT)
+	shell.accent_color = GameCategories.get_category_color(category_id)
+	if shell is CityBuilding:
+		shell.variant = variant
+	shell.transform = lot
+	add_child(shell)
+	return shell
 
 
 # --- Céu, chão e muros -------------------------------------------------------
@@ -422,9 +704,12 @@ func _build_environment() -> void:
 	add_child(world_env)
 
 	var sun := DirectionalLight3D.new()
+	sun.name = "Sun"
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 120.0
+	# Até onde vai a sombra: depende da qualidade (mais curta na Leve).
+	GraphicsQuality.apply_to_sun(sun, AppConfig.get_quality())
 	add_child(sun)
+	_sun = sun
 
 	_day_night = DayNight.new()
 	_day_night.environment = env
@@ -432,6 +717,71 @@ func _build_environment() -> void:
 	_day_night.sun = sun
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	add_child(_day_night)
+
+
+## O fundo da cidade (vento e trânsito ao longe): um loop 2D, sem posição, no
+## canal "Ambiente", vindo do perfil do mundo. Em casa o canal fica abafado.
+func _build_ambience_bed() -> void:
+	var spec := Profiles.world().ambience_bed
+	if spec == null or spec.files.is_empty():
+		return
+	var player := AudioStreamPlayer.new()
+	player.name = "AmbienceBed"
+	player.stream = AmbientEmitter.looping(load(spec.files[0]))
+	player.bus = &"Ambiente"
+	player.volume_db = spec.volume_db
+	add_child(player)
+	player.play()
+	_ambience_bed = player
+
+
+func get_ambience_bed() -> AudioStreamPlayer:
+	return _ambience_bed
+
+
+# --- Casa ----------------------------------------------------------------------
+
+## A casa fica longe, em HOME_ORIGIN, e a porta "Casa" fica na praça. As duas
+## portas se ligam: a da praça leva para dentro de casa, e a da casa traz de
+## volta para a frente da porta da praça. O sol da cidade não ilumina dentro.
+func _build_home() -> void:
+	_home = Home.new()
+	_home.name = "Home"
+	_home.position = HOME_ORIGIN
+	add_child(_home)
+	_sun.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+	_sun.light_cull_mask &= ~AvatarBody.reflection_layers()  # o corpo do espelho também fica dentro de casa
+
+	_home_door = TravelDoor.new()
+	_home_door.name = "HomeDoor"
+	_home_door.door_name = "Casa"
+	_home_door.detail = "A sua casa: estante, amigos e configurações"
+	_home_door.travel_message = "Casa"
+	_home_door.position = HOME_DOOR_SPOT
+	_home_door.rotation.y = PI  # a frente (+Z) da porta aponta para o chafariz (norte)
+	add_child(_home_door)
+	_home_door.set_destination(_home.get_spawn_transform())
+	# A aparência é da cidade (o TravelDoor só tem a lógica): o quiosque com o
+	# néon "CASA", no mesmo lugar e virado para o mesmo lado.
+	var facade := HomeDoorFacade.new()
+	facade.name = "HomeDoorFacade"
+	facade.position = HOME_DOOR_SPOT
+	facade.rotation.y = PI
+	add_child(facade)
+
+	var front_door := _home.get_front_door()
+	front_door.detail = "Sair para a praça"
+	front_door.travel_message = "Praça"
+	# Chegando na praça: na frente da porta "Casa", olhando para o norte (-Z).
+	front_door.set_destination(Transform3D(Basis.IDENTITY, HOME_DOOR_ARRIVAL))
+
+
+func get_home() -> Home:
+	return _home
+
+
+func get_home_door() -> TravelDoor:
+	return _home_door
 
 
 func _build_ground_and_walls(half: float) -> void:
@@ -471,6 +821,17 @@ func _build_ground_and_walls(half: float) -> void:
 	add_child(skyline)
 
 
+# --- Torre do relógio ----------------------------------------------------------
+
+## A torre do meio do chafariz: marca a hora da cidade e vira um ponto nos mapas.
+func _build_clock_tower() -> void:
+	var tower := PlazaClockTower.new()
+	tower.name = "ClockTower"
+	tower.day_night = _day_night
+	add_child(tower)
+	_map.add_landmark("marco", "Torre do relógio", Vector2.ZERO, PlazaClockTower.NEON_COLOR)
+
+
 # --- Amigos na praça ---------------------------------------------------------
 
 ## Amigos online que NÃO estão num portal da cidade (sem jogar, ou jogando
@@ -500,6 +861,8 @@ func _update_plaza_friends() -> void:
 ## norte (de frente para quem nasce na praça) e os seguintes se alternam para
 ## os dois lados; o lado sul, perto de onde o jogador nasce, é o último a encher.
 ## Se não couber, abre um círculo maior.
+## Um ponto reservado no caminho (veja _plaza_reserved): o amigo anda um pouco
+## pela roda até sair de cima dele.
 func _plaza_friend_position(index: int, total: int) -> Vector3:
 	var ring := floori(index / float(PLAZA_FRIENDS_PER_RING))
 	var in_ring := index % PLAZA_FRIENDS_PER_RING
@@ -509,7 +872,24 @@ func _plaza_friend_position(index: int, total: int) -> Vector3:
 	var steps_from_north := ceili(in_ring / 2.0) * (1 if in_ring % 2 == 1 else -1)
 	var angle := steps_from_north * step
 	var radius := PLAZA_FRIEND_RADIUS + ring * PLAZA_FRIEND_RING_STEP
-	return Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	var spot := Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	for attempt in 8:
+		if not _is_plaza_reserved(spot):
+			break
+		angle += PLAZA_FRIEND_CLEARANCE / radius  # ~2 m pela roda
+		spot = Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+	return spot
+
+
+func _is_plaza_reserved(spot: Vector3) -> bool:
+	var point := Vector2(spot.x, spot.z)
+	for reserved in _plaza_reserved:
+		var from := Vector2(reserved[0].x, reserved[0].z)
+		var to := Vector2(reserved[1].x, reserved[1].z)
+		var closest := Geometry2D.get_closest_point_to_segment(point, from, to)
+		if point.distance_to(closest) < PLAZA_FRIEND_CLEARANCE:
+			return true
+	return false
 
 
 # --- Jogador e avisos --------------------------------------------------------

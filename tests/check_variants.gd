@@ -16,6 +16,7 @@ func _run() -> void:
 		await process_frame
 	await process_frame
 
+	var profiles: GDScript = load("res://profiles/profiles.gd")
 	var buildings: Array = []
 	for child in city.get_children():
 		if child.name.begins_with("Building_"):
@@ -38,8 +39,10 @@ func _run() -> void:
 		roofs += int(not v.roof_items.is_empty())
 		if not is_equal_approx(b.size.y, v.body_height()) or v.floors < 3 or v.floors > 7:
 			heights_ok = false
-		# Mesmo App ID -> mesmo prédio.
-		var again = v.get_script().from_app_id(b.game.app_id)
+		# Mesmo App ID (e mesmo bairro) -> mesmo prédio. Os andares seguem os
+		# pesos do perfil do bairro (Fase 10.5).
+		var profile = profiles.district(b.category_id)
+		var again = v.get_script().from_app_id(b.game.app_id, profile.floor_weights if profile != null else PackedFloat32Array())
 		if again.floors != v.floors or again.setback != v.setback or again.window_style != v.window_style \
 				or again.roof_items != v.roof_items:
 			same_again = false

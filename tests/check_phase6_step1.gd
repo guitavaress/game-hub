@@ -23,12 +23,12 @@ func _run() -> void:
 			print("   ", child.get_node("GamePortal").get_look_label())
 
 	print("\n== formatos ==")
-	var portal_script = load("res://components/game_portal/game_portal.gd")
+	var portal_script = load("res://components/game_portal/game_info.gd")
 	for m in [0, 1, 45, 60, 90, 150, 599, 600, 1436, 6000]:
-		print("   %5d min -> %s" % [m, portal_script._format_playtime(m)])
+		print("   %5d min -> %s" % [m, portal_script.format_playtime(m)])
 	var now := int(Time.get_unix_time_from_system())
 	for d in [0, 1, 2, 29, 31, 70, 400, 900]:
-		print("   há %3d dias -> %s" % [d, portal_script._format_last_played(now - d * 86400)])
+		print("   há %3d dias -> %s" % [d, portal_script.format_last_played(now - d * 86400)])
 
 	print("\n== capas HD (esperando os downloads) ==")
 	var art = root.get_node("GameArt")

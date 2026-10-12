@@ -34,6 +34,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	load("res://tests/quiet_friends.gd").install(root)  # sem os amigos de verdade
 	city = load("res://worlds/city/city.tscn").instantiate()
 	root.add_child(city)
 	for i in 30:
@@ -110,10 +111,9 @@ func _run() -> void:
 	var arrived := []
 	FS.avatar_ready.connect(func(id, tex): arrived.append("%s %dx%d" % [id, tex.get_width(), tex.get_height()]))
 	var immediate = FS.get_avatar(test_friend)
-	var waited := 0
-	while arrived.is_empty() and waited < 300:
+	var avatar_deadline := Time.get_ticks_msec() + 20000  # por tempo, como as esperas abaixo
+	while arrived.is_empty() and Time.get_ticks_msec() < avatar_deadline:
 		await process_frame
-		waited += 1
 	_check("baixou o avatar", not arrived.is_empty() and immediate == null)
 	print("   ", arrived)
 	# limpa os avatares falsos do cache
@@ -129,17 +129,17 @@ func _run() -> void:
 	FS._problem = ""
 	# Se a consulta "de verdade" (com a sua chave do config.cfg) ainda estiver em
 	# andamento, o refresh() seria ignorado: espera ela terminar primeiro.
-	waited = 0
-	while not FS._pending_kind.is_empty() and waited < 900:
+	# As esperas são por TEMPO (até 20 s cada), e não por quadros: sem janela
+	# a Godot roda centenas de quadros por segundo, e a Steam pode demorar.
+	var deadline := Time.get_ticks_msec() + 20000
+	while not FS._pending_kind.is_empty() and Time.get_ticks_msec() < deadline:
 		await process_frame
-		waited += 1
 	problems.clear()
 	FS._problem = ""
 	FS.refresh()
-	waited = 0
-	while problems.is_empty() and waited < 900:
+	deadline = Time.get_ticks_msec() + 20000
+	while problems.is_empty() and Time.get_ticks_msec() < deadline:
 		await process_frame
-		waited += 1
 	print("   aviso: ", problems)
 	_check("avisou chave inválida", not problems.is_empty() and "inválida" in problems[0])
 	_check("parou de consultar", not FS._enabled)

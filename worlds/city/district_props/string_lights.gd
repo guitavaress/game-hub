@@ -41,6 +41,8 @@ const SIDES: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0)
 
 ## Os prédios e o quarteirão (a cidade preenche antes de adicionar).
 var buildings: Array[CityBuilding] = []
+## Id do bairro (o DistrictProps preenche, a partir do perfil).
+var category_id: String = ""
 var cell: Vector2i = Vector2i.ZERO
 
 var _bulb_material: ShaderMaterial
@@ -148,7 +150,7 @@ func _find_cords() -> Array[Array]:
 func _owns_crossing(world: Node, side: Vector2i, neighbor: Vector2i) -> bool:
 	if side.x > 0 or side.y > 0:
 		return true
-	return not world.has_node("DistrictProps_casual_%d_%d" % [neighbor.x, neighbor.y])
+	return not world.has_node("DistrictProps_%s_%d_%d" % [category_id, neighbor.x, neighbor.y])
 
 
 ## Os postes deste lado do quarteirão (norte, sul, oeste ou leste).

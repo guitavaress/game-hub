@@ -17,6 +17,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	load("res://tests/quiet_friends.gd").install(root)  # sem os amigos de verdade
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	root.add_child(city)
 	while not city.is_city_ready():
@@ -45,6 +46,7 @@ func _run() -> void:
 	print("   texto: ", hud.get_look_text(), " | extras: ", hud.get_look_extras())
 	_check("título + detalhes", hud.get_look_text().begins_with("Balatro — "))
 	_check("rótulo da categoria", hud.get_look_extras()[0] == "CARTAS E TABULEIRO")
+	_check("diz como entrar (\"%s\")" % hud.get_look_action(), hud.get_look_action() == "Entre pela porta para jogar")
 	_check("amigos jogando", hud.get_look_extras()[1] == "●  Ana e Bruno jogando agora")
 	var neon: Color = root.get_node("GameCategories").get_neon_color("cartas")
 	_check("anel na cor do bairro", hud.is_crosshair_ring() and hud._crosshair_ring.color.is_equal_approx(neon)
@@ -61,7 +63,7 @@ func _run() -> void:
 	for i in 4:
 		await physics_frame
 	await process_frame
-	_check("cartão some, volta o ponto", not hud._look_card.visible and not hud.is_crosshair_ring()
+	_check("cartão some, volta o ponto", not hud.is_look_card_shown() and not hud.is_crosshair_ring()
 		and hud._crosshair_dot.visible)
 
 	print("\n== contrato antigo (só get_look_label) ==")

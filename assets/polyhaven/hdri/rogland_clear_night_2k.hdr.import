@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://r0udwscf6ea7"
-path="res://.godot/imported/rogland_clear_night_2k.hdr-d358de8a349139d3f6222208d0a6defe.ctex"
+path.bptc="res://.godot/imported/rogland_clear_night_2k.hdr-d358de8a349139d3f6222208d0a6defe.bptc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/polyhaven/hdri/rogland_clear_night_2k.hdr"
-dest_files=["res://.godot/imported/rogland_clear_night_2k.hdr-d358de8a349139d3f6222208d0a6defe.ctex"]
+dest_files=["res://.godot/imported/rogland_clear_night_2k.hdr-d358de8a349139d3f6222208d0a6defe.bptc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -1,0 +1,83 @@
+# Testes automáticos de plataforma, no Windows e no Linux (Fase Linux L.7).
+#
+# Roda só os testes que NÃO dependem de jogos instalados (a bateria completa
+# precisa de Balatro, Skyrim, Valheim e Stardew e continua sendo rodada à mão):
+#   check_platform       o backend certo por sistema; nada de SO fora de platform/
+#   check_steam_linux    o backend Linux, com uma home e um /proc de exemplo
+#   check_window_host    a janela no Hyprland, com um hyprctl falso
+#   check_steam_windows  o backend Windows, com o reg.exe e o tasklist de verdade
+#                        (só no Windows; nos outros sistemas ele é "pulado")
+#
+# A Godot é baixada do GitHub oficial da engine e conferida pelo SHA512 que eles
+# publicam. Nenhum segredo é usado e o workflow só pode ler o repositório.
+
+name: Testes
+
+on:
+  push:
+    branches: ["fase-*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  plataforma:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baixar a Godot (e conferir o SHA512)
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/$GODOT_VERSION"
+          tmp="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            tmp="$(cygpath -u "$RUNNER_TEMP")"
+            zip="Godot_v${GODOT_VERSION}_win64.exe.zip"
+            exe="Godot_v${GODOT_VERSION}_win64_console.exe"
+          else
+            zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+            exe="Godot_v${GODOT_VERSION}_linux.x86_64"
+          fi
+          curl -fsSL -o "$tmp/godot.zip" "$base/$zip"
+          want="$(curl -fsSL "$base/SHA512-SUMS.txt" | awk -v name="$zip" '$2 == name { print $1 }')"
+          got="$(sha512sum "$tmp/godot.zip" | awk '{ print $1 }')"
+          if [ -z "$want" ] || [ "$want" != "$got" ]; then
+            echo "SHA512 diferente do publicado (esperado '$want', veio '$got')"
+            exit 1
+          fi
+          mkdir -p "$tmp/godot"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z x -y -o"$tmp/godot" "$tmp/godot.zip" > /dev/null
+          else
+            unzip -q -o "$tmp/godot.zip" -d "$tmp/godot"
+            chmod +x "$tmp/godot/$exe"
+          fi
+          echo "GODOT=$tmp/godot/$exe" >> "$GITHUB_ENV"
+          "$tmp/godot/$exe" --version
+
+      - name: Testes de plataforma
+        run: bash tests/run_tests.sh check_platform check_steam_linux check_window_host check_steam_windows
+
+      # Sempre mostra a saída completa: o run_tests.sh só mostra "ok" ou "FALHOU",
+      # e queremos ver que o reg.exe e o tasklist de verdade rodaram.
+      - name: Saída completa do teste do Windows
+        if: always() && runner.os == 'Windows'
+        run: |
+          "$GODOT" --headless --path . -s res://tests/check_steam_windows.gd 2>&1 | grep -v -E 'friends_service|push_warning|backtrace' || true
+          echo "--- chave de teste que pode ter sobrado (deve dizer que não achou):"
+          reg query 'HKCU\Software\GameHubTest' 2>&1 | head -5 || true

@@ -22,13 +22,14 @@ const PLANE_GAP: float = 0.1
 const BOX_FLOAT: float = 0.03
 ## Escala do mapa: 1 m na mesa = 25 m na cidade.
 const MAP_SCALE: float = 25.0
-const CATEGORY_ID: String = "estrategia"
 const METAL_COLOR: Color = Color("1A1D22")
 const GRID_SHADER: Shader = preload("res://worlds/city/district_props/estrategia_grid.gdshader")
 const HOLOGRAM_SHADER: Shader = preload("res://components/friend_npc/hologram.gdshader")
 
 ## Os prédios e o quarteirão (a cidade preenche antes de adicionar).
 var buildings: Array[CityBuilding] = []
+## Id do bairro (o DistrictProps preenche, a partir do perfil).
+var category_id: String = ""
 var cell: Vector2i = Vector2i.ZERO
 
 var _grid_material: ShaderMaterial
@@ -41,7 +42,7 @@ func _ready() -> void:
 	add_to_group("city_night")
 	var center := CityLayout.block_center(cell)
 	position = center  # a mesa fica no meio do quarteirão
-	var neon := GameCategories.get_neon_color(CATEGORY_ID)
+	var neon := GameCategories.get_neon_color(category_id)
 	_build_base(neon)
 	_build_hologram(neon)
 	_build_boxes(center)
@@ -102,7 +103,7 @@ func _build_hologram(neon: Color) -> void:
 func _build_boxes(center: Vector3) -> void:
 	_box_material = ShaderMaterial.new()
 	_box_material.shader = HOLOGRAM_SHADER
-	_box_material.set_shader_parameter("color", GameCategories.get_neon_color(CATEGORY_ID))
+	_box_material.set_shader_parameter("color", GameCategories.get_neon_color(category_id))
 	for building in buildings:
 		var box_size := building.size / MAP_SCALE
 		var offset := (building.position - center) / MAP_SCALE

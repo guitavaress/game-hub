@@ -11,6 +11,10 @@ extends Node3D
 ## A busca não conhece a cidade: ela chama show_route() em quem estiver no
 ## grupo "route_guide". Cada mundo pode ter o seu guia (ou nenhum).
 
+## O destino mudou: acendeu uma faixa nova ou a faixa apagou (a bússola e os
+## mapas escutam).
+signal route_changed
+
 const MARK_SIZE: Vector2 = Vector2(1.0, 2.0)
 const MARK_SPACING: float = 2.0
 const MARK_ENERGY: float = 2.5
@@ -23,6 +27,7 @@ const ARRIVAL_DISTANCE: float = 3.0
 
 var _marks: Array[Decal] = []
 var _target: Vector3
+var _target_color: Color = Color.WHITE
 var _player: Node3D
 var _started_ms: int = 0
 var _mark_texture: Texture2D
@@ -56,9 +61,11 @@ func show_route(player: Node3D, portal: GamePortal) -> float:
 			along += MARK_SPACING
 		length += segment
 	_target = portal.global_position
+	_target_color = color
 	_player = player
 	_started_ms = Time.get_ticks_msec()
 	set_process(true)
+	route_changed.emit()
 	return total
 
 
@@ -69,10 +76,21 @@ func clear_route() -> void:
 			mark.queue_free()
 	_marks.clear()
 	set_process(false)
+	route_changed.emit()
 
 
 func has_route() -> bool:
 	return not _marks.is_empty()
+
+
+## A cor do bairro do destino (só vale com has_route()).
+func get_target_color() -> Color:
+	return _target_color
+
+
+## A porta de destino da faixa acesa (só vale com has_route()).
+func get_target_position() -> Vector3:
+	return _target
 
 
 func get_mark_count() -> int:
@@ -177,6 +195,7 @@ func _fade_out() -> void:
 			var tween := mark.create_tween()
 			tween.tween_property(mark, "modulate:a", 0.0, MARK_FADE_SECONDS * 2.0)
 			tween.tween_callback(mark.queue_free)
+	route_changed.emit()
 
 
 ## Textura da mancha: um retângulo de pontas arredondadas com borda suave.

@@ -3,6 +3,7 @@ extends CanvasLayer
 ##
 ## - set_amount(0.0 .. 1.0): 0 = tela normal, 1 = tela toda preta.
 ## - fade_in(segundos): clareia a tela aos poucos, do valor atual até 0.
+## - fade_out(segundos): escurece a tela aos poucos, do valor atual até 1.
 ## - set_message(texto): texto no meio da cortina (ex.: "Carregando...").
 ## - set_door_charge(0..1, nome, cor): espera na porta de um jogo — vinheta
 ##   que fecha das bordas + anel em volta da mira (DoorCharge).
@@ -45,7 +46,8 @@ func _ready() -> void:
 	_message = Label.new()
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_message.add_theme_font_size_override("font_size", 28)
+	_message.theme = HubTheme.get_theme()
+	_message.theme_type_variation = &"HubHeading"
 	_message.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_curtain.add_child(_message)
 
@@ -102,8 +104,20 @@ func get_amount() -> float:
 func fade_in(duration: float = 1.0) -> void:
 	_stop_tween()
 	_tween = create_tween()
-	_tween.tween_property(_curtain, "modulate:a", 0.0, duration)
+	# Clareia rápido no começo e assenta no fim (curva de saída).
+	_tween.tween_property(_curtain, "modulate:a", 0.0, duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.finished.connect(func() -> void: game_screen.visible = false)
+
+
+## Escurece a tela (transparente -> preto) em "duration" segundos. Usado nas
+## viagens rápidas (Player.travel_to). Não mexe na tela do jogo.
+func fade_out(duration: float = 0.4) -> void:
+	_stop_tween()
+	_tween = create_tween()
+	# Escurece devagar no começo e fecha rápido no fim (curva de entrada).
+	_tween.tween_property(_curtain, "modulate:a", 1.0, duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 
 
 func _stop_tween() -> void:
