@@ -304,7 +304,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - com 200 jogos, as barras de bairro não passam da moldura.
   - Manual: F5, virar para a parede sul: as suas horas reais, os mais jogados e as barras coloridas. Captura de noite (Leve), fora do repositório.
   - Commit: `Fase 13.7: estatísticas na parede`
-- [x] **13.8 A aba "Casa" no computador** (Sonnet · medium) — HASH
+- [x] **13.8 A aba "Casa" no computador** (Sonnet · medium) — 574c763
   - Faz:
     - `HomeSettingsView` (tema, móveis, paredes e néon);
     - a tela do computador ganha as seções Configurações e Casa;
