@@ -24,7 +24,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | Versão | O que é | Situação |
 |---|---|---|
 | **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
-| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | 🟡 primeiro passo feito na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](#fase-13-casa-parte-2) |
+| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | ✅ pronta: casa na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](plans/fase-13.md) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
 | **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); primeiro passo de desktop na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
@@ -141,7 +141,7 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 
 | Fase | Nome | Versão | Onde dá para fazer |
 |---|---|---|---|
-| [13](#fase-13-casa-parte-2) | Casa, parte 2 | V2 | notebook ✅ |
+| [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
 | [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy | V5 | notebook ✅ (é o lugar ideal) |
 | [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
 | [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha | V3 | notebook (Leve) + desktop (Alta) |
@@ -151,7 +151,9 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 
 Cada fase ganha o seu `docs/plans/fase-N.md` (Opus, modo plan, aprovado) só quando começar.
 
-### Fase 13: Casa, parte 2
+### Fase 13: Casa, parte 2 ✅ feita (no Linux; falta a conferência no desktop)
+
+Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** temas da casa como dado (`HomeProfile`, com loft e cabana), troca pela aba **Casa** do computador, cor das paredes e do néon, 3 disposições prontas dos móveis, o quadro de estatísticas (`LibraryStats`), o avatar como dado (`AvatarSpec`, o mesmo formato que a V4 vai trocar) e o espelho com o provador. A medida no notebook (Leve) não piorou: em casa 60 FPS, e de frente para o espelho o p99 ficou em ~19 ms. **Falta:** a conferência no desktop (Alta).
 
 **Versão:** V2. **Onde testar:** notebook ✅.
 

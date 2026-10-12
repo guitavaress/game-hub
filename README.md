@@ -21,6 +21,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
 | 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
+| 13 | Casa, parte 2: parede de estatísticas, temas (loft e cabana), cores das paredes e do néon, posições prontas dos móveis, e um avatar que você vê num espelho | ✅ pronta no Linux (falta a conferência no desktop) |
 | 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 
@@ -205,6 +206,9 @@ Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na jan
 - **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
 - **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
 - **Computador:** E aproxima a câmera da tela, que mostra as mesmas abas do menu de pausa (som e vídeo, controles, amigos), clicáveis, com o campo da chave. Esc devolve a câmera.
+- **Estatísticas:** um quadro na parede sul (à esquerda da porta) com as **horas jogadas**, os **5 mais jogados**, as horas dos **maiores bairros** (na cor de cada um) e o **jogado por último**, com a capa. Conta só os jogos instalados. Sem horas (Steam sem conta logada) ou sem jogos, o quadro explica em vez de mostrar zeros. Atualiza quando você volta de um jogo (a Steam grava as horas com atraso: as da última sessão podem aparecer só na volta seguinte).
+- **Espelho:** na parede sul, à direita da porta. Você se vê nele, com o seu avatar, e o reflexo acompanha o que você faz (só desenha de perto e de frente, para não pesar). **E** no espelho abre o **provador**: 5 visuais prontos e as cores de pele, olhos, cabelo, camiseta e calça. O avatar fica no `config.cfg` (seção `[avatar]`).
+- **Computador, aba Casa:** escolha o **tema** (Loft ou Cabana), a **posição dos móveis** (Padrão, Espelhada ou Estante na entrada) e a **cor das paredes e do néon** (8 cores prontas e "Do tema"). A casa muda na hora, atrás do monitor. Tudo fica na seção `[home]` do `config.cfg`.
 - **Portas:** E na porta do loft ("E para sair") leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
 
 ## Detalhes da cidade
@@ -216,6 +220,9 @@ Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na jan
 - **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
 - **Dia e noite:** seguem o relógio do PC (ou ficam fixos, pelo menu). No pôr do sol o céu fica dourado e as janelas acendem uma a uma; à noite acendem os postes, o néon e as vitrines, e as poças refletem as luzes. No horizonte, uma silhueta de cidade.
 
+### Como criar um tema de casa novo
+Cada tema é um perfil em `profiles/homes/` (um `.tres`, o `HomeProfile`): materiais de piso, paredes e teto, luzes, a vista da janela, o néon e o script do enfeite (os móveis de decoração, em `worlds/home/themes/`). No editor, botão direito no `loft.tres` › Duplicar, mude o que quiser e acrescente o arquivo na lista **Homes** de `profiles/home_catalog.tres`; ele aparece na aba Casa do computador. A sala tem o mesmo tamanho em todos os temas. Para um enfeite novo, copie o `loft_decor.gd` (estende `HomeDecor`).
+
 ### Como criar um bairro novo
 Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para criar um: no editor da Godot, botão direito num `.tres` › Duplicar, ajuste nome, cores, tags da Steam, sons, enfeite, clima e arquitetura no inspetor, e acrescente o arquivo na lista **Districts** de `profiles/world_profile.tres` (a ordem da lista é a ordem dos bairros). Não é preciso mexer em código.
 
@@ -226,8 +233,9 @@ Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para cri
 - **Pedra de calçamento (bairro Aventura):** `PavingStones070`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K.
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
 - **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
-- **Hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
+- **Avatar e hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
 - **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds, Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
+- O estalo da lareira da cabana (`fire_crackle.wav`) também é gerado pelo mesmo script, CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 
 ## Licença

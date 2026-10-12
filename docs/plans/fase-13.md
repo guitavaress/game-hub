@@ -1,6 +1,6 @@
 # Fase 13: Casa, parte 2
 
-**Status:** em andamento (aprovado em 2026-10-12)
+**Status:** concluída no Linux (aprovado em 2026-10-12); falta a conferência no desktop
 **Branch:** `fase-13`, criada a partir da `fase-linux` (em `ff3ee5c`), no checkout principal (`~/git/game-hub`). A `fase-linux` ainda não foi para a `main`; quando for, `git rebase --onto main fase-linux fase-13`.
 
 ### Trabalho com o Nimbalyst
@@ -377,7 +377,7 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
     - `check_home` roda as 3 disposições também na cabana (nada fora da sala, passagens livres; a lareira e as poltronas não tampam nenhuma âncora).
   - Manual: aba Casa › Cabana; capturas de dia e de noite, na Leve e na Alta, fora do repositório; e o FPS na Leve perto do de loft.
   - Commit: `Fase 13.12: tema cabana`
-- [ ] **13.13 Medida final e documentação** (Sonnet · low)
+- [x] **13.13 Medida final e documentação** (Sonnet · low) — HASH
   - Faz:
     - a medida no notebook (loft e cabana, Leve), anotada;
     - README (temas, cores, móveis, estatísticas, espelho e avatar; como criar um tema novo);
@@ -462,6 +462,14 @@ Ordem: estrutura e dados primeiro (nada visível), depois o que usa a estrutura,
   - cada clique grava pelo `AppConfig.set_avatar` (o mesmo formato do `AvatarSpec.to_dict`), e o espelho e o painel se atualizam pelo `settings_changed("avatar")`;
   - a ordem do foco é montada à mão (como no `SettingsView`): ↓ passa pelas 6 linhas e volta; →/← param nas pontas.
   - Em testes `-s`, um script que cita `AvatarPanel` como tipo não compila (ele usa o autoload `AppConfig`): o teste usa a variável sem tipo.
+- 2026-10-12 (13.13): **medida final** (notebook, Leve, 7 jogos, 22 h, com janela, máquina quieta; 2ª rodada de cada tema, a 1ª do loft saiu com as texturas ainda carregando):
+
+  | Tema | `MEDIDA_CASA` | `MEDIDA_ESPELHO` | desenhos (casa / espelho) |
+  |---|---|---|---|
+  | Loft | 60,0 FPS · p99 20 ms | 60,0 FPS · p99 19 ms | 198 / 98 |
+  | Cabana | 60,0 FPS (2 rodadas) · p99 20–21 ms | 60,0 FPS · p99 19–20 ms | 239 / 96 |
+
+  A cabana usa ~40 desenhos a mais que o loft (lareira, poltronas, lampiões) e não custa FPS nem p99. A caminhada na cidade ficou em 40–43 FPS, como na Fase 9. Metas da fase atendidas.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy), qualidade **Leve**:
