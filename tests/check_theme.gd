@@ -6,7 +6,10 @@ extends SceneTree
 ##   - dentro do SubViewport do computador, o texto usa o mesmo tema;
 ##   - (12.2) a busca, o metrô, o mapa, os avisos e o cartão de controles
 ##     também ficam sem estilo solto. A única exceção é a cor que vem de dado
-##     (o neon do bairro), marcada por HubTheme.tint.
+##     (o neon do bairro), marcada por HubTheme.tint;
+##   - (12.3) o HUD (cartão do que se olha, bússola), o título do bairro, a
+##     carga da porta, a tela "Abrindo"/"Jogando", o splash e a mensagem da
+##     cortina também.
 ## Os espaçamentos ("separation") podem ficar no nó: são arrumação, não estilo.
 
 const SIZES: Array[int] = [14, 16, 20, 28, 46]
@@ -47,9 +50,15 @@ func _run() -> void:
 	for type in theme.get_font_size_type_list():
 		for item in theme.get_font_size_list(type):
 			sizes[theme.get_font_size(item, type)] = true
-	var extra := sizes.keys().filter(func(size: int) -> bool: return not SIZES.has(size))
+	# Os 5 tamanhos do hub, mais as constantes nomeadas das telas que cobrem tudo.
+	var allowed: Array[int] = SIZES.duplicate()
+	allowed.append_array([theme_script.SIZE_FULLSCREEN_BRAND, theme_script.SIZE_FULLSCREEN_NAME,
+			theme_script.SIZE_FULLSCREEN_PLAYING, theme_script.SIZE_FULLSCREEN_NUMBER, theme_script.SIZE_FULLSCREEN_STATUS])
+	var extra := sizes.keys().filter(func(size: int) -> bool: return not allowed.has(size))
 	print("   tamanhos usados: ", sizes.keys())
-	_check("só os 5 tamanhos de letra (fora da lista: %s)" % str(extra), extra.is_empty())
+	_check("só os 5 tamanhos de letra e os das telas cheias (fora da lista: %s)" % str(extra), extra.is_empty())
+	var hub_sizes := sizes.keys().filter(func(size: int) -> bool: return size < 90 and size != 72 and size != 52 and size != 24)
+	_check("fora das telas cheias, só os 5 tamanhos (%s)" % str(hub_sizes), hub_sizes.all(func(size: int) -> bool: return SIZES.has(size)))
 	_check("um raio só nos botões e painéis", _radii(theme).size() <= 2)  # o raio e o 0 (sem canto)
 	_check("o foco tem uma borda visível", theme.get_stylebox("focus", "Button") is StyleBoxFlat
 			and (theme.get_stylebox("focus", "Button") as StyleBoxFlat).border_width_left >= 2)
@@ -89,6 +98,7 @@ func _run() -> void:
 	desk.queue_free()
 
 	await _check_panels(theme)
+	await _check_hud_and_fullscreen(theme)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
@@ -145,6 +155,49 @@ func _check_panels(theme: Theme) -> void:
 	_check("uma cor solta qualquer é acusada", found.size() == 1)
 	for node in [search, transit, world_map, hint, marked, loose]:
 		node.queue_free()
+
+
+## O HUD e as telas que cobrem tudo (Fase 12.3).
+func _check_hud_and_fullscreen(theme: Theme) -> void:
+	print("== HUD e telas cheias ==")
+	var hud = load("res://ui/hud.gd").new()
+	root.add_child(hud)
+	await process_frame
+	hud.set_look_info({"label": "CARTAS", "label_color": Color.GREEN, "title": "Balatro", "detail": "24 h jogadas",
+			"friends": "Ana jogando agora", "action": "E para usar", "accent": Color.GREEN})
+	_check_clean("o HUD", hud)
+	_check("o cartão do que se olha usa o painel do tema", hud._look_card.get_theme_stylebox("panel") \
+			== theme.get_stylebox("panel", &"HubCard"))
+	_check("o nome no cartão resolve para 28 px", hud._look_title.get_theme_font_size("font_size") == 28)
+	_check("a cor do bairro no rótulo é dado (tint)", hud._look_label.has_meta("hub_data_color"))
+	hud.set_look_info({"title": "Outro"})
+	_check("sem cor de dado, o rótulo volta à cor do tema", not hud._look_label.has_meta("hub_data_color")
+			and not hud._look_label.has_theme_color_override("font_color"))
+	hud.queue_free()
+
+	var district = load("res://ui/district_title.gd").new()
+	root.add_child(district)
+	await process_frame
+	district.show_title("RPG e Fantasia", 12, Color.PURPLE)
+	_check_clean("o título do bairro", district)
+	_check("o título do bairro resolve para 46 px", district._title.get_theme_font_size("font_size") == 46)
+	district.queue_free()
+
+	var fade = root.get_node("ScreenFade")
+	_check_clean("a carga da porta", fade.door_charge)
+	_check_clean("a tela Abrindo/Jogando", fade.game_screen)
+	_check_clean("o splash", fade.splash)
+	_check_clean("a mensagem da cortina", fade._message)
+	_check("o nome do jogo na tela cheia usa a constante de tela cheia", fade.game_screen._name_label \
+			.get_theme_font_size("font_size") == HubTheme.SIZE_FULLSCREEN_NAME)
+	fade.splash.complete_stage("biblioteca")
+	_check("etapa pronta do splash usa a variação verde", fade.splash._stage_labels["biblioteca"].theme_type_variation == &"HubStageDone")
+
+	var compass = load("res://ui/compass.gd").new()
+	root.add_child(compass)
+	await process_frame
+	_check_clean("a bússola", compass)
+	compass.queue_free()
 
 
 ## Nenhum Control debaixo de "node" tem cor, fonte, tamanho ou caixa própria.

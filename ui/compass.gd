@@ -12,9 +12,8 @@ const SIZE_PX: Vector2 = Vector2(480.0, 30.0)
 const TOP: float = 12.0
 ## Quantos graus cabem na faixa, de ponta a ponta.
 const SPAN_DEGREES: float = 160.0
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.78)
 const TICK_COLOR: Color = Color(0.72, 0.75, 0.8, 0.7)
-const LABEL_COLOR: Color = Color("B8BFCC")
+const LABEL_COLOR: Color = HubTheme.SECONDARY_COLOR
 const NORTH_COLOR: Color = Color("FF6B6B")
 const NOTCH_COLOR: Color = Color.WHITE
 const MARK_STEP: int = 15
@@ -91,12 +90,9 @@ func _signed_offset(bearing: float) -> float:
 
 
 func _draw() -> void:
-	var panel := StyleBoxFlat.new()
-	panel.bg_color = PANEL_COLOR
-	panel.set_corner_radius_all(6)
-	draw_style_box(panel, Rect2(Vector2.ZERO, size))
+	draw_style_box(HubTheme.box(HubTheme.PANEL_COLOR, HubTheme.RADIUS, Color.TRANSPARENT, 0, Vector4.ZERO), Rect2(Vector2.ZERO, size))
 
-	var font := get_theme_default_font()
+	var font := HubTheme.get_theme().default_font
 	var mid := size.x / 2.0
 	for step in range(0, 360, MARK_STEP):
 		var x := x_for_bearing(float(step))
@@ -108,7 +104,7 @@ func _draw() -> void:
 			continue
 		var is_main := label.length() == 1
 		var color := NORTH_COLOR if label == "N" else LABEL_COLOR
-		var font_size := 16 if is_main else 12
+		var font_size := HubTheme.SIZE_BODY if is_main else HubTheme.SIZE_CAPTION
 		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 		draw_string(font, Vector2(x - width / 2.0, 18.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 	# Marca do olhar: um triângulo branco embaixo, no meio.
@@ -121,6 +117,6 @@ func _draw() -> void:
 		var color: Color = _target["color"]
 		draw_colored_polygon(PackedVector2Array([Vector2(tx, 3.0), Vector2(tx + 6.0, 10.0), Vector2(tx, 17.0), Vector2(tx - 6.0, 10.0)]), color)
 		var text := "%d m" % (roundi(float(_target["distance"]) / 5.0) * 5)
-		var text_width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+		var text_width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, HubTheme.SIZE_CAPTION).x
 		var text_x := clampf(tx - text_width / 2.0, 4.0, size.x - text_width - 4.0)
-		draw_string(font, Vector2(text_x, size.y - 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)
+		draw_string(font, Vector2(text_x, size.y - 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, HubTheme.SIZE_CAPTION, color)

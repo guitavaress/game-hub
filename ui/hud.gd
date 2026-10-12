@@ -10,20 +10,13 @@ extends CanvasLayer
 ## - AVISOS no topo (Toast): título + frase de ação, com uma barrinha de cor
 ##   (amarela = info, vermelha = erro, verde = sessão). Até 3 empilhados; um
 ##   quarto aviso tira o mais antigo. Somem sozinhos.
-## A fonte (Barlow) vem do tema do projeto (project.godot).
+## Cores, fontes e caixas vêm do tema do hub (HubTheme).
 ##
 ## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
 ## e o resto vira a frase ("Balatro não abriu\nAbra a Steam e entre de novo.").
 
 const LOOK_CARD_BOTTOM: float = -48.0  # distância do cartão ao pé da tela
 const LOOK_CARD_SLIDE: float = 8.0  # quanto ele sobe ao aparecer (px)
-const LABEL_FONT_SIZE: int = 14
-const TITLE_FONT_SIZE: int = 26
-const DETAIL_FONT_SIZE: int = 17
-const FRIENDS_FONT_SIZE: int = 15
-const PANEL_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.78)
-const DETAIL_COLOR: Color = Color("B8BFCC")
-const FRIENDS_COLOR: Color = Color("5FE3A1")
 const RING_SIZE: float = 12.0
 const MAX_TOASTS: int = 3
 ## O aviso de volta do jogo fica pelo menos isto (s) antes de sumir ao andar.
@@ -112,7 +105,11 @@ func set_look_info(info: Dictionary) -> void:
 		_click.play()  # o alvo mudou
 	_look_title.text = title
 	_set_line(_look_label, str(info.get("label", "")))
-	_look_label.add_theme_color_override("font_color", info.get("label_color", DETAIL_COLOR))
+	# A cor do rótulo (o neon do bairro) é dado; sem ela, vale a do tema.
+	if info.has("label_color"):
+		HubTheme.tint(_look_label, info["label_color"])
+	else:
+		HubTheme.untint(_look_label)
 	_set_line(_look_detail, str(info.get("detail", "")))
 	var friends := str(info.get("friends", ""))
 	_set_line(_look_friends, "●  " + friends if not friends.is_empty() else "")
@@ -391,7 +388,8 @@ func _build_crosshair() -> void:
 func _build_look_card() -> void:
 	_look_card = PanelContainer.new()
 	_look_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_look_card.add_theme_stylebox_override("panel", _make_panel_style(0))
+	_look_card.theme = HubTheme.get_theme()
+	_look_card.theme_type_variation = &"HubCard"
 	_look_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_look_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_look_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -404,19 +402,16 @@ func _build_look_card() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_look_card.add_child(column)
 
-	# Rótulo da categoria: Barlow Condensed com 2 px a mais entre as letras.
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 2
-	_look_label = _make_label(LABEL_FONT_SIZE, DETAIL_COLOR, spaced)
+	# Rótulo da categoria (letras espaçadas), nome, detalhes, amigos e dica.
+	_look_label = _make_label(&"HubSection")
 	column.add_child(_look_label)
-	_look_title = _make_label(TITLE_FONT_SIZE, Color(0.97, 0.97, 0.98), HubFonts.TEXT)
+	_look_title = _make_label(&"HubHeading")
 	column.add_child(_look_title)
-	_look_detail = _make_label(DETAIL_FONT_SIZE, DETAIL_COLOR, HubFonts.LIGHT)
+	_look_detail = _make_label(&"HubBodyLight")
 	column.add_child(_look_detail)
-	_look_friends = _make_label(FRIENDS_FONT_SIZE, FRIENDS_COLOR, HubFonts.LIGHT)
+	_look_friends = _make_label(&"HubStatusOk")
 	column.add_child(_look_friends)
-	_look_action = _make_label(FRIENDS_FONT_SIZE, DETAIL_COLOR, HubFonts.TEXT)
+	_look_action = _make_label(&"HubValue")
 	column.add_child(_look_action)
 
 
@@ -480,26 +475,10 @@ func get_compass() -> Compass:
 	return _compass
 
 
-func _make_panel_style(left_border: int) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 22.0
-	style.content_margin_right = 22.0
-	style.content_margin_top = 10.0
-	style.content_margin_bottom = 12.0
-	style.border_width_left = left_border
-	return style
-
-
-func _make_label(font_size: int, color: Color, font: Font = null) -> Label:
-	var label := Label.new()
+func _make_label(variation: StringName) -> Label:
+	var label := HubTheme.label("", variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if font != null:
-		label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
 
 

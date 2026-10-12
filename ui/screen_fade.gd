@@ -46,7 +46,8 @@ func _ready() -> void:
 	_message = Label.new()
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_message.add_theme_font_size_override("font_size", 28)
+	_message.theme = HubTheme.get_theme()
+	_message.theme_type_variation = &"HubHeading"
 	_message.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_curtain.add_child(_message)
 

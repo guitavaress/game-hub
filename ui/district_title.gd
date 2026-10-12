@@ -19,7 +19,6 @@ const SLIDE_PIXELS: float = 14.0
 ## Distância do alto da tela até o título (abaixo da bússola).
 const TOP_MARGIN: float = 76.0
 const SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
-const SUBTITLE_COLOR: Color = Color("DDE2EA")
 
 var _title: Label
 var _subtitle: Label
@@ -35,6 +34,7 @@ var _showing: bool = false
 
 
 func _ready() -> void:
+	theme = HubTheme.get_theme()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_column = VBoxContainer.new()
@@ -47,12 +47,9 @@ func _ready() -> void:
 	_column.visible = false
 	add_child(_column)
 
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 4
-	_title = _make_label(spaced, 46, Color.WHITE)
+	_title = _make_label(&"HubDisplay")
 	_column.add_child(_title)
-	_subtitle = _make_label(HubFonts.LIGHT, 20, SUBTITLE_COLOR)
+	_subtitle = _make_label(&"HubDisplaySub")
 	_column.add_child(_subtitle)
 
 	_sound = AudioStreamPlayer.new()
@@ -95,7 +92,7 @@ func poll() -> void:
 ## Mostra o título: nome do bairro, contagem de jogos e a cor néon.
 func show_title(district_name: String, games: int, color: Color) -> void:
 	_title.text = district_name.to_upper()
-	_title.add_theme_color_override("font_color", color)
+	HubTheme.tint(_title, color)  # o neon do bairro é dado
 	_subtitle.text = "%d %s" % [games, "jogo" if games == 1 else "jogos"]
 	_showing = true
 	_sound.play()
@@ -129,15 +126,8 @@ func get_subtitle() -> String:
 	return _subtitle.text
 
 
-func _make_label(font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
+func _make_label(variation: StringName) -> Label:
+	var label := HubTheme.label("", variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	# Sombra para ler sobre o céu claro.
-	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.55))
-	label.add_theme_constant_override("shadow_offset_x", 0)
-	label.add_theme_constant_override("shadow_offset_y", 2)
 	return label

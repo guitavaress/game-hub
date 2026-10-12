@@ -10,7 +10,6 @@ extends Control
 const RING_DIAMETER: float = 80.0
 const RING_WIDTH: float = 4.0
 const TEXT_TOP: float = 58.0  # distância do centro da tela até o texto (px)
-const HINT_COLOR: Color = Color("B8BFCC")
 const VIGNETTE_SHADER: Shader = preload("res://ui/vignette.gdshader")
 
 var _vignette: ColorRect
@@ -46,14 +45,8 @@ func _ready() -> void:
 	# Os textos ficam numa plaquinha escura: a porta de luz atrás é bem clara.
 	var plate := PanelContainer.new()
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.62)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 5.0
-	style.content_margin_bottom = 7.0
-	plate.add_theme_stylebox_override("panel", style)
+	plate.theme = HubTheme.get_theme()
+	plate.theme_type_variation = &"HubPlate"
 	plate.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	plate.anchor_top = 0.5
 	plate.anchor_bottom = 0.5
@@ -67,13 +60,9 @@ func _ready() -> void:
 	texts.add_theme_constant_override("separation", 0)
 	plate.add_child(texts)
 
-	# Barlow Condensed com 2 px a mais entre as letras.
-	var spaced := FontVariation.new()
-	spaced.base_font = HubFonts.SIGN
-	spaced.spacing_glyph = 2
-	_title = _make_label(spaced, 16, Color.WHITE)
+	_title = _make_label("", &"HubTitleSmall")
 	texts.add_child(_title)
-	_hint = _make_label(HubFonts.LIGHT, 14, HINT_COLOR, "recue para cancelar")
+	_hint = _make_label("recue para cancelar", &"HubCaption")
 	texts.add_child(_hint)
 
 
@@ -111,14 +100,10 @@ func get_title() -> String:
 	return _title.text
 
 
-func _make_label(font: Font, font_size: int, color: Color, text: String = "") -> Label:
-	var label := Label.new()
-	label.text = text
+func _make_label(text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(text, variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
 
 

@@ -11,10 +11,6 @@ extends Control
 ## Quem manda nela é o ScreenFade (show_splash, hide_splash); quem conta o
 ## progresso é o mundo (a cidade).
 
-const TEXT_COLOR: Color = Color("F2F3F5")
-const SECONDARY_COLOR: Color = Color("B8BFCC")
-const HINT_COLOR: Color = Color("8A92A0")
-const DONE_COLOR: Color = Color("5FE3A1")
 const BAR_SIZE: Vector2 = Vector2(400.0, 3.0)
 const BAR_BOTTOM: float = 88.0
 ## [id, nome na tela]
@@ -31,6 +27,7 @@ var _tween: Tween
 
 
 func _ready() -> void:
+	theme = HubTheme.get_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
@@ -60,16 +57,16 @@ func _ready() -> void:
 	brand.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	brand.offset_bottom = -120.0
 	add_child(brand)
-	brand.add_child(_label("GAME HUB", _spaced(14), 104, TEXT_COLOR))
+	brand.add_child(_label("GAME HUB", &"HubFsBrand"))
 	var accent_row := CenterContainer.new()
 	accent_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var accent := ColorRect.new()
-	accent.color = DONE_COLOR
+	accent.color = HubTheme.OK_COLOR
 	accent.custom_minimum_size = Vector2(140.0, 3.0)
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	accent_row.add_child(accent)
 	brand.add_child(accent_row)
-	brand.add_child(_label("Sua biblioteca Steam, em forma de cidade", HubFonts.LIGHT, 20, SECONDARY_COLOR))
+	brand.add_child(_label("Sua biblioteca Steam, em forma de cidade", &"HubLeadLight"))
 
 	# Progresso, embaixo: frase, barra e etapas.
 	var bottom := VBoxContainer.new()
@@ -80,16 +77,16 @@ func _ready() -> void:
 	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	bottom.offset_bottom = -BAR_BOTTOM + 34.0
 	add_child(bottom)
-	_status = _label("", HubFonts.LIGHT, 16, SECONDARY_COLOR)
+	_status = _label("", &"HubBodyLight")
 	bottom.add_child(_status)
 	var bar_row := CenterContainer.new()
 	bar_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var track := ColorRect.new()
-	track.color = Color(1.0, 1.0, 1.0, 0.15)
+	track.color = HubTheme.LINE_COLOR
 	track.custom_minimum_size = BAR_SIZE
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_fill = ColorRect.new()
-	_bar_fill.color = TEXT_COLOR
+	_bar_fill.color = HubTheme.TEXT_COLOR
 	_bar_fill.size = Vector2(0.0, BAR_SIZE.y)
 	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track.add_child(_bar_fill)
@@ -100,12 +97,12 @@ func _ready() -> void:
 	stages.add_theme_constant_override("separation", 26)
 	stages.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for stage in STAGES:
-		var stage_label := _label(stage[1], _spaced(2), 14, HINT_COLOR)
+		var stage_label := _label(stage[1], &"HubSection")
 		stages.add_child(stage_label)
 		_stage_labels[stage[0]] = stage_label
 	bottom.add_child(stages)
 
-	_clock = _label("", _spaced(2), 14, HINT_COLOR)
+	_clock = _label("", &"HubSection")
 	_clock.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	_clock.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_clock.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -172,23 +169,11 @@ func _paint_stage(stage_id: String, stage_name: String) -> void:
 	var stage_label := _stage_labels[stage_id]
 	var done: bool = _done.get(stage_id, false)
 	stage_label.text = stage_name + (" ✓" if done else "")
-	stage_label.add_theme_color_override("font_color", DONE_COLOR if done else HINT_COLOR)
+	stage_label.theme_type_variation = &"HubStageDone" if done else &"HubSection"
 
 
-func _label(text: String, font: Font, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
+func _label(text: String, variation: StringName) -> Label:
+	var label := HubTheme.label(text, variation)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
 	return label
-
-
-## Barlow Condensed com "extra" px entre as letras.
-func _spaced(extra: int) -> FontVariation:
-	var font := FontVariation.new()
-	font.base_font = HubFonts.SIGN
-	font.spacing_glyph = extra
-	return font

@@ -15,11 +15,20 @@ extends RefCounted
 ##                   secundário), HubValue (número ao lado de um deslizador),
 ##                   HubLead (destaque), HubTitle (título), HubSection (seção),
 ##                   HubBrand ("GAME HUB"), HubKeyLabel (letra de uma tecla),
-##                   HubStatusOk e HubStatusError (linha de situação);
+##                   HubStatusOk e HubStatusError (linha de situação),
+##                   HubHeading (nome no cartão do que se olha e mensagem da
+##                   tela escura), HubTitleSmall (título pequeno em letras
+##                   espaçadas), HubDisplay e HubDisplaySub (título grande do
+##                   bairro e a linha de baixo, com sombra), HubLeadLight
+##                   (destaque leve), HubStageDone (etapa pronta do splash),
+##                   HubFsBrand, HubFsName, HubFsPlaying, HubFsNumber e
+##                   HubFsStatus (os textos enormes das telas cheias);
 ##   Button:         (padrão: botão secundário), HubButtonPrimary, HubTab,
 ##                   HubSegment (botões lado a lado: Leve | Média | Alta);
 ##   PanelContainer: HubPanel (HUD, avisos, cartões), HubPanelStrong (menus),
 ##                   HubSidePanel (menu de pausa, encostado na borda),
+##                   HubCard (cartão do que se olha), HubPlate (plaquinha
+##                   atrás de um texto, ex.: na carga da porta),
 ##                   HubScreen (fundo da tela do computador), HubKeyCap (tecla),
 ##                   HubRow e HubRowSelected (linha de uma lista),
 ##                   HubToastInfo/Error/Session (aviso, com a barrinha da cor
@@ -60,9 +69,11 @@ const SIZE_LEAD: int = 20     # destaque
 const SIZE_TITLE: int = 28    # título de tela
 const SIZE_DISPLAY: int = 46  # título grande (ex.: nome do bairro)
 ## Só as telas que cobrem tudo (a "Abrindo"/"Jogando" e o splash) usam estes.
+const SIZE_FULLSCREEN_BRAND: int = 104
 const SIZE_FULLSCREEN_NAME: int = 96
 const SIZE_FULLSCREEN_PLAYING: int = 72
 const SIZE_FULLSCREEN_NUMBER: int = 52
+const SIZE_FULLSCREEN_STATUS: int = 24
 
 ## O raio dos cantos de tudo o que é arredondado.
 const RADIUS: int = 6
@@ -102,6 +113,12 @@ static func label(text: String, variation: StringName = &"HubBody") -> Label:
 static func tint(label_node: Label, color: Color) -> void:
 	label_node.add_theme_color_override("font_color", color)
 	label_node.set_meta("hub_data_color", true)
+
+
+## Tira a cor de dado de um texto (volta à cor da variação).
+static func untint(label_node: Label) -> void:
+	label_node.remove_theme_color_override("font_color")
+	label_node.remove_meta("hub_data_color")
 
 
 ## Um botão: "primary" = claro (a ação principal); senão, o escuro de sempre.
@@ -181,6 +198,17 @@ static func _build_labels(theme: Theme) -> void:
 		[&"HubKeyLabel", HubFonts.TEXT, SIZE_CAPTION, TEXT_COLOR],
 		[&"HubStatusOk", HubFonts.LIGHT, SIZE_CAPTION, OK_COLOR],
 		[&"HubStatusError", HubFonts.LIGHT, SIZE_CAPTION, ERROR_COLOR],
+		[&"HubHeading", HubFonts.TEXT, SIZE_TITLE, Color("F7F7FA")],
+		[&"HubTitleSmall", spaced_font(2), SIZE_BODY, Color.WHITE],
+		[&"HubDisplay", spaced_font(4), SIZE_DISPLAY, Color.WHITE],
+		[&"HubDisplaySub", HubFonts.LIGHT, SIZE_LEAD, Color("DDE2EA")],
+		[&"HubLeadLight", HubFonts.LIGHT, SIZE_LEAD, SECONDARY_COLOR],
+		[&"HubStageDone", spaced_font(2), SIZE_CAPTION, OK_COLOR],
+		[&"HubFsBrand", spaced_font(14), SIZE_FULLSCREEN_BRAND, Color("F2F3F5")],
+		[&"HubFsName", HubFonts.SIGN, SIZE_FULLSCREEN_NAME, Color.WHITE],
+		[&"HubFsPlaying", HubFonts.SIGN, SIZE_FULLSCREEN_PLAYING, Color.WHITE],
+		[&"HubFsNumber", HubFonts.SIGN, SIZE_FULLSCREEN_NUMBER, Color.WHITE],
+		[&"HubFsStatus", HubFonts.LIGHT, SIZE_FULLSCREEN_STATUS, SECONDARY_COLOR],
 	]
 	for i in TOAST_KINDS.size():
 		labels.append([StringName("HubOverline" + TOAST_KINDS[i]), spaced_font(2), SIZE_CAPTION, TOAST_COLORS[i]])
@@ -189,6 +217,10 @@ static func _build_labels(theme: Theme) -> void:
 		theme.set_font("font", entry[0], entry[1])
 		theme.set_font_size("font_size", entry[0], entry[2])
 		theme.set_color("font_color", entry[0], entry[3])
+	# Os títulos grandes têm uma sombra, para ler sobre o céu claro.
+	for shadowed in [&"HubDisplay", &"HubDisplaySub"]:
+		theme.set_color("font_shadow_color", shadowed, Color(0, 0, 0, 0.55))
+		theme.set_constant("shadow_offset_y", shadowed, 2)
 
 
 static func _build_buttons(theme: Theme) -> void:
@@ -300,6 +332,9 @@ static func _build_panels(theme: Theme) -> void:
 		[&"HubSidePanel", PANEL_STRONG_COLOR, 0, Vector4(36, 34, 36, 28)],
 		# A tela do computador: a cor forte, sem transparência (é um monitor).
 		[&"HubScreen", Color(PANEL_STRONG_COLOR, 1.0), 0, Vector4(44, 30, 44, 30)],
+		# O cartão do que se olha (HUD) e a plaquinha atrás de textos soltos.
+		[&"HubCard", PANEL_COLOR, RADIUS, Vector4(22, 10, 22, 12)],
+		[&"HubPlate", PANEL_COLOR, RADIUS, Vector4(14, 5, 14, 7)],
 	]
 	for entry in panels:
 		theme.set_type_variation(entry[0], &"PanelContainer")
