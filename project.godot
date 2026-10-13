@@ -27,6 +27,11 @@ HubWindow="*res://autoload/hub_window.gd"
 GameLauncher="*res://autoload/game_launcher.gd"
 FriendsService="*res://autoload/friends_service.gd"
 ScreenFade="*res://ui/screen_fade.gd"
+DebugMenu="*res://addons/debug_menu/debug_menu.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/debug_menu/plugin.cfg")
 
 [display]
 
