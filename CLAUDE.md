@@ -56,6 +56,7 @@ worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, pla
 tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
 assets/        só CC0, com LICENSE em cada pasta de origem
+addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 .claude/skills/  skills do Claude Code (jogos/design, Apache-2.0) + revisao-do-hub
 ```
@@ -78,6 +79,14 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 - Só **CC0** (Kenney, Poly Haven, ambientCG, Quaternius...), com o `LICENSE` na pasta e o crédito no README.
 - **Antes de baixar, peça permissão** dizendo o nome do arquivo, a origem e o tamanho.
 - Arquivos-fonte pesados (ex.: modelo glTF de centenas de MB) ficam **fora do repositório**. Entra só o que o jogo usa (ex.: o atlas gerado).
+
+## Addons (código de terceiros)
+Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-2026-10-13.md).
+- Licença permissiva (MIT, Apache-2.0, BSD, zlib), em `addons/<nome>/`, com o `LICENSE` junto e o crédito no README.
+- **Antes de baixar, peça permissão** dizendo o nome, a origem, a versão e o tamanho.
+- Versão fixada e testada na Godot 4.7.2. GDExtension só com binários de Windows e Linux x86_64.
+- Sempre atrás de um ponto único do projeto (ex.: GodotSteam só em `autoload/platform/`, Sky3D só no `DayNight`), para as regras de arquitetura continuarem valendo.
+- Toda adoção começa com um spike numa branch, medido no notebook (Leve).
 
 ## Como trabalhar
 

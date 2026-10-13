@@ -190,6 +190,7 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 **Entregas:**
 - **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12) e ouvir os sons da Fase 11.
 - **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
+- **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** para medir ao vivo e o **Sky3D** no lugar das fotos HDRI do céu (ou no começo da Fase 15), cada um com permissão para baixar.
 - Juntar a `fase-linux` na `main`, se o dono pedir.
 
 **Quando começar:** ganha o próximo número livre e um plano curto.
@@ -208,6 +209,8 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 **Risco a decidir no plano:** hoje os quarteirões de um bairro seguem os anéis em volta da praça (um arco, e não uma área compacta). O plano decide se o layout passa a agrupar o bairro num setor contíguo.
 
 **Assets:** pinheiro e rocha CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
+
+**Terreno a decidir no plano:** o addon **Terrain3D** (terreno com LOD, mistura de neve e pedra, instanciador de pinheiros e rochas) ou uma malha simples feita por código, com um spike lado a lado. O Terrain3D ainda precisa ser testado na Godot 4.7.2 ([avaliação](design/addons-2026-10-13.md)).
 
 **Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela, e a medida no notebook (Leve) não piora mais de ~3 FPS.
 
@@ -262,6 +265,12 @@ Ideias guardadas para não se perderem. Nada aqui está planejado.
 - **V4 ao vivo:** ver o amigo andando na cidade, com o avatar que ele escolheu, e eventos. É o primeiro item com **custo de servidor**. A visita sem servidor é a [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo).
 - **V5 completo:** o hub como a sessão inteira do Hyprland, e não um programa dentro dela. O primeiro passo é a [Fase 14](#fase-14-o-hub-no-omarchy).
 - **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários, trocados entre eles. O primeiro passo, local, é a [Fase 18](#fase-18-mundos-abertos).
+- **Addons para depois** ([avaliação](design/addons-2026-10-13.md)):
+  - **GodotSteam**, para os amigos virem da Steam local, sem a chave da Web API. Exige rodar o hub como app da Steam.
+  - **gdcef**, um navegador dentro do `Screen3D`.
+  - Trailers em vídeo nos telões.
+  - **LimboAI** para hologramas e multidões.
+  - **Godot Steam Audio** para eco e oclusão.
 - **Veículos**, em degraus do mais simples ao mais caro:
   1. carros decorativos seguindo caminhos;
   2. dirigir um veículo simples;
