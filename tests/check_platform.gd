@@ -29,7 +29,7 @@ func _run() -> void:
 
 	print("== backend deste sistema ==")
 	var expected: String = EXPECTED_BACKEND.get(OS.get_name(), "nenhum")
-	var actual: String = client.platform_name()
+	var actual: String = client._create_backend().platform_name()
 	_check("%s usa o backend '%s' (veio '%s')" % [OS.get_name(), expected, actual], actual == expected)
 
 	print("== contrato do read_state ==")

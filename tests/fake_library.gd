@@ -27,12 +27,12 @@ const SHARES: Dictionary = {"rpg": 0.30, "acao": 0.15, "aventura": 0.12, "sobrev
 
 
 ## Instala "count" jogos falsos. Devolve a lista (em ordem alfabética).
-static func install(root: Node, count: int, fake_playtimes: bool = false) -> Array[SteamGame]:
+static func install(root: Node, count: int, fake_playtimes: bool = false, real_art: bool = false) -> Array[SteamGame]:
 	var library := root.get_node("SteamLibrary")
 	var store := root.get_node("StoreInfo")
 	root.get_node("GameArt").allow_downloads = false
 
-	var ids := _art_ids(library.get_steam_path())
+	var ids: Array[int] = _art_ids(library.get_steam_path()) if real_art else []
 	var games: Array[SteamGame] = []
 	var by_id: Dictionary[int, SteamGame] = {}
 	for i in count:
@@ -49,6 +49,8 @@ static func install(root: Node, count: int, fake_playtimes: bool = false) -> Arr
 	_spread_tags(store, games)
 	if fake_playtimes:
 		_spread_playtimes(library, games)
+	else:
+		_apply_playtimes(library, {}, {})
 	return games
 
 

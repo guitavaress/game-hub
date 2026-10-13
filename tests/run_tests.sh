@@ -41,51 +41,100 @@ if command -v flock >/dev/null 2>&1; then
 	fi
 fi
 
+# Cada execução guarda a saída completa fora do repositório.
+LOG_DIR=$(mktemp -d "${TMPDIR:-/tmp}/game-hub-tests.XXXXXX") || exit 1
+export GAME_HUB_TEST_LOG_DIR="$LOG_DIR"
+echo "Logs: $LOG_DIR"
 if [ $# -gt 0 ]; then
-	TESTS="$*"
+    TESTS=("$@")
 else
-	TESTS=$(ls tests/check_*.gd | xargs -n1 basename | sed 's/\.gd$//')
+    TESTS=()
+    for path in tests/check_*.gd; do
+        TESTS+=("$(basename "$path" .gd)")
+    done
 fi
-
-# 1. Importa o projeto e procura erros de script.
-echo "== importando o projeto =="
-errors=$(timeout 300 "$GODOT" --headless --path . --import 2>&1 | grep -iE "script error|parse error" | head -5)
-if [ -n "$errors" ]; then
-	echo "$errors"
-	echo "RESULTADO GERAL: erro de script ao importar"
-	exit 1
-fi
-
-# 2. Roda cada teste. Cada um imprime "RESULTADO: TUDO OK" (ou as falhas).
-failed=0
-for t in $TESTS; do
-	args=()
-	[ "$t" = "check_phase3_cache" ] && args=(-- --mode=cached)
-	out=$(timeout 240 "$GODOT" --headless --path . -s "res://tests/$t.gd" "${args[@]}" 2>&1)
-	if echo "$out" | grep -q "SCRIPT ERROR"; then
-		status="ERRO DE SCRIPT"
-	elif echo "$out" | grep -q "RESULTADO: TUDO OK"; then
-		status="ok"
-	elif [ "$t" = "check_phase3_cache" ] && echo "$out" | grep -q "pronta"; then
-		status="ok"
-	elif [ "$t" = "check_portal_regression" ] && echo "$out" | grep -q "ok:" && ! echo "$out" | grep -q "FALHOU"; then
-		status="ok"
-	else
-		status="FALHOU"
-	fi
-	if [ "$status" != "ok" ]; then
-		failed=$((failed + 1))
-		echo "$t: $status"
-		echo "$out" | grep -E "FALHOU|SCRIPT ERROR|RESULTADO" | head -8 | sed 's/^/    /'
-	else
-		echo "$t: ok"
-	fi
+for t in "${TESTS[@]}"; do
+    if [[ ! "$t" =~ ^check_[a-z0-9_]+$ ]] || [ ! -f "tests/$t.gd" ]; then
+        echo "Teste inválido: $t"
+        exit 1
+    fi
 done
 
-echo
-if [ $failed -eq 0 ]; then
-	echo "RESULTADO GERAL: TUDO OK"
+# XDG (Linux) e APPDATA (Windows/Git Bash) são vistos somente pelos filhos.
+# Cada teste ganha uma pasta nova; uma falha/timeout não deixa preferências
+# para o próximo teste. Não copiamos nem lemos config.cfg pessoal.
+isolate_data() {
+    local data="$LOG_DIR/$1-data"
+    mkdir -p "$data"
+    if command -v cygpath >/dev/null 2>&1; then
+        data=$(cygpath -m "$data")
+    fi
+    export XDG_DATA_HOME="$data" XDG_CONFIG_HOME="$data/config" XDG_CACHE_HOME="$data/cache"
+    export APPDATA="$data" LOCALAPPDATA="$data/cache" GAME_HUB_TEST_DATA="$data"
+}
+isolate_data import
+
+# Não usar pipeline: precisamos do código do processo, inclusive timeout (124).
+echo "== importando o projeto =="
+timeout --kill-after=5 "${IMPORT_TIMEOUT:-300}" "$GODOT" --headless --path . --import >"$LOG_DIR/import.log" 2>&1
+code=$?
+if [ "$code" -ne 0 ] || grep -qiE 'SCRIPT ERROR|Parse Error|^ERROR:' "$LOG_DIR/import.log"; then
+    echo "RESULTADO GERAL: erro ao importar (saída $code); veja $LOG_DIR/import.log"
+    exit 1
+fi
+
+failed=0
+passed=0
+skipped=0
+for t in "${TESTS[@]}"; do
+    args=()
+    [ "$t" = "check_phase3_cache" ] && args=(-- --mode=cached)
+    isolate_data "$t"
+    log="$LOG_DIR/$t.log"
+    # Herança mantém o script e suas verificações; só prepara os serviços.
+    wrapper="$LOG_DIR/$t.gd"
+    cat >"$wrapper" <<EOF
+extends "res://tests/$t.gd"
+
+func _initialize() -> void:
+    load("res://tests/test_environment.gd").install(root)
+    super._initialize()
+EOF
+    timeout --kill-after=5 "${TEST_TIMEOUT:-240}" "$GODOT" --headless --path . -s "$wrapper" "${args[@]}" >"$log" 2>&1
+    code=$?
+    # Normaliza CRLF do console no Windows antes de conferir o contrato.
+    tr -d '\r' <"$log" >"$log.normalized"
+    result=$(grep '^RESULTADO:' "$log.normalized" | tail -1)
+    status="FALHOU"
+    if [ "$code" -eq 124 ] || [ "$code" -eq 137 ]; then
+        status="TIMEOUT"
+    elif [ "$code" -ne 0 ]; then
+        status="SAÍDA $code"
+    elif grep -qiE 'SCRIPT ERROR|Parse Error|\[FALHOU\]|^RESULTADO:.*FALHA' "$log.normalized"; then
+        status="FALHOU"
+    elif [ "$(grep -c '^RESULTADO:' "$log.normalized")" -eq 1 ]; then
+        if [ "$result" = 'RESULTADO: TUDO OK' ]; then
+            status="ok"
+        elif [[ "$result" == 'RESULTADO: PULADO: '* ]]; then
+            status="pulado"
+        fi
+    fi
+    case "$status" in
+        ok) passed=$((passed + 1));;
+        pulado) skipped=$((skipped + 1));;
+        *) failed=$((failed + 1));;
+    esac
+    echo "$t: $status (saída $code)" | tee -a "$LOG_DIR/resumo.log"
+    if [ "$status" != ok ]; then
+        grep -E 'FALHOU|SCRIPT ERROR|RESULTADO:' "$log.normalized" | head -8
+        echo "    log: $log"
+    fi
+done
+
+echo "Aprovados: $passed; pulados: $skipped; falhas: $failed" | tee -a "$LOG_DIR/resumo.log"
+if [ "$failed" -eq 0 ]; then
+    echo "RESULTADO GERAL: TUDO OK"
 else
-	echo "RESULTADO GERAL: $failed teste(s) com problema"
-	exit 1
+    echo "RESULTADO GERAL: $failed teste(s) com problema"
+    exit 1
 fi

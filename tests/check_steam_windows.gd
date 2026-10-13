@@ -27,7 +27,7 @@ func _run() -> void:
 	await process_frame
 	if OS.get_name() != "Windows":
 		print("pulado: este teste é só do Windows (aqui: %s)" % OS.get_name())
-		print("\nRESULTADO: TUDO OK")
+		print("RESULTADO: PULADO: exige Windows e reg.exe")
 		quit()
 		return
 
