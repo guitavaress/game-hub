@@ -23,6 +23,14 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	var app: Node = root.get_node("AppConfig")
+	var backup := FileAccess.get_file_as_string(CONFIG)
+	var original: Array = [app.get_home_theme(), app.get_home_layout(), app.get_home_wall_color(), app.get_home_neon_color(), app.get_quality()]
+	app.set_home_theme("")
+	app.set_home_layout("")
+	app.set_home_wall_color("")
+	app.set_home_neon_color("")
+	app.set_quality("leve")  # o retrato original não tem SSAO
 	var snapshot: GDScript = load("res://tests/home_snapshot.gd")
 	var portrait: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(PORTRAIT))
 	var lines: Array = portrait["linhas"]
@@ -113,6 +121,14 @@ func _run() -> void:
 	_check("nenhum dos %d scripts cita um id de tema %s" % [scripts.size(), str(offenders)],
 			scripts.size() > 50 and offenders.is_empty())
 
+	app.set_home_theme(original[0])
+	app.set_home_layout(original[1])
+	app.set_home_wall_color(original[2])
+	app.set_home_neon_color(original[3])
+	app.set_quality(original[4])
+	var restored := FileAccess.open(CONFIG, FileAccess.WRITE)
+	restored.store_string(backup)
+	restored.close()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
 
