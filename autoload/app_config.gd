@@ -60,6 +60,8 @@ const VIDEO_SECTION_TEXT: String = """
 quality="alta"
 ; Hora da cidade: "relogio" (segue o relógio do PC), "dia" ou "noite".
 time_of_day="relogio"
+; Céu da cidade: "fotos" (fotos HDRI) ou "sky3d" (sol, lua e nuvens calculados).
+sky="fotos"
 ; Bússola e minimapa na tela: true ou false.
 show_map=true
 """
@@ -138,6 +140,9 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 ## Valores aceitos para as opções de vídeo.
 const QUALITY_LEVELS: Array[String] = ["leve", "media", "alta"]
 const TIME_OF_DAY_MODES: Array[String] = ["relogio", "dia", "noite"]
+## Céu da cidade: "fotos" (três fotos HDRI misturadas) ou "sky3d" (o addon
+## Sky3D: sol, lua, estrelas e nuvens calculados). Spike de 2026-10.
+const SKY_MODES: Array[String] = ["fotos", "sky3d"]
 
 ## Canais de áudio (default_bus_layout.tres) e a opção de volume de cada um.
 const VOLUME_KEYS: Dictionary[String, String] = {
@@ -251,6 +256,17 @@ func get_time_of_day() -> String:
 func set_time_of_day(mode: String) -> void:
 	if mode in TIME_OF_DAY_MODES:
 		_set_option("video", "time_of_day", mode)
+
+
+## Céu da cidade: "fotos" (padrão) ou "sky3d".
+func get_sky() -> String:
+	var mode := str(_config.get_value("video", "sky", "fotos")).strip_edges().to_lower()
+	return mode if mode in SKY_MODES else "fotos"
+
+
+func set_sky(mode: String) -> void:
+	if mode in SKY_MODES:
+		_set_option("video", "sky", mode)
 
 
 ## Bússola e minimapa ligados? (Padrão: sim.)

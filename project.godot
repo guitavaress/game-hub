@@ -31,7 +31,7 @@ DebugMenu="*res://addons/debug_menu/debug_menu.tscn"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/debug_menu/plugin.cfg")
+enabled=PackedStringArray("res://addons/debug_menu/plugin.cfg", "res://addons/sky_3d/plugin.cfg")
 
 [display]
 
