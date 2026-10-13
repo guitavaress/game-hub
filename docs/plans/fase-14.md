@@ -49,7 +49,7 @@ Levantamento (só leitura):
 - **Abrir:** no Linux, `uwsm-app -- <id>.desktop` quando existir (é como o Omarchy abre); senão `gtk-launch <id>`; senão o `Exec` do arquivo, sem os `%f/%u`. No Windows, `OS.shell_open` no `.lnk`.
 - **Achar e acompanhar a janela do app (só Hyprland):** antes de abrir, guardamos os endereços das janelas; a primeira janela **nova** do tiling (de preferência com a classe do `StartupWMClass`) é a do app. O app abre no workspace do hub (ele "toma o lugar" do hub, sem tela cheia e sem monitor de jogo). A sessão acaba quando essa janela some. Isso vive no `WindowHost` (a `HubWindow` repassa), porque é ele quem fala com o `hyprctl`.
 - **Fallback sem acompanhar** (Windows, Linux fora do Hyprland, ou app que só focou uma janela que já existia): o hub some depois de ~10 s, e a sessão acaba quando o hub **volta a ter foco** (o atalho, ou clicar nele). Regra simples: **qualquer `HubWindow.wake()` encerra a sessão de app**, e a `HubWindow` avisa `focus_returned` quando ganha foco escondida.
-- **Atalho global sem processo novo:** a linha do `bindings.lua` usa o `omarchy-launch-or-focus` com o título da janela do hub: se o hub está aberto, foca; se não, abre. Focar o hub escondido o faz ganhar foco → `focus_returned` → sessão de app acaba → hub volta. A 14.1 confere se o Hyprland mostra mesmo uma janela do `special:` ao focá-la; se não, um script curto em `tools/linux/` faz o "trazer".
+- **Atalho global sem processo novo:** a linha do `bindings.lua` usa o `omarchy-launch-or-focus` com o título da janela do hub: se o hub está aberto, foca; se não, abre. Focar o hub escondido o faz ganhar foco → `focus_returned` → sessão de app acaba → hub volta. A 14.1 confere se o Hyprland mostra mesmo uma janela do `special:` ao focá-la; se não, um script curto em `tools/linux/` faz o "trazer". (O spike confirmou: mostra; sem script.)
   Descartado: instância única com mensagem entre processos (abrir uma Godot nova só para avisar leva segundos).
 - **Atalho durante um jogo da Steam:** fica como hoje (o hub mostra a tela "Jogando"); o atalho só encerra sessões de **app**.
 - **Autostart pelo hub, atalho à mão** (decisão do dono): um interruptor numa aba **Sistema** do computador (só no Linux) cria ou apaga `~/.config/autostart/game-hub.desktop`, com `Exec=<godot> --path <projeto>` (de `OS.get_executable_path()` e do `res://` globalizado). A mesma aba tem "Copiar a linha do atalho" (para colar no `bindings.lua`). O hub nunca escreve na config do Hyprland.
@@ -61,7 +61,7 @@ Levantamento (só leitura):
   - Faz: confere com o dono a mudança não salva no `project.godot` (ações `ui_*` que o editor escreveu) e decide se entra ou sai; `git branch -f fase-14 fase-linux` (a `fase-14` não tem commits próprios: confirmar com `git log fase-linux..fase-14` vazio); muda para a `fase-14`; copia este plano para `docs/plans/fase-14.md`.
   - Teste: `bash tests/run_tests.sh` → TUDO OK.
   - Commit: `Fase 14.0: plano`
-- [ ] **14.1 Spike: janelas de app no Hyprland** (Opus · high) — *precisa do dono no notebook*
+- [x] **14.1 Spike: janelas de app no Hyprland** (Opus · high) — *precisa do dono no notebook*
   - Faz: um script descartável (fora do repositório, na pasta temporária) que, a partir do hub rodando com `godot --path`, confirma: (a) a classe e o título da janela do hub; (b) `uwsm-app -- foot.desktop` e `uwsm-app -- brave-origin.desktop` abertos pela Godot geram uma janela nova achável pela lista antes/depois; (c) `omarchy-launch-or-focus "Game Hub" ...` com o hub em `special:gamehub` dá foco a ele (e a Godot recebe `NOTIFICATION_APPLICATION_FOCUS_IN`).
   - Arquivos: só o plano ("Decisões tomadas durante a fase", com os resultados e o comando do atalho que funcionou).
   - Commit: `Fase 14.1: resultado do spike das janelas de app`
@@ -141,6 +141,14 @@ Levantamento (só leitura):
 
 ## Decisões tomadas durante a fase
 - 2026-10-13: apps numa estante da casa; autostart pelo hub e atalho à mão; painel só mostra (decisões do dono, no planejamento).
+- 2026-10-13: resultado do spike (14.1), no notebook (Hyprland 0.56):
+  - **Janela do hub:** classe `Game Hub` (o `config/name` do projeto) e título `Game Hub (DEBUG)` rodando com `godot --path` (sem o "(DEBUG)" num executável exportado). O atalho procura pela classe.
+  - **Abrir pela Godot:** `OS.create_process("uwsm-app", ["--", "<id>.desktop"])` funciona. O foot apareceu em ~0,3 s e o `uwsm-app` virou o próprio foot (o pid devolvido é o do app; ele fica "filho" do hub). O Brave já aberto abriu uma janela **nova** em ~1,1 s, com o pid do Brave antigo ("Opening in existing browser session"): achar pela lista antes/depois funciona, pelo pid não. As duas nasceram no workspace do hub, no tiling (não flutuantes).
+  - **O app herda a saída do hub** (stdout): rodando o hub num terminal, o log do app aparece junto. Sem efeito para o usuário; na 14.6, avaliar `setsid` se incomodar.
+  - **Atalho (plano A vale, sem script):** com uma janela em `special:gamehub`, `omarchy-launch-or-focus "<padrão>" "<comando>"` abre o `special` por cima da tela, a janela ganha o foco e a Godot recebe `focus_entered` (o `NOTIFICATION_APPLICATION_FOCUS_IN`). Movê-la de volta para o workspace normal (o que o `show_hub` já faz) fecha o `special` sozinho.
+  - **Tecla:** `SUPER + G` já é do Omarchy (agrupar janelas). `SUPER + H` está livre. A linha a colar no `~/.config/hypr/bindings.lua` fica:
+    `o.bind("SUPER + H", "Game Hub", "omarchy-launch-or-focus 'Game Hub' '<godot> --path <projeto>'")`
+    (a 14.10 monta os caminhos de verdade com `OS.get_executable_path()` e o `res://` globalizado). Cuidado conhecido: o padrão também casa com um título de janela que contenha "Game Hub" (ex.: uma aba do navegador).
 
 ## Checklist de teste manual (fim da fase)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
