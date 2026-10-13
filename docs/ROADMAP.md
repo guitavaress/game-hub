@@ -210,7 +210,7 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 
 **Assets:** pinheiro e rocha CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
 
-**Terreno a decidir no plano:** o addon **Terrain3D** (terreno com LOD, mistura de neve e pedra, instanciador de pinheiros e rochas) ou uma malha simples feita por código, com um spike lado a lado. O Terrain3D ainda precisa ser testado na Godot 4.7.2 ([avaliação](design/addons-2026-10-13.md)).
+**Terreno a decidir no plano:** o addon **Terrain3D** (terreno com LOD, mistura de neve e pedra, instanciador de pinheiros e rochas) ou uma malha simples feita por código, com um spike lado a lado. O spike de 2026-10-13 mostrou que ele carrega na Godot 4.7.2 e gera um morro por código, mas a primeira importação de um projeto zerado derruba a Godot (veja a [avaliação](design/addons-2026-10-13.md)).
 
 **Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela, e a medida no notebook (Leve) não piora mais de ~3 FPS.
 
