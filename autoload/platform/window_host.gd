@@ -9,6 +9,11 @@ extends RefCounted
 ## No Hyprland não existe minimizar, e quem decide posição e tamanho é ele.
 ## Lá o WindowHostHyprland usa workspaces (veja window_host_hyprland.gd).
 ##
+## Janelas de APP (Fase 14.5): para saber quando um app aberto pelo hub
+## fechou, alguns sistemas deixam achar e acompanhar a janela dele
+## (can_track_windows). Esta versão base NÃO sabe: o AppLauncher cai no
+## "sem acompanhar" (a sessão acaba quando o hub volta a ter foco).
+##
 ## Ninguém escolhe a versão na mão: a HubWindow chama WindowHost.create().
 
 
@@ -54,3 +59,29 @@ func hide_hub() -> void:
 ## HubWindow (posição guardada, trazer para a frente).
 func show_hub() -> void:
 	pass
+
+
+# --- Janelas de app (Fase 14.5) -----------------------------------------------
+# Estas quatro podem rodar numa thread (não mexem na árvore de nós).
+
+## true = sabe achar a janela de um app e dizer quando ela fechou.
+func can_track_windows() -> bool:
+	return false
+
+
+## Os endereços de TODAS as janelas abertas agora (a "foto" de antes de abrir
+## um app). Aqui: nenhuma.
+func list_window_addresses() -> PackedStringArray:
+	return PackedStringArray()
+
+
+## A janela do app que acabou de abrir: a primeira janela NOVA (que não estava
+## em "before") do tiling, de preferência com a classe wm_class.
+## "" = ainda não apareceu (ou este sistema não sabe).
+func find_new_window(_before: PackedStringArray, _wm_class: String) -> String:
+	return ""
+
+
+## A janela ainda está aberta? Só vale com can_track_windows() = true.
+func window_exists(_address: String) -> bool:
+	return false

@@ -83,11 +83,12 @@ Levantamento (só leitura):
   - Arquivos: `autoload/platform/desktop_apps_windows.gd` (novo), `autoload/platform/desktop_apps.gd` (escolhe o backend), `tests/check_desktop_apps_windows.gd` (novo; com uma pasta de exemplo; no Windows, também a pasta de verdade, sem exigir nenhum app), `.github/workflows/testes.yml` (mais um teste).
   - Manual: nenhum agora (na trilha do desktop, ver a estante no Windows).
   - Commit: `Fase 14.4: lista de apps do Windows`
-- [ ] **14.5 Janelas de app no WindowHost** (Opus · high)
+- [x] **14.5 Janelas de app no WindowHost** (Opus · high)
   - Faz: no `WindowHost`, `can_track_windows()`, `list_window_addresses()`, `find_new_window(antes, classe)` e `window_exists(endereço)` (a base responde "não sei acompanhar"); no Hyprland, pelo `hyprctl clients -j`, ignorando flutuantes, a do hub e as do `special:`. Na `HubWindow`: repassar isso e o sinal `focus_returned` (foco de volta com o hub escondido, depois de ~1 s de folga).
   - Arquivos: `autoload/platform/window_host.gd`, `autoload/platform/window_host_hyprland.gd`, `autoload/hub_window.gd`.
   - Teste: `tests/check_window_host.gd` ganha casos com o `hyprctl` falso (janela nova achada, classe preferida, flutuante ignorada, janela some).
   - Commit: `Fase 14.5: achar e acompanhar a janela de um app`
+  - Feito: entre várias janelas novas, a classe (`class` ou `initialClass`, sem ligar para maiúsculas) vence; empatou, vence o `focusHistoryID` menor (a que ganhou o foco por último). O `window_exists` diz "existe" se o `hyprctl` não responder (melhor não encerrar a sessão por engano). O `focus_returned` só vale depois de `minimize_now` (não na tela "Abrindo" visível). As quatro funções podem rodar numa thread. Conferido contra o Hyprland de verdade (só leitura).
 - [ ] **14.6 Abrir um app e voltar** (Sonnet · medium)
   - Faz: o autoload `AppLauncher` (IDLE → LAUNCHING → RUNNING; consulta numa thread a cada 1 s; acha a janela em até 10 s, senão segue "sem acompanhar"; acaba quando a janela some, no `focus_returned`, em qualquer `woke_up` ou com Esc enquanto abre); `DesktopApps.launch(app)`; o `GameLauncher` e o `AppLauncher` recusam abrir se o outro estiver ocupado; a `GameScreen` mostra `show_app_opening`; o HUD mostra o aviso de erro ("Não consegui abrir X").
   - Arquivos: `autoload/app_launcher.gd` (novo), `autoload/platform/desktop_apps_linux.gd` (abrir), `autoload/game_launcher.gd` (uma linha no `_check_can_launch`), `ui/screen_fade.gd`, `ui/game_screen.gd`, `ui/hud.gd`, `project.godot`.

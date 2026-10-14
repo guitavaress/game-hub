@@ -33,6 +33,13 @@ extends WindowHost
 ## entra num comando passa pelo _clean (só letras, números e - _ . :).
 ##
 ## Achamos a NOSSA janela na lista do "hyprctl clients -j" pelo número do processo.
+##
+## Janelas de app (Fase 14.5): antes de abrir o app, guardamos os endereços de
+## todas as janelas; a janela do app é a primeira NOVA do tiling (não
+## flutuante, não a do hub, fora dos workspaces "special:"). Não dá para achar
+## pelo processo: o Brave abre uma janela nova no processo que já existia
+## (spike da 14.1). Se o app diz a classe da janela (StartupWMClass), ela vence;
+## entre várias, a que ganhou o foco por último.
 
 const SPECIAL_WORKSPACE: String = "special:gamehub"
 
@@ -184,6 +191,56 @@ func show_hub() -> void:
 	_hidden = false
 
 
+# --- Janelas de app (Fase 14.5) -----------------------------------------------
+
+func can_track_windows() -> bool:
+	return true
+
+
+func list_window_addresses() -> PackedStringArray:
+	var result := PackedStringArray()
+	for client: Variant in _query("clients"):
+		if client is Dictionary:
+			result.append(str(client.get("address", "")))
+	return result
+
+
+func find_new_window(before: PackedStringArray, wm_class: String) -> String:
+	var wanted := wm_class.strip_edges().to_lower()
+	var best: Dictionary = {}
+	var best_matches := false
+	for client: Variant in _query("clients"):
+		if not client is Dictionary:
+			continue
+		var address := str(client.get("address", ""))
+		if address.is_empty() or address in before:
+			continue
+		if client.get("floating", false) or int(client.get("pid", -1)) == my_pid:
+			continue  # aviso/launcher flutuante, ou o próprio hub
+		if str(client.get("workspace", {}).get("name", "")).begins_with("special:"):
+			continue  # escondida (ex.: um scratchpad)
+		var matches := not wanted.is_empty() and (
+				str(client.get("class", "")).to_lower() == wanted
+				or str(client.get("initialClass", "")).to_lower() == wanted)
+		# A classe certa vence; empatou, vence quem ganhou o foco por último
+		# (focusHistoryID menor).
+		if best.is_empty() or (matches and not best_matches) or (matches == best_matches
+				and int(client.get("focusHistoryID", 999)) < int(best.get("focusHistoryID", 999))):
+			best = client
+			best_matches = matches
+	return str(best.get("address", ""))
+
+
+func window_exists(address: String) -> bool:
+	var clients := _query("clients")
+	if clients.is_empty():
+		return true  # o hyprctl não respondeu (a do hub sempre existe): não dá para dizer que fechou
+	for client: Variant in clients:
+		if client is Dictionary and str(client.get("address", "")) == address:
+			return true
+	return false
+
+
 ## Manda um comando ao Hyprland. Devolve true se ele respondeu "ok".
 func _dispatch(lua: String, legacy: PackedStringArray) -> bool:
 	if not _legacy:
@@ -200,7 +257,10 @@ func _dispatch(lua: String, legacy: PackedStringArray) -> bool:
 
 ## Lista do Hyprland em JSON ("clients", "monitors", "workspaces"); [] se falhar.
 func _query(kind: String) -> Array:
-	var parsed: Variant = JSON.parse_string(run_hyprctl.call(PackedStringArray([kind, "-j"])))
+	var reply: String = run_hyprctl.call(PackedStringArray([kind, "-j"]))
+	if not reply.begins_with("["):
+		return []  # sem resposta ou erro (sem isso, o JSON reclama no log a cada consulta)
+	var parsed: Variant = JSON.parse_string(reply)
 	return parsed if parsed is Array else []
 
 
