@@ -99,11 +99,12 @@ Levantamento (só leitura):
   - Teste: `tests/check_app_shelf.gd` (com a pasta de exemplo: caixas, páginas, filtro, abrir chama o `AppLauncher` com a origem certa, volta na frente); `check_home_custom` continua passando com o móvel novo.
   - Manual: captura em casa, de frente para a janela: a estante cabe entre a parede e o janelão.
   - Commit: `Fase 14.7: estante de apps na casa`
-- [ ] **14.8 Estado do sistema** (Sonnet · medium) — *trilha paralela, janela 1*
+- [x] **14.8 Estado do sistema** (Sonnet · medium) — *trilha paralela, janela 1*
   - Faz: `SystemInfo` (estático, em `autoload/platform/`) com backend Linux: bateria (`/sys/class/power_supply/BAT*`: %, carregando, tem bateria?), rede (`nmcli`: tipo, conectado, nome) e volume (`wpctl`: %, mudo); a base responde "não sei". O autoload `SystemStatus` pergunta a cada 5 s numa thread, para enquanto o hub dorme e avisa `changed`.
   - Arquivos: `autoload/platform/system_info.gd` + `system_info_backend.gd` + `system_info_linux.gd` (novos), `autoload/system_status.gd` (novo), `project.godot`, `tests/check_platform.gd` (`"/sys/class`, `nmcli`, `wpctl`).
   - Teste: `tests/check_system_status.gd` com uma pasta `/sys` de exemplo e respostas falsas do `nmcli` e do `wpctl` (com bateria, sem bateria, sem rede, mudo).
   - Commit: `Fase 14.8: estado do sistema (bateria, rede, volume)`
+  - Feito: commit `6b30755` na trilha paralela, juntado na principal (worktree `estado-sistema` mantido para as próximas paralelas).
 - [ ] **14.9 O painel do sistema** (Sonnet · medium) — *trilha paralela, janela 3*
   - Faz: um painel fixo na parede norte, acima do computador: hora grande (`HH:MM`, dia da semana e data), bateria (ícone e %, "carregando"), Wi-Fi (nome ou "sem rede") e volume (% ou "mudo"); some o que o sistema não sabe (ex.: desktop sem bateria). Label3D e malhas simples, na camada do interior, com a cor do néon.
   - Arquivos: `worlds/home/system_panel.gd` (novo), `worlds/home/home.gd` (cria o painel junto do computador).
