@@ -168,6 +168,8 @@ func _apply_choices() -> void:
 	for node in _shell_nodes:
 		_put_on_interior_layer(node)
 	_place_furniture()
+	if _system_panel != null:
+		_system_panel.set_accent(_neon_color())
 	set_night(_night)
 
 
@@ -375,6 +377,7 @@ const COMPUTER_ANCHOR: String = "norte_direita"
 
 ## Os móveis que já existem (id → nó), para a disposição só movê-los.
 var _furniture: Dictionary[String, Node3D] = {}
+var _system_panel: SystemPanel
 
 
 ## Os móveis: cada um é um script em worlds/home/. Os que mudam de lugar
@@ -391,7 +394,18 @@ func _build_furniture() -> void:
 	desk.name = "ComputerDesk"
 	add_child(desk)
 	_place_on_anchor(desk, COMPUTER_ANCHOR)
+	# O painel do sistema (Fase 14.9) é fixo, na parede norte, acima do computador.
+	_system_panel = SystemPanel.new()
+	_system_panel.name = "SystemPanel"
+	_system_panel.position = Vector3(get_anchor_transform(COMPUTER_ANCHOR).origin.x, 0.0, -ROOM_SIZE.z / 2.0)
+	add_child(_system_panel)
+	_system_panel.set_accent(_neon_color())
 	_place_furniture()
+
+
+## O painel do sistema (hora, bateria, Wi-Fi, volume), fixo na parede norte.
+func get_system_panel() -> SystemPanel:
+	return _system_panel
 
 
 ## Põe cada móvel no lugar que a disposição manda.
