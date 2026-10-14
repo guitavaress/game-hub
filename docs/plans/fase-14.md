@@ -78,11 +78,12 @@ Levantamento (só leitura):
   - Teste: `tests/check_desktop_apps.gd` ganha ícones de exemplo (um PNG, um SVG, um caminho absoluto, um que não existe).
   - Commit: `Fase 14.3: ícones dos apps`
   - Feito: o tema vem do `gtk-icon-theme-name` (GTK 3/4), depois hicolor, Adwaita e Yaru; o `AppLibrary` ganhou `get_icon`/`request_icon`/`has_icon_result`. **Armadilha:** uma lambda que usa o `self` e roda em `WorkerThreadPool` corrompe a memória ao fechar a Godot; use método com `.bind()` (como o `_load_icon_task`).
-- [ ] **14.4 Lista de apps no Windows** (Sonnet · medium) — *trilha paralela, janela 2*
+- [x] **14.4 Lista de apps no Windows** (Sonnet · medium) — *trilha paralela, janela 2*
   - Faz: o backend do Windows lê os `.lnk` de `%ProgramData%` e `%AppData%\Microsoft\Windows\Start Menu\Programs` (com subpastas), tira desinstaladores e atalhos de jogos da Steam (`.url` com `steam://`); id = caminho relativo; abrir = `OS.shell_open`. Sem ícone.
   - Arquivos: `autoload/platform/desktop_apps_windows.gd` (novo), `autoload/platform/desktop_apps.gd` (escolhe o backend), `tests/check_desktop_apps_windows.gd` (novo; com uma pasta de exemplo; no Windows, também a pasta de verdade, sem exigir nenhum app), `.github/workflows/testes.yml` (mais um teste).
   - Manual: nenhum agora (na trilha do desktop, ver a estante no Windows).
   - Commit: `Fase 14.4: lista de apps do Windows`
+  - Feito: commit `f4c1cec` na trilha paralela, juntado na principal.
 - [x] **14.5 Janelas de app no WindowHost** (Opus · high)
   - Faz: no `WindowHost`, `can_track_windows()`, `list_window_addresses()`, `find_new_window(antes, classe)` e `window_exists(endereço)` (a base responde "não sei acompanhar"); no Hyprland, pelo `hyprctl clients -j`, ignorando flutuantes, a do hub e as do `special:`. Na `HubWindow`: repassar isso e o sinal `focus_returned` (foco de volta com o hub escondido, depois de ~1 s de folga).
   - Arquivos: `autoload/platform/window_host.gd`, `autoload/platform/window_host_hyprland.gd`, `autoload/hub_window.gd`.
