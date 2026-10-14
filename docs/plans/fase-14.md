@@ -109,17 +109,19 @@ Levantamento (só leitura):
   - Teste: `tests/check_system_status.gd` com uma pasta `/sys` de exemplo e respostas falsas do `nmcli` e do `wpctl` (com bateria, sem bateria, sem rede, mudo).
   - Commit: `Fase 14.8: estado do sistema (bateria, rede, volume)`
   - Feito: commit `6b30755` na trilha paralela, juntado na principal (worktree `estado-sistema` mantido para as próximas paralelas).
-- [ ] **14.9 O painel do sistema** (Sonnet · medium) — *trilha paralela, janela 3*
+- [x] **14.9 O painel do sistema** (Sonnet · medium) — *trilha paralela, janela 3*
   - Faz: um painel fixo na parede norte, acima do computador: hora grande (`HH:MM`, dia da semana e data), bateria (ícone e %, "carregando"), Wi-Fi (nome ou "sem rede") e volume (% ou "mudo"); some o que o sistema não sabe (ex.: desktop sem bateria). Label3D e malhas simples, na camada do interior, com a cor do néon.
   - Arquivos: `worlds/home/system_panel.gd` (novo), `worlds/home/home.gd` (cria o painel junto do computador).
   - Teste: `tests/check_system_panel.gd` (com um `SystemStatus` falso: textos certos, linha escondida sem bateria, hora muda).
   - Manual: captura em casa olhando para o computador.
   - Commit: `Fase 14.9: painel do sistema na casa`
-- [ ] **14.10 Abrir com o sistema** (Sonnet · medium) — *trilha paralela, janela 3*
+  - Feito: commit `61063e7` na trilha paralela, juntado na principal.
+- [x] **14.10 Abrir com o sistema** (Sonnet · medium) — *trilha paralela, janela 3*
   - Faz: `Autostart` em `autoload/platform/` (Linux: criar, apagar e conferir `~/.config/autostart/game-hub.desktop`; os outros: "não dá"); uma aba **Sistema** no computador (só onde dá), com o interruptor "Abrir o hub ao entrar no Omarchy" e o botão "Copiar a linha do atalho" (a linha do `o.bind` com o comando da 14.1, para colar no `bindings.lua`).
   - Arquivos: `autoload/platform/autostart.gd` (novo), `worlds/home/system_settings_view.gd` (novo), `worlds/home/computer_desk.gd` (`add_page`), `tests/check_platform.gd` (`/autostart/`).
   - Teste: `tests/check_autostart.gd` com uma pasta de exemplo no lugar de `~/.config/autostart` (cria, confere o `Exec`, apaga).
   - Commit: `Fase 14.10: abrir o hub ao entrar no Omarchy`
+  - Feito: commit `a250b54` na trilha paralela, juntado na principal.
 - [ ] **14.11 Chamar o hub pelo atalho** (Opus · high)
   - Faz: liga o resultado da 14.1: com um app aberto, o atalho traz o hub (encerra a sessão de app, o app fica aberto); com o hub parado em outro workspace, o atalho o foca; durante um jogo, nada muda. Se a 14.1 pediu, o script `tools/linux/game-hub-chamar` (e a linha copiada da 14.10 passa a usá-lo).
   - Arquivos: `autoload/hub_window.gd`, `autoload/app_launcher.gd` e, se preciso, `autoload/platform/window_host_hyprland.gd` e `tools/linux/`.
