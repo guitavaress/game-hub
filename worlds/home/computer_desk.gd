@@ -29,6 +29,7 @@ const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
 var _screen: Screen3D
 var _settings: SettingsView
 var _home_view: HomeSettingsView
+var _system_view: SystemSettingsView
 
 
 func _ready() -> void:
@@ -48,6 +49,11 @@ func get_settings() -> SettingsView:
 ## A aba "Casa" (tema, móveis e cores).
 func get_home_view() -> HomeSettingsView:
 	return _home_view
+
+
+## A aba "Sistema" (null onde o sistema não sabe abrir o hub ao entrar).
+func get_system_view() -> SystemSettingsView:
+	return _system_view
 
 
 # --- Montagem -------------------------------------------------------------------
@@ -131,6 +137,13 @@ func _build_screen_content() -> Control:
 	# A aba "Casa" (Fase 13.8): tema, móveis e cores. Só o computador a tem.
 	_home_view = HomeSettingsView.new()
 	_settings.add_page("Casa", _home_view)
+	# A aba "Sistema" (Fase 14.10): abrir o hub ao entrar e o atalho. Só onde dá.
+	_system_view = SystemSettingsView.new()
+	if _system_view.autostart.supported():
+		_settings.add_page("Sistema", _system_view)
+	else:
+		_system_view.free()
+		_system_view = null
 	left.add_child(_settings)
 
 	var right := VBoxContainer.new()

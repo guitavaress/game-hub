@@ -51,7 +51,8 @@ func _run() -> void:
 	var view = desk.get_home_view()
 
 	print("== a aba Casa ==")
-	_check("o computador tem 4 abas, a última é Casa", settings._tab_buttons.size() == 4 and settings._tab_buttons[3].text == "Casa")
+	# A 5ª aba, "Sistema", só existe onde o hub sabe abrir ao entrar (Linux).
+	_check("o computador tem a aba Casa depois das 3 de sempre", settings._tab_buttons.size() >= 4 and settings._tab_buttons[3].text == "Casa")
 	_check("a aba Casa tem tema, móveis, paredes e néon",
 			view._theme_buttons.size() == catalog.homes.size() and view._theme_buttons.has("teste")
 			and view._layout_buttons.size() == 3
