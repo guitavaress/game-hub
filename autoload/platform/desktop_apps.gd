@@ -5,7 +5,8 @@ extends RefCounted
 ## Igual ao SteamClient: não é autoload, as funções são "static", e o backend
 ## do sistema é escolhido uma vez só, quando o script carrega.
 ##   Linux: DesktopAppsLinux (arquivos .desktop);
-##   outros: DesktopAppsBackend (lista vazia por enquanto).
+##   Windows: DesktopAppsWindows (atalhos do Menu Iniciar);
+##   outros: DesktopAppsBackend (lista vazia).
 ##
 ## Arquivos .desktop, caminhos do XDG e comandos de abrir app ficam só em
 ## autoload/platform/ (o tests/check_platform.gd confere).
@@ -31,4 +32,6 @@ static func find_icon(icon_name: String) -> String:
 static func _create_backend() -> DesktopAppsBackend:
 	if OS.get_name() == "Linux":
 		return DesktopAppsLinux.new()
+	if OS.get_name() == "Windows":
+		return DesktopAppsWindows.new()
 	return DesktopAppsBackend.new()
