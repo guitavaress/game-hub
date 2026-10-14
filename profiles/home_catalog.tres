@@ -11,6 +11,7 @@ script = ExtResource("3_a6vov")
 id = "padrao"
 display_name = "Padrão"
 placements = Dictionary[String, String]({
+"apps": "norte_esquerda",
 "espelho": "sul_direita",
 "estante": "oeste",
 "estatisticas": "sul_esquerda",
@@ -22,6 +23,7 @@ script = ExtResource("3_a6vov")
 id = "espelhada"
 display_name = "Espelhada"
 placements = Dictionary[String, String]({
+"apps": "norte_esquerda",
 "espelho": "sul_esquerda",
 "estante": "leste",
 "estatisticas": "sul_direita",
@@ -34,6 +36,7 @@ script = ExtResource("3_a6vov")
 id = "estante_na_entrada"
 display_name = "Estante na entrada"
 placements = Dictionary[String, String]({
+"apps": "norte_esquerda",
 "espelho": "sul_direita",
 "estante": "sul_esquerda",
 "estatisticas": "oeste",

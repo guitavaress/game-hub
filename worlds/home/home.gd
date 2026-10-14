@@ -364,6 +364,7 @@ const ANCHORS: Dictionary[String, Array] = {
 ## e que ainda não está aqui é ignorado.
 const MOVABLE: Dictionary[String, Array] = {
 	"estante": [preload("res://worlds/home/library_shelf.gd"), "LibraryShelf"],
+	"apps": [preload("res://worlds/home/app_shelf.gd"), "AppShelf"],
 	"mural": [preload("res://worlds/home/friends_wall.gd"), "FriendsWall"],
 	"estatisticas": [preload("res://worlds/home/stats_wall.gd"), "StatsWall"],
 	"espelho": [preload("res://worlds/home/home_mirror.gd"), "HomeMirror"],
