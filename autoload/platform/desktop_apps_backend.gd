@@ -3,7 +3,7 @@ extends RefCounted
 ## O "contrato" de cada sistema para listar os programas instalados.
 ##
 ##   DesktopAppsLinux: arquivos .desktop (padrão XDG).
-##   (Windows: atalhos do Menu Iniciar, na Fase 14.4.)
+##   DesktopAppsWindows: atalhos (.lnk) do Menu Iniciar.
 ##
 ## Esta versão base é a de um sistema sem suporte: a lista é vazia.
 ## Ninguém usa os backends direto; todo mundo passa pelo DesktopApps.
