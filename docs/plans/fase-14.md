@@ -1,6 +1,6 @@
 # Fase 14: O hub no Omarchy
 
-**Status:** concluída no Linux (2026-10-14); falta a conferência do dono (checklist abaixo) e, no desktop, o Windows e a medida na Alta
+**Status:** **reaberta** (2026-10-14). A parte 1 (14.0–14.12, o launcher) está feita no Linux. A [parte 2](#parte-2-janelas-no-mundo) põe as janelas dos apps dentro do mundo, como o Waylandcraft.
 **Branch:** `fase-14`, criada a partir da `fase-linux` (que ainda não foi para a `main`; quando for, `git rebase --onto main fase-linux fase-14`). Checkout principal (`~/git/game-hub`).
 
 ### Trabalho com o Nimbalyst
@@ -12,8 +12,9 @@
   | 1 | 14.1 → 14.2 → 14.3 | 14.8 (estado do sistema) | a 14.8 só cria arquivos em `autoload/platform/` e `autoload/`, e soma linhas no `check_platform.gd` e no `project.godot` |
   | 2 (depois da 14.3 e da 14.8 juntas) | 14.5 → 14.6 → 14.7 | 14.4 (apps no Windows) | a 14.4 cria só o backend do Windows, um teste e uma linha no `testes.yml` |
   | 3 (depois da 14.7 e da 14.4 juntas) | 14.11 | 14.9 → 14.10 (painel e autostart) | a 14.9/14.10 mexem no `home.gd` (só o painel fixo) e no `computer_desk.gd`; a 14.11 mexe no `hub_window.gd` e no `app_launcher.gd` |
+  | 4 (parte 2, depois da 14.15) | 14.16 → 14.17 → 14.18 (Rust) | 14.19 → 14.20 (telão e telões na casa) | a principal só mexe em `native/`; a paralela cria `components/app_window_3d/` e `worlds/home/app_screens.gd` e soma uma linha no `home.gd`, usando uma fonte de janela falsa |
 
-  A 14.0 e a 14.12 ficam só na principal.
+  A 14.0, a 14.12, a 14.13, a 14.14 e a 14.23 ficam só na principal. As duas trilhas da janela 4 se juntam antes da 14.21.
 - **Passo a passo da paralela:** igual ao da [Fase 13](fase-13.md#trabalho-com-o-nimbalyst): New Worktree com o modelo e o esforço da subetapa; primeira mensagem "execute a subetapa 14.N do plano `docs/plans/fase-14.md`, sem marcar o plano; faça o commit com o e-mail noreply e me diga o hash"; para juntar, na principal e entre duas subetapas: `git merge --no-ff worktree/<nome> -m "Fase 14.N: junta a trilha paralela"`, `bash tests/run_tests.sh` e marcar `[x]` com o hash. Uma bateria por vez.
 
 ## Contexto
@@ -172,7 +173,9 @@ Levantamento (só leitura):
 
   Em casa o FPS fica no teto de 60 (VSync) e o p99 não mudou: **a meta (não piorar mais de ~2 FPS) foi cumprida**. A estante de apps e o painel somam ~28 desenhos na casa. Memória de textura +47 MB: tirar a estante de apps do `Home.MOVABLE` baixa só ~5 MB (os 15 ícones da página); o resto não é desta fase (vem dos commits entre as fases 13 e 14: Debug Menu e Sky3D, que já estavam na branch) e **não foi isolado**. Fica para a trilha do desktop, junto com a medida na Alta.
 
-## Checklist de teste manual (fim da fase)
+- 2026-10-14: **fase reaberta** (decisão do dono). A experiência que o dono queria é a do **Waylandcraft** (janelas de programas usadas dentro do mundo), e o planejamento da parte 1 entendeu "parte do desktop" como launcher. Escolhas: usar (não só ver), só Linux, Rust + Smithay com godot-rust (exceção MPL-2.0), perfil próprio do Brave, três telões fixos na casa. O launcher da parte 1 vira o plano B. Veja a [parte 2](#parte-2-janelas-no-mundo).
+
+## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
 3. Segure E no **Brave**: abre uma janela nova (mesmo com o Brave já aberto). Aperte o atalho do `bindings.lua`: o hub volta e o Brave continua aberto.
@@ -180,3 +183,156 @@ Levantamento (só leitura):
 5. No computador, aba **Sistema**: ligue "Abrir o hub ao entrar no Omarchy". Saia da sessão e entre de novo: o hub abre sozinho. Desligue: o arquivo `~/.config/autostart/game-hub.desktop` some.
 6. Abra um jogo pela estante de jogos: tudo funciona como antes (abrir, jogar, fechar, voltar).
 7. `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK`.
+
+---
+
+# Parte 2: janelas no mundo
+
+## Contexto da parte 2
+A referência do dono para esta fase é o **Waylandcraft**, um mod do Minecraft que é um compositor Wayland completo (Rust + [Smithay](https://github.com/Smithay/smithay), GPL-3.0). Nele, a janela de cada programa vira um objeto **dentro do mundo**: você anda até ela, digita e clica nela, sem sair do jogo.
+
+Essa referência não foi escrita no planejamento da parte 1, e "o hub como parte do desktop" virou um **launcher** (o app abre por cima, o hub some e volta). A parte 2 corrige o rumo.
+
+**Decisões do dono (2026-10-14):**
+- **usar** o app dentro do mundo (digitar e clicar), e não só ver;
+- **só no Linux** (no Windows fica o launcher da parte 1);
+- **refazer a Fase 14**: a experiência principal passa a ser a das janelas no mundo;
+- **Rust + Smithay**, com o godot-rust (MPL-2.0, abrindo uma exceção na regra de licenças);
+- o Brave (e apps parecidos) abre com um **perfil próprio do hub**;
+- **telões fixos na casa** (pendurar onde quiser fica para depois).
+
+**O que fica da parte 1 e o que muda:**
+- **Fica como está:** a lista de apps e os ícones (14.2–14.4), a estante de apps (14.7, que passa a abrir no telão), o painel (14.8, 14.9), o autostart (14.10) e o atalho `SUPER + H` (14.11).
+- **Vira o plano B:** abrir **fora** (14.5, 14.6). Vale no Windows, quando a extensão não está compilada, e para apps que só falam X11 (eles nascem fora e caem no fluxo antigo sozinhos, veja "Abrir").
+- Nada é revertido: os commits da parte 1 continuam na `fase-14`.
+
+## Pronto quando (parte 2)
+- Na estante de apps, segurar E no **foot** faz o terminal aparecer num telão da casa. Com E no telão, a câmera se aproxima, e dá para digitar `ls` e ver a saída, **com acentos do ABNT2** (`ç`, `á`, `~`).
+- O **Brave** (perfil do hub) abre num telão: clicar em links, rolar, abrir o menu (popup) e assistir a um vídeo funcionam. O hub nunca some.
+- Três apps abertos ocupam os três telões. Um quarto app mostra o aviso "Os telões estão ocupados: feche um app". Fechar a janela pelo próprio app (`exit`, Ctrl+W) libera o telão.
+- Segurar Esc (~0,6 s) sai do telão. Um Esc curto vai para o app (o `vim` funciona).
+- Um app só X11 abre fora, pelo fluxo da parte 1 (o hub some e volta), e o atalho continua funcionando.
+- **Sem a extensão compilada** (ou no Windows), o hub abre e tudo funciona como na parte 1. A bateria passa com e sem o `.so`.
+- **Plataforma isolada:** só `autoload/platform/` toca no `HubCompositor` (o `check_platform` confere).
+- **Desempenho:** no notebook (Leve), em casa com o Brave tocando um vídeo num telão, cai no máximo ~5 FPS em relação à casa sem apps. Com apps parados, a queda é quase zero (a imagem só sobe quando muda). A medida no desktop fica para a trilha do desktop.
+
+## Decisões de arquitetura (parte 2)
+- **O hub é um compositor Wayland "aninhado".** Ele abre um socket próprio (`gamehub-0`), e os apps abertos pelo hub recebem `WAYLAND_DISPLAY=gamehub-0`. Para o Hyprland, o hub continua sendo uma janela comum; nada muda na config do Omarchy. Esse é o desenho do Waylandcraft.
+  Descartado: capturar janelas do Hyprland (screencopy + PipeWire) e injetar teclado virtual. O teclado iria para a janela focada do Hyprland, e não para o telão.
+- **Código nativo em Rust:** a pasta `native/compositor/` tem um crate com o **godot-rust (gdext)**, que liga o Rust à Godot, e o **Smithay**, a biblioteca de compositor. O resultado é uma GDExtension Linux x86_64 que dá uma classe `HubCompositor`. A versão de cada crate fica fixada no `Cargo.lock`, e a do Smithay numa versão ou rev exata. O bind com a Godot 4.7.2 sai do `api-custom` (gerado a partir do binário local); o spike confirma.
+  **O Waylandcraft é GPL-3.0: só lemos as ideias, nenhuma linha de código é copiada.** Os crates de terceiros passam por uma checagem de licença (sem GPL) na 14.15.
+- **O `.so` não vai para o repositório.** `tools/linux/compilar_compositor.sh` compila e copia para `native/bin/` (no `.gitignore`). O `.gdextension` só declara `linux.x86_64`. Sem o `.so`, a Godot só avisa uma vez, e o hub segue no plano B.
+- **Ponto único:** `autoload/platform/compositor.gd` (estático, como o `SteamClient`) é o **único** lugar que faz `ClassDB.class_exists("HubCompositor")` e `ClassDB.instantiate(...)`, sem citar a classe pelo nome no código. Assim o GDScript compila no Windows. O mesmo arquivo tem a tabela "tecla da Godot → código evdev" e lê o layout do teclado (`hyprctl getoption input:kb_layout`, com `us` de reserva). O `check_platform` ganha `HubCompositor` e `WAYLAND_DISPLAY` na lista `PLATFORM_ONLY`.
+- **A interface do `HubCompositor` é pequena e sem mundo:**
+  - `start(socket, layout)`, `stop()` e `poll()`. O `poll()` roda a cada quadro e processa os eventos sem bloquear.
+  - Sinais `window_opened(id, app_id, title, pid)`, `window_closed(id)` e `title_changed(id, title)`.
+  - `get_texture(id)`, uma `ImageTexture` que só é atualizada quando a janela manda um quadro novo (dano).
+  - `resize(id, w, h)`, `close(id)`, `pointer_motion/button/axis(id, ...)`, `key(id, evdev, pressed)` e `focus(id)`.
+- **Só buffers shm (memória comum), sem dmabuf:** a imagem é copiada para uma `ImageTexture`. É simples e funciona no Radeon do notebook. Os popups (menus) são desenhados por cima da janela-mãe, dentro do Rust, e a textura já sai composta. O dmabuf (zero cópia) entra no "Fora do escopo".
+- **`AppSessions` (autoload, sem mundo):** liga "app aberto" a "janela do compositor".
+  - A primeira janela nova depois de um `launch` é desse app.
+  - Outra janela do mesmo cliente Wayland (ex.: uma segunda janela do Brave) vai para o próximo telão livre.
+  - Ele avisa `window_ready(id, app_id)` e `window_gone(id)`. O mundo escuta pelo grupo `app_screen`: cada telão se oferece, e o `AppSessions` entrega ao primeiro livre (regra 1).
+- **Abrir (Linux):**
+  - Pelo `Exec` do `.desktop`, **sem** `uwsm-app`, porque ele passa pelo systemd e perde o `WAYLAND_DISPLAY`. O processo recebe `WAYLAND_DISPLAY=gamehub-0`, `GDK_BACKEND=wayland`, `QT_QPA_PLATFORM=wayland` e `SDL_VIDEODRIVER=wayland`.
+  - O `DISPLAY` do Hyprland é **mantido**. Assim, app só X11 nasce **fora** e o `AppLauncher` da parte 1 cuida dele (o hub some e volta).
+  - Apps Chromium e Electron (Brave, Chromium, Obsidian, Spotify...) ganham `--ozone-platform=wayland`. O Brave ganha também `--user-data-dir=<user://apps/brave globalizado>`, o perfil próprio. Essas regras ficam numa tabela de "ajustes por app" em `desktop_apps_linux.gd`.
+  - Se a janela não aparecer no compositor em ~10 s, vale o plano B (acompanhar fora pelo `WindowHost`, como na 14.6).
+- **O telão (`components/app_window_3d/`):** é a mesma ideia da `Screen3D`, que já faz foco, câmera e raio → pixel. Ele herda dela e troca só o conteúdo (a textura do compositor) e o destino do teclado e do mouse.
+  - A **tela 3D é que decide o tamanho da janela:** `resize` com a resolução do telão (ex.: 1280×720).
+  - **Esc curto vai para o app; segurar Esc (~0,6 s) devolve a câmera.** O botão B do controle segue a mesma regra. O Waylandcraft usa uma tecla de captura; aqui o foco por E já existe.
+  - O cursor é desenhado pelo hub (um ponteiro simples por cima do telão).
+- **Telões fixos na casa:** são três, como o painel do sistema (não mudam com a disposição). Ficam no alto das paredes, acima dos móveis (leste, oeste e sul), e o lugar exato sai de uma captura. Um telão vazio mostra "Livre". Com app, o cartão ao olhar diz "Brave · E para usar · segure X para fechar".
+- **Ciclo de vida:**
+  - Enquanto o hub dorme (jogo da Steam aberto), o compositor para de mandar `frame done`, os apps ficam ociosos e as texturas não sobem.
+  - Ao sair do hub com apps abertos, o menu de pausa avisa: "3 apps abertos vão fechar". Os apps morrem junto com o compositor.
+  - A área de transferência funciona **entre os apps do hub** (o data device do Smithay). A ponte com a do Omarchy fica para depois.
+
+## Subetapas (parte 2)
+Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (veja a tabela no começo).
+
+- [ ] **14.13 Preparação** (Sonnet · low): *só principal*
+  - Faz: reabre este plano (status e esta parte 2); CLAUDE.md (pasta `native/` no mapa, exceção MPL-2.0 para o godot-rust, "o compositor é só Linux"); ROADMAP (Fase 14 reaberta, o Waylandcraft como referência da V5). **Pede permissão** para instalar o Rust (`! sudo pacman -S rustup` e `! rustup default stable`, ~250 MB, rodados pelo dono).
+  - Teste: `bash tests/run_tests.sh` → TUDO OK.
+  - Commit: `Fase 14.13: plano da parte 2 (janelas no mundo)`
+- [ ] **14.14 Spike: um terminal num quadro** (Opus · high): *só principal; precisa do dono no notebook*
+  - Faz: um crate mínimo (gdext + Smithay) que abre `gamehub-0`, aceita o `foot`, copia o buffer shm para uma `ImageTexture` num quadro 3D de teste e manda teclas fixas. Confere:
+    - (a) o gdext carrega na Godot 4.7.2;
+    - (b) o foot aparece;
+    - (c) uma tecla chega (com o layout `br`);
+    - (d) o Brave com `--ozone-platform=wayland --user-data-dir=...` abre lá dentro;
+    - (e) o custo da cópia shm de 1280×720 no notebook.
+
+    Antes de baixar os crates, **pede permissão** com a lista (nome, versão, licença).
+  - Arquivos: o código do spike vira a semente de `native/compositor/` se der certo. Os resultados vão para "Decisões tomadas durante a fase".
+  - Commit: `Fase 14.14: resultado do spike do compositor`
+- [ ] **14.15 A extensão e o ponto único** (Opus · high)
+  - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
+  - Teste: `tests/check_compositor.gd` (sem `.so`: `is_available()` falso e nada quebra; tabela evdev: letras, números, ABNT2 `ç` e `/?`, setas, F1–F12) e o `check_platform` com a lista nova.
+  - Commit: `Fase 14.15: extensão do compositor e o ponto único`
+- [ ] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4*
+  - Faz: no Rust, xdg-shell (toplevel), shm, `frame done` só quando pedido, título, `app_id`, pid do cliente, `resize`, `close`, dano → textura. Os sinais do `HubCompositor`.
+  - Teste: `cargo test` com um cliente Wayland de teste (crate `wayland-client`) que manda um buffer de cor conhecida. O compositor abre a janela, a textura tem a cor certa e, ao fechar, sai o `window_closed`.
+  - Commit: `Fase 14.16: janelas e imagem no compositor`
+- [ ] **14.17 Teclado e mouse** (Opus · high): *principal, janela 4*
+  - Faz: o seat do Smithay com o keymap do xkb (layout lido pelo ponto único), `key(evdev)`, ponteiro (mover, botões, rolar), foco de teclado por janela e repetição de tecla do lado do cliente (`repeat_info`).
+  - Teste: `cargo test` (o cliente de teste recebe a tecla e o clique nas coordenadas certas).
+  - Manual: com o quadro do spike, digitar `ação` no foot.
+  - Commit: `Fase 14.17: teclado e mouse nas janelas`
+- [ ] **14.18 Popups e área de transferência** (Opus · high): *principal, janela 4*
+  - Faz: o `xdg_popup` (menus e o botão direito do Brave) composto na textura da mãe, com o clique roteado para o popup; o data device entre os apps do hub; e o formato do cursor ignorado (o hub desenha o seu).
+  - Teste: `cargo test` (popup abre na posição pedida e recebe o clique; copiar num cliente e colar no outro).
+  - Commit: `Fase 14.18: popups e copiar e colar`
+- [ ] **14.19 O telão** (Sonnet · medium): *trilha paralela, janela 4*
+  - Faz: `components/app_window_3d/` herda da `Screen3D`. Recebe uma "fonte de janela" (a de verdade vem do `AppSessions`; nos testes, uma falsa com uma textura qualquer). Mouse e teclas viram chamadas na fonte; Esc curto vai para o app e segurar Esc sai; a fonte recebe o tamanho; o cursor é desenhado pelo hub. Só usa a interface, sem tocar no Rust.
+  - Teste: `tests/check_app_window_3d.gd` com fonte falsa (clique no meio vira as coordenadas certas, Esc curto e longo, `resize` com a resolução).
+  - Commit: `Fase 14.19: o telão de app`
+- [ ] **14.20 Telões na casa** (Sonnet · medium; Opus · high se o visual travar): *trilha paralela, janela 4, depois da 14.19*
+  - Faz: `worlds/home/app_screens.gd` cria três `AppWindow3D` fixos, no alto das paredes, no grupo `app_screen`. Mostra "Livre", o cartão ao olhar e "segure X para fechar". O `home.gd` cria os telões junto do painel.
+  - Teste: `tests/check_app_screens.gd` (três telões, oferta ao `AppSessions` falso, telão libera ao fechar). O `check_home` continua passando.
+  - Manual: captura dos três telões (fora do repositório).
+  - Commit: `Fase 14.20: telões na casa`
+- [ ] **14.21 Abrir no mundo** (Sonnet · medium)
+  - Faz: o autoload `AppSessions`. O `AppLauncher` passa a usar o compositor quando `Compositor.is_available()`, com o ambiente da decisão "Abrir", os ajustes por app (ozone, perfil do Brave) e o plano B em ~10 s. A estante de apps abre no próximo telão livre. Telões cheios mostram o aviso. O hub não some para app no mundo.
+  - Teste: `tests/check_app_sessions.gd` com compositor falso:
+    - janela nova liga ao app;
+    - a segunda janela do mesmo cliente vai para outro telão;
+    - telões cheios recusam;
+    - sem janela em 10 s, cai no plano B;
+    - sem compositor, o fluxo é o da parte 1.
+
+    O `check_app_launcher` continua passando.
+  - Commit: `Fase 14.21: abrir apps dentro do mundo`
+- [ ] **14.22 Dormir, sair e o atalho** (Sonnet · medium)
+  - Faz: compositor ocioso enquanto o hub dorme; aviso ao sair com apps abertos; o atalho `SUPER + H` sem mudança para apps fora.
+  - Teste: `check_app_sessions` (dormindo, não sobe textura) e o teste do menu de pausa.
+  - Commit: `Fase 14.22: o compositor ao dormir e ao sair`
+- [ ] **14.23 Medida e documentação** (Sonnet · medium): *só principal*
+  - Faz: a medida em casa (Leve) sem apps, com o foot parado e com o Brave tocando vídeo. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/compositor`, `components/app_window_3d`, `native/`).
+  - Commit: `Fase 14.23: documentação da parte 2`
+
+## Riscos (parte 2)
+- **O gdext não suporta a 4.7.2 de cara:** o `api-custom` gera o bind da versão local. O spike (14.14) responde antes de qualquer outra coisa.
+- **Teclas do ABNT2:** a Godot pode não dar um código físico para a tecla `/?` (`KEY_RO`) e outras. A tabela do ponto único e o teste com `ç`/`/?` mostram cedo. Uma tecla que faltar fica anotada como limitação.
+- **O Brave com o perfil próprio ainda acha a instância de fora:** o `--user-data-dir` diferente cria um processo novo; o spike confere.
+- **Cópia shm pesada no notebook** (vídeo em 720p a 30–60 quadros): subir só com dano, limitar o telão a 1280×720 e medir no spike. Se pesar, o telão fora da vista não sobe a imagem.
+- **Build com Rust para um dono com programação básica:** um script só (`compilar_compositor.sh`), mensagem clara quando o `.so` falta e o plano B sempre funcionando.
+- **Smithay muda de API entre versões:** versão fixada no `Cargo.lock`, e a atualização só com spike.
+
+## Fora do escopo (parte 2)
+- Pendurar janelas em qualquer lugar e telões na cidade.
+- dmabuf (zero cópia), XWayland dentro do hub (`xwayland-satellite`, como o Waylandcraft opcional) e a área de transferência compartilhada com o Omarchy.
+- Janelas no mundo no Windows (por lá continua o launcher da parte 1).
+- VR, entrada de texto com IME e escala fracionária.
+- O hub como a sessão inteira do Hyprland (Horizonte).
+
+## Checklist de teste manual (fim da parte 2)
+1. `bash tools/linux/compilar_compositor.sh` e depois `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK` (com o `cargo test`).
+2. Apague `native/bin/` e rode a bateria de novo: TUDO OK, com o compositor "pulado".
+3. No notebook, `godot --path ~/git/game-hub`: na estante de apps, segure E no **foot**, e ele aparece num telão. Com E no telão, digite `echo ação` e Enter: sai `ação`. Abra o `vim`, aperte Esc curto (o vim sai do modo inserção) e segure Esc (a câmera volta).
+4. Segure E no **Brave**: ele abre noutro telão. Clique num link, use o botão direito (o menu aparece) e toque um vídeo. Copie um texto no Brave e cole no foot.
+5. Abra um terceiro app e depois um quarto: aparece o aviso "Os telões estão ocupados". Feche o foot com `exit`, e o telão fica "Livre".
+6. Abra um app só X11: o hub some e o app aparece fora. `SUPER + H` traz o hub de volta.
+7. Abra um jogo da Steam: o hub some como antes. Ao voltar, os telões continuam com os apps.
+8. Esc → Sair com apps abertos: o aviso aparece.
+9. A medida da 14.23 está dentro da meta.

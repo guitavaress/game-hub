@@ -5,7 +5,8 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–14, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Feito:** fases 1–13, a parte 1 da Fase 14, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Em andamento:** Fase 14 reaberta: a parte 2 põe as janelas dos apps dentro do mundo, como o **Waylandcraft** (o hub vira um compositor Wayland aninhado). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-2-janelas-no-mundo).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -63,6 +64,8 @@ tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
 assets/        só CC0, com LICENSE em cada pasta de origem
 addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
+native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
+               só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 .claude/skills/  skills do Claude Code (jogos/design, Apache-2.0) + revisao-do-hub
 ```
@@ -89,8 +92,9 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 ## Addons (código de terceiros)
 Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-2026-10-13.md).
 - Licença permissiva (MIT, Apache-2.0, BSD, zlib), em `addons/<nome>/`, com o `LICENSE` junto e o crédito no README.
-- **Antes de baixar, peça permissão** dizendo o nome, a origem, a versão e o tamanho.
-- Versão fixada e testada na Godot 4.7.2. GDExtension só com binários de Windows e Linux x86_64.
+  - **Exceção (dono, 2026-10-14):** o godot-rust (gdext, MPL-2.0) entra como biblioteca do `native/compositor/`, baixado pelo Cargo. Nenhum crate GPL. **O Waylandcraft é GPL-3.0: só as ideias, nenhuma linha copiada.**
+- **Antes de baixar, peça permissão** dizendo o nome, a origem, a versão e o tamanho. Vale também para os crates do Rust (lista com nome, versão e licença).
+- Versão fixada e testada na Godot 4.7.2. GDExtension só com binários de Windows e Linux x86_64. O compositor (`native/compositor/`) é só Linux; no Windows o hub segue sem ele.
 - Sempre atrás de um ponto único do projeto (ex.: GodotSteam só em `autoload/platform/`, Sky3D só no `DayNight`), para as regras de arquitetura continuarem valendo.
 - Toda adoção começa com um spike numa branch, medido no notebook (Leve).
 

@@ -27,7 +27,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | ✅ pronta: casa na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](plans/fase-13.md) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland) | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); primeiro passo de desktop na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
+| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland), com as janelas dos programas dentro do mundo, como o Waylandcraft | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); 🟡 janelas no mundo na [Fase 14](#fase-14-o-hub-no-omarchy) (reaberta); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
 | **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔜 perfis do usuário (local) na [Fase 18](#fase-18-mundos-abertos); compartilhamento e loja no [Horizonte](#horizonte-sem-compromisso) |
 
 ## O que já foi feito
@@ -38,7 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
-- **Fase 14** (2026-10): o hub passa a ser parte do desktop no Linux: estante de apps na casa, painel do sistema, autostart e atalho. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
+- **Fase 14, parte 1** (2026-10): estante de apps na casa (abrir por cima, como um jogo), painel do sistema, autostart e atalho. A fase foi **reaberta** para pôr as janelas dentro do mundo. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
 - **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
@@ -143,7 +143,7 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 | Fase | Nome | Versão | Onde dá para fazer |
 |---|---|---|---|
 | [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
-| [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy | V5 | notebook ✅ (é o lugar ideal) |
+| [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy (reaberta: janelas no mundo) | V5 | notebook ✅ (é o lugar ideal) |
 | [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
 | [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha | V3 | notebook (Leve) + desktop (Alta) |
 | [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
@@ -168,9 +168,13 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 
 **Pronto quando:** trocar de loft para cabana pelo computador muda a casa na hora, sem código novo por tema; a parede mostra as estatísticas reais; o espelho mostra o avatar escolhido, que fica salvo no `config.cfg`.
 
-### Fase 14: O hub no Omarchy ✅ feita (no Linux; falta o Windows e a conferência no desktop)
+### Fase 14: O hub no Omarchy 🟡 reaberta (2026-10-14)
 
-Plano e registro: [plans/fase-14.md](plans/fase-14.md). **O que entregou:** uma **estante de apps** na casa (os programas viram caixas com ícone; abrir um funciona como abrir um jogo: "Abrindo…", o hub some e volta quando a janela do app fecha), o **painel do sistema** (hora, bateria, Wi-Fi e volume), a aba **Sistema** do computador (abrir o hub ao entrar no Omarchy e a linha do atalho `SUPER + H`) e o atalho que chama o hub de volta. Decisão do dono: os apps ficam **na casa**, e não num bairro novo da cidade. **Falta:** no Windows, só a lista de apps foi feita (sem conferir ao vivo); a conferência de desempenho no desktop.
+Plano e registro: [plans/fase-14.md](plans/fase-14.md).
+
+**Por que foi reaberta:** a referência do dono é o **Waylandcraft**, um mod do Minecraft que é um compositor Wayland: as janelas dos programas viram objetos dentro do mundo, usados com o teclado e o mouse sem sair do jogo. A parte 1 entregou um launcher (o app abre por cima e o hub some). A **parte 2** faz o hub virar um compositor Wayland aninhado (Rust + Smithay, uma GDExtension só para Linux): os apps abertos pela estante aparecem em **três telões fixos na casa**, e você digita e clica neles. O launcher da parte 1 fica como plano B (Windows, sem a extensão, apps só X11).
+
+**O que a parte 1 entregou:** uma **estante de apps** na casa (os programas viram caixas com ícone; abrir um funciona como abrir um jogo: "Abrindo…", o hub some e volta quando a janela do app fecha), o **painel do sistema** (hora, bateria, Wi-Fi e volume), a aba **Sistema** do computador (abrir o hub ao entrar no Omarchy e a linha do atalho `SUPER + H`) e o atalho que chama o hub de volta. Decisão do dono: os apps ficam **na casa**, e não num bairro novo da cidade. **Falta:** no Windows, só a lista de apps foi feita (sem conferir ao vivo); a conferência de desempenho no desktop.
 
 **Versão:** V5 (primeiro passo de desktop). **Onde testar:** notebook ✅ (é o lugar ideal).
 
@@ -182,7 +186,9 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md). **O que entregou:** uma 
 - **Iniciar com o sistema e atalho global:** entrada de autostart e um atalho do Hyprland para chamar o hub.
 - Tudo de sistema operacional só em `autoload/platform/` (regra 5), com o backend do Windows mínimo (só a lista de apps).
 
-**Pronto quando:** no notebook, abrir o Firefox ou o terminal pelo hub funciona como abrir um jogo (o hub some e volta), e a casa mostra a bateria certa.
+**Pronto quando (parte 1):** no notebook, abrir o Firefox ou o terminal pelo hub funciona como abrir um jogo (o hub some e volta), e a casa mostra a bateria certa.
+
+**Pronto quando (parte 2):** no notebook, o terminal e o Brave abertos pela estante aparecem em telões da casa; dá para digitar (com os acentos do ABNT2), clicar e abrir menus neles sem o hub sumir; sem a extensão compilada, tudo funciona como na parte 1.
 
 ### Trilha do desktop
 
@@ -266,7 +272,7 @@ Vazio: em 2026-10-12, tudo o que estava aqui virou fase (13 a 18).
 Ideias guardadas para não se perderem. Nada aqui está planejado.
 
 - **V4 ao vivo:** ver o amigo andando na cidade, com o avatar que ele escolheu, e eventos. É o primeiro item com **custo de servidor**. A visita sem servidor é a [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo).
-- **V5 completo:** o hub como a sessão inteira do Hyprland, e não um programa dentro dela. O primeiro passo é a [Fase 14](#fase-14-o-hub-no-omarchy).
+- **V5 completo:** o hub como a sessão inteira do Hyprland, e não um programa dentro dela. O primeiro passo é a [Fase 14](#fase-14-o-hub-no-omarchy) (o hub já vira um compositor aninhado). Depois dela: pendurar janelas em qualquer lugar, telões na cidade e dmabuf (zero cópia).
 - **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários, trocados entre eles. O primeiro passo, local, é a [Fase 18](#fase-18-mundos-abertos).
 - **Addons para depois** ([avaliação](design/addons-2026-10-13.md)):
   - **GodotSteam**, para os amigos virem da Steam local, sem a chave da Web API. Exige rodar o hub como app da Steam.
