@@ -65,12 +65,13 @@ Levantamento (só leitura):
   - Faz: um script descartável (fora do repositório, na pasta temporária) que, a partir do hub rodando com `godot --path`, confirma: (a) a classe e o título da janela do hub; (b) `uwsm-app -- foot.desktop` e `uwsm-app -- brave-origin.desktop` abertos pela Godot geram uma janela nova achável pela lista antes/depois; (c) `omarchy-launch-or-focus "Game Hub" ...` com o hub em `special:gamehub` dá foco a ele (e a Godot recebe `NOTIFICATION_APPLICATION_FOCUS_IN`).
   - Arquivos: só o plano ("Decisões tomadas durante a fase", com os resultados e o comando do atalho que funcionou).
   - Commit: `Fase 14.1: resultado do spike das janelas de app`
-- [ ] **14.2 Lista de apps no Linux** (Sonnet · medium)
+- [x] **14.2 Lista de apps no Linux** (Sonnet · medium)
   - Faz: o dado `DesktopApp` e o leitor de `.desktop` (pastas XDG, nome em pt_BR quando houver, filtros da decisão, o de `~/.local` vence o de `/usr/share` com o mesmo id); `AppLibrary` com lista, categorias (Internet, Escritório, Mídia, Gráficos, Programação, Sistema, Jogos, Outros, a partir das `Categories` do XDG), ocultos do `config.cfg` e a ordem por "aberto por último" (`[apps] ultimos` no `config.cfg`).
   - Arquivos: `autoload/desktop_app.gd` (novo), `autoload/app_library.gd` (novo, autoload), `autoload/platform/desktop_apps.gd` + `desktop_apps_backend.gd` + `desktop_apps_linux.gd` (novos), `autoload/app_config.gd` (seção `[apps]`), `project.godot` (autoload), `tests/check_platform.gd` (lista `PLATFORM_ONLY`: `".desktop\""`, `uwsm-app`, `gtk-launch`).
   - Teste: `tests/check_desktop_apps.gd` com uma pasta de exemplo em `tests/fixtures/applications/` (um app normal, um `NoDisplay`, um jogo da Steam, um `OnlyShowIn=KDE`, um com `TryExec` inexistente, um nome em pt_BR, o mesmo id em duas pastas).
   - Manual: nenhum (ainda não aparece).
   - Commit: `Fase 14.2: lista de apps do Linux`
+  - Feito: nomes de apps com espaço (web apps do Omarchy, ex.: "Basecamp") funcionam como id. A categoria que sobra se chama `diversos` (o `check_profiles` proíbe `"outros"` entre aspas, que é um bairro); o nome na tela continua "Outros".
 - [ ] **14.3 Ícones dos apps** (Sonnet · medium)
   - Faz: achar o arquivo do ícone (caminho absoluto, ou pelo nome no tema: `~/.local/share/icons`, `/usr/share/icons/hicolor` e o tema do sistema, tamanhos 256 → 128 → scalable → 48, e `/usr/share/pixmaps`); carregar PNG e SVG (SVG rasterizado em 256 px) numa thread, com cache em memória; sinal `icon_ready(app_id)`.
   - Arquivos: `autoload/platform/desktop_apps_linux.gd` (achar o arquivo), `autoload/app_library.gd` (carregar e guardar a textura).
