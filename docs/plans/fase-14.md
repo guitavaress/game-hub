@@ -1,6 +1,6 @@
 # Fase 14: O hub no Omarchy
 
-**Status:** aprovado (2026-10-13)
+**Status:** concluída no Linux (2026-10-14); falta a conferência do dono (checklist abaixo) e, no desktop, o Windows e a medida na Alta
 **Branch:** `fase-14`, criada a partir da `fase-linux` (que ainda não foi para a `main`; quando for, `git rebase --onto main fase-linux fase-14`). Checkout principal (`~/git/game-hub`).
 
 ### Trabalho com o Nimbalyst
@@ -129,9 +129,10 @@ Levantamento (só leitura):
   - Manual: passo a passo para colar a linha no `~/.config/hypr/bindings.lua`.
   - Commit: `Fase 14.11: chamar o hub pelo atalho`
   - Feito: sem script (a 14.1 confirmou o plano A). App aberto: o `focus_returned` já encerrava a sessão (14.6). Jogo rodando: o `GameLauncher` ouve o `focus_returned` e chama `HubWindow.hide_again()`, que no Hyprland fecha o `special:gamehub` (`hl.dsp.workspace.toggle_special('gamehub')`, ou `togglespecialworkspace gamehub` no antigo) só se ele estiver aberto, depois de focar o monitor dele; no Windows não faz nada. Jogo ainda abrindo: o hub fica à vista (Esc cancela), e o `minimize_now` de quando o jogo aparece o esconde de novo. **O toggle_special não foi rodado ao vivo** (abriria um special na tela do dono): conferir no checklist.
-- [ ] **14.12 Medida e documentação** (Sonnet · medium) — *só principal*
+- [x] **14.12 Medida e documentação** (Sonnet · medium) — *só principal*
   - Faz: medida em casa no notebook (Leve) com `tools/medir_desempenho.gd` (`MEDIDA_CASA`), comparada à da Fase 13; README (estante de apps, painel, autostart, atalho, `[apps] ocultos`), ROADMAP (Fase 14 feita), PLATAFORMA (apps, sistema, autostart), CLAUDE.md (mapa: `app_library`, `app_launcher`, `system_status`, `platform/desktop_apps*`, `system_info*`, `autostart`).
   - Commit: `Fase 14.12: documentação`
+  - Feito: README, ROADMAP, PLATAFORMA e CLAUDE.md atualizados. Medida lado a lado (notebook, Leve, 7 jogos, 22 h; a fase 13 numa cópia do commit `6719022`, no mesmo dia, com o Brave aberto): ver "Decisões tomadas durante a fase".
 
 ## Riscos
 - **A janela do app não é achada** (app que só foca uma janela que já existia, como o Spotify aberto, ou que abre um launcher flutuante antes): o fallback "sem acompanhar" cobre; o teste da 14.6 tem o caso, e a 14.1 mostra cedo como o Brave e o foot se comportam.
@@ -159,6 +160,17 @@ Levantamento (só leitura):
   - **Tecla:** `SUPER + G` já é do Omarchy (agrupar janelas). `SUPER + H` está livre. A linha a colar no `~/.config/hypr/bindings.lua` fica:
     `o.bind("SUPER + H", "Game Hub", "omarchy-launch-or-focus 'Game Hub' '<godot> --path <projeto>'")`
     (a 14.10 monta os caminhos de verdade com `OS.get_executable_path()` e o `res://` globalizado). Cuidado conhecido: o padrão também casa com um título de janela que contenha "Game Hub" (ex.: uma aba do navegador).
+
+- 2026-10-14: **medida (14.12)**, notebook, Leve, 7 jogos, 22 h, lado a lado com o commit `6719022` (fim da Fase 13), no mesmo dia e com o Brave aberto (por isso o p99 da cidade andando, 26 ms, é igual nas duas e vale só para comparar):
+
+  | | Fase 13 | Fase 14 |
+  |---|---|---|
+  | `MEDIDA_CASA` | 60,0 FPS · p99 19 ms · 165 desenhos | 60,0 FPS · p99 19 ms · **193 desenhos** |
+  | `MEDIDA_ESPELHO` | 60,0 FPS · p99 17 ms · 73 desenhos | 60,0 FPS · p99 18 ms · 88 desenhos |
+  | cidade andando | 58,7 FPS · p99 26 ms · 696 desenhos | 59,2 FPS · p99 26 ms · 720 desenhos |
+  | memória / textura | 161 MB / 140 MB | 173 MB / 187 MB |
+
+  Em casa o FPS fica no teto de 60 (VSync) e o p99 não mudou: **a meta (não piorar mais de ~2 FPS) foi cumprida**. A estante de apps e o painel somam ~28 desenhos na casa. Memória de textura +47 MB: tirar a estante de apps do `Home.MOVABLE` baixa só ~5 MB (os 15 ícones da página); o resto não é desta fase (vem dos commits entre as fases 13 e 14: Debug Menu e Sky3D, que já estavam na branch) e **não foi isolado**. Fica para a trilha do desktop, junto com a medida na Alta.
 
 ## Checklist de teste manual (fim da fase)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).

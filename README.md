@@ -23,6 +23,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
 | 13 | Casa, parte 2: parede de estatísticas, temas (loft e cabana), cores das paredes e do néon, posições prontas dos móveis, e um avatar que você vê num espelho | ✅ pronta no Linux (falta a conferência no desktop) |
 | 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
+| 14 | O hub no Omarchy: estante de apps na casa (abrir o Brave ou o terminal como se fosse um jogo), painel do sistema (hora, bateria, Wi-Fi, volume), abrir o hub ao entrar no Omarchy e um atalho para chamá-lo de volta | ✅ pronta no Linux (falta o Windows: só a lista de apps) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
@@ -168,6 +169,12 @@ quality="alta"
 ; Hora da cidade: "relogio" (relógio do PC), "dia" ou "noite"
 time_of_day="relogio"
 
+[apps]
+; Programas que NÃO aparecem na estante de apps (ids dos arquivos .desktop, sem a
+; extensão, separados por vírgula). O hub guarda em "ultimos" os apps abertos
+; por último, que sobem para o começo da estante.
+ocultos="avahi-discover,bvnc"
+
 [window]
 ; Só no Linux com Hyprland: monitor onde os jogos abrem (nome do "hyprctl monitors").
 ; Vazio = o monitor em foco.
@@ -195,6 +202,8 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **GameArt** procura o banner (hero), a capa e o logo primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
 - **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e pergunta ao **SteamClient** qual jogo está rodando, para saber quando ele fechou. No Windows, a resposta vem do registro (`RunningAppID`); no Linux, do processo `reaper` que a Steam cria para cada jogo. Também percebe jogos abertos por fora do hub.
 - **HubWindow** esconde e pausa o hub enquanto você joga, e depois o traz de volta. No Windows, ele minimiza e volta no mesmo monitor; no Hyprland, usa um workspace oculto. Os detalhes de cada sistema estão em [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
+- **AppLibrary** e **AppLauncher** fazem pelos programas (navegador, terminal...) o que o SteamLibrary e o GameLauncher fazem pelos jogos. No Linux, a lista vem dos arquivos `.desktop` (menos os jogos da Steam, que já são prédios); no Windows, dos atalhos do Menu Iniciar. O app abre como o Omarchy abre (`uwsm-app`), o hub se esconde, e a sessão acaba quando a janela do app fecha (Hyprland) ou quando o hub volta a ter foco.
+- **SystemStatus** pergunta a bateria, a rede e o volume ao sistema a cada 5 s (e para enquanto o hub dorme), para o painel da casa.
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
 **Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
@@ -204,10 +213,13 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela), virado para a estante e o janelão, e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
 
 - **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
+- **Estante de apps** (à esquerda do janelão): uma caixa por programa instalado, com o ícone (sem ícone, a inicial na cor da categoria). Olhar mostra o nome e o tipo (Internet, Sistema, Mídia...); **segurar E** abre o app: "Abrindo…", o hub some e o app ocupa o lugar dele. Ao fechar a janela do app, o hub volta na frente da estante. As placas passam a página e trocam o tipo. Para esconder um programa, use `[apps] ocultos` no `config.cfg`.
+- **Painel do sistema** (na parede norte, acima do computador): a hora, a bateria, o Wi-Fi e o volume do computador, só para ver (não mexe em nada). O que o computador não tem, como a bateria de um desktop, some.
 - **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
 - **Computador:** E aproxima a câmera da tela, que mostra as mesmas abas do menu de pausa (som e vídeo, controles, amigos), clicáveis, com o campo da chave. Esc devolve a câmera.
 - **Estatísticas:** um quadro na parede sul (à esquerda da porta) com as **horas jogadas**, os **5 mais jogados**, as horas dos **maiores bairros** (na cor de cada um) e o **jogado por último**, com a capa. Conta só os jogos instalados. Sem horas (Steam sem conta logada) ou sem jogos, o quadro explica em vez de mostrar zeros. Atualiza quando você volta de um jogo (a Steam grava as horas com atraso: as da última sessão podem aparecer só na volta seguinte).
 - **Espelho:** na parede sul, à direita da porta. Você se vê nele, com o seu avatar, e o reflexo acompanha o que você faz (só desenha de perto e de frente, para não pesar). **E** no espelho abre o **provador**: 5 visuais prontos e as cores de pele, olhos, cabelo, camiseta e calça. O avatar fica no `config.cfg` (seção `[avatar]`).
+- **Computador, aba Sistema** (só no Linux): o interruptor **Abrir o hub ao entrar no Omarchy** (cria ou apaga `~/.config/autostart/game-hub.desktop`) e o botão **Copiar a linha do atalho**. O hub nunca mexe na config do Hyprland: cole a linha no fim de `~/.config/hypr/bindings.lua` e o **SUPER + H** chama o hub. Com um app aberto, ele traz o hub de volta (o app continua aberto); com o hub em outro workspace, vai até ele; durante um jogo da Steam, nada muda.
 - **Computador, aba Casa:** escolha o **tema** (Loft ou Cabana), a **posição dos móveis** (Padrão, Espelhada ou Estante na entrada) e a **cor das paredes e do néon** (8 cores prontas e "Do tema"). A casa muda na hora, atrás do monitor. Tudo fica na seção `[home]` do `config.cfg`.
 - **Portas:** E na porta do loft ("E para sair") leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
 

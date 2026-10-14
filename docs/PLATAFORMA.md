@@ -3,13 +3,16 @@
 Como o hub conversa com a Steam e com o sistema operacional. Tudo isto já está implementado. O arquivo serve de referência para depurar. A história de como o Linux entrou está em [plans/fase-linux.md](plans/fase-linux.md).
 
 ## Onde mora o código de cada sistema
-Tudo fica em `autoload/platform/`. Fora dessa pasta, nenhum arquivo executa `reg`, `tasklist` ou `hyprctl`, nem lê `/proc` (o `tests/check_platform.gd` confere):
+Tudo fica em `autoload/platform/`. Fora dessa pasta, nenhum arquivo executa `reg`, `tasklist`, `hyprctl`, `nmcli`, `wpctl` ou `uwsm-app`, nem lê `/proc`, `/sys` ou arquivos `.desktop` (o `tests/check_platform.gd` confere):
 - `steam_client.gd` (`SteamClient`): a única porta para a Steam. `SteamLibrary` e `GameLauncher` perguntam a ele "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?".
 - `steam_client_backend.gd`: o contrato que cada sistema cumpre (a versão base é a de um sistema sem suporte, que não acha a Steam).
 - `steam_client_windows.gd` e `win_registry.gd`: a resposta no Windows (registro e `tasklist`).
 - `steam_client_linux.gd`: a resposta no Linux (pasta da Steam e processos em `/proc`).
 - `window_host.gd` (`WindowHost`): quem esconde e mostra a janela do hub. A versão base minimiza e restaura (Windows).
-- `window_host_hyprland.gd`: a janela no Hyprland (workspaces).
+- `window_host_hyprland.gd`: a janela no Hyprland (workspaces), e também achar a janela de um app e dizer quando ela fecha.
+- `desktop_apps.gd` (`DesktopApps`), `desktop_apps_backend.gd`, `desktop_apps_linux.gd` e `desktop_apps_windows.gd`: a lista dos programas instalados, o ícone de cada um e como abri-los (Fase 14).
+- `system_info.gd` (`SystemInfo`), `system_info_backend.gd` e `system_info_linux.gd`: bateria, rede e volume (Fase 14). Fora do Linux, "não sei".
+- `autostart.gd` (`Autostart`): abrir o hub ao entrar na sessão e a linha do atalho (Fase 14).
 
 ## Steam (igual nos dois sistemas)
 - **Bibliotecas:** `<Steam>/steamapps/libraryfolders.vdf` lista todas as pastas, e pode haver mais de um disco. Em cada uma, `steamapps/appmanifest_<appid>.acf` traz o `appid` e o `name`.
@@ -38,6 +41,19 @@ Tudo fica em `autoload/platform/`. Fora dessa pasta, nenhum arquivo executa `reg
 - **"Atualizando":** o Linux não diz isso de um jeito simples; `app_updating` é sempre `false` (só deixa a mensagem de "não abriu" mais genérica).
 - **Godot e `/proc`:** os arquivos de `/proc` dizem ter tamanho 0, e `FileAccess.get_file_as_string` devolve `""`. Leia com `FileAccess.open(...).get_buffer(4096)`. O `cmdline` separa os argumentos com o byte 0.
 - **Dados do hub:** `~/.local/share/godot/app_userdata/Game Hub/`.
+
+## Apps, sistema e autostart (Fase 14)
+### Linux
+- **Lista de apps:** os `.desktop` de `$XDG_DATA_HOME/applications` (`~/.local/share`) e de cada `$XDG_DATA_DIRS/applications` (`/usr/share`), com subpastas (`a/b.desktop` tem o id `a-b`). O primeiro arquivo com um id vence, mesmo escondido (é como o usuário apaga um app do sistema). Entram só `Type=Application` sem `NoDisplay`/`Hidden`, com `OnlyShowIn`/`NotShowIn` de acordo com o `XDG_CURRENT_DESKTOP`, com `TryExec` que existe, e que **não** sejam jogos da Steam (`steam://rungameid`). O nome vem do `Name[pt_BR]` quando há. Os web apps do Omarchy têm espaço no id (ex.: `Basecamp`) e funcionam do mesmo jeito.
+- **Ícones:** caminho absoluto, ou pelo nome em `<tema>/<tamanho>/apps/<nome>.png|svg` (tamanhos 256, 128, scalable, 48...) nas pastas `icons` do XDG e em `~/.icons`; o tema é o `gtk-icon-theme-name` do GTK, depois `hicolor`, `Adwaita` e `Yaru`. Por último, `/usr/share/pixmaps`. SVG é desenhado em 256 px.
+- **Abrir:** `uwsm-app -- <id>.desktop` (como o Omarchy abre); sem ele, `gtk-launch <id>`; sem ele, o `Exec` do arquivo. O app herda a saída do hub.
+- **Achar a janela do app (Hyprland):** o Brave abre uma janela nova no processo que já existia, então não dá para achar pelo pid. Antes de abrir, o hub guarda os endereços de todas as janelas (`hyprctl clients -j`); a janela do app é a **primeira nova** do tiling (não flutuante, não a do hub, fora do `special:`), de preferência com a classe do `StartupWMClass`. O app nasce no workspace do hub e o hub se esconde (`special:gamehub`), então ele toma o lugar. Se a janela não aparece em 10 s (um app que só focou uma janela que já existia), segue "sem acompanhar": a sessão só acaba quando o hub volta a ter foco.
+- **Chamar o hub de volta (atalho):** `omarchy-launch-or-focus 'Game Hub' '<godot> --path <projeto>'`. Focar uma janela do `special:gamehub` abre o `special` por cima da tela, e a Godot recebe `NOTIFICATION_APPLICATION_FOCUS_IN`; o hub avisa `focus_returned` se estava escondido há mais de 1 s. Com um app aberto, isso encerra a sessão do app; com um jogo da Steam rodando, o hub se esconde de novo (`hl.dsp.workspace.toggle_special('gamehub')`, só se o special estiver aberto, depois de focar o monitor dele). A linha para colar no `~/.config/hypr/bindings.lua` sai da aba **Sistema** do computador (`SUPER + H`; `SUPER + G` já é do Omarchy). Cuidado: o padrão `Game Hub` também casa com um título de janela que contenha essas palavras (ex.: uma aba do navegador).
+- **Bateria:** `/sys/class/power_supply/BAT*` (`capacity` e `status`). **Rede:** `nmcli -t -f TYPE,STATE,CONNECTION dev`. **Volume:** `wpctl get-volume @DEFAULT_AUDIO_SINK@`. Qualquer parte que falhe responde "não sei" e some do painel.
+- **Autostart:** `~/.config/autostart/game-hub.desktop`, com `Exec=<godot> --path <projeto>`. Criar liga, apagar desliga.
+### Windows
+- **Lista de apps:** os atalhos `.lnk` do Menu Iniciar do usuário (`%AppData%\Microsoft\Windows\Start Menu\Programs`) e de todos (`%ProgramData%\...`), com subpastas; o do usuário vence. O nome é o do arquivo; desinstaladores e `.url` (os jogos da Steam) ficam de fora. Sem ícone nem categoria (a caixa mostra a inicial). Abrir é entregar o `.lnk` ao `OS.shell_open`.
+- **Ainda não feito no Windows:** conferir a lista e abrir um app de verdade (o teste roda só no GitHub Actions), acompanhar a janela do app, o painel do sistema e o autostart. Sem acompanhar a janela, a sessão do app acaba quando o hub volta a ter foco.
 
 ## Janela
 ### Windows (e Linux fora do Hyprland)

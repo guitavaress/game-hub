@@ -5,7 +5,7 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–13, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Feito:** fases 1–14, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -26,12 +26,18 @@ autoload/      sistemas globais; não conhecem nenhum mundo
   store_info, game_categories         tags da loja → categoria/bairro
   game_art                            capas (cache local da Steam → CDN → user://cache)
   game_launcher, hub_window           abrir jogo, minimizar/voltar, sessão
+  app_library, desktop_app            os programas instalados (estante de apps): lista, ordem, ocultos, ícones
+  app_launcher                        abrir um app e acompanhar a janela dele (irmão do game_launcher)
+  system_status                       bateria, rede e volume, a cada 5 s (painel da casa)
   friends_service, steam_friend       amigos pela Steam Web API
   app_config, graphics_quality        user://config.cfg, qualidade gráfica
   input_device                        último aparelho usado (teclado/mouse ou controle) e os nomes das dicas
   platform/                           ÚNICO lugar com código de sistema operacional
     steam_client (+ backends por SO)    "onde está a Steam? qual jogo está rodando?"
-    window_host (+ hyprland)            esconder/mostrar a janela do hub
+    window_host (+ hyprland)            esconder/mostrar a janela do hub; achar a janela de um app
+    desktop_apps (+ linux, windows)     lista de programas, ícones, abrir (.desktop / Menu Iniciar)
+    system_info (+ linux)               bateria, rede e volume
+    autostart                           abrir o hub ao entrar na sessão; a linha do atalho
     win_registry                        lê o registro do Windows
 profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
                a lista do mundo em world_profile.tres; Profiles lê.
@@ -49,7 +55,7 @@ components/    peças reutilizáveis em qualquer mundo
   ambient_emitter/  som ambiente por categoria
 player/        primeira pessoa (camera_feel.gd: balanço, pouso e FOV da câmera); cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
 ui/            tema único (hub_theme.gd) e KeyHint (tecla que troca com o aparelho); HUD (bússola, minimapa), avisos, cartão de controles da 1ª vez, telas "Abrindo"/"Jogando", fade, menus, mapa grande, painel do metrô
-worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, mural, estatísticas, espelho, computador) em lugares prontos; não conhece nenhum mundo
+worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, estante de apps, mural, estatísticas, espelho, painel do sistema, computador) em lugares prontos; não conhece nenhum mundo
   themes/         o enfeite de cada tema (loft, cabana), que estende HomeDecor
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)

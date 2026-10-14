@@ -38,6 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
+- **Fase 14** (2026-10): o hub passa a ser parte do desktop no Linux: estante de apps na casa, painel do sistema, autostart e atalho. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
 - **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
@@ -167,7 +168,9 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 
 **Pronto quando:** trocar de loft para cabana pelo computador muda a casa na hora, sem código novo por tema; a parede mostra as estatísticas reais; o espelho mostra o avatar escolhido, que fica salvo no `config.cfg`.
 
-### Fase 14: O hub no Omarchy
+### Fase 14: O hub no Omarchy ✅ feita (no Linux; falta o Windows e a conferência no desktop)
+
+Plano e registro: [plans/fase-14.md](plans/fase-14.md). **O que entregou:** uma **estante de apps** na casa (os programas viram caixas com ícone; abrir um funciona como abrir um jogo: "Abrindo…", o hub some e volta quando a janela do app fecha), o **painel do sistema** (hora, bateria, Wi-Fi e volume), a aba **Sistema** do computador (abrir o hub ao entrar no Omarchy e a linha do atalho `SUPER + H`) e o atalho que chama o hub de volta. Decisão do dono: os apps ficam **na casa**, e não num bairro novo da cidade. **Falta:** no Windows, só a lista de apps foi feita (sem conferir ao vivo); a conferência de desempenho no desktop.
 
 **Versão:** V5 (primeiro passo de desktop). **Onde testar:** notebook ✅ (é o lugar ideal).
 
@@ -188,7 +191,7 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 **Objetivo:** fazer tudo o que só o desktop responde e juntar o trabalho na `main`.
 
 **Entregas:**
-- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12) e ouvir os sons da Fase 11.
+- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade).
 - **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
 - **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** para medir ao vivo e o **Sky3D** no lugar das fotos HDRI do céu (ou no começo da Fase 15), cada um com permissão para baixar.
 - Juntar a `fase-linux` na `main`, se o dono pedir.
