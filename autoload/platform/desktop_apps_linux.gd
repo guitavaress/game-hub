@@ -25,6 +25,11 @@ var icon_dirs: PackedStringArray
 var icon_themes: PackedStringArray
 ## Pastas de ícones soltos (/usr/share/pixmaps).
 var pixmap_dirs: PackedStringArray
+## Quem começa um programa: func(programa: String, argumentos: PackedStringArray) -> int
+## (o número do processo, ou -1). Os testes trocam para não abrir nada.
+var start_process: Callable = OS.create_process
+## Quem diz se um programa existe no PATH: func(nome: String) -> bool. Os testes trocam.
+var program_exists: Callable = _program_exists
 
 ## Tamanhos tentados, nesta ordem ("scalable" = SVG).
 const ICON_EXTENSIONS: PackedStringArray = ["png", "svg"]
@@ -95,6 +100,57 @@ func parse_file(path: String, id: String) -> DesktopApp:
 	app.exec_line = clean_exec(exec_line)
 	app.source_path = path
 	return app
+
+
+## Abre o app, do jeito que o Omarchy abre: "uwsm-app -- <id>.desktop" (o app
+## nasce dentro da sessão do desktop). Sem o uwsm-app, "gtk-launch <id>"; sem
+## ele também, o próprio Exec do arquivo. true = o processo começou.
+## (O app herda a saída do hub: rodando num terminal, o log dele aparece junto.)
+func launch(app: DesktopApp) -> bool:
+	if program_exists.call("uwsm-app"):
+		return int(start_process.call("uwsm-app", PackedStringArray(["--", app.id + ".desktop"]))) > 0
+	if program_exists.call("gtk-launch"):
+		return int(start_process.call("gtk-launch", PackedStringArray([app.id]))) > 0
+	var words := split_command(app.exec_line)
+	if words.is_empty() or not program_exists.call(words[0]):
+		return false
+	return int(start_process.call(words[0], words.slice(1))) > 0
+
+
+## Separa um comando em palavras, respeitando aspas ("a b" e 'a b') e a barra
+## invertida. Ex.: sh -c "echo oi" -> ["sh", "-c", "echo oi"].
+static func split_command(line: String) -> PackedStringArray:
+	var words := PackedStringArray()
+	var current := ""
+	var quote := ""
+	var has_word := false
+	var i := 0
+	while i < line.length():
+		var c := line[i]
+		if c == "\\" and i + 1 < line.length() and quote != "'":
+			i += 1
+			current += line[i]
+			has_word = true
+		elif quote != "":
+			if c == quote:
+				quote = ""
+			else:
+				current += c
+		elif c == "\"" or c == "'":
+			quote = c
+			has_word = true
+		elif c == " " or c == "\t":
+			if has_word:
+				words.append(current)
+				current = ""
+				has_word = false
+		else:
+			current += c
+			has_word = true
+		i += 1
+	if has_word:
+		words.append(current)
+	return words
 
 
 ## Acha o arquivo do ícone. O nome pode ser um caminho absoluto; senão

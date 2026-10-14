@@ -56,6 +56,34 @@ func _run() -> void:
 	_check("pasta que não existe não quebra", DesktopAppsLinux.new(PackedStringArray(["/nao/existe"]), "", "").list_apps().is_empty())
 	_check("DesktopApps responde nesta máquina", DesktopApps.platform_name() != "" and DesktopApps.list_apps() is Array)
 
+	print("== abrir (Linux) ==")
+	var calls: Array = []
+	var present := {"uwsm-app": true, "gtk-launch": true, "sh": true}
+	var opener := DesktopAppsLinux.new(PackedStringArray(), "", "")
+	opener.start_process = func(program: String, args: PackedStringArray) -> int:
+		calls.append([program, args])
+		return 4321
+	opener.program_exists = func(program: String) -> bool: return present.get(program, false)
+	var target := DesktopApp.new()
+	target.id = "Google Maps"
+	target.exec_line = 'sh -c "echo oi" --flag'
+	_check("com uwsm-app: uwsm-app -- <id>.desktop", opener.launch(target)
+			and calls.back() == ["uwsm-app", PackedStringArray(["--", "Google Maps.desktop"])])
+	present["uwsm-app"] = false
+	_check("sem uwsm-app: gtk-launch <id>", opener.launch(target) and calls.back() == ["gtk-launch", PackedStringArray(["Google Maps"])])
+	present["gtk-launch"] = false
+	_check("sem os dois: o Exec do arquivo, com aspas respeitadas",
+			opener.launch(target) and calls.back() == ["sh", PackedStringArray(["-c", "echo oi", "--flag"])])
+	present["sh"] = false
+	_check("programa do Exec não existe: false", not opener.launch(target))
+	present["uwsm-app"] = true
+	opener.start_process = func(_p: String, _a: PackedStringArray) -> int: return -1
+	_check("o processo não começou: false", not opener.launch(target))
+	_check("split_command: aspas simples, duplas e barra",
+			DesktopAppsLinux.split_command("a 'b c' \"d e\" f\\ g") == PackedStringArray(["a", "b c", "d e", "f g"]))
+	_check("split_command: aspas vazias viram palavra vazia", DesktopAppsLinux.split_command('x ""') == PackedStringArray(["x", ""]))
+	_check("o backend base não abre nada", not DesktopAppsBackend.new().launch(target))
+
 	print("== categorias ==")
 	_check("foot é Sistema", lib.category_of(by_id["foot"]) == "sistema")
 	_check("navegador é Internet", lib.category_of(by_id["navegador"]) == "internet")

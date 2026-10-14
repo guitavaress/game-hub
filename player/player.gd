@@ -184,6 +184,8 @@ func _ready() -> void:
 	# como fecha o menu de pausa.
 	GameLauncher.game_started.connect(func(_app_id: int, _source: Node) -> void:
 		leave_focus(true))
+	AppLauncher.app_launch_started.connect(func(_app_id: String, _source: Node) -> void:
+		leave_focus(true))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -611,7 +613,8 @@ func _update_interact(delta: float) -> void:
 ## Dá para interagir agora? Não na abertura, em viagem, com painel aberto ou
 ## com um jogo abrindo/rodando.
 func _can_interact() -> bool:
-	return not in_intro and not _traveling and not is_overlay_open() and not GameLauncher.is_busy()
+	return not in_intro and not _traveling and not is_overlay_open() \
+			and not GameLauncher.is_busy() and not AppLauncher.is_busy()
 
 
 func _find_interactable(hit: Object) -> Node:

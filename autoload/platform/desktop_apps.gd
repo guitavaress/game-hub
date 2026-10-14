@@ -29,6 +29,12 @@ static func find_icon(icon_name: String) -> String:
 	return _backend.find_icon(icon_name)
 
 
+## Abre o app e volta na hora. true = o sistema aceitou o pedido (não quer dizer
+## que a janela já apareceu).
+static func launch(app: DesktopApp) -> bool:
+	return _backend.launch(app)
+
+
 static func _create_backend() -> DesktopAppsBackend:
 	if OS.get_name() == "Linux":
 		return DesktopAppsLinux.new()

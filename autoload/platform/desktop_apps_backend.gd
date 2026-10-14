@@ -21,3 +21,8 @@ func list_apps() -> Array[DesktopApp]:
 ## Caminho do arquivo de imagem do ícone ("" = não achei). Pode rodar numa thread.
 func find_icon(_icon_name: String) -> String:
 	return ""
+
+
+## Abre o app (sem esperar ele fechar). true = o sistema aceitou o pedido.
+func launch(_app: DesktopApp) -> bool:
+	return false

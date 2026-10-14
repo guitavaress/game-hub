@@ -175,8 +175,8 @@ func cancel_launch() -> void:
 
 ## Mensagens: 1ª linha = o que houve (título do aviso); 2ª = o que fazer.
 func _check_can_launch(app_id: int) -> String:
-	if is_busy():
-		return "Já existe um jogo abrindo ou rodando\nEspere ele fechar para abrir outro."
+	if is_busy() or AppLauncher.is_busy():
+		return "Já existe um jogo ou app abrindo ou rodando\nEspere ele fechar para abrir outro."
 	if app_id <= 0:
 		return "App ID inválido: %d\nConfira o número do jogo." % app_id
 	if SteamLibrary.get_steam_path().is_empty():

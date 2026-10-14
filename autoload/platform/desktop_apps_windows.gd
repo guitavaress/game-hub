@@ -53,6 +53,11 @@ func list_apps() -> Array[DesktopApp]:
 	return result
 
 
+## Abre o app entregando o atalho ao Windows (como um duplo clique).
+func launch(app: DesktopApp) -> bool:
+	return OS.shell_open(app.source_path) == OK
+
+
 ## Os .lnk de uma pasta e das subpastas, como caminhos relativos a ela.
 func _collect(folder: String, prefix: String, out: Array[String]) -> void:
 	for file_name in DirAccess.get_files_at(folder):
