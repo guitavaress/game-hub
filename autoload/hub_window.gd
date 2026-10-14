@@ -194,7 +194,10 @@ func _stop_game_window_checks() -> void:
 
 ## Minimiza (esconde) o hub que já está dormindo (ex.: o jogo acabou de aparecer).
 func minimize_now() -> void:
-	if not is_sleeping or _did_minimize:
+	if not is_sleeping:
+		return
+	if _did_minimize:
+		hide_again()  # já escondido, mas pode ter sido chamado de volta pelo atalho
 		return
 	if _hidden_since_ms == 0:
 		_hidden_since_ms = Time.get_ticks_msec()
@@ -202,6 +205,17 @@ func minimize_now() -> void:
 	_did_minimize = _can_control_window()
 	if _did_minimize:
 		_window_host.hide_hub()
+
+
+## O hub escondido foi chamado de volta (o atalho do Omarchy), mas quem está
+## na sessão decidiu que ele não deve voltar (ex.: um jogo rodando): esconde de
+## novo, sem mexer no jogo. No Windows não faz nada.
+func hide_again() -> void:
+	if not is_sleeping or not _did_minimize:
+		return
+	# Uma nova folga: o foco que volta ao jogo agora não é "alguém chamando o hub".
+	_hidden_since_ms = Time.get_ticks_msec()
+	_window_host.hide_hub_again()
 
 
 ## O hub "acorda": tudo volta como estava, e a tela clareia.

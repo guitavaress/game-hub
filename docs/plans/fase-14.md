@@ -122,12 +122,13 @@ Levantamento (só leitura):
   - Teste: `tests/check_autostart.gd` com uma pasta de exemplo no lugar de `~/.config/autostart` (cria, confere o `Exec`, apaga).
   - Commit: `Fase 14.10: abrir o hub ao entrar no Omarchy`
   - Feito: commit `a250b54` na trilha paralela, juntado na principal.
-- [ ] **14.11 Chamar o hub pelo atalho** (Opus · high)
+- [x] **14.11 Chamar o hub pelo atalho** (Opus · high)
   - Faz: liga o resultado da 14.1: com um app aberto, o atalho traz o hub (encerra a sessão de app, o app fica aberto); com o hub parado em outro workspace, o atalho o foca; durante um jogo, nada muda. Se a 14.1 pediu, o script `tools/linux/game-hub-chamar` (e a linha copiada da 14.10 passa a usá-lo).
   - Arquivos: `autoload/hub_window.gd`, `autoload/app_launcher.gd` e, se preciso, `autoload/platform/window_host_hyprland.gd` e `tools/linux/`.
   - Teste: `tests/check_app_launcher.gd` (o `focus_returned` durante um jogo não faz nada).
   - Manual: passo a passo para colar a linha no `~/.config/hypr/bindings.lua`.
   - Commit: `Fase 14.11: chamar o hub pelo atalho`
+  - Feito: sem script (a 14.1 confirmou o plano A). App aberto: o `focus_returned` já encerrava a sessão (14.6). Jogo rodando: o `GameLauncher` ouve o `focus_returned` e chama `HubWindow.hide_again()`, que no Hyprland fecha o `special:gamehub` (`hl.dsp.workspace.toggle_special('gamehub')`, ou `togglespecialworkspace gamehub` no antigo) só se ele estiver aberto, depois de focar o monitor dele; no Windows não faz nada. Jogo ainda abrindo: o hub fica à vista (Esc cancela), e o `minimize_now` de quando o jogo aparece o esconde de novo. **O toggle_special não foi rodado ao vivo** (abriria um special na tela do dono): conferir no checklist.
 - [ ] **14.12 Medida e documentação** (Sonnet · medium) — *só principal*
   - Faz: medida em casa no notebook (Leve) com `tools/medir_desempenho.gd` (`MEDIDA_CASA`), comparada à da Fase 13; README (estante de apps, painel, autostart, atalho, `[apps] ocultos`), ROADMAP (Fase 14 feita), PLATAFORMA (apps, sistema, autostart), CLAUDE.md (mapa: `app_library`, `app_launcher`, `system_status`, `platform/desktop_apps*`, `system_info*`, `autostart`).
   - Commit: `Fase 14.12: documentação`

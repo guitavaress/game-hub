@@ -156,6 +156,19 @@ func _run() -> void:
 			not L.launch(BALATRO) and game_ended.size() == 1 and not game_ended[0].ok)
 	A.cancel_launch()
 
+	print("== atalho durante um jogo (14.11) ==")
+	_reset()
+	L.state = L.State.RUNNING
+	H.sleep(true)
+	H._hidden_since_ms -= 2000
+	var calls_before := ended.size()
+	H.notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	_check("o foco de volta durante um jogo não encerra nada", ended.size() == calls_before
+			and A.state == A.State.IDLE and L.state == L.State.RUNNING)
+	_check("o hub continua dormindo (o jogo segue na frente)", H.is_sleeping)
+	L.state = L.State.IDLE
+	H.wake()
+
 	print("== cada launch tem um fim ==")
 	_reset()
 	for i in 3:

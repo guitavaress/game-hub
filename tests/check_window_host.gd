@@ -28,6 +28,8 @@ var hub_in_special: bool = false
 var app_windows: Array = []
 ## true = o hyprctl falso não responde (resposta vazia).
 var hyprctl_silent: bool = false
+## Monitor que mostra o "special:gamehub" aberto ("" = nenhum).
+var special_shown_on: String = ""
 
 
 func _initialize() -> void:
@@ -159,6 +161,7 @@ func _run() -> void:
 	_check("o hub ainda sabe voltar para o 3", _sent_part("workspace = '3', window = 'address:%s'" % HUB_ADDRESS))
 
 	_check_app_windows(host_script)
+	_check_hide_again(host_script)
 	await _check_focus_returned()
 
 	print("== nomes vão limpos para o comando ==")
@@ -232,6 +235,35 @@ func _check_app_windows(host_script: GDScript) -> void:
 			and hub.find_new_window(PackedStringArray(), "") == "" and not hub.window_exists("0xa2"))
 
 
+## Fase 14.11: o atalho abriu o special por cima de um jogo; esconder de novo.
+func _check_hide_again(host_script: GDScript) -> void:
+	print("== esconder de novo (14.11) ==")
+	var host = _new_host(host_script)
+	host.hide_hub_again()
+	_check("hub não escondido: não manda nada", calls.is_empty())
+	host.hide_hub()
+	calls.clear()
+	host.hide_hub_again()
+	_check("special fechado: não manda o toggle (senão o abriria)", calls.is_empty())
+	special_shown_on = "HDMI-A-1"
+	host.hide_hub_again()
+	_check("special aberto no HDMI: foca o monitor e fecha o special",
+			_sent("hl.dsp.focus({ monitor = 'HDMI-A-1' })")
+			and _sent("hl.dsp.workspace.toggle_special('gamehub')")
+			and _index_of("monitor = 'HDMI-A-1'") < _index_of("toggle_special"))
+	accepts_lua = false
+	host = _new_host(host_script)
+	host.hide_hub()
+	calls.clear()
+	host.hide_hub_again()
+	_check("Hyprland antigo: togglespecialworkspace gamehub", _sent("togglespecialworkspace gamehub"))
+	accepts_lua = true
+	special_shown_on = ""
+	var plain = load("res://autoload/platform/window_host.gd").new()
+	plain.hide_hub_again()
+	_check("versão base (Windows): não faz nada e não dá erro", true)
+
+
 ## Fase 14.5: o hub escondido avisa focus_returned quando ganha o foco.
 func _check_focus_returned() -> void:
 	print("== foco de volta com o hub escondido (14.5) ==")
@@ -286,8 +318,10 @@ func _fake_hyprctl(args: PackedStringArray) -> String:
 			return JSON.stringify(clients)
 		"monitors":
 			return JSON.stringify([
-				{"id": 0, "name": "eDP-1", "focused": true, "activeWorkspace": {"id": 3, "name": "3"}},
+				{"id": 0, "name": "eDP-1", "focused": true, "activeWorkspace": {"id": 3, "name": "3"},
+					"specialWorkspace": {"id": -98 if special_shown_on == "eDP-1" else 0, "name": "special:gamehub" if special_shown_on == "eDP-1" else ""}},
 				{"id": 1, "name": "HDMI-A-1", "focused": false,
+					"specialWorkspace": {"id": -98 if special_shown_on == "HDMI-A-1" else 0, "name": "special:gamehub" if special_shown_on == "HDMI-A-1" else ""},
 					"activeWorkspace": {"id": 8 if hdmi_showing_empty else 2, "name": "8" if hdmi_showing_empty else "2"}},
 			])
 		"workspaces":

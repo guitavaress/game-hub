@@ -10,6 +10,9 @@ extends WindowHost
 ##   hide_hub: o hub vai para um workspace especial (oculto), "special:gamehub".
 ##       É o "minimizar" daqui.
 ##   show_hub: o hub volta para o workspace onde estava, com foco.
+##   hide_hub_again (Fase 14.11): o atalho do Omarchy foca o hub escondido, e o
+##       Hyprland abre o "special:gamehub" por cima da tela. Durante um jogo,
+##       fechamos esse special de novo (o jogo volta a aparecer e ganha o foco).
 ##   place_game_windows: quando a janela do jogo aparece, garante que ela está
 ##       SOZINHA num workspace do monitor do jogo (se não estiver, move para um
 ##       vazio, levando a tela junto) e a põe em tela cheia de verdade (sem barra
@@ -109,6 +112,24 @@ func hide_hub() -> void:
 	if not _hidden:
 		push_warning("Hyprland: não consegui esconder o hub; usando o minimizar da Godot.")
 		super.hide_hub()
+
+
+func hide_hub_again() -> void:
+	if not _hidden:
+		return
+	var special_name := SPECIAL_WORKSPACE.trim_prefix("special:")
+	for monitor: Variant in _query("monitors"):
+		if not monitor is Dictionary:
+			continue
+		if str(monitor.get("specialWorkspace", {}).get("name", "")) != SPECIAL_WORKSPACE:
+			continue
+		# O toggle vale para o monitor em foco: primeiro o foco no monitor onde o
+		# special está aberto. Fechar só se estiver aberto (senão o toggle o abriria).
+		var monitor_name := _clean(str(monitor.get("name", "")))
+		_dispatch("hl.dsp.focus({ monitor = '%s' })" % monitor_name,
+				PackedStringArray(["focusmonitor", monitor_name]))
+		_dispatch("hl.dsp.workspace.toggle_special('%s')" % special_name,
+				PackedStringArray(["togglespecialworkspace", special_name]))
 
 
 func place_game_windows(game_pids: Array[int], game_monitor: String, fullscreen: bool) -> void:

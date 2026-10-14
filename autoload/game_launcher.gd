@@ -98,6 +98,7 @@ func _ready() -> void:
 	_poll_timer.timeout.connect(_poll)
 	add_child(_poll_timer)
 	_poll_timer.start()
+	HubWindow.focus_returned.connect(_on_hub_called_back)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -130,6 +131,15 @@ func get_last_session() -> Dictionary:
 func _remember_session(app_id: int) -> void:
 	var seconds := _seconds_since(_running_since_ms) if state == State.RUNNING else 0.0
 	_last_session = {"app_id": app_id, "seconds": seconds, "playtime_before": _playtime_at_start}
+
+
+## O atalho do Omarchy chamou o hub escondido (Fase 14.11). Com um jogo
+## rodando, nada muda: o hub se esconde de novo e o jogo volta à frente. Com o
+## jogo ainda abrindo, o hub fica à vista (com a tela "Abrindo X…" e o Esc para
+## cancelar); quando o jogo aparecer, o minimize_now o esconde de novo.
+func _on_hub_called_back() -> void:
+	if state == State.RUNNING:
+		HubWindow.hide_again()
 
 
 ## Pede para abrir o jogo. Devolve true se o pedido foi feito.

@@ -55,6 +55,14 @@ func hide_hub() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
 
 
+## O hub já estava escondido, mas alguém o chamou de volta (o atalho do
+## Omarchy) durante um JOGO: esconde de novo, sem mexer no jogo.
+## Aqui: nada (no Windows, quem restaura a janela vê a tela "Jogando" e
+## minimiza quando quiser, como sempre foi).
+func hide_hub_again() -> void:
+	pass
+
+
 ## Mostra o hub de novo (o jogo fechou). Aqui quem faz o trabalho é a
 ## HubWindow (posição guardada, trazer para a frente).
 func show_hub() -> void:
