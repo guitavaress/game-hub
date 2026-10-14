@@ -75,6 +75,48 @@ func _run() -> void:
 	_check("ocultos saem", not "foot" in order.call(lib.sorted_apps(all, hidden, recent)))
 	_check("a lista de entrada não muda", all.size() == 4 and all[0].id == "navegador")
 
+	print("== ícones ==")
+	var icons := ProjectSettings.globalize_path("res://tests/fixtures/icons")
+	var finder := DesktopAppsLinux.new(PackedStringArray(), "", "", PackedStringArray([icons]),
+			PackedStringArray(["Tema", "hicolor"]), PackedStringArray([ProjectSettings.globalize_path("res://tests/fixtures/pixmaps")]))
+	_check("prefere o maior tamanho (128 antes de 48)", finder.find_icon("pequeno") == icons + "/hicolor/128x128/apps/pequeno.png")
+	_check("o tema preferido vem primeiro", finder.find_icon("grande") == icons + "/Tema/256x256/apps/grande.png")
+	_check("acha SVG (scalable)", finder.find_icon("vetor") == icons + "/hicolor/scalable/apps/vetor.svg")
+	_check("acha ícone solto (pixmaps)", finder.find_icon("solto").ends_with("/pixmaps/solto.png"))
+	_check("caminho absoluto vale como está", finder.find_icon(icons + "/hicolor/48x48/apps/pequeno.png") == icons + "/hicolor/48x48/apps/pequeno.png")
+	_check("ícone que não existe: vazio", finder.find_icon("nao-existe") == "" and finder.find_icon("/nao/existe.png") == "" and finder.find_icon("") == "")
+	var img: Image = lib.load_icon_image(finder.find_icon("grande"))
+	_check("PNG de 512 encolhe para 256", img != null and img.get_width() == 256 and img.get_height() == 256)
+	img = lib.load_icon_image(finder.find_icon("pequeno"))
+	_check("PNG pequeno não é ampliado", img != null and img.get_width() == 128)
+	img = lib.load_icon_image(finder.find_icon("vetor"))
+	_check("SVG 64x32 é desenhado em 256x128", img != null and img.get_width() == 256 and img.get_height() == 128)
+	_check("arquivo que não existe: null", lib.load_icon_image("") == null and lib.load_icon_image("/nao/existe.png") == null)
+
+	var library: Node = root.get_node("AppLibrary")
+	var fake_png := DesktopApp.new()
+	fake_png.id = "teste-png"
+	fake_png.name = "Com ícone"
+	fake_png.icon_name = icons + "/hicolor/48x48/apps/pequeno.png"
+	var fake_none := DesktopApp.new()
+	fake_none.id = "teste-nada"
+	fake_none.name = "Sem ícone"
+	fake_none.icon_name = "/nao/existe.png"
+	var fakes: Array[DesktopApp] = [fake_png, fake_none]
+	library.set_apps(fakes)
+	var ready_ids: Array[String] = []
+	library.icon_ready.connect(func(id: String) -> void: ready_ids.append(id))
+	_check("get_icon devolve null na primeira vez", library.get_icon("teste-png") == null)
+	library.get_icon("teste-nada")
+	for i in 120:
+		if ready_ids.size() >= 2:
+			break
+		await process_frame
+		OS.delay_msec(10)
+	_check("icon_ready avisou os dois", ready_ids.has("teste-png") and ready_ids.has("teste-nada"))
+	_check("depois de pronto, get_icon devolve a textura", library.get_icon("teste-png") is Texture2D)
+	_check("sem imagem: null, mas o resultado fica guardado", library.get_icon("teste-nada") == null and library.has_icon_result("teste-nada"))
+
 	print("== config.cfg ==")
 	var backup := _backup_config()
 	config._config.set_value("apps", "ocultos", " a, b ,a,,c")

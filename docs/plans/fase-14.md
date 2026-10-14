@@ -72,11 +72,12 @@ Levantamento (só leitura):
   - Manual: nenhum (ainda não aparece).
   - Commit: `Fase 14.2: lista de apps do Linux`
   - Feito: nomes de apps com espaço (web apps do Omarchy, ex.: "Basecamp") funcionam como id. A categoria que sobra se chama `diversos` (o `check_profiles` proíbe `"outros"` entre aspas, que é um bairro); o nome na tela continua "Outros".
-- [ ] **14.3 Ícones dos apps** (Sonnet · medium)
+- [x] **14.3 Ícones dos apps** (Sonnet · medium)
   - Faz: achar o arquivo do ícone (caminho absoluto, ou pelo nome no tema: `~/.local/share/icons`, `/usr/share/icons/hicolor` e o tema do sistema, tamanhos 256 → 128 → scalable → 48, e `/usr/share/pixmaps`); carregar PNG e SVG (SVG rasterizado em 256 px) numa thread, com cache em memória; sinal `icon_ready(app_id)`.
   - Arquivos: `autoload/platform/desktop_apps_linux.gd` (achar o arquivo), `autoload/app_library.gd` (carregar e guardar a textura).
   - Teste: `tests/check_desktop_apps.gd` ganha ícones de exemplo (um PNG, um SVG, um caminho absoluto, um que não existe).
   - Commit: `Fase 14.3: ícones dos apps`
+  - Feito: o tema vem do `gtk-icon-theme-name` (GTK 3/4), depois hicolor, Adwaita e Yaru; o `AppLibrary` ganhou `get_icon`/`request_icon`/`has_icon_result`. **Armadilha:** uma lambda que usa o `self` e roda em `WorkerThreadPool` corrompe a memória ao fechar a Godot; use método com `.bind()` (como o `_load_icon_task`).
 - [ ] **14.4 Lista de apps no Windows** (Sonnet · medium) — *trilha paralela, janela 2*
   - Faz: o backend do Windows lê os `.lnk` de `%ProgramData%` e `%AppData%\Microsoft\Windows\Start Menu\Programs` (com subpastas), tira desinstaladores e atalhos de jogos da Steam (`.url` com `steam://`); id = caminho relativo; abrir = `OS.shell_open`. Sem ícone.
   - Arquivos: `autoload/platform/desktop_apps_windows.gd` (novo), `autoload/platform/desktop_apps.gd` (escolhe o backend), `tests/check_desktop_apps_windows.gd` (novo; com uma pasta de exemplo; no Windows, também a pasta de verdade, sem exigir nenhum app), `.github/workflows/testes.yml` (mais um teste).

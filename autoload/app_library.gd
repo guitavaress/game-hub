@@ -36,11 +36,20 @@ const MAX_RECENT: int = 30
 
 ## A lista mudou (carregou de novo).
 signal apps_changed
+## O ícone de um app acabou de ficar pronto (pedido com request_icon).
+signal icon_ready(app_id: String)
+
+## Lado do ícone na memória: PNGs maiores encolhem; SVG é desenhado neste tamanho.
+const ICON_SIZE: int = 256
 
 ## Os apps visíveis, já na ordem da estante.
 var apps: Array[DesktopApp] = []
 
 var _recent: Array[String] = []
+## Ícones já carregados (id do app → textura, ou null se não achou imagem).
+var _icons: Dictionary[String, Texture2D] = {}
+## Ids com carregamento em andamento.
+var _loading: Dictionary[String, bool] = {}
 
 
 func _ready() -> void:
@@ -95,6 +104,71 @@ func mark_opened(id: String) -> void:
 		_recent.resize(MAX_RECENT)
 	AppConfig.set_recent_apps(_recent)
 	set_apps(apps)
+
+
+## O ícone do app, ou null se ainda não carregou (ou se ele não tem imagem).
+## Na primeira chamada começa a carregar numa thread; o icon_ready avisa.
+func get_icon(id: String) -> Texture2D:
+	if _icons.has(id):
+		return _icons[id]
+	request_icon(id)
+	return null
+
+
+## Já tentamos carregar esse ícone (mesmo que não tenha achado imagem)?
+func has_icon_result(id: String) -> bool:
+	return _icons.has(id)
+
+
+## Começa a carregar o ícone numa thread (se ainda não foi nem está sendo).
+func request_icon(id: String) -> void:
+	if _icons.has(id) or _loading.has(id):
+		return
+	var app := get_app(id)
+	if app == null:
+		return
+	_loading[id] = true
+	# Método com bind, e não função anônima: uma lambda que usa o "self" e roda
+	# em thread corrompe a memória ao fechar a Godot (visto na 14.3).
+	WorkerThreadPool.add_task(_load_icon_task.bind(id, app.icon_name))
+
+
+## Roda numa thread: acha o arquivo, lê a imagem e entrega para a thread principal.
+func _load_icon_task(id: String, icon_name: String) -> void:
+	var image := load_icon_image(DesktopApps.find_icon(icon_name))
+	_icon_loaded.call_deferred(id, image)
+
+
+func _icon_loaded(id: String, image: Image) -> void:
+	_loading.erase(id)
+	_icons[id] = ImageTexture.create_from_image(image) if image != null else null
+	icon_ready.emit(id)
+
+
+## Lê um PNG ou SVG e devolve uma imagem de no máximo ICON_SIZE de lado
+## (null se o arquivo não abre). Roda bem numa thread.
+static func load_icon_image(path: String) -> Image:
+	if path == "" or not FileAccess.file_exists(path):
+		return null
+	var image := Image.new()
+	if path.get_extension().to_lower() == "svg":
+		var svg := FileAccess.get_file_as_string(path)
+		if image.load_svg_from_string(svg, 1.0) != OK:
+			return null
+		var side := maxi(image.get_width(), image.get_height())
+		if side > 0 and side != ICON_SIZE:
+			image = Image.new()
+			if image.load_svg_from_string(svg, float(ICON_SIZE) / side) != OK:
+				return null
+	elif image.load(path) != OK:
+		return null
+	if image.is_empty():
+		return null
+	var big := maxi(image.get_width(), image.get_height())
+	if big > ICON_SIZE:
+		var factor := float(ICON_SIZE) / big
+		image.resize(maxi(1, roundi(image.get_width() * factor)), maxi(1, roundi(image.get_height() * factor)), Image.INTERPOLATE_LANCZOS)
+	return image
 
 
 ## O id da categoria da estante (de CATEGORIES) para um app.

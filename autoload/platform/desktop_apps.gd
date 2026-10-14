@@ -22,6 +22,12 @@ static func list_apps() -> Array[DesktopApp]:
 	return _backend.list_apps()
 
 
+## Caminho do arquivo de imagem do ícone de um app ("" = não achei).
+## Pode rodar numa thread separada.
+static func find_icon(icon_name: String) -> String:
+	return _backend.find_icon(icon_name)
+
+
 static func _create_backend() -> DesktopAppsBackend:
 	if OS.get_name() == "Linux":
 		return DesktopAppsLinux.new()

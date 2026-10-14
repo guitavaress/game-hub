@@ -19,11 +19,25 @@ var dirs: PackedStringArray
 var desktops: PackedStringArray
 ## Idioma, como "pt_BR" ("" = sem tradução).
 var lang: String
+## Pastas "icons" (com os temas dentro), da mais forte para a mais fraca.
+var icon_dirs: PackedStringArray
+## Temas de ícone, do preferido ao último recurso.
+var icon_themes: PackedStringArray
+## Pastas de ícones soltos (/usr/share/pixmaps).
+var pixmap_dirs: PackedStringArray
+
+## Tamanhos tentados, nesta ordem ("scalable" = SVG).
+const ICON_EXTENSIONS: PackedStringArray = ["png", "svg"]
+const ICON_SIZES: PackedStringArray = ["256x256", "128x128", "scalable", "48x48", "64x64", "96x96", "192x192", "512x512", "32x32"]
 
 
 func _init(folders: PackedStringArray = _default_dirs(), current_desktops: String = OS.get_environment("XDG_CURRENT_DESKTOP"),
-		language: String = OS.get_locale()) -> void:
+		language: String = OS.get_locale(), icon_folders: PackedStringArray = _default_icon_dirs(),
+		themes: PackedStringArray = _default_icon_themes(), pixmaps: PackedStringArray = _default_pixmap_dirs()) -> void:
 	dirs = folders
+	icon_dirs = icon_folders
+	icon_themes = themes
+	pixmap_dirs = pixmaps
 	desktops = PackedStringArray()
 	for item in current_desktops.split(":", false):
 		desktops.append(item.to_lower())
@@ -83,6 +97,33 @@ func parse_file(path: String, id: String) -> DesktopApp:
 	return app
 
 
+## Acha o arquivo do ícone. O nome pode ser um caminho absoluto; senão
+## procura nos temas (<tema>/<tamanho>/apps/<nome>.png ou .svg) e, por último,
+## nas pastas de ícones soltos.
+func find_icon(icon_name: String) -> String:
+	if icon_name == "":
+		return ""
+	if icon_name.begins_with("/"):
+		return icon_name if FileAccess.file_exists(icon_name) else ""
+	for theme in icon_themes:
+		for size in ICON_SIZES:
+			for dir in icon_dirs:
+				var base := dir.trim_suffix("/").path_join(theme).path_join(size).path_join("apps").path_join(icon_name)
+				if FileAccess.file_exists(base + ".png"):
+					return base + ".png"
+				if FileAccess.file_exists(base + ".svg"):
+					return base + ".svg"
+	for dir in pixmap_dirs:
+		var base := dir.trim_suffix("/").path_join(icon_name)
+		if FileAccess.file_exists(base + ".png"):
+			return base + ".png"
+		if FileAccess.file_exists(base + ".svg"):
+			return base + ".svg"
+		if FileAccess.file_exists(base) and base.get_extension() in ICON_EXTENSIONS:
+			return base
+	return ""
+
+
 ## Tira os códigos de campo (%f, %U, %i...) do Exec, que só fazem sentido
 ## quando alguém passa arquivos ou endereços. "%%" vira "%".
 static func clean_exec(exec_line: String) -> String:
@@ -112,6 +153,44 @@ static func _default_dirs() -> PackedStringArray:
 	for dir in data_dirs.split(":", false):
 		result.append(dir.path_join("applications"))
 	return result
+
+
+static func _default_icon_dirs() -> PackedStringArray:
+	var result := PackedStringArray()
+	var data_home := OS.get_environment("XDG_DATA_HOME")
+	if data_home == "":
+		data_home = OS.get_environment("HOME").path_join(".local/share")
+	result.append(data_home.path_join("icons"))
+	result.append(OS.get_environment("HOME").path_join(".icons"))
+	var data_dirs := OS.get_environment("XDG_DATA_DIRS")
+	if data_dirs == "":
+		data_dirs = "/usr/local/share:/usr/share"
+	for dir in data_dirs.split(":", false):
+		result.append(dir.path_join("icons"))
+	return result
+
+
+## O tema do sistema (gtk-icon-theme-name do GTK 3/4), depois os temas que
+## quase todo Linux tem.
+static func _default_icon_themes() -> PackedStringArray:
+	var result := PackedStringArray()
+	var config_home := OS.get_environment("XDG_CONFIG_HOME")
+	if config_home == "":
+		config_home = OS.get_environment("HOME").path_join(".config")
+	for gtk in ["gtk-3.0", "gtk-4.0"]:
+		for line in FileAccess.get_file_as_string(config_home.path_join(gtk).path_join("settings.ini")).split("\n"):
+			if line.strip_edges().begins_with("gtk-icon-theme-name"):
+				var theme := line.get_slice("=", 1).strip_edges()
+				if theme != "" and not theme in result:
+					result.append(theme)
+	for fallback in ["hicolor", "Adwaita", "Yaru"]:
+		if not fallback in result:
+			result.append(fallback)
+	return result
+
+
+static func _default_pixmap_dirs() -> PackedStringArray:
+	return PackedStringArray(["/usr/share/pixmaps"])
 
 
 ## Junta [id, caminho] de todos os .desktop da pasta. Subpasta "a/b.desktop"

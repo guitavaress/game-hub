@@ -16,3 +16,8 @@ func platform_name() -> String:
 ## Os apps instalados e visíveis (sem ordem definida). Pode rodar numa thread.
 func list_apps() -> Array[DesktopApp]:
 	return []
+
+
+## Caminho do arquivo de imagem do ícone ("" = não achei). Pode rodar numa thread.
+func find_icon(_icon_name: String) -> String:
+	return ""
