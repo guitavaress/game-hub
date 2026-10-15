@@ -264,7 +264,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: reabre este plano (status e esta parte 2); CLAUDE.md (pasta `native/` no mapa, exceção MPL-2.0 para o godot-rust, "o compositor é só Linux"); ROADMAP (Fase 14 reaberta, o Waylandcraft como referência da V5). **Pede permissão** para instalar o Rust (`! sudo pacman -S rustup` e `! rustup default stable`, ~250 MB, rodados pelo dono).
   - Teste: `bash tests/run_tests.sh` → TUDO OK.
   - Commit: `Fase 14.13: plano da parte 2 (janelas no mundo)`
-- [ ] **14.14 Spike: um terminal num quadro** (Opus · high): *só principal; precisa do dono no notebook*
+- [x] **14.14 Spike: um terminal num quadro** (Opus · high): *só principal; precisa do dono no notebook* · `2ce537e`
   - Faz: um crate mínimo (gdext + Smithay) que abre `gamehub-0`, aceita o `foot`, copia o buffer shm para uma `ImageTexture` num quadro 3D de teste e manda teclas fixas. Confere:
     - (a) o gdext carrega na Godot 4.7.2;
     - (b) o foot aparece;
