@@ -174,6 +174,14 @@ Levantamento (só leitura):
   Em casa o FPS fica no teto de 60 (VSync) e o p99 não mudou: **a meta (não piorar mais de ~2 FPS) foi cumprida**. A estante de apps e o painel somam ~28 desenhos na casa. Memória de textura +47 MB: tirar a estante de apps do `Home.MOVABLE` baixa só ~5 MB (os 15 ícones da página); o resto não é desta fase (vem dos commits entre as fases 13 e 14: Debug Menu e Sky3D, que já estavam na branch) e **não foi isolado**. Fica para a trilha do desktop, junto com a medida na Alta.
 
 - 2026-10-14: **fase reaberta** (decisão do dono). A experiência que o dono queria é a do **Waylandcraft** (janelas de programas usadas dentro do mundo), e o planejamento da parte 1 entendeu "parte do desktop" como launcher. Escolhas: usar (não só ver), só Linux, Rust + Smithay com godot-rust (exceção MPL-2.0), perfil próprio do Brave, três telões fixos na casa. O launcher da parte 1 vira o plano B. Veja a [parte 2](#parte-2-janelas-no-mundo).
+- 2026-10-14: **meta de desempenho é o desktop** (lembrete do dono). A parte 2 tinha posto a meta "no notebook (Leve)"; corrigido: meta no desktop (Alta), notebook só antes/depois. A regra também foi para o CLAUDE.md (Stack).
+- 2026-10-14: **resultado do spike (14.14)**, no notebook (Hyprland 0.56). Rust 1.99 instalado pelo mise (`mise use -g rust@stable`, sem `sudo`); o `cargo` chega pelos atalhos do mise.
+  - **Crates:** `godot` 0.5.5 (já tem `api-4-7`: não precisa do `api-custom`) e `smithay` 0.7.0 com `default-features = false, features = ["wayland_frontend"]`. São 93 pacotes, ~20 MB; nenhum GPL (MPL-2.0 só nos do godot-rust; o `r-efi` tem LGPL como uma das opções e nem entra no Linux). A semente ficou em `native/compositor/` (com `.gdignore`; veja `spike/LEIA-ME.md`).
+  - **(a) Carrega:** "Initialize godot-rust (API v4.7.stable, runtime v4.7.2)". O `.so` em release tem 7,4 MB (o de depuração, 140 MB). Compilar do zero leva ~1,5 min (depuração) e ~4 min (release) no notebook.
+  - **(b) O foot aparece:** `WAYLAND_DISPLAY=gamehub-spike foot` abre uma janela (`app_id=foot`, pid certo pelas credenciais do socket). Sem `calloop`: o `ListeningSocket.accept()` e o `dispatch_clients` rodam no `poll()` a cada quadro. O foot avisa que faltam: seleção primária, ativação xdg, escala fracionária, cursor do servidor, ícone, entrada de texto (IME) e decoração do servidor (usa a própria). Nada disso impede o uso.
+  - **(c) Teclado:** keymap `br` no `XkbConfig`, código evdev + 8. `echo ação` saiu certo (o `ç` no lugar do `;` e o til morto no do `'`). No teste com janela, o dono digitou acentos, a tecla `/?`, o AltGr e selecionou texto com o mouse: tudo funcionou. A tabela "tecla física da Godot → evdev" do `spike/teste_janela.gd` é a semente da 14.15.
+  - **(d) Brave:** `brave-origin --ozone-platform=wayland --user-data-dir=<pasta> --no-first-run` abriu **dentro** do compositor, mesmo com o Brave de sempre aberto fora (outro processo, `app_id=brave-origin`). O perfil novo mostra a tela de boas-vindas do Brave Origin uma vez. **A imagem tem margem de sombra** (1324×764 para 1280×720 pedidos): a 14.16 recorta pela geometria da janela (`xdg_surface.set_window_geometry`).
+  - **(e) Custo (notebook, só para comparar):** compilação de depuração 37 ms por cópia; release **1,5 ms** (sem janela) e **2,7 ms** de cópia + **0,9 ms** de subida da textura por quadro com janela, com o foot redesenhando sem parar (60 FPS, pior quadro 16,7 ms). Para a 14.16: trocar a ordem das cores (BGRA → RGBA) na placa de vídeo em vez de pixel a pixel no Rust, e copiar só as linhas com dano. A meta é conferida no desktop.
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -214,7 +222,8 @@ Essa referência não foi escrita no planejamento da parte 1, e "o hub como part
 - Um app só X11 abre fora, pelo fluxo da parte 1 (o hub some e volta), e o atalho continua funcionando.
 - **Sem a extensão compilada** (ou no Windows), o hub abre e tudo funciona como na parte 1. A bateria passa com e sem o `.so`.
 - **Plataforma isolada:** só `autoload/platform/` toca no `HubCompositor` (o `check_platform` confere).
-- **Desempenho:** no notebook (Leve), em casa com o Brave tocando um vídeo num telão, cai no máximo ~5 FPS em relação à casa sem apps. Com apps parados, a queda é quase zero (a imagem só sobe quando muda). A medida no desktop fica para a trilha do desktop.
+- **Desempenho (a meta é o desktop, Ryzen 5 5600 + RTX 4070, na Alta):** em casa, com os três telões ocupados e o Brave tocando um vídeo num deles, o hub fica no teto do monitor, e o p99 não sobe mais que ~2 ms em relação à casa sem apps. Com apps parados, a queda é quase zero (a imagem só sobe quando muda).
+  - **O notebook não é meta:** lá a medida só compara o mesmo código antes e depois (a parte 2 não pode quebrar a qualidade Leve). Se o desktop ainda não estiver disponível na 14.23, a meta fica pendente para a trilha do desktop, e não é trocada pela do notebook.
 
 ## Decisões de arquitetura (parte 2)
 - **O hub é um compositor Wayland "aninhado".** Ele abre um socket próprio (`gamehub-0`), e os apps abertos pelo hub recebem `WAYLAND_DISPLAY=gamehub-0`. Para o Hyprland, o hub continua sendo uma janela comum; nada muda na config do Omarchy. Esse é o desenho do Waylandcraft.
@@ -261,7 +270,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
     - (b) o foot aparece;
     - (c) uma tecla chega (com o layout `br`);
     - (d) o Brave com `--ozone-platform=wayland --user-data-dir=...` abre lá dentro;
-    - (e) o custo da cópia shm de 1280×720 no notebook.
+    - (e) o custo da cópia shm de 1280×720 (no notebook, só para comparar caminhos; a meta é conferida no desktop).
 
     Antes de baixar os crates, **pede permissão** com a lista (nome, versão, licença).
   - Arquivos: o código do spike vira a semente de `native/compositor/` se der certo. Os resultados vão para "Decisões tomadas durante a fase".
@@ -308,14 +317,14 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Teste: `check_app_sessions` (dormindo, não sobe textura) e o teste do menu de pausa.
   - Commit: `Fase 14.22: o compositor ao dormir e ao sair`
 - [ ] **14.23 Medida e documentação** (Sonnet · medium): *só principal*
-  - Faz: a medida em casa (Leve) sem apps, com o foot parado e com o Brave tocando vídeo. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/compositor`, `components/app_window_3d`, `native/`).
+  - Faz: a medida em casa no **desktop (Alta)**, que é a meta, sem apps, com o foot parado e com o Brave tocando vídeo; no notebook (Leve), a mesma medida só como comparação antes e depois. Sem o desktop disponível, a meta fica pendente na trilha do desktop. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/compositor`, `components/app_window_3d`, `native/`).
   - Commit: `Fase 14.23: documentação da parte 2`
 
 ## Riscos (parte 2)
 - **O gdext não suporta a 4.7.2 de cara:** o `api-custom` gera o bind da versão local. O spike (14.14) responde antes de qualquer outra coisa.
 - **Teclas do ABNT2:** a Godot pode não dar um código físico para a tecla `/?` (`KEY_RO`) e outras. A tabela do ponto único e o teste com `ç`/`/?` mostram cedo. Uma tecla que faltar fica anotada como limitação.
 - **O Brave com o perfil próprio ainda acha a instância de fora:** o `--user-data-dir` diferente cria um processo novo; o spike confere.
-- **Cópia shm pesada no notebook** (vídeo em 720p a 30–60 quadros): subir só com dano, limitar o telão a 1280×720 e medir no spike. Se pesar, o telão fora da vista não sobe a imagem.
+- **Cópia shm pesada** (vídeo em 720p a 30–60 quadros, três telões): subir só com dano, limitar o telão a 1280×720 e trocar a ordem das cores na placa de vídeo. Se pesar no desktop, o telão fora da vista não sobe a imagem. O notebook só mostra se uma mudança piorou ou melhorou.
 - **Build com Rust para um dono com programação básica:** um script só (`compilar_compositor.sh`), mensagem clara quando o `.so` falta e o plano B sempre funcionando.
 - **Smithay muda de API entre versões:** versão fixada no `Cargo.lock`, e a atualização só com spike.
 
@@ -335,4 +344,4 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
 6. Abra um app só X11: o hub some e o app aparece fora. `SUPER + H` traz o hub de volta.
 7. Abra um jogo da Steam: o hub some como antes. Ao voltar, os telões continuam com os apps.
 8. Esc → Sair com apps abertos: o aviso aparece.
-9. A medida da 14.23 está dentro da meta.
+9. No **desktop** (Alta), a medida da 14.23 está dentro da meta. No notebook, ela só confirma que o Leve não piorou.

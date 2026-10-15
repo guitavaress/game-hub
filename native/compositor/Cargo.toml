@@ -1,0 +1,11 @@
+[package]
+name = "hub_compositor_spike"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+godot = { version = "=0.5.5", features = ["api-4-7"] }
+smithay = { version = "=0.7.0", default-features = false, features = ["wayland_frontend"] }

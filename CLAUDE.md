@@ -16,7 +16,8 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 ## Stack
 - **Godot 4.7.2** (versão padrão, não .NET), em `C:\Godot\Godot_v4.7.2-stable_win64_console.exe` no Windows e em `~/.local/bin/godot` no Linux. **GDScript com tipagem estática** (`var x: int`). Renderer Forward+, física Jolt.
-- **Windows 10** e **Linux** (Omarchy: Hyprland 0.56, Wayland). O desktop (Ryzen 5 5600, RTX 4070) terá dual boot; o notebook de viagem é fraco (use a qualidade Leve). Detalhes de Steam, Windows e Linux: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
+- **Windows 10** e **Linux** (Omarchy: Hyprland 0.56, Wayland). O desktop (Ryzen 5 5600, RTX 4070) terá dual boot; o notebook de viagem é fraco (use a qualidade Leve).
+- **Desempenho: a meta é sempre o desktop** (Ryzen 5 5600 + RTX 4070, na Alta). O notebook **nunca** é meta, nem em plano, spike ou conclusão: lá a medida só compara o mesmo código antes e depois. Sem o desktop à mão, a meta fica pendente para a trilha do desktop. Detalhes de Steam, Windows e Linux: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - Git, com um commit por passo concluído e testado.
 
 ## Mapa do projeto
