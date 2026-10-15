@@ -47,6 +47,7 @@ class AppScreen extends AppWindow3D:
 
 
 func _ready() -> void:
+	add_to_group("app_screens")  # o AppSessions acha os telões por aqui (regra 1)
 	for i in SPOTS.size():
 		var screen := AppScreen.new()
 		screen.name = "AppScreen%d" % (i + 1)

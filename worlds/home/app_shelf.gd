@@ -194,7 +194,9 @@ func _on_box_opened(box: AppBox) -> void:
 		return
 	_waiting_for_app = true
 	ScreenFade.set_door_charge(0.0)  # a vinheta já está toda preta: troca pela cortina
-	ScreenFade.set_amount(1.0)
+	# No mundo (telão) o hub não escurece: o app aparece num telão e o jogador segue aqui.
+	if not AppLauncher.opens_in_world():
+		ScreenFade.set_amount(1.0)
 	AppLauncher.launch(box.app_id, self)
 
 
@@ -202,6 +204,8 @@ func _on_session_ended(_app_id: String, source: Node, _success: bool, _message: 
 	if source != self:
 		return
 	_waiting_for_app = false
+	if AppLauncher.last_session_in_world:
+		return  # o app abriu num telão: o jogador não saiu daqui
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		player.teleport_to(get_return_transform())

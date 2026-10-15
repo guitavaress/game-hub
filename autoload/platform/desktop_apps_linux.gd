@@ -117,6 +117,42 @@ func launch(app: DesktopApp) -> bool:
 	return int(start_process.call(words[0], words.slice(1))) > 0
 
 
+## Os programas Chromium e Electron só falam Wayland com este argumento.
+const WAYLAND_ARG := "--ozone-platform=wayland"
+const WAYLAND_PROGRAMS: PackedStringArray = [
+	"brave", "brave-origin", "brave-browser", "chromium", "google-chrome", "google-chrome-stable",
+	"obsidian", "spotify", "code", "discord", "slack", "signal-desktop", "element-desktop",
+]
+
+
+## Os argumentos extras de um programa para abrir dentro do compositor (a
+## "tabela de ajustes por app"). O Brave ganha também um perfil só do hub, para
+## não achar o Brave de fora e abrir a janela lá.
+static func compositor_tweaks(program: String, profile_dir: String) -> PackedStringArray:
+	var name := program.get_file()
+	var out := PackedStringArray()
+	if name in WAYLAND_PROGRAMS:
+		out.append(WAYLAND_ARG)
+	if name.begins_with("brave") and not profile_dir.is_empty():
+		out.append("--user-data-dir=" + profile_dir)
+		out.append("--no-first-run")
+	return out
+
+
+## Abre o app com o ambiente do compositor, pelo Exec do .desktop (e SEM o
+## uwsm-app, que perde o WAYLAND_DISPLAY). O "env" faz o ambiente valer só
+## para este processo. true = o processo começou.
+func launch_in_compositor(app: DesktopApp, env: PackedStringArray, profile_dir: String) -> bool:
+	var words := split_command(app.exec_line)
+	if words.is_empty() or not program_exists.call(words[0]) or not program_exists.call("env"):
+		return false
+	var args := PackedStringArray(env)
+	args.append(words[0])
+	args.append_array(compositor_tweaks(words[0], profile_dir))
+	args.append_array(words.slice(1))
+	return int(start_process.call("env", args)) > 0
+
+
 ## Separa um comando em palavras, respeitando aspas ("a b" e 'a b') e a barra
 ## invertida. Ex.: sh -c "echo oi" -> ["sh", "-c", "echo oi"].
 static func split_command(line: String) -> PackedStringArray:

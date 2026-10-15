@@ -43,3 +43,14 @@ func send_scroll(_delta: Vector2) -> void:
 ## O título da janela ("" se não houver).
 func get_title() -> String:
 	return ""
+
+
+## O telão ganhou (true) ou perdeu (false) o foco do jogador: o teclado do app
+## deve seguir isso.
+func set_focused(_on: bool) -> void:
+	pass
+
+
+## A mira saiu do telão: o app não deve mais achar que o mouse está nele.
+func pointer_leave() -> void:
+	pass

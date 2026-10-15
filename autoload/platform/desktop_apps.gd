@@ -35,6 +35,13 @@ static func launch(app: DesktopApp) -> bool:
 	return _backend.launch(app)
 
 
+## Abre o app dentro do compositor do hub (Linux). true = o processo começou.
+## "env" vem do AppCompositor.environment(); "profile_dir" é a pasta do perfil
+## próprio do Brave. Onde o sistema não sabe, devolve false.
+static func launch_in_compositor(app: DesktopApp, env: PackedStringArray, profile_dir: String) -> bool:
+	return _backend.launch_in_compositor(app, env, profile_dir)
+
+
 static func _create_backend() -> DesktopAppsBackend:
 	if OS.get_name() == "Linux":
 		return DesktopAppsLinux.new()

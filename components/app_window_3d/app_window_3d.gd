@@ -39,10 +39,14 @@ func _ready() -> void:
 
 ## Liga (ou troca) a janela mostrada. null deixa o telão livre.
 func set_source(source: AppWindowSource) -> void:
+	if _source != null and _source != source:
+		_source.pointer_leave()
+		_source.set_focused(false)
 	_source = source
 	_cancel_hold()
 	if _source != null:
 		_source.resize(resolution)
+		_source.set_focused(is_focused())
 	_update_view()
 
 
@@ -70,8 +74,12 @@ func set_focused(on: bool, player: Node = null) -> void:
 	if not changed:
 		return
 	_cancel_hold()
-	if on and _source != null:
-		_source.resize(resolution)
+	if _source != null:
+		if on:
+			_source.resize(resolution)
+		else:
+			_source.pointer_leave()
+		_source.set_focused(on)
 	_update_view()
 
 
@@ -148,6 +156,7 @@ func _handle_mouse(event: InputEventMouse) -> void:
 		return
 	var pixel := ray_to_pixel(camera.project_ray_origin(event.position), camera.project_ray_normal(event.position))
 	if pixel == Vector2.INF:
+		_source.pointer_leave()  # a mira saiu do telão
 		return
 	var inside := Rect2(Vector2.ZERO, Vector2(resolution)).has_point(pixel)
 	var clamped := pixel.clamp(Vector2.ZERO, Vector2(resolution) - Vector2.ONE)

@@ -218,6 +218,13 @@ Levantamento (só leitura):
     - no `send_scroll`, **y positivo é para cima**, e no compositor positivo é para baixo: a fonte inverte o sinal;
     - o telão ainda não avisa foco nem saída do mouse: a 14.21 liga o `focus(id)`/`focus(0)` ao `set_focused` do telão e o `pointer_leave()` quando a mira sai.
 
+- **14.21: abrir no mundo (2026-10-15).**
+  - **`AppSessions`** (autoload) é dono do compositor: cria o nó na primeira vez, chama o `poll()` a cada quadro e entrega cada janela nova ao primeiro telão livre (achado pelo grupo `app_screens`, o `AppScreens` da casa). A primeira janela depois de um `open_app` é do app aberto; outra janela do mesmo pid (segunda janela do Brave) vai para outro telão; sem telão livre, a janela é fechada.
+  - **`AppLauncher`** abre no mundo quando `AppSessions.can_open_in_world()` (compositor compilado + telões na cena). O hub **não dorme**; a sessão do launcher acaba com sucesso quando a janela chega ao telão (`last_session_in_world`), e o app segue vivo no telão. Telões cheios: aviso "Os telões estão cheios". Sem janela em 10 s: plano B, o fluxo de fora da parte 1 (hub dorme e acompanha a janela). `use_world` desliga o caminho (os testes do fluxo de fora usam).
+  - **Abrir:** `env WAYLAND_DISPLAY=… programa [ajustes] args` pelo `Exec` (sem `uwsm-app`). Ajustes por app em `DesktopAppsLinux.compositor_tweaks`: `--ozone-platform=wayland` para Chromium/Electron; o Brave ganha `--user-data-dir=user://apps/brave` e `--no-first-run`.
+  - **A fonte** (`AppSessions.WindowSource`) converte: pixel do telão → pixel da textura (proporção), rolagem com y invertido, tecla → evdev (sem repetição), botão → código Linux, foco → `focus(id)`/`focus(0)`. O `AppWindowSource` ganhou `set_focused` e `pointer_leave`, ligados no `AppWindow3D`.
+  - `tests/check_app_sessions.gd` (compositor falso): janela liga ao app, segunda janela, telões cheios, tradução da fonte, janela fecha, plano B, sem compositor.
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -336,7 +343,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Teste: `tests/check_app_screens.gd` (três telões, oferta ao `AppSessions` falso, telão libera ao fechar). O `check_home` continua passando.
   - Manual: captura dos três telões (fora do repositório).
   - Commit: `Fase 14.20: telões na casa`
-- [ ] **14.21 Abrir no mundo** (Sonnet · medium)
+- [x] **14.21 Abrir no mundo** (Sonnet · medium)
   - Faz: o autoload `AppSessions`. O `AppLauncher` passa a usar o compositor quando `AppCompositor.is_available()`, com o ambiente da decisão "Abrir", os ajustes por app (ozone, perfil do Brave) e o plano B em ~10 s. A estante de apps abre no próximo telão livre. Telões cheios mostram o aviso. O hub não some para app no mundo.
   - Teste: `tests/check_app_sessions.gd` com compositor falso:
     - janela nova liga ao app;

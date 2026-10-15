@@ -26,3 +26,10 @@ func find_icon(_icon_name: String) -> String:
 ## Abre o app (sem esperar ele fechar). true = o sistema aceitou o pedido.
 func launch(_app: DesktopApp) -> bool:
 	return false
+
+
+## Abre o app DENTRO do compositor do hub (Fase 14.21): "env" é o ambiente
+## ("NOME=valor") e "profile_dir" a pasta do perfil próprio dos navegadores.
+## Só o Linux sabe; os outros devolvem false e o hub abre o app fora.
+func launch_in_compositor(_app: DesktopApp, _env: PackedStringArray, _profile_dir: String) -> bool:
+	return false

@@ -45,6 +45,7 @@ func _run() -> void:
 	var launcher = root.get_node("AppLauncher")
 	var opened: Array[String] = []
 	launcher.threaded = false
+	launcher.use_world = false  # este teste é do fluxo de fora
 	launcher.opener = func(app: DesktopApp) -> bool:
 		opened.append(app.id)
 		return true

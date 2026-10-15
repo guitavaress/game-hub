@@ -19,6 +19,13 @@ extends Node
 ##      um app que só focou uma janela que já existia), o hub se esconde do
 ##      mesmo jeito e a sessão só acaba pelo foco de volta ("sem acompanhar").
 ##
+## Fase 14.21 (Linux, com o compositor compilado e telões livres): o app abre
+## DENTRO do mundo. O AppSessions abre o app no compositor e o hub NÃO dorme:
+## quando a janela chega a um telão (window_ready), a sessão do AppLauncher
+## acaba com sucesso (o app segue vivo no telão, é do AppSessions). Se a janela
+## não chega em FIND_WINDOW_TIMEOUT (app só X11, por exemplo), vale o plano B:
+## o fluxo de fora acima, com a foto das janelas tirada antes de abrir.
+##
 ## REGRA: sempre que você chama launch(), vem UM app_session_ended com a mesma
 ## "origem", dando certo ou errado.
 ##
@@ -45,6 +52,11 @@ const FIND_WINDOW_TIMEOUT: float = 10.0
 
 var state: State = State.IDLE
 
+## Pode abrir no mundo (telões)? Os testes do fluxo de fora desligam.
+var use_world: bool = true
+## A última sessão que acabou foi uma abertura no mundo? (a estante lê)
+var last_session_in_world: bool = false
+
 ## Quem abre o app: func(app: DesktopApp) -> bool. Os testes trocam.
 var opener: Callable = _open_app
 ## O sistema sabe acompanhar janelas? func() -> bool. Os testes trocam.
@@ -60,6 +72,8 @@ var window_reader: Callable = _read_windows
 var threaded: bool = true
 
 var _app_id: String = ""
+## true enquanto esperamos a janela chegar a um telão (abertura no mundo).
+var _in_world: bool = false
 var _source: Node = null
 var _launch_started_ms: int = 0
 var _tracking: bool = false
@@ -81,11 +95,17 @@ func _ready() -> void:
 	add_child(_poll_timer)
 	HubWindow.focus_returned.connect(_on_hub_called_back)
 	HubWindow.woke_up.connect(_on_hub_called_back)
+	AppSessions.window_ready.connect(_on_world_window_ready)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state == State.LAUNCHING and event.is_action_pressed("ui_cancel"):
+	if state == State.LAUNCHING and not _in_world and event.is_action_pressed("ui_cancel"):
 		cancel_launch()
+
+
+## O próximo app vai abrir num telão (e não fora, com o hub dormindo)?
+func opens_in_world() -> bool:
+	return use_world and AppSessions.can_open_in_world()
 
 
 func is_busy() -> bool:
@@ -105,16 +125,24 @@ func is_tracking_window() -> bool:
 ## Pede para abrir o app. Devolve true se o pedido foi feito. Em qualquer caso,
 ## a resposta final chega pelo sinal app_session_ended.
 func launch(app_id: String, source: Node = null) -> bool:
+	last_session_in_world = false
 	var app := AppLibrary.get_app(app_id)
 	var problem := _check_can_launch(app)
 	if not problem.is_empty():
 		app_session_ended.emit(app_id, source, false, problem)
 		return false
 
+	var in_world := opens_in_world()
+	if in_world and AppSessions.free_screens() == 0:
+		app_session_ended.emit(app_id, source, false,
+				"Os telões estão cheios\nFeche um dos apps abertos nos telões para abrir outro.")
+		return false
+
 	_tracking = bool(can_track.call())
 	_before = list_windows.call() if _tracking else PackedStringArray()
 	_wm_class = app.wm_class
-	if not bool(opener.call(app)):
+	var opened: bool = AppSessions.open_app(app) if in_world else bool(opener.call(app))
+	if not opened:
 		app_session_ended.emit(app_id, source, false,
 				"Não consegui abrir %s\nConfira se o programa ainda está instalado." % app.name)
 		return false
@@ -125,7 +153,10 @@ func launch(app_id: String, source: Node = null) -> bool:
 	_window = ""
 	_launch_started_ms = Time.get_ticks_msec()
 	_session_number += 1
+	_in_world = in_world
 	_set_state(State.LAUNCHING)
+	if in_world:
+		return true  # o hub fica acordado: a janela vai aparecer num telão
 	# O hub dorme mas continua visível (tela "Abrindo X…") até a janela do app
 	# aparecer (ou até FIND_WINDOW_TIMEOUT).
 	HubWindow.sleep(false)
@@ -153,7 +184,10 @@ func _check_can_launch(app: DesktopApp) -> String:
 func _poll() -> void:
 	match state:
 		State.LAUNCHING:
-			if _tracking:
+			if _in_world:
+				if _seconds_since(_launch_started_ms) >= FIND_WINDOW_TIMEOUT:
+					_fall_back_to_outside()
+			elif _tracking:
 				_query_windows()
 			elif _seconds_since(_launch_started_ms) >= FIND_WINDOW_TIMEOUT:
 				_hide_hub_untracked()
@@ -202,6 +236,32 @@ func _on_windows_read(result: Dictionary, session: int) -> void:
 				_end_session(true, "")
 
 
+## A janela chegou a um telão: o AppLauncher cumpriu o papel dele.
+func _on_world_window_ready(_id: int, app_id: String) -> void:
+	if state != State.LAUNCHING or not _in_world or app_id != _app_id:
+		return
+	var finished_app := _app_id
+	var source := _source if is_instance_valid(_source) else null
+	_app_id = ""
+	_source = null
+	_in_world = false
+	_session_number += 1
+	last_session_in_world = true
+	_set_state(State.IDLE)
+	app_session_ended.emit(finished_app, source, true, "")
+
+
+## Plano B: o app não mostrou janela no compositor a tempo (provavelmente só
+## fala X11 e abriu fora). Segue como na parte 1: o hub dorme e acompanha a
+## janela de fora.
+func _fall_back_to_outside() -> void:
+	AppSessions.cancel_pending()
+	_in_world = false
+	_launch_started_ms = Time.get_ticks_msec()
+	HubWindow.sleep(false)
+	app_launch_started.emit(_app_id, _source)
+
+
 ## A janela não apareceu a tempo: o hub se esconde mesmo assim, e a sessão só
 ## acaba quando ele voltar a ter foco.
 func _hide_hub_untracked() -> void:
@@ -221,6 +281,8 @@ func _end_session(success: bool, message: String) -> void:
 	_app_id = ""
 	_source = null
 	_window = ""
+	_in_world = false
+	last_session_in_world = false
 	_session_number += 1
 	_set_state(State.IDLE)
 	HubWindow.wake()  # se já estava acordado, não faz nada
