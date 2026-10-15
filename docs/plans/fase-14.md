@@ -317,7 +317,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Teste: `cargo test` (o cliente de teste recebe a tecla e o clique nas coordenadas certas).
   - Manual: com o quadro do spike, digitar `ação` no foot.
   - Commit: `Fase 14.17: teclado e mouse nas janelas`
-- [x] **14.18 Popups e área de transferência** (Opus · high): *principal, janela 4* · `HASH`
+- [x] **14.18 Popups e área de transferência** (Opus · high): *principal, janela 4* · `4e26f0b`
   - Faz: o `xdg_popup` (menus e o botão direito do Brave) composto na textura da mãe, com o clique roteado para o popup; o data device entre os apps do hub; e o formato do cursor ignorado (o hub desenha o seu).
   - Teste: `cargo test` (popup abre na posição pedida e recebe o clique; copiar num cliente e colar no outro).
   - Commit: `Fase 14.18: popups e copiar e colar`
