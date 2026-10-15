@@ -166,6 +166,19 @@ func _run() -> void:
 	comp.title_changed.emit(1, "Novo título")
 	_check("o título acompanha o app", src.get_title() == "Novo título")
 
+	print("== Hub dormindo: o compositor fica ocioso ==")
+	var polls_before: int = comp.polls
+	H.sleep(false)
+	await process_frame
+	await process_frame
+	_check("dormindo, não há poll (nem textura nova)", S.is_dormant() and comp.polls == polls_before)
+	H.focus_returned.emit()
+	_check("o atalho do hub não mexe nos apps do mundo (sessão já ociosa)", A.state == A.State.IDLE and S.window_count() == 3)
+	H.wake()
+	await process_frame
+	await process_frame
+	_check("acordado, o poll volta", not S.is_dormant() and comp.polls > polls_before)
+
 	print("== A janela fecha ==")
 	var gone: Array[int] = []
 	S.window_gone.connect(func(id: int) -> void: gone.append(id))

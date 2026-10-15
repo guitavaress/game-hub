@@ -103,6 +103,18 @@ func _run() -> void:
 	file.close()
 	_check("config.cfg restaurado", FileAccess.get_file_as_string(CONFIG) == backup)
 
+	print("\n== Sair com apps abertos pede confirmação (Fase 14.22) ==")
+	var quit_button: Button = menu.get_quit_button()
+	_check("sem apps abertos, o botão é o de sempre", quit_button.text == "Sair do hub")
+	menu._quit_armed = false
+	var sessions = root.get_node("AppSessions")
+	sessions._sources[99] = AppWindowSource.new()  # um app "aberto" de mentira
+	menu._on_quit_pressed()
+	_check("1º clique só avisa", menu._quit_armed and quit_button.text.contains("vai fechar"))
+	sessions._sources.erase(99)
+	menu._disarm_quit()
+	_check("fechar o menu desarma o aviso", quit_button.text == "Sair do hub" and not menu._quit_armed)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 

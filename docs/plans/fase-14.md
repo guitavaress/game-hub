@@ -225,6 +225,8 @@ Levantamento (só leitura):
   - **A fonte** (`AppSessions.WindowSource`) converte: pixel do telão → pixel da textura (proporção), rolagem com y invertido, tecla → evdev (sem repetição), botão → código Linux, foco → `focus(id)`/`focus(0)`. O `AppWindowSource` ganhou `set_focused` e `pointer_leave`, ligados no `AppWindow3D`.
   - `tests/check_app_sessions.gd` (compositor falso): janela liga ao app, segunda janela, telões cheios, tradução da fonte, janela fecha, plano B, sem compositor.
 
+- **14.22: dormir e sair (2026-10-15).** Com o hub dormindo (`HubWindow.is_sleeping`), o `AppSessions` não chama o `poll()`: os apps não recebem "quadro mostrado" e ficam ociosos, e nenhuma textura sobe; ao acordar, volta. O botão "Sair do hub" do menu de pausa, com apps nos telões, pede um segundo clique ("3 apps abertos vão fechar. Sair?"); abrir ou fechar o menu desarma. O atalho `SUPER + H` não muda: apps do mundo não têm sessão no `AppLauncher` (ele fica IDLE), então só os apps de fora reagem ao foco de volta.
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -354,7 +356,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
 
     O `check_app_launcher` continua passando.
   - Commit: `Fase 14.21: abrir apps dentro do mundo`
-- [ ] **14.22 Dormir, sair e o atalho** (Sonnet · medium)
+- [x] **14.22 Dormir, sair e o atalho** (Sonnet · medium)
   - Faz: compositor ocioso enquanto o hub dorme; aviso ao sair com apps abertos; o atalho `SUPER + H` sem mudança para apps fora.
   - Teste: `check_app_sessions` (dormindo, não sobe textura) e o teste do menu de pausa.
   - Commit: `Fase 14.22: o compositor ao dormir e ao sair`

@@ -16,6 +16,9 @@ const PANEL_WIDTH: float = 460.0
 const BACKDROP_SHADER: Shader = preload("res://ui/pause_backdrop.gdshader")
 
 var _settings: SettingsView
+var _quit_button: Button
+## Sair com apps abertos pede um segundo clique (os apps fecham junto com o hub).
+var _quit_armed: bool = false
 
 
 func _ready() -> void:
@@ -72,6 +75,7 @@ func can_open() -> bool:
 
 
 func open() -> void:
+	_disarm_quit()
 	_settings.refresh()
 	visible = true
 	_settings.grab_tab_focus()
@@ -83,6 +87,7 @@ func open() -> void:
 func close() -> void:
 	if not visible:
 		return
+	_disarm_quit()
 	_settings.save_pending()
 	_settings.drop_focus()
 	visible = false
@@ -117,9 +122,31 @@ func _build_bottom_row() -> Control:
 	row.add_child(KeyHint.create("back"))
 	row.add_child(HubTheme.expander())
 	var quit := HubTheme.button("Sair do hub")
-	quit.pressed.connect(HubWindow.quit_hub)
+	quit.pressed.connect(_on_quit_pressed)
+	_quit_button = quit
 	row.add_child(quit)
 	# O rodapé entra na ordem do foco, logo depois da última linha das abas.
 	_settings.set_footer_controls([resume, quit] as Array[Control])
 	return row
 
+
+
+func get_quit_button() -> Button:
+	return _quit_button
+
+
+## Sem apps nos telões, sai na hora. Com apps, o primeiro clique avisa
+## ("3 apps abertos vão fechar") e o segundo sai.
+func _on_quit_pressed() -> void:
+	var count := AppSessions.window_count()
+	if count > 0 and not _quit_armed:
+		_quit_armed = true
+		_quit_button.text = "%d apps abertos vão fechar. Sair?" % count if count > 1 else "1 app aberto vai fechar. Sair?"
+		return
+	HubWindow.quit_hub()
+
+
+func _disarm_quit() -> void:
+	_quit_armed = false
+	if _quit_button != null:
+		_quit_button.text = "Sair do hub"

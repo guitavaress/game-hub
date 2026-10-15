@@ -95,8 +95,15 @@ class WindowSource extends AppWindowSource:
 		_compositor.call("pointer_leave")
 
 
+## Com o hub dormindo (um jogo da Steam, ou um app aberto por fora) o
+## compositor não roda: sem poll, os apps não recebem "quadro mostrado" e
+## ficam ociosos, e nenhuma textura sobe. Ao acordar, volta tudo.
+func is_dormant() -> bool:
+	return HubWindow.is_sleeping
+
+
 func _process(_delta: float) -> void:
-	if _compositor != null:
+	if _compositor != null and not is_dormant():
 		_compositor.call("poll")
 
 
