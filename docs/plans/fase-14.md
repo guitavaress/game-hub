@@ -304,7 +304,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: no Rust, xdg-shell (toplevel), shm, `frame done` só quando pedido, título, `app_id`, pid do cliente, `resize`, `close`, dano → textura. Os sinais do `HubCompositor`.
   - Teste: `cargo test` com um cliente Wayland de teste (crate `wayland-client`) que manda um buffer de cor conhecida. O compositor abre a janela, a textura tem a cor certa e, ao fechar, sai o `window_closed`.
   - Commit: `Fase 14.16: janelas e imagem no compositor`
-- [x] **14.17 Teclado e mouse** (Opus · high): *principal, janela 4* · `HASH`
+- [x] **14.17 Teclado e mouse** (Opus · high): *principal, janela 4* · `578457c`
   - Faz: o seat do Smithay com o keymap do xkb (layout lido pelo ponto único), `key(evdev)`, ponteiro (mover, botões, rolar), foco de teclado por janela e repetição de tecla do lado do cliente (`repeat_info`).
   - Teste: `cargo test` (o cliente de teste recebe a tecla e o clique nas coordenadas certas).
   - Manual: com o quadro do spike, digitar `ação` no foot.
