@@ -211,6 +211,12 @@ Levantamento (só leitura):
   - **O formato do cursor pedido pelo app continua ignorado** (o hub desenha o seu); o protocolo de formato de cursor não é oferecido.
   - **Prova no Brave** (sem janela): depois da tela de boas-vindas, o botão direito no meio da página abre o menu de contexto composto na textura, empurrado para caber; um clique fora fecha (`stats()` ganhou `menus`).
   - 31 testes no `cargo test` (5 novos: menu no lugar e por cima com sombra recortada, menu empurrado, mouse e clique no menu, grab com clique fora e teclado, copiar e colar entre dois apps). O `testar_compositor.gd` aceita `APP2` e troca de janela com Shift + F12.
+- **14.19 e 14.20: o telão e os telões na casa, juntados em `293a559` (2026-10-15).** A trilha paralela terminou, e o worktree `telao` foi apagado.
+  - **A "fonte de janela" é a classe `AppWindowSource`** (`components/app_window_3d/app_window_source.gd`): `get_texture()`, `resize(Vector2i)`, `send_key(InputEventKey)`, `send_pointer(Vector2)`, `send_button(MouseButton, bool)`, `send_scroll(Vector2)` e `get_title()`. O telão (`AppWindow3D`) só conhece essa interface; a fonte de verdade, na 14.21, traduz para o compositor pelo `AppCompositor`.
+  - **Para a fonte de verdade (14.21), três cuidados:**
+    - o `send_pointer` chega em pixels **da resolução do telão**; se a textura tiver outro tamanho (o Brave não fica menor que 800×600), a fonte converte pela proporção antes do `pointer_motion`;
+    - no `send_scroll`, **y positivo é para cima**, e no compositor positivo é para baixo: a fonte inverte o sinal;
+    - o telão ainda não avisa foco nem saída do mouse: a 14.21 liga o `focus(id)`/`focus(0)` ao `set_focused` do telão e o `pointer_leave()` quando a mira sai.
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -321,11 +327,11 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: o `xdg_popup` (menus e o botão direito do Brave) composto na textura da mãe, com o clique roteado para o popup; o data device entre os apps do hub; e o formato do cursor ignorado (o hub desenha o seu).
   - Teste: `cargo test` (popup abre na posição pedida e recebe o clique; copiar num cliente e colar no outro).
   - Commit: `Fase 14.18: popups e copiar e colar`
-- [ ] **14.19 O telão** (Sonnet · medium): *trilha paralela, janela 4*
+- [x] **14.19 O telão** (Sonnet · medium): *trilha paralela, janela 4* · `1ecfa97` (junta em `293a559`)
   - Faz: `components/app_window_3d/` herda da `Screen3D`. Recebe uma "fonte de janela" (a de verdade vem do `AppSessions`; nos testes, uma falsa com uma textura qualquer). Mouse e teclas viram chamadas na fonte; Esc curto vai para o app e segurar Esc sai; a fonte recebe o tamanho; o cursor é desenhado pelo hub. Só usa a interface, sem tocar no Rust.
   - Teste: `tests/check_app_window_3d.gd` com fonte falsa (clique no meio vira as coordenadas certas, Esc curto e longo, `resize` com a resolução).
   - Commit: `Fase 14.19: o telão de app`
-- [ ] **14.20 Telões na casa** (Sonnet · medium; Opus · high se o visual travar): *trilha paralela, janela 4, depois da 14.19*
+- [x] **14.20 Telões na casa** (Sonnet · medium; Opus · high se o visual travar): *trilha paralela, janela 4, depois da 14.19* · `424671b` (junta em `293a559`)
   - Faz: `worlds/home/app_screens.gd` cria três `AppWindow3D` fixos, no alto das paredes, no grupo `app_screen`. Mostra "Livre", o cartão ao olhar e "segure X para fechar". O `home.gd` cria os telões junto do painel.
   - Teste: `tests/check_app_screens.gd` (três telões, oferta ao `AppSessions` falso, telão libera ao fechar). O `check_home` continua passando.
   - Manual: captura dos três telões (fora do repositório).
