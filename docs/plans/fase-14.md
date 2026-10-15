@@ -282,7 +282,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
     Antes de baixar os crates, **pede permissão** com a lista (nome, versão, licença).
   - Arquivos: o código do spike vira a semente de `native/compositor/` se der certo. Os resultados vão para "Decisões tomadas durante a fase".
   - Commit: `Fase 14.14: resultado do spike do compositor`
-- [x] **14.15 A extensão e o ponto único** (Opus · high) · `HASH`
+- [x] **14.15 A extensão e o ponto único** (Opus · high) · `b79d676`
   - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/app_compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
   - Teste: `tests/check_compositor.gd` (sem `.so`: `is_available()` falso e nada quebra; tabela evdev: letras, números, ABNT2 `ç` e `/?`, setas, F1–F12) e o `check_platform` com a lista nova.
   - Commit: `Fase 14.15: extensão do compositor e o ponto único`
