@@ -2,7 +2,7 @@ extends SceneTree
 ## Teste manual do compositor (Fase 14): um quadro 3D com um app dentro.
 ##
 ## Abre o app (o foot, se nada for dito) dentro do compositor do hub e mostra
-## a janela num quadro meio de lado. O teclado e o mouse vão para o app.
+## a janela num quadro meio de lado. O teclado, o mouse e a rodinha vão para o app.
 ## Shift + Esc fecha. Precisa da extensão compilada
 ## (bash tools/linux/compilar_compositor.sh).
 ##
@@ -34,7 +34,8 @@ func _initialize() -> void:
 	comp.connect("window_opened", func(id: int, app_id: String, title: String, pid: int) -> void:
 		print("janela aberta: id=%d app_id=%s título=%s pid=%d" % [id, app_id, title, pid])
 		if window_id < 0:
-			window_id = id)
+			window_id = id
+			comp.call("focus", id))
 	comp.connect("title_changed", func(id: int, title: String) -> void:
 		print("título novo (janela %d): %s" % [id, title]))
 	comp.connect("window_closed", func(id: int) -> void:
@@ -101,10 +102,14 @@ func _on_input(event: InputEvent) -> void:
 	elif (event is InputEventMouseMotion or event is InputEventMouseButton) and window_id >= 0:
 		var pixel := _mouse_to_pixel((event as InputEventMouse).position)
 		if pixel == Vector2.INF:
+			comp.call("pointer_leave")
 			return
 		comp.call("pointer_motion", window_id, pixel.x, pixel.y)
 		if event is InputEventMouseButton:
 			var button := event as InputEventMouseButton
+			var steps := AppCompositor.wheel_steps(button)
+			if steps != Vector2.ZERO:
+				comp.call("pointer_axis", steps.x, steps.y, true)
 			var code := AppCompositor.mouse_button_code(button.button_index)
 			if code > 0:
 				comp.call("pointer_button", code, button.pressed)
@@ -123,4 +128,6 @@ func _mouse_to_pixel(pos: Vector2) -> Vector2:
 		return Vector2.INF
 	var hit := origin + dir * (-origin.z / dir.z)
 	var uv := Vector2(hit.x / QUAD_SIZE.x + 0.5, 0.5 - hit.y / QUAD_SIZE.y)
+	if uv.x < 0.0 or uv.x > 1.0 or uv.y < 0.0 or uv.y > 1.0:
+		return Vector2.INF  # fora do quadro
 	return uv * Vector2(texture.get_width(), texture.get_height())

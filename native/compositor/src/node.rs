@@ -7,7 +7,8 @@
 //!   `title_changed(id, title)`;
 //! - `get_texture(id)`: a imagem da janela, que só sobe quando muda;
 //! - `resize(id, w, h)` e `close(id)`: o telão manda o tamanho e pede para fechar;
-//! - `key`, `pointer_motion` e `pointer_button`: teclado e mouse para a janela.
+//! - `focus`, `key`, `pointer_motion`, `pointer_leave`, `pointer_button` e
+//!   `pointer_axis`: teclado e mouse para a janela.
 //!
 //! Não há laço de eventos separado: o `poll()` faz tudo sem esperar
 //! (aceita apps novos, lê as mensagens, sobe as imagens e responde).
@@ -20,18 +21,7 @@ use godot::classes::image::Format;
 use godot::classes::{INode, Image, ImageTexture, Node};
 use godot::prelude::*;
 
-use smithay::backend::input::{ButtonState, KeyState};
-use smithay::input::keyboard::{FilterResult, Keycode};
-use smithay::input::pointer::{ButtonEvent, MotionEvent};
-use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
-use smithay::utils::SERIAL_COUNTER;
-
 use crate::wayland::{toplevel_names, Core, Event};
-
-/// A "superfície" (a área de desenho) da janela com esse id.
-fn surface(core: &Core, id: i64) -> Option<WlSurface> {
-    core.state.window(id).map(|w| w.toplevel.wl_surface().clone())
-}
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
@@ -193,53 +183,59 @@ impl HubCompositor {
             .unwrap_or_default()
     }
 
-    /// Uma tecla para a janela, com o código evdev do Linux (o ponto único
-    /// do GDScript traduz a tecla da Godot). A janela ganha o foco do teclado.
+    /// Dá o foco do teclado para a janela (0 ou negativo: nenhuma). A janela
+    /// com foco desenha como "ativa"; tirar o foco solta as teclas apertadas.
     #[func]
-    fn key(&mut self, id: i64, evdev: i32, pressed: bool) {
-        let Some(core) = self.running.as_mut() else { return };
-        let Some(surface) = surface(core, id) else { return };
-        let keyboard = core.state.seat.get_keyboard().unwrap();
-        if keyboard.current_focus().as_ref() != Some(&surface) {
-            keyboard.set_focus(&mut core.state, Some(surface), SERIAL_COUNTER.next_serial());
+    fn focus(&mut self, id: i64) {
+        if let Some(core) = self.running.as_mut() {
+            core.focus((id > 0).then_some(id));
         }
-        let time = core.now_ms();
-        let state = if pressed { KeyState::Pressed } else { KeyState::Released };
-        // O xkb numera as teclas 8 acima do evdev (uma herança do X11).
-        keyboard.input::<(), _>(
-            &mut core.state,
-            Keycode::new(evdev as u32 + 8),
-            state,
-            SERIAL_COUNTER.next_serial(),
-            time,
-            |_, _, _| FilterResult::Forward,
-        );
-        core.flush();
     }
 
-    /// O ponteiro em (x, y), em pixels da janela (0, 0 é o canto de cima à esquerda).
+    /// Uma tecla para a janela, com o código evdev do Linux (o ponto único
+    /// do GDScript traduz a tecla da Godot). A janela ganha o foco do teclado.
+    /// Não mande as repetições da Godot (echo): quem repete é o app.
+    #[func]
+    fn key(&mut self, id: i64, evdev: i32, pressed: bool) {
+        if let (Some(core), Ok(evdev)) = (self.running.as_mut(), u32::try_from(evdev)) {
+            core.key(id, evdev, pressed);
+        }
+    }
+
+    /// O ponteiro em (x, y), em pixels da textura da janela (0, 0 é o canto
+    /// de cima à esquerda).
     #[func]
     fn pointer_motion(&mut self, id: i64, x: f64, y: f64) {
-        let Some(core) = self.running.as_mut() else { return };
-        let Some(surface) = surface(core, id) else { return };
-        let pointer = core.state.seat.get_pointer().unwrap();
-        let event = MotionEvent { location: (x, y).into(), serial: SERIAL_COUNTER.next_serial(), time: core.now_ms() };
-        pointer.motion(&mut core.state, Some((surface, (0.0, 0.0).into())), &event);
-        pointer.frame(&mut core.state);
-        core.flush();
+        if let Some(core) = self.running.as_mut() {
+            core.pointer_motion(id, x, y);
+        }
+    }
+
+    /// O ponteiro saiu de cima da janela (a mira saiu do telão).
+    #[func]
+    fn pointer_leave(&mut self) {
+        if let Some(core) = self.running.as_mut() {
+            core.pointer_leave();
+        }
     }
 
     /// Botão do mouse, com o código do Linux (0x110 esquerdo, 0x111 direito,
     /// 0x112 do meio). Vai para a janela onde o ponteiro está.
     #[func]
     fn pointer_button(&mut self, button: i32, pressed: bool) {
-        let Some(core) = self.running.as_mut() else { return };
-        let pointer = core.state.seat.get_pointer().unwrap();
-        let state = if pressed { ButtonState::Pressed } else { ButtonState::Released };
-        let event = ButtonEvent { serial: SERIAL_COUNTER.next_serial(), time: core.now_ms(), button: button as u32, state };
-        pointer.button(&mut core.state, &event);
-        pointer.frame(&mut core.state);
-        core.flush();
+        if let (Some(core), Ok(button)) = (self.running.as_mut(), u32::try_from(button)) {
+            core.pointer_button(button, pressed);
+        }
+    }
+
+    /// Rolar na janela onde o ponteiro está (positivo: para baixo / para a
+    /// direita). `wheel` true: rodinha, em "dentes" (1, -1...); false:
+    /// touchpad, em pixels.
+    #[func]
+    fn pointer_axis(&mut self, dx: f64, dy: f64, wheel: bool) {
+        if let Some(core) = self.running.as_mut() {
+            core.pointer_axis(dx, dy, wheel);
+        }
     }
 
     /// Números para a medida: janelas abertas e o custo médio (em

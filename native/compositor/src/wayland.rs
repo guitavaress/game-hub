@@ -13,8 +13,9 @@ use std::os::unix::net::UnixStream;
 use std::sync::Arc;
 use std::time::Instant;
 
-use smithay::input::keyboard::XkbConfig;
-use smithay::input::pointer::CursorImageStatus;
+use smithay::backend::input::{Axis, AxisSource, ButtonState, KeyState};
+use smithay::input::keyboard::{FilterResult, Keycode, XkbConfig};
+use smithay::input::pointer::{AxisFrame, ButtonEvent, CursorImageStatus, MotionEvent};
 use smithay::input::{Seat, SeatHandler, SeatState};
 use smithay::output::{Mode, Output, PhysicalProperties, Scale, Subpixel};
 use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode as DecorationMode;
@@ -23,7 +24,7 @@ use smithay::reexports::wayland_server::backend::{ClientData, ClientId, Disconne
 use smithay::reexports::wayland_server::protocol::wl_callback::WlCallback;
 use smithay::reexports::wayland_server::protocol::{wl_buffer, wl_seat, wl_surface::WlSurface};
 use smithay::reexports::wayland_server::{Client, Display, DisplayHandle, ListeningSocket, Resource};
-use smithay::utils::{Serial, Transform};
+use smithay::utils::{Serial, Transform, SERIAL_COUNTER};
 use smithay::wayland::buffer::BufferHandler;
 use smithay::wayland::compositor::{
     with_states, BufferAssignment, CompositorClientState, CompositorHandler, CompositorState, Damage,
@@ -52,6 +53,9 @@ use crate::pixels::{copy_rows, crop_rect, damaged_rows, Rect, ShmLayout};
 pub const WINDOW_SIZE: (i32, i32) = (1280, 720);
 /// O maior tamanho que o hub aceita pedir para uma janela.
 pub const MAX_SIZE: i32 = 4096;
+/// Quanto um "dente" da rodinha do mouse rola, em pixels (o mesmo número que
+/// o Linux usa: os apps esperam 15).
+pub const WHEEL_STEP: f64 = 15.0;
 
 /// O que aconteceu e a Godot precisa saber (vira sinal no nó).
 #[derive(Debug, PartialEq, Eq)]
@@ -307,6 +311,121 @@ impl Core {
         true
     }
 
+    /// Dá o foco do teclado para a janela (None: nenhuma). A janela com foco
+    /// fica "ativa" (o app desenha como janela em foco, ex.: o cursor cheio do
+    /// terminal); as outras, não. Tirar o foco solta as teclas que estavam
+    /// apertadas, do ponto de vista do app.
+    pub fn focus(&mut self, id: Option<i64>) {
+        let target = id.and_then(|id| self.state.window(id)).map(|w| w.toplevel.clone());
+        let keyboard = self.state.seat.get_keyboard().unwrap();
+        let surface = target.as_ref().map(|t| t.wl_surface().clone());
+        if keyboard.current_focus() != surface {
+            keyboard.set_focus(&mut self.state, surface, SERIAL_COUNTER.next_serial());
+        }
+        for win in &self.state.windows {
+            let active = target.as_ref() == Some(&win.toplevel);
+            win.toplevel.with_pending_state(|state| {
+                if active {
+                    state.states.set(xdg_toplevel::State::Activated);
+                } else {
+                    state.states.unset(xdg_toplevel::State::Activated);
+                }
+            });
+            // Só manda se mudou alguma coisa.
+            if win.toplevel.is_initial_configure_sent() {
+                win.toplevel.send_pending_configure();
+            }
+        }
+        self.flush();
+    }
+
+    /// A janela com o foco do teclado, se houver.
+    pub fn focused(&self) -> Option<i64> {
+        let focus = self.state.seat.get_keyboard()?.current_focus()?;
+        self.state.windows.iter().find(|w| *w.toplevel.wl_surface() == focus).map(|w| w.id)
+    }
+
+    /// Uma tecla para a janela, com o código evdev do Linux. Se a janela não
+    /// tinha o foco, ganha. Quem repete a tecla segurada é o app (o compositor
+    /// manda só o "apertou" e o "soltou").
+    pub fn key(&mut self, id: i64, evdev: u32, pressed: bool) {
+        if self.state.window(id).is_none() {
+            return;
+        }
+        if self.focused() != Some(id) {
+            self.focus(Some(id));
+        }
+        let keyboard = self.state.seat.get_keyboard().unwrap();
+        let state = if pressed { KeyState::Pressed } else { KeyState::Released };
+        let time = self.now_ms();
+        // O xkb numera as teclas 8 acima do evdev (uma herança do X11).
+        keyboard.input::<(), _>(
+            &mut self.state,
+            Keycode::new(evdev + 8),
+            state,
+            SERIAL_COUNTER.next_serial(),
+            time,
+            |_, _, _| FilterResult::Forward,
+        );
+        self.flush();
+    }
+
+    /// O ponteiro em (x, y), em pixels da imagem da janela (a da textura, sem
+    /// a sombra; 0, 0 é o canto de cima à esquerda).
+    pub fn pointer_motion(&mut self, id: i64, x: f64, y: f64) {
+        let Some(win) = self.state.window(id) else { return };
+        // A imagem é só o recorte: para o app, o ponto fica deslocado pela sombra.
+        let location = (x + win.crop.x as f64, y + win.crop.y as f64);
+        let surface = win.toplevel.wl_surface().clone();
+        let pointer = self.state.seat.get_pointer().unwrap();
+        let event = MotionEvent { location: location.into(), serial: SERIAL_COUNTER.next_serial(), time: self.now_ms() };
+        pointer.motion(&mut self.state, Some((surface, (0.0, 0.0).into())), &event);
+        pointer.frame(&mut self.state);
+        self.flush();
+    }
+
+    /// O ponteiro saiu de cima da janela (a mira saiu do telão).
+    pub fn pointer_leave(&mut self) {
+        let pointer = self.state.seat.get_pointer().unwrap();
+        let event = MotionEvent { location: (0.0, 0.0).into(), serial: SERIAL_COUNTER.next_serial(), time: self.now_ms() };
+        pointer.motion(&mut self.state, None, &event);
+        pointer.frame(&mut self.state);
+        self.flush();
+    }
+
+    /// Botão do mouse, com o código do Linux (0x110 esquerdo, 0x111 direito,
+    /// 0x112 do meio). Vai para a janela onde o ponteiro está.
+    pub fn pointer_button(&mut self, button: u32, pressed: bool) {
+        let pointer = self.state.seat.get_pointer().unwrap();
+        let state = if pressed { ButtonState::Pressed } else { ButtonState::Released };
+        let event = ButtonEvent { serial: SERIAL_COUNTER.next_serial(), time: self.now_ms(), button, state };
+        pointer.button(&mut self.state, &event);
+        pointer.frame(&mut self.state);
+        self.flush();
+    }
+
+    /// Rolar na janela onde o ponteiro está. Positivo = para baixo / para a direita.
+    /// `wheel`: true para a rodinha (os números são "dentes", ex.: 1 ou -1);
+    /// false para o touchpad (os números já são pixels).
+    pub fn pointer_axis(&mut self, dx: f64, dy: f64, wheel: bool) {
+        let mut frame = AxisFrame::new(self.now_ms()).source(if wheel { AxisSource::Wheel } else { AxisSource::Finger });
+        for (axis, amount) in [(Axis::Horizontal, dx), (Axis::Vertical, dy)] {
+            if amount == 0.0 {
+                continue;
+            }
+            if wheel {
+                // Apps novos leem os "dentes" (120 = um dente); os antigos, os pixels.
+                frame = frame.value(axis, amount * WHEEL_STEP).v120(axis, (amount * 120.0).round() as i32);
+            } else {
+                frame = frame.value(axis, amount);
+            }
+        }
+        let pointer = self.state.seat.get_pointer().unwrap();
+        pointer.axis(&mut self.state, frame);
+        pointer.frame(&mut self.state);
+        self.flush();
+    }
+
     /// Pede ao app para fechar a janela (como o X da barra de título).
     /// O app pode perguntar antes ("salvar?"); quando fechar, sai o `Closed`.
     pub fn close(&mut self, id: i64) -> bool {
@@ -417,9 +536,8 @@ impl XdgShellHandler for State {
         surface.with_pending_state(|state| {
             // O telão decide o tamanho: a janela nasce com o tamanho dele.
             state.size = Some(WINDOW_SIZE.into());
-            // "Ativa" (desenha como janela em foco) e "encostada nos quatro
-            // lados": os apps deixam de desenhar sombra e cantos redondos.
-            state.states.set(xdg_toplevel::State::Activated);
+            // "Encostada nos quatro lados": os apps deixam de desenhar sombra e
+            // cantos redondos. ("Ativa" só com o foco do teclado: veja Core::focus.)
             state.states.set(xdg_toplevel::State::TiledLeft);
             state.states.set(xdg_toplevel::State::TiledRight);
             state.states.set(xdg_toplevel::State::TiledTop);

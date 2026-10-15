@@ -197,6 +197,12 @@ Levantamento (só leitura):
   - **Tamanho mínimo dos apps:** pedido 800×450, o Brave respondeu 800×600 (o mínimo do Chromium). O telão deve usar o tamanho **da textura** para achar o pixel do mouse, e não o tamanho que pediu.
   - **Esconder a janela** (commit sem imagem) sai como `window_closed`; se o app mostrar de novo, sai outro `window_opened` com o mesmo id.
   - Sinais novos: `title_changed(id, title)`; funções novas: `resize(id, w, h)` e `close(id)`.
+- **14.17: teclado e mouse (2026-10-15).**
+  - **O teclado e o mouse também moram no `Core`**, e o app de teste do `cargo test` confere tudo (6 testes novos, 25 no total): o keymap é o do layout pedido (o cabeçalho diz `pc_br_inet(evdev)`), a repetição (30 por segundo depois de 400 ms) fica com o app, as teclas e o Shift chegam na janela com foco, tirar o foco avisa o app, o clique cai na coordenada certa e a rodinha e o touchpad rolam.
+  - **Foco explícito:** `focus(id)` (0 = nenhuma). A janela com foco fica "ativa" (o foot mostra o cursor cheio); as outras, não. A janela **nasce sem foco**. Uma tecla para uma janela sem foco dá o foco a ela. O telão chama `focus` ao entrar (E) e `focus(0)` ao sair.
+  - **O mouse soma a sombra:** o pixel (0, 0) da textura é o canto do recorte, e não o da imagem do app. O `pointer_motion` recebe pixels da textura e soma o deslocamento (teste com 22 px de sombra). Funções novas: `pointer_leave()` (a mira saiu do telão) e `pointer_axis(dx, dy, wheel)`. A rodinha vai em "dentes" (15 px e 120/120 por dente, como no Linux); o touchpad vai em pixels. O `AppCompositor.wheel_steps(evento)` traduz a rodinha da Godot.
+  - **O keymap `br` confirma a tecla `/?`:** a tecla 89 (`AB11`) dá `/` e `?`, como a tradução do ponto único supõe.
+  - **Prova no foot** (sem janela): foco, `echo ação` + Enter pelas teclas evdev, e saiu `ação`. Como o foot só avisa as linhas que mudam, a cópia média caiu para ~0,26 ms (notebook, só para comparar).
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -298,7 +304,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: no Rust, xdg-shell (toplevel), shm, `frame done` só quando pedido, título, `app_id`, pid do cliente, `resize`, `close`, dano → textura. Os sinais do `HubCompositor`.
   - Teste: `cargo test` com um cliente Wayland de teste (crate `wayland-client`) que manda um buffer de cor conhecida. O compositor abre a janela, a textura tem a cor certa e, ao fechar, sai o `window_closed`.
   - Commit: `Fase 14.16: janelas e imagem no compositor`
-- [ ] **14.17 Teclado e mouse** (Opus · high): *principal, janela 4*
+- [x] **14.17 Teclado e mouse** (Opus · high): *principal, janela 4* · `HASH`
   - Faz: o seat do Smithay com o keymap do xkb (layout lido pelo ponto único), `key(evdev)`, ponteiro (mover, botões, rolar), foco de teclado por janela e repetição de tecla do lado do cliente (`repeat_info`).
   - Teste: `cargo test` (o cliente de teste recebe a tecla e o clique nas coordenadas certas).
   - Manual: com o quadro do spike, digitar `ação` no foot.

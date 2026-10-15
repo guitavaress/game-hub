@@ -76,6 +76,11 @@ func _run() -> void:
 	_check("botão esquerdo → 0x110", AppCompositor.mouse_button_code(MOUSE_BUTTON_LEFT) == 0x110)
 	_check("botão direito → 0x111", AppCompositor.mouse_button_code(MOUSE_BUTTON_RIGHT) == 0x111)
 	_check("rodinha não é botão → -1", AppCompositor.mouse_button_code(MOUSE_BUTTON_WHEEL_UP) == -1)
+	_check("rodinha para baixo → 1 dente para baixo", AppCompositor.wheel_steps(_wheel(MOUSE_BUTTON_WHEEL_DOWN, true, 0.0)) == Vector2(0, 1))
+	_check("rodinha para cima → 1 dente para cima", AppCompositor.wheel_steps(_wheel(MOUSE_BUTTON_WHEEL_UP, true, 1.0)) == Vector2(0, -1))
+	_check("meio dente para a esquerda (touchpad)", AppCompositor.wheel_steps(_wheel(MOUSE_BUTTON_WHEEL_LEFT, true, 0.5)) == Vector2(-0.5, 0))
+	_check("o 'soltou' da rodinha não rola de novo", AppCompositor.wheel_steps(_wheel(MOUSE_BUTTON_WHEEL_DOWN, false, 1.0)) == Vector2.ZERO)
+	_check("botão esquerdo não rola", AppCompositor.wheel_steps(_wheel(MOUSE_BUTTON_LEFT, true, 1.0)) == Vector2.ZERO)
 
 	print("== layout do teclado ==")
 	var br := AppCompositor.parse_keyboard_layout('{"option": "input:kb_layout", "str": "br", "set": true }',
@@ -117,7 +122,7 @@ func _real_compositor() -> void:
 	if comp == null:
 		return
 	root.add_child(comp)
-	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "key", "pointer_motion", "pointer_button", "stats"]:
+	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "focus", "key", "pointer_motion", "pointer_leave", "pointer_button", "pointer_axis", "stats"]:
 		_check("o nó tem %s()" % method, comp.has_method(method))
 	for sig in ["window_opened", "window_closed", "title_changed"]:
 		_check("o nó tem o sinal %s" % sig, comp.has_signal(sig))
@@ -134,6 +139,14 @@ func _real_compositor() -> void:
 	await process_frame
 	await process_frame
 	_check("ao sair da árvore, o socket é fechado", not FileAccess.file_exists(socket_file))
+
+
+func _wheel(button: MouseButton, pressed: bool, factor: float) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = pressed
+	event.factor = factor
+	return event
 
 
 func _check(label: String, ok: bool) -> void:

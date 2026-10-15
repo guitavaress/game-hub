@@ -127,6 +127,25 @@ static func mouse_button_code(button: MouseButton) -> int:
 	return MOUSE_BUTTONS.get(button, -1)
 
 
+## Quanto a rodinha rolou, em "dentes" (positivo: para baixo / para a direita),
+## para o pointer_axis do compositor. Vector2.ZERO se o evento não for de rolar.
+static func wheel_steps(event: InputEventMouseButton) -> Vector2:
+	if not event.pressed:
+		return Vector2.ZERO  # a Godot manda "apertou" e "soltou" para cada dente
+	# Alguns mouses e touchpads mandam frações de dente no "factor" (0 = um dente).
+	var amount := event.factor if event.factor > 0.0 else 1.0
+	match event.button_index:
+		MOUSE_BUTTON_WHEEL_UP:
+			return Vector2(0, -amount)
+		MOUSE_BUTTON_WHEEL_DOWN:
+			return Vector2(0, amount)
+		MOUSE_BUTTON_WHEEL_LEFT:
+			return Vector2(-amount, 0)
+		MOUSE_BUTTON_WHEEL_RIGHT:
+			return Vector2(amount, 0)
+	return Vector2.ZERO
+
+
 ## O layout do teclado do Hyprland: {"layout": "br", "variant": ""}.
 ## Sem Hyprland (ou sem resposta), fica o americano ("us").
 static func keyboard_layout() -> Dictionary:

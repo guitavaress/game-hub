@@ -7,9 +7,13 @@
 
 use std::io::Write;
 use std::os::fd::AsFd;
+use std::os::unix::fs::FileExt;
 use std::os::unix::net::UnixStream;
 
-use wayland_client::protocol::{wl_buffer, wl_callback, wl_compositor, wl_registry, wl_shm, wl_shm_pool, wl_surface};
+use wayland_client::protocol::{
+    wl_buffer, wl_callback, wl_compositor, wl_keyboard, wl_pointer, wl_registry, wl_seat, wl_shm, wl_shm_pool,
+    wl_surface,
+};
 use wayland_client::{delegate_noop, Connection, Dispatch, EventQueue, QueueHandle, WEnum};
 use wayland_protocols::xdg::decoration::zv1::client::{zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1};
 use wayland_protocols::xdg::shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base};
@@ -23,6 +27,15 @@ struct App {
     shm: Option<wl_shm::WlShm>,
     wm_base: Option<xdg_wm_base::XdgWmBase>,
     decoration_manager: Option<zxdg_decoration_manager_v1::ZxdgDecorationManagerV1>,
+    seat: Option<wl_seat::WlSeat>,
+    keyboard: Option<wl_keyboard::WlKeyboard>,
+    pointer: Option<wl_pointer::WlPointer>,
+    /// O texto do keymap (o layout do teclado) que o compositor mandou.
+    keymap: String,
+    /// (repetições por segundo, espera em ms) para repetir a tecla segurada.
+    repeat: (i32, i32),
+    /// Tudo o que chegou do teclado e do mouse, em texto (fácil de conferir).
+    input: Vec<String>,
     surface: Option<wl_surface::WlSurface>,
     xdg_surface: Option<xdg_surface::XdgSurface>,
     toplevel: Option<xdg_toplevel::XdgToplevel>,
@@ -58,7 +71,11 @@ const SOMBRA: [u8; 4] = [1, 1, 1, 0];
 impl Harness {
     /// Liga o compositor e um app, que já pega os serviços (compositor, shm, xdg).
     fn new() -> Harness {
-        let core = Core::new("us", "").expect("o compositor liga");
+        Harness::with_layout("us")
+    }
+
+    fn with_layout(layout: &str) -> Harness {
+        let core = Core::new(layout, "").expect("o compositor liga");
         let (server_side, app_side) = UnixStream::pair().unwrap();
         let app_socket = app_side.try_clone().unwrap();
         let conn = Connection::from_socket(app_side).unwrap();
@@ -72,8 +89,25 @@ impl Harness {
                 && h.app.shm.is_some()
                 && h.app.wm_base.is_some()
                 && h.app.decoration_manager.is_some()
+                && h.app.keyboard.is_some()
+                && h.app.pointer.is_some()
+                && !h.app.keymap.is_empty()
         });
         h
+    }
+
+    /// Janela aberta com uma imagem (muitos testes começam assim).
+    fn open_and_draw(&mut self, margin: i32) {
+        self.open_window();
+        let (w, h) = self.app.size;
+        self.draw_and_wait(w + 2 * margin, h + 2 * margin, margin, AZUL_ESCURO, None);
+        self.app.input.clear();
+        self.events.clear();
+    }
+
+    /// Espera até o app ter recebido `count` coisas do teclado/mouse.
+    fn wait_input(&mut self, count: usize) {
+        self.pump("o teclado/mouse", |h| h.app.input.len() >= count);
     }
 
     /// Alterna compositor e app até `done` valer (ou falha depois de ~2 s).
@@ -168,7 +202,7 @@ fn janela_abre_com_nome_titulo_pid_e_cor() {
     let mut h = Harness::new();
     h.open_window();
     assert_eq!(h.app.size, WINDOW_SIZE, "a janela nasce com o tamanho do telão");
-    assert!(h.app.states.contains(&xdg_toplevel::State::Activated));
+    assert!(!h.app.states.contains(&xdg_toplevel::State::Activated), "só fica ativa com o foco do teclado");
     assert!(h.app.states.contains(&xdg_toplevel::State::TiledLeft), "encostada: sem sombra");
     assert_eq!(h.app.decoration_mode, Some(zxdg_toplevel_decoration_v1::Mode::ServerSide), "sem barra de título");
     assert!(h.events.is_empty(), "sem imagem ainda, a Godot não fica sabendo");
@@ -337,6 +371,98 @@ fn esconder_fecha_e_mostrar_abre_de_novo() {
     assert_eq!(h.pixel(5, 5), rgba(VERMELHO));
 }
 
+#[test]
+fn teclado_tem_o_layout_e_a_repeticao() {
+    let h = Harness::with_layout("br");
+    // O cabeçalho do keymap diz as peças usadas (ex.: xkb_symbols "pc_br_inet(evdev)").
+    assert!(h.app.keymap.contains("_br_"), "o keymap é o do layout pedido (ABNT2)");
+    assert_eq!(h.app.repeat, (30, 400), "o app repete a tecla: 30 por segundo, depois de 400 ms");
+    let us = Harness::new();
+    assert!(us.app.keymap.contains("_us_"));
+}
+
+#[test]
+fn tecla_vai_para_a_janela_com_foco() {
+    let mut h = Harness::with_layout("br");
+    h.open_and_draw(0);
+    assert!(!h.app.states.contains(&xdg_toplevel::State::Activated), "sem foco, não está ativa");
+    let before = h.app.configures;
+    h.core.focus(Some(1));
+    h.pump("o foco e o configure", |h| h.app.configures > before && !h.app.input.is_empty());
+    assert_eq!(h.app.input[0], "teclado entrou");
+    assert!(h.app.states.contains(&xdg_toplevel::State::Activated), "com foco, fica ativa");
+    assert_eq!(h.core.focused(), Some(1));
+    h.app.input.clear();
+    h.core.key(1, 30, true); // A
+    h.core.key(1, 30, false);
+    h.wait_input(2);
+    assert_eq!(h.app.input, vec!["tecla 30 apertou", "tecla 30 soltou"]);
+    // Shift muda os modificadores (o app sabe que é maiúscula).
+    h.app.input.clear();
+    h.core.key(1, 42, true);
+    h.wait_input(2);
+    assert_eq!(h.app.input, vec!["tecla 42 apertou", "modificadores 1"]);
+}
+
+#[test]
+fn tecla_sem_foco_da_o_foco() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    h.core.key(1, 30, true);
+    h.wait_input(2);
+    assert_eq!(h.app.input, vec!["teclado entrou", "tecla 30 apertou"]);
+    h.core.key(99, 30, true); // janela que não existe: nada acontece
+    h.pump("nada", |_| true);
+    assert_eq!(h.app.input.len(), 2);
+}
+
+#[test]
+fn tirar_o_foco_avisa_o_app() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    h.core.focus(Some(1));
+    h.wait_input(1);
+    let before = h.app.configures;
+    h.core.focus(None);
+    h.pump("o teclado sair", |h| h.app.input.len() >= 2 && h.app.configures > before);
+    assert_eq!(h.app.input[1], "teclado saiu");
+    assert!(!h.app.states.contains(&xdg_toplevel::State::Activated));
+    assert_eq!(h.core.focused(), None);
+}
+
+#[test]
+fn clique_nas_coordenadas_certas_mesmo_com_sombra() {
+    let mut h = Harness::new();
+    h.open_and_draw(22); // a imagem da Godot começa 22 px para dentro
+    h.core.pointer_motion(1, 10.0, 20.0);
+    h.wait_input(1);
+    assert_eq!(h.app.input[0], "mouse entrou em 32,42");
+    h.core.pointer_motion(1, 100.5, 50.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.wait_input(4);
+    assert_eq!(h.app.input[1..], ["mouse em 122.5,72", "botão 272 apertou", "botão 272 soltou"]);
+    h.core.pointer_leave();
+    h.wait_input(5);
+    assert_eq!(h.app.input[4], "mouse saiu");
+}
+
+#[test]
+fn rodinha_e_touchpad_rolam() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    h.core.pointer_motion(1, 5.0, 5.0);
+    h.wait_input(1);
+    h.app.input.clear();
+    h.core.pointer_axis(0.0, 1.0, true); // um dente para baixo
+    h.wait_input(3);
+    assert_eq!(h.app.input, vec!["rolagem pela rodinha", "rolagem 120 dentes/120 na vertical", "rolagem 15 na vertical"]);
+    h.app.input.clear();
+    h.core.pointer_axis(-7.5, 0.0, false); // touchpad, para a esquerda
+    h.wait_input(2);
+    assert_eq!(h.app.input, vec!["rolagem pelo touchpad", "rolagem -7.5 na horizontal"]);
+}
+
 // --- O app de teste responde ao compositor ------------------------------------
 
 impl Dispatch<wl_registry::WlRegistry, ()> for App {
@@ -354,8 +480,75 @@ impl Dispatch<wl_registry::WlRegistry, ()> for App {
                 "wl_shm" => app.shm = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_base" => app.wm_base = Some(registry.bind(name, version.min(5), qh, ())),
                 "zxdg_decoration_manager_v1" => app.decoration_manager = Some(registry.bind(name, 1, qh, ())),
+                "wl_seat" => app.seat = Some(registry.bind(name, version.min(8), qh, ())),
                 _ => {}
             }
+        }
+    }
+}
+
+impl Dispatch<wl_seat::WlSeat, ()> for App {
+    fn event(app: &mut Self, seat: &wl_seat::WlSeat, event: wl_seat::Event, _: &(), _: &Connection, qh: &QueueHandle<Self>) {
+        if let wl_seat::Event::Capabilities { capabilities: WEnum::Value(caps) } = event {
+            if caps.contains(wl_seat::Capability::Keyboard) && app.keyboard.is_none() {
+                app.keyboard = Some(seat.get_keyboard(qh, ()));
+            }
+            if caps.contains(wl_seat::Capability::Pointer) && app.pointer.is_none() {
+                app.pointer = Some(seat.get_pointer(qh, ()));
+            }
+        }
+    }
+}
+
+impl Dispatch<wl_keyboard::WlKeyboard, ()> for App {
+    fn event(app: &mut Self, _: &wl_keyboard::WlKeyboard, event: wl_keyboard::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        match event {
+            wl_keyboard::Event::Keymap { fd, size, .. } => {
+                let mut text = vec![0u8; size as usize];
+                std::fs::File::from(fd).read_exact_at(&mut text, 0).unwrap();
+                app.keymap = String::from_utf8_lossy(&text).into_owned();
+            }
+            wl_keyboard::Event::RepeatInfo { rate, delay } => app.repeat = (rate, delay),
+            wl_keyboard::Event::Enter { .. } => app.input.push("teclado entrou".into()),
+            wl_keyboard::Event::Leave { .. } => app.input.push("teclado saiu".into()),
+            wl_keyboard::Event::Key { key, state, .. } => {
+                let pressed = state == WEnum::Value(wl_keyboard::KeyState::Pressed);
+                app.input.push(format!("tecla {key} {}", if pressed { "apertou" } else { "soltou" }));
+            }
+            wl_keyboard::Event::Modifiers { mods_depressed, .. } if mods_depressed != 0 => {
+                app.input.push(format!("modificadores {mods_depressed}"));
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Dispatch<wl_pointer::WlPointer, ()> for App {
+    fn event(app: &mut Self, _: &wl_pointer::WlPointer, event: wl_pointer::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        let axis_name = |axis: WEnum<wl_pointer::Axis>| {
+            if axis == WEnum::Value(wl_pointer::Axis::VerticalScroll) { "vertical" } else { "horizontal" }
+        };
+        match event {
+            wl_pointer::Event::Enter { surface_x, surface_y, .. } => {
+                app.input.push(format!("mouse entrou em {surface_x},{surface_y}"))
+            }
+            wl_pointer::Event::Leave { .. } => app.input.push("mouse saiu".into()),
+            wl_pointer::Event::Motion { surface_x, surface_y, .. } => {
+                app.input.push(format!("mouse em {surface_x},{surface_y}"))
+            }
+            wl_pointer::Event::Button { button, state, .. } => {
+                let pressed = state == WEnum::Value(wl_pointer::ButtonState::Pressed);
+                app.input.push(format!("botão {button} {}", if pressed { "apertou" } else { "soltou" }));
+            }
+            wl_pointer::Event::AxisSource { axis_source } => {
+                let wheel = axis_source == WEnum::Value(wl_pointer::AxisSource::Wheel);
+                app.input.push(format!("rolagem pel{}", if wheel { "a rodinha" } else { "o touchpad" }));
+            }
+            wl_pointer::Event::AxisValue120 { axis, value120 } => {
+                app.input.push(format!("rolagem {value120} dentes/120 na {}", axis_name(axis)))
+            }
+            wl_pointer::Event::Axis { axis, value, .. } => app.input.push(format!("rolagem {value} na {}", axis_name(axis))),
+            _ => {}
         }
     }
 }
