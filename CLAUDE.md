@@ -40,6 +40,7 @@ autoload/      sistemas globais; não conhecem nenhum mundo
     desktop_apps (+ linux, windows)     lista de programas, ícones, abrir (.desktop / Menu Iniciar)
     system_info (+ linux)               bateria, rede e volume
     autostart                           abrir o hub ao entrar na sessão; a linha do atalho
+    app_compositor                      o compositor (Linux): carrega a extensão nativa, cria o nó, teclas → evdev, layout
     win_registry                        lê o registro do Windows
 profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
                a lista do mundo em world_profile.tres; Profiles lê.
@@ -62,11 +63,11 @@ worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do pe
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)
 tests/         bateria automática (veja tests/README.md)
-tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
+tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual
 assets/        só CC0, com LICENSE em cada pasta de origem
 addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
-               só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/compositor.gd usa
+               só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 .claude/skills/  skills do Claude Code (jogos/design, Apache-2.0) + revisao-do-hub
 ```

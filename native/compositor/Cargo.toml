@@ -1,11 +1,16 @@
+# O compositor Wayland do hub (Fase 14, parte 2): uma GDExtension só para Linux.
+# Compile com: bash tools/linux/compilar_compositor.sh (na raiz do projeto).
 [package]
-name = "hub_compositor_spike"
+name = "hub_compositor"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
 
+# Versões exatas: atualizar só com um spike (a API do Smithay muda entre versões).
 [dependencies]
 godot = { version = "=0.5.5", features = ["api-4-7"] }
 smithay = { version = "=0.7.0", default-features = false, features = ["wayland_frontend"] }

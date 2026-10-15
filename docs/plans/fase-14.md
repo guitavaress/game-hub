@@ -182,6 +182,13 @@ Levantamento (só leitura):
   - **(c) Teclado:** keymap `br` no `XkbConfig`, código evdev + 8. `echo ação` saiu certo (o `ç` no lugar do `;` e o til morto no do `'`). No teste com janela, o dono digitou acentos, a tecla `/?`, o AltGr e selecionou texto com o mouse: tudo funcionou. A tabela "tecla física da Godot → evdev" do `spike/teste_janela.gd` é a semente da 14.15.
   - **(d) Brave:** `brave-origin --ozone-platform=wayland --user-data-dir=<pasta> --no-first-run` abriu **dentro** do compositor, mesmo com o Brave de sempre aberto fora (outro processo, `app_id=brave-origin`). O perfil novo mostra a tela de boas-vindas do Brave Origin uma vez. **A imagem tem margem de sombra** (1324×764 para 1280×720 pedidos): a 14.16 recorta pela geometria da janela (`xdg_surface.set_window_geometry`).
   - **(e) Custo (notebook, só para comparar):** compilação de depuração 37 ms por cópia; release **1,5 ms** (sem janela) e **2,7 ms** de cópia + **0,9 ms** de subida da textura por quadro com janela, com o foot redesenhando sem parar (60 FPS, pior quadro 16,7 ms). Para a 14.16: trocar a ordem das cores (BGRA → RGBA) na placa de vídeo em vez de pixel a pixel no Rust, e copiar só as linhas com dano. A meta é conferida no desktop.
+- **14.15: como a extensão carrega e a tabela de teclas (2026-10-15).**
+  - **O ponto único se chama `AppCompositor`** (`autoload/platform/app_compositor.gd`): a Godot 4.7 já tem uma classe `Compositor` (efeitos de render), e o nome batia.
+  - **A extensão não entra na lista automática da Godot.** A pasta `native/` tem `.gdignore`, e o `AppCompositor` carrega o `native/hub_compositor.gdextension` com `GDExtensionManager.load_extension()`, só no Linux e só se o `native/bin/libhub_compositor.so` existir. Assim, no Windows e sem compilar, a Godot não mostra erro nenhum; no Linux sem o `.so`, sai uma linha avisando como compilar. O godot-rust aceita ser carregado com o hub já rodando (conferido no `check_compositor`).
+  - **Tabela evdev conferida no código da Godot** (driver Wayland, `key_mapping_xkb.cpp`). O spike tinha três erros que o ABNT2 mostraria: o `´` e o `[` chegam como `BRACELEFT`/`BRACERIGHT` (e não `BRACKET...`), o `'` chega como `SECTION` e o `\|` (ao lado do Shift esquerdo) como `QUOTELEFT`. A tecla `/?` do ABNT2 chega **sem código físico**: ela é reconhecida pela letra (`/` ou `?`) e vira o evdev 89. O lado direito (AltGr, Ctrl, Shift, Super) usa o `location` do evento.
+  - **Licenças:** `tools/linux/checar_licencas.sh` lê o `cargo metadata` (sem baixar nada) e avalia a expressão SPDX de cada crate: 84 crates, nenhum GPL; MPL-2.0 só nos do godot-rust. Roda no fim do `compilar_compositor.sh` e da bateria.
+  - **Bateria:** o `cargo test` (5 testes da conversão de imagem) roda só na bateria inteira, no Linux, com Rust e depois da primeira compilação (`--offline`: a bateria nunca baixa crate). Sem isso, escreve "pulado".
+  - **O spike saiu do repositório:** o quadro com teclado e mouse virou `tools/linux/testar_compositor.gd` (usa o ponto único). O teste sem janela do foot sai de cena: a 14.16 põe um cliente Wayland de teste no `cargo test`.
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -231,7 +238,7 @@ Essa referência não foi escrita no planejamento da parte 1, e "o hub como part
 - **Código nativo em Rust:** a pasta `native/compositor/` tem um crate com o **godot-rust (gdext)**, que liga o Rust à Godot, e o **Smithay**, a biblioteca de compositor. O resultado é uma GDExtension Linux x86_64 que dá uma classe `HubCompositor`. A versão de cada crate fica fixada no `Cargo.lock`, e a do Smithay numa versão ou rev exata. O bind com a Godot 4.7.2 sai do `api-custom` (gerado a partir do binário local); o spike confirma.
   **O Waylandcraft é GPL-3.0: só lemos as ideias, nenhuma linha de código é copiada.** Os crates de terceiros passam por uma checagem de licença (sem GPL) na 14.15.
 - **O `.so` não vai para o repositório.** `tools/linux/compilar_compositor.sh` compila e copia para `native/bin/` (no `.gitignore`). O `.gdextension` só declara `linux.x86_64`. Sem o `.so`, a Godot só avisa uma vez, e o hub segue no plano B.
-- **Ponto único:** `autoload/platform/compositor.gd` (estático, como o `SteamClient`) é o **único** lugar que faz `ClassDB.class_exists("HubCompositor")` e `ClassDB.instantiate(...)`, sem citar a classe pelo nome no código. Assim o GDScript compila no Windows. O mesmo arquivo tem a tabela "tecla da Godot → código evdev" e lê o layout do teclado (`hyprctl getoption input:kb_layout`, com `us` de reserva). O `check_platform` ganha `HubCompositor` e `WAYLAND_DISPLAY` na lista `PLATFORM_ONLY`.
+- **Ponto único:** `autoload/platform/app_compositor.gd` (classe `AppCompositor`, estática, como o `SteamClient`; o nome `Compositor` já é de uma classe da Godot) é o **único** lugar que faz `ClassDB.class_exists("HubCompositor")` e `ClassDB.instantiate(...)`, sem citar a classe pelo nome no código. Assim o GDScript compila no Windows. O mesmo arquivo tem a tabela "tecla da Godot → código evdev" e lê o layout do teclado (`hyprctl getoption input:kb_layout`, com `us` de reserva). O `check_platform` ganha `HubCompositor` e `WAYLAND_DISPLAY` na lista `PLATFORM_ONLY`.
 - **A interface do `HubCompositor` é pequena e sem mundo:**
   - `start(socket, layout)`, `stop()` e `poll()`. O `poll()` roda a cada quadro e processa os eventos sem bloquear.
   - Sinais `window_opened(id, app_id, title, pid)`, `window_closed(id)` e `title_changed(id, title)`.
@@ -275,8 +282,8 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
     Antes de baixar os crates, **pede permissão** com a lista (nome, versão, licença).
   - Arquivos: o código do spike vira a semente de `native/compositor/` se der certo. Os resultados vão para "Decisões tomadas durante a fase".
   - Commit: `Fase 14.14: resultado do spike do compositor`
-- [ ] **14.15 A extensão e o ponto único** (Opus · high)
-  - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
+- [x] **14.15 A extensão e o ponto único** (Opus · high) · `HASH`
+  - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/app_compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
   - Teste: `tests/check_compositor.gd` (sem `.so`: `is_available()` falso e nada quebra; tabela evdev: letras, números, ABNT2 `ç` e `/?`, setas, F1–F12) e o `check_platform` com a lista nova.
   - Commit: `Fase 14.15: extensão do compositor e o ponto único`
 - [ ] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4*
@@ -302,7 +309,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Manual: captura dos três telões (fora do repositório).
   - Commit: `Fase 14.20: telões na casa`
 - [ ] **14.21 Abrir no mundo** (Sonnet · medium)
-  - Faz: o autoload `AppSessions`. O `AppLauncher` passa a usar o compositor quando `Compositor.is_available()`, com o ambiente da decisão "Abrir", os ajustes por app (ozone, perfil do Brave) e o plano B em ~10 s. A estante de apps abre no próximo telão livre. Telões cheios mostram o aviso. O hub não some para app no mundo.
+  - Faz: o autoload `AppSessions`. O `AppLauncher` passa a usar o compositor quando `AppCompositor.is_available()`, com o ambiente da decisão "Abrir", os ajustes por app (ozone, perfil do Brave) e o plano B em ~10 s. A estante de apps abre no próximo telão livre. Telões cheios mostram o aviso. O hub não some para app no mundo.
   - Teste: `tests/check_app_sessions.gd` com compositor falso:
     - janela nova liga ao app;
     - a segunda janela do mesmo cliente vai para outro telão;
@@ -317,7 +324,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Teste: `check_app_sessions` (dormindo, não sobe textura) e o teste do menu de pausa.
   - Commit: `Fase 14.22: o compositor ao dormir e ao sair`
 - [ ] **14.23 Medida e documentação** (Sonnet · medium): *só principal*
-  - Faz: a medida em casa no **desktop (Alta)**, que é a meta, sem apps, com o foot parado e com o Brave tocando vídeo; no notebook (Leve), a mesma medida só como comparação antes e depois. Sem o desktop disponível, a meta fica pendente na trilha do desktop. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/compositor`, `components/app_window_3d`, `native/`).
+  - Faz: a medida em casa no **desktop (Alta)**, que é a meta, sem apps, com o foot parado e com o Brave tocando vídeo; no notebook (Leve), a mesma medida só como comparação antes e depois. Sem o desktop disponível, a meta fica pendente na trilha do desktop. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/app_compositor`, `components/app_window_3d`, `native/`).
   - Commit: `Fase 14.23: documentação da parte 2`
 
 ## Riscos (parte 2)

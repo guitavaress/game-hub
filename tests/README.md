@@ -11,6 +11,8 @@ bash tests/run_tests.sh check_gates check_trees  # só estes
 
 Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. O script acha a Godot em `C:\Godot` (Windows) ou no `PATH`/`~/.local/bin/godot` (Linux); para outra, rode `GODOT=/caminho/godot bash tests/run_tests.sh`.
 
+**O compositor (Rust, só Linux):** na bateria inteira, depois dos testes da Godot, roda o `cargo test` de `native/compositor/` e a checagem de licenças dos crates (`tools/linux/checar_licencas.sh`). Sem Rust, fora do Linux ou antes da primeira `bash tools/linux/compilar_compositor.sh`, aparece "cargo test: pulado". O `check_compositor` passa com e sem a extensão compilada (sem ela, pula a parte que liga um compositor de verdade).
+
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.
 
 **Duas sessões em paralelo (worktrees):** o `user://` é um só para todos os worktrees, por isso o `run_tests.sh` usa uma trava (`flock`). Se outra bateria estiver rodando, aparece "outra bateria está rodando; esperando ela terminar" e esta começa depois. A trava só vale para o `run_tests.sh`: um `godot -s` rodado à mão não espera. No Git Bash do Windows, sem `flock`, o script segue sem trava.
