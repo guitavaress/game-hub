@@ -133,6 +133,31 @@ pub fn copy_rows(src: &[u8], layout: &ShmLayout, crop: &Rect, rows: Range<i32>, 
     true
 }
 
+/// Desenha a imagem `src` (RGBA, `src_w`×`src_h`) por cima de `dst`
+/// (`dst_w`×`dst_h`) com o canto em (x, y). O que sair de `dst` é cortado.
+/// Usado para pôr os menus por cima da janela.
+///
+/// As cores do Wayland vêm "pré-multiplicadas" (o vermelho de um pixel meio
+/// transparente já vem pela metade), então misturar é: cor de cima +
+/// cor de baixo × (1 − transparência de cima).
+pub fn blend_over(dst: &mut [u8], dst_w: i32, dst_h: i32, src: &[u8], src_w: i32, src_h: i32, x: i32, y: i32) {
+    let area = Rect::new(0, 0, dst_w, dst_h).intersect(&Rect::new(x, y, src_w, src_h));
+    if area.is_empty() || dst.len() < (dst_w * dst_h * 4) as usize || src.len() < (src_w * src_h * 4) as usize {
+        return;
+    }
+    for row in area.y..area.y + area.h {
+        let d0 = ((row * dst_w + area.x) * 4) as usize;
+        let s0 = (((row - y) * src_w + (area.x - x)) * 4) as usize;
+        let len = (area.w * 4) as usize;
+        for (d, s) in dst[d0..d0 + len].chunks_exact_mut(4).zip(src[s0..s0 + len].chunks_exact(4)) {
+            let keep = 255 - s[3] as u32; // quanto da cor de baixo continua aparecendo
+            for c in 0..4 {
+                d[c] = (s[c] as u32 + (d[c] as u32 * keep + 127) / 255).min(255) as u8;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,6 +256,24 @@ mod tests {
         assert_eq!(damaged_rows(&crop, &[Rect::new(0, 20, 50, 5), Rect::new(30, 100, 5, 50)]), 10..100);
         assert_eq!(damaged_rows(&crop, &[Rect::new(0, 0, 5, 5)]), 0..0); // só na sombra
         assert_eq!(damaged_rows(&crop, &[Rect::new(0, 0, i32::MAX, i32::MAX)]), 0..100); // "tudo"
+    }
+
+    #[test]
+    fn menu_por_cima_da_janela() {
+        // Janela 3×2 azul; "menu" 2×1 vermelho opaco em (2, 1): só um pixel cabe.
+        let mut dst = [0, 0, 255, 255].repeat(6);
+        let src = [255, 0, 0, 255].repeat(2);
+        blend_over(&mut dst, 3, 2, &src, 2, 1, 2, 1);
+        assert_eq!(&dst[(1 * 3 + 2) * 4..(1 * 3 + 3) * 4], &[255, 0, 0, 255]);
+        assert_eq!(&dst[(1 * 3 + 1) * 4..(1 * 3 + 2) * 4], &[0, 0, 255, 255], "fora do menu fica a janela");
+        // Meio transparente (pré-multiplicado: vermelho 128 com alpha 128) sobre azul.
+        let mut dst = [0, 0, 255, 255].to_vec();
+        blend_over(&mut dst, 1, 1, &[128, 0, 0, 128], 1, 1, 0, 0);
+        assert_eq!(dst, vec![128, 0, 127, 255]);
+        // Totalmente fora: nada muda.
+        let mut dst = [9u8; 4].to_vec();
+        blend_over(&mut dst, 1, 1, &[255, 0, 0, 255], 1, 1, 5, 5);
+        assert_eq!(dst, vec![9; 4]);
     }
 
     /// Só para comparar caminhos (rode com `cargo test --release -- --ignored --nocapture`).

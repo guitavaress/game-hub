@@ -203,6 +203,14 @@ Levantamento (só leitura):
   - **O mouse soma a sombra:** o pixel (0, 0) da textura é o canto do recorte, e não o da imagem do app. O `pointer_motion` recebe pixels da textura e soma o deslocamento (teste com 22 px de sombra). Funções novas: `pointer_leave()` (a mira saiu do telão) e `pointer_axis(dx, dy, wheel)`. A rodinha vai em "dentes" (15 px e 120/120 por dente, como no Linux); o touchpad vai em pixels. O `AppCompositor.wheel_steps(evento)` traduz a rodinha da Godot.
   - **O keymap `br` confirma a tecla `/?`:** a tecla 89 (`AB11`) dá `/` e `?`, como a tradução do ponto único supõe.
   - **Prova no foot** (sem janela): foco, `echo ação` + Enter pelas teclas evdev, e saiu `ação`. Como o foot só avisa as linhas que mudam, a cópia média caiu para ~0,26 ms (notebook, só para comparar).
+- **14.18: menus e copiar e colar (2026-10-15).**
+  - **Os menus (popups) são filhos da janela:** cada um tem a própria imagem recortada (a sombra do menu também fica de fora), e a textura da janela sai **já composta**, com os menus por cima (mistura com as cores "pré-multiplicadas" do Wayland). Submenus funcionam (o lugar soma o dos pais). O menu é **empurrado para caber no telão** (`get_unconstrained_geometry`, com a área da janela como limite).
+  - **Mouse:** em cima de um menu, o mouse é do menu; fora, da janela. Com o botão apertado, o mouse fica "preso" onde o clique começou (regra do Wayland, como num arrastar).
+  - **Grab:** um menu com "grab" (os de verdade pedem) recebe o teclado (setas, Enter, Esc). Um clique fora dele fecha os menus (`popup_done`), e esse clique (e o "soltou" dele) **não vai para a janela**. Quando o menu fecha, o teclado volta para a janela.
+  - **Copiar e colar entre os apps do hub:** o foco do teclado também é o foco do copiar e colar (data device) e da "seleção primária" (selecionar e colar com o botão do meio). Teste com dois apps: um copia `ação copiada`, o outro ganha o foco e cola o texto certo. A ponte com a área de transferência do Omarchy continua fora (Fora do escopo).
+  - **O formato do cursor pedido pelo app continua ignorado** (o hub desenha o seu); o protocolo de formato de cursor não é oferecido.
+  - **Prova no Brave** (sem janela): depois da tela de boas-vindas, o botão direito no meio da página abre o menu de contexto composto na textura, empurrado para caber; um clique fora fecha (`stats()` ganhou `menus`).
+  - 31 testes no `cargo test` (5 novos: menu no lugar e por cima com sombra recortada, menu empurrado, mouse e clique no menu, grab com clique fora e teclado, copiar e colar entre dois apps). O `testar_compositor.gd` aceita `APP2` e troca de janela com Shift + F12.
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -309,7 +317,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Teste: `cargo test` (o cliente de teste recebe a tecla e o clique nas coordenadas certas).
   - Manual: com o quadro do spike, digitar `ação` no foot.
   - Commit: `Fase 14.17: teclado e mouse nas janelas`
-- [ ] **14.18 Popups e área de transferência** (Opus · high): *principal, janela 4*
+- [x] **14.18 Popups e área de transferência** (Opus · high): *principal, janela 4* · `HASH`
   - Faz: o `xdg_popup` (menus e o botão direito do Brave) composto na textura da mãe, com o clique roteado para o popup; o data device entre os apps do hub; e o formato do cursor ignorado (o hub desenha o seu).
   - Teste: `cargo test` (popup abre na posição pedida e recebe o clique; copiar num cliente e colar no outro).
   - Commit: `Fase 14.18: popups e copiar e colar`

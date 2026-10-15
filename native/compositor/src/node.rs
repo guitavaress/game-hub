@@ -5,7 +5,7 @@
 //! - `start(socket, layout, variant)`, `stop()` e `poll()` (a cada quadro);
 //! - sinais `window_opened(id, app_id, title, pid)`, `window_closed(id)` e
 //!   `title_changed(id, title)`;
-//! - `get_texture(id)`: a imagem da janela, que só sobe quando muda;
+//! - `get_texture(id)`: a imagem da janela (com os menus por cima), que só sobe quando muda;
 //! - `resize(id, w, h)` e `close(id)`: o telão manda o tamanho e pede para fechar;
 //! - `focus`, `key`, `pointer_motion`, `pointer_leave`, `pointer_button` e
 //!   `pointer_axis`: teclado e mouse para a janela.
@@ -102,7 +102,8 @@ impl HubCompositor {
         for win in core.state.windows.iter_mut() {
             if win.dirty && win.width() > 0 {
                 win.dirty = false;
-                let bytes = PackedByteArray::from(win.pixels.as_slice());
+                // A janela com os menus por cima.
+                let bytes = PackedByteArray::from(win.image());
                 if let Some(image) = Image::create_from_data(win.width(), win.height(), false, Format::RGBA8, &bytes) {
                     images.push((win.id, image));
                 }
@@ -150,14 +151,15 @@ impl HubCompositor {
         self.textures.get(&id).cloned()
     }
 
-    /// A imagem atual da janela, na memória (ex.: para salvar em PNG num teste).
+    /// A imagem atual da janela, com os menus, na memória (ex.: para salvar em
+    /// PNG num teste).
     #[func]
-    fn get_image(&self, id: i64) -> Option<Gd<Image>> {
-        let win = self.running.as_ref()?.state.window(id)?;
+    fn get_image(&mut self, id: i64) -> Option<Gd<Image>> {
+        let win = self.running.as_mut()?.state.windows.iter_mut().find(|w| w.id == id)?;
         if win.width() <= 0 {
             return None;
         }
-        let bytes = PackedByteArray::from(win.pixels.as_slice());
+        let bytes = PackedByteArray::from(win.image());
         Image::create_from_data(win.width(), win.height(), false, Format::RGBA8, &bytes)
     }
 
@@ -238,7 +240,7 @@ impl HubCompositor {
         }
     }
 
-    /// Números para a medida: janelas abertas e o custo médio (em
+    /// Números para a medida: janelas e menus abertos e o custo médio (em
     /// microssegundos) da cópia da imagem e da subida da textura.
     #[func]
     fn stats(&self) -> VarDictionary {
@@ -247,6 +249,7 @@ impl HubCompositor {
         if let Some(core) = self.running.as_ref() {
             let s = &core.state;
             d.set("janelas", s.windows.len() as i64);
+            d.set("menus", s.windows.iter().map(|w| w.popups.len()).sum::<usize>() as i64);
             d.set("copias", s.copy_count as i64);
             d.set("copia_media_us", average(s.copy_us_total, s.copy_count));
         }

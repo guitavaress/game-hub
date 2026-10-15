@@ -1,22 +1,23 @@
-//! Testes do compositor com um app de mentira que fala Wayland de verdade
+//! Testes do compositor com apps de mentira que falam Wayland de verdade
 //! (o crate `wayland-client`, só nos testes).
 //!
-//! O compositor (`Core`) e o app rodam na mesma thread: os dois leem sem
+//! O compositor (`Core`) e os apps rodam na mesma thread: todos leem sem
 //! esperar, e o `pump()` alterna entre eles até a condição do teste valer.
-//! Não precisa da Godot nem de socket em disco (um par de sockets liga os dois).
+//! Não precisa da Godot nem de socket em disco (um par de sockets liga cada app).
 
-use std::io::Write;
+use std::io::{Read, Write};
+use std::ops::{Deref, DerefMut};
 use std::os::fd::AsFd;
 use std::os::unix::fs::FileExt;
 use std::os::unix::net::UnixStream;
 
 use wayland_client::protocol::{
-    wl_buffer, wl_callback, wl_compositor, wl_keyboard, wl_pointer, wl_registry, wl_seat, wl_shm, wl_shm_pool,
-    wl_surface,
+    wl_buffer, wl_callback, wl_compositor, wl_data_device, wl_data_device_manager, wl_data_offer, wl_data_source,
+    wl_keyboard, wl_pointer, wl_registry, wl_seat, wl_shm, wl_shm_pool, wl_surface,
 };
-use wayland_client::{delegate_noop, Connection, Dispatch, EventQueue, QueueHandle, WEnum};
+use wayland_client::{delegate_noop, event_created_child, Connection, Dispatch, EventQueue, QueueHandle, WEnum};
 use wayland_protocols::xdg::decoration::zv1::client::{zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1};
-use wayland_protocols::xdg::shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base};
+use wayland_protocols::xdg::shell::client::{xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base};
 
 use crate::wayland::{Core, Event, WINDOW_SIZE};
 
@@ -30,10 +31,14 @@ struct App {
     seat: Option<wl_seat::WlSeat>,
     keyboard: Option<wl_keyboard::WlKeyboard>,
     pointer: Option<wl_pointer::WlPointer>,
+    data_manager: Option<wl_data_device_manager::WlDataDeviceManager>,
+    data_device: Option<wl_data_device::WlDataDevice>,
     /// O texto do keymap (o layout do teclado) que o compositor mandou.
     keymap: String,
     /// (repetições por segundo, espera em ms) para repetir a tecla segurada.
     repeat: (i32, i32),
+    /// O número do último "teclado entrou" (o app precisa dele para copiar).
+    keyboard_serial: u32,
     /// Tudo o que chegou do teclado e do mouse, em texto (fácil de conferir).
     input: Vec<String>,
     surface: Option<wl_surface::WlSurface>,
@@ -48,19 +53,161 @@ struct App {
     decoration_mode: Option<zxdg_toplevel_decoration_v1::Mode>,
     close_requested: bool,
     frames_done: u32,
+    /// Os menus que este app abriu.
+    popups: Vec<TestPopup>,
+    /// Copiar e colar: o que está oferecido para colar (e os formatos), e se
+    /// o app que copiou já mandou o texto.
+    selection: Option<wl_data_offer::WlDataOffer>,
+    offered: Vec<String>,
+    copied_text_sent: bool,
 }
 
-/// O compositor, o app e o fio entre eles.
-struct Harness {
-    core: Core,
+/// Um menu do app de teste.
+struct TestPopup {
+    surface: wl_surface::WlSurface,
+    xdg_surface: xdg_surface::XdgSurface,
+    popup: xdg_popup::XdgPopup,
+    /// O lugar e o tamanho que o compositor deu (x, y, largura, altura).
+    place: Option<(i32, i32, i32, i32)>,
+    configures: u32,
+    done: bool,
+}
+
+/// Um app conectado: o fio, a fila de mensagens e o que ele sabe.
+struct Peer {
     conn: Connection,
     queue: EventQueue<App>,
     qh: QueueHandle<App>,
     app: App,
     /// Uma cópia do socket do app, para "derrubar" o app no teste.
     app_socket: UnixStream,
+}
+
+impl Peer {
+    fn connect(core: &mut Core) -> Peer {
+        let (server_side, app_side) = UnixStream::pair().unwrap();
+        let app_socket = app_side.try_clone().unwrap();
+        let conn = Connection::from_socket(app_side).unwrap();
+        let queue = conn.new_event_queue();
+        let qh = queue.handle();
+        conn.display().get_registry(&qh, ());
+        core.add_client(server_side).unwrap();
+        Peer { conn, queue, qh, app: App::default(), app_socket }
+    }
+
+    /// Manda o que tem para mandar e lê o que chegou, sem esperar.
+    fn sync(&mut self) {
+        let _ = self.conn.flush();
+        if let Some(guard) = self.queue.prepare_read() {
+            let _ = guard.read(); // sem nada para ler, volta na hora ("WouldBlock")
+        }
+        self.queue.dispatch_pending(&mut self.app).unwrap();
+    }
+
+    fn ready(&self) -> bool {
+        let a = &self.app;
+        a.compositor.is_some()
+            && a.shm.is_some()
+            && a.wm_base.is_some()
+            && a.decoration_manager.is_some()
+            && a.keyboard.is_some()
+            && a.pointer.is_some()
+            && a.data_device.is_some()
+            && !a.keymap.is_empty()
+    }
+
+    /// Cria a janela (com nome, título e pedido de decoração) e faz o commit vazio.
+    fn create_window(&mut self) {
+        let qh = self.qh.clone();
+        let surface = self.app.compositor.as_ref().unwrap().create_surface(&qh, ());
+        let xdg_surface = self.app.wm_base.as_ref().unwrap().get_xdg_surface(&surface, &qh, ());
+        let toplevel = xdg_surface.get_toplevel(&qh, ());
+        toplevel.set_app_id("teste".into());
+        toplevel.set_title("Janela de teste".into());
+        self.app.decoration_manager.as_ref().unwrap().get_toplevel_decoration(&toplevel, &qh, ());
+        surface.commit();
+        self.app.surface = Some(surface);
+        self.app.xdg_surface = Some(xdg_surface);
+        self.app.toplevel = Some(toplevel);
+    }
+
+    /// Abre um menu ancorado no ponto (x, y) da janela, de `w`×`h`, que cresce
+    /// para baixo e para a direita e pode ser empurrado para caber.
+    fn create_popup(&mut self, x: i32, y: i32, w: i32, h: i32) -> usize {
+        let qh = self.qh.clone();
+        let index = self.app.popups.len();
+        let wm_base = self.app.wm_base.as_ref().unwrap();
+        let positioner = wm_base.create_positioner(&qh, ());
+        positioner.set_size(w, h);
+        positioner.set_anchor_rect(x, y, 1, 1);
+        positioner.set_anchor(xdg_positioner::Anchor::TopLeft);
+        positioner.set_gravity(xdg_positioner::Gravity::BottomRight);
+        positioner.set_constraint_adjustment(
+            xdg_positioner::ConstraintAdjustment::SlideX | xdg_positioner::ConstraintAdjustment::SlideY,
+        );
+        let surface = self.app.compositor.as_ref().unwrap().create_surface(&qh, ());
+        let xdg_surface = wm_base.get_xdg_surface(&surface, &qh, index);
+        let popup = xdg_surface.get_popup(self.app.xdg_surface.as_ref(), &positioner, &qh, index);
+        surface.commit();
+        self.app.popups.push(TestPopup { surface, xdg_surface, popup, place: None, configures: 0, done: false });
+        index
+    }
+
+    /// Desenha uma imagem `w`×`h` na janela (`popup` None) ou num menu:
+    /// `color` no meio e, se `margin` > 0, uma "sombra" dessa largura em volta
+    /// (declarada com set_window_geometry). `damage`: só essa faixa de linhas
+    /// avisada como mudada (None = tudo).
+    fn draw_on(&mut self, popup: Option<usize>, w: i32, h: i32, margin: i32, color: [u8; 4], damage: Option<(i32, i32)>) {
+        let stride = w * 4;
+        let mut bytes = Vec::with_capacity((stride * h) as usize);
+        for y in 0..h {
+            for x in 0..w {
+                let shadow = x < margin || y < margin || x >= w - margin || y >= h - margin;
+                bytes.extend_from_slice(if shadow { &SOMBRA } else { &color });
+            }
+        }
+        let mut file = tempfile::tempfile().unwrap();
+        file.write_all(&bytes).unwrap();
+        let qh = self.qh.clone();
+        let pool = self.app.shm.as_ref().unwrap().create_pool(file.as_fd(), stride * h, &qh, ());
+        let buffer = pool.create_buffer(0, w, h, stride, wl_shm::Format::Xrgb8888, &qh, ());
+        let (surface, xdg_surface) = match popup {
+            Some(i) => (self.app.popups[i].surface.clone(), self.app.popups[i].xdg_surface.clone()),
+            None => (self.app.surface.clone().unwrap(), self.app.xdg_surface.clone().unwrap()),
+        };
+        if margin > 0 {
+            xdg_surface.set_window_geometry(margin, margin, w - 2 * margin, h - 2 * margin);
+        }
+        surface.attach(Some(&buffer), 0, 0);
+        match damage {
+            Some((top, bottom)) => surface.damage_buffer(0, top, w, bottom - top),
+            None => surface.damage_buffer(0, 0, i32::MAX, i32::MAX),
+        }
+        surface.commit();
+        pool.destroy();
+    }
+}
+
+/// O compositor, os apps (o primeiro é "o app" dos testes) e os eventos.
+struct Harness {
+    core: Core,
+    peers: Vec<Peer>,
     /// Os eventos que o compositor mandaria para a Godot.
     events: Vec<Event>,
+}
+
+/// `h.app`, `h.qh`... falam do primeiro app (quase todo teste só tem um).
+impl Deref for Harness {
+    type Target = Peer;
+    fn deref(&self) -> &Peer {
+        &self.peers[0]
+    }
+}
+
+impl DerefMut for Harness {
+    fn deref_mut(&mut self) -> &mut Peer {
+        &mut self.peers[0]
+    }
 }
 
 /// Cor de teste, como o app grava: B, G, R, A.
@@ -69,31 +216,56 @@ const VERMELHO: [u8; 4] = [0, 0, 200, 0];
 const SOMBRA: [u8; 4] = [1, 1, 1, 0];
 
 impl Harness {
-    /// Liga o compositor e um app, que já pega os serviços (compositor, shm, xdg).
+    /// Liga o compositor e um app, que já pega os serviços (compositor, shm, xdg...).
     fn new() -> Harness {
         Harness::with_layout("us")
     }
 
     fn with_layout(layout: &str) -> Harness {
         let core = Core::new(layout, "").expect("o compositor liga");
-        let (server_side, app_side) = UnixStream::pair().unwrap();
-        let app_socket = app_side.try_clone().unwrap();
-        let conn = Connection::from_socket(app_side).unwrap();
-        let queue = conn.new_event_queue();
-        let qh = queue.handle();
-        conn.display().get_registry(&qh, ());
-        let mut h = Harness { core, conn, queue, qh, app: App::default(), app_socket, events: Vec::new() };
-        h.core.add_client(server_side).unwrap();
-        h.pump("os serviços do compositor", |h| {
-            h.app.compositor.is_some()
-                && h.app.shm.is_some()
-                && h.app.wm_base.is_some()
-                && h.app.decoration_manager.is_some()
-                && h.app.keyboard.is_some()
-                && h.app.pointer.is_some()
-                && !h.app.keymap.is_empty()
-        });
+        let mut h = Harness { core, peers: Vec::new(), events: Vec::new() };
+        h.add_peer();
         h
+    }
+
+    /// Liga mais um app e espera ele pegar os serviços. Devolve o número dele.
+    fn add_peer(&mut self) -> usize {
+        let peer = Peer::connect(&mut self.core);
+        self.peers.push(peer);
+        let who = self.peers.len() - 1;
+        self.pump("os serviços do compositor", |h| h.peers[who].ready());
+        who
+    }
+
+    /// Alterna compositor e apps até `done` valer (ou falha depois de ~2 s).
+    fn pump(&mut self, what: &str, mut done: impl FnMut(&mut Harness) -> bool) {
+        for _ in 0..2000 {
+            for peer in &mut self.peers {
+                let _ = peer.conn.flush();
+            }
+            self.core.dispatch().unwrap();
+            for peer in &mut self.peers {
+                peer.sync();
+            }
+            let events = self.core.take_events();
+            self.events.extend(events);
+            if done(self) {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        panic!("tempo esgotado esperando: {what} (o app recebeu: {:?})", self.peers[0].app.input);
+    }
+
+    /// Cria a janela do app `who` e espera o primeiro configure, como todo app faz.
+    fn open_window_of(&mut self, who: usize) {
+        self.peers[who].create_window();
+        let before = self.peers[who].app.configures;
+        self.pump("o primeiro configure", |h| h.peers[who].app.configures > before);
+    }
+
+    fn open_window(&mut self) {
+        self.open_window_of(0);
     }
 
     /// Janela aberta com uma imagem (muitos testes começam assim).
@@ -110,71 +282,8 @@ impl Harness {
         self.pump("o teclado/mouse", |h| h.app.input.len() >= count);
     }
 
-    /// Alterna compositor e app até `done` valer (ou falha depois de ~2 s).
-    fn pump(&mut self, what: &str, mut done: impl FnMut(&mut Harness) -> bool) {
-        for _ in 0..2000 {
-            let _ = self.conn.flush();
-            self.core.dispatch().unwrap();
-            if let Some(guard) = self.queue.prepare_read() {
-                let _ = guard.read(); // sem nada para ler, volta na hora ("WouldBlock")
-            }
-            self.queue.dispatch_pending(&mut self.app).unwrap();
-            let events = self.core.take_events();
-            self.events.extend(events);
-            if done(self) {
-                return;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        panic!("tempo esgotado esperando: {what}");
-    }
-
-    /// Cria a janela (com nome, título e pedido de decoração) e espera o
-    /// primeiro configure, como todo app faz.
-    fn open_window(&mut self) {
-        let qh = self.qh.clone();
-        let surface = self.app.compositor.as_ref().unwrap().create_surface(&qh, ());
-        let xdg_surface = self.app.wm_base.as_ref().unwrap().get_xdg_surface(&surface, &qh, ());
-        let toplevel = xdg_surface.get_toplevel(&qh, ());
-        toplevel.set_app_id("teste".into());
-        toplevel.set_title("Janela de teste".into());
-        self.app.decoration_manager.as_ref().unwrap().get_toplevel_decoration(&toplevel, &qh, ());
-        surface.commit();
-        self.app.surface = Some(surface);
-        self.app.xdg_surface = Some(xdg_surface);
-        self.app.toplevel = Some(toplevel);
-        let before = self.app.configures;
-        self.pump("o primeiro configure", |h| h.app.configures > before);
-    }
-
-    /// O app desenha uma imagem `w`×`h`: `color` no meio e, se `margin` > 0,
-    /// uma "sombra" dessa largura em volta (declarada com set_window_geometry).
-    /// `damage`: só essa faixa de linhas avisada como mudada (None = tudo).
     fn draw(&mut self, w: i32, h: i32, margin: i32, color: [u8; 4], damage: Option<(i32, i32)>) {
-        let stride = w * 4;
-        let mut bytes = Vec::with_capacity((stride * h) as usize);
-        for y in 0..h {
-            for x in 0..w {
-                let shadow = x < margin || y < margin || x >= w - margin || y >= h - margin;
-                bytes.extend_from_slice(if shadow { &SOMBRA } else { &color });
-            }
-        }
-        let mut file = tempfile::tempfile().unwrap();
-        file.write_all(&bytes).unwrap();
-        let qh = self.qh.clone();
-        let pool = self.app.shm.as_ref().unwrap().create_pool(file.as_fd(), stride * h, &qh, ());
-        let buffer = pool.create_buffer(0, w, h, stride, wl_shm::Format::Xrgb8888, &qh, ());
-        let surface = self.app.surface.clone().unwrap();
-        if margin > 0 {
-            self.app.xdg_surface.as_ref().unwrap().set_window_geometry(margin, margin, w - 2 * margin, h - 2 * margin);
-        }
-        surface.attach(Some(&buffer), 0, 0);
-        match damage {
-            Some((top, bottom)) => surface.damage_buffer(0, top, w, bottom - top),
-            None => surface.damage_buffer(0, 0, i32::MAX, i32::MAX),
-        }
-        surface.commit();
-        pool.destroy();
+        self.peers[0].draw_on(None, w, h, margin, color, damage);
     }
 
     /// Desenha e espera o compositor processar (a janela fica "suja").
@@ -184,11 +293,28 @@ impl Harness {
         self.pump("a imagem nova", |h| h.core.state.copy_count > copies);
     }
 
-    /// O pixel (x, y) da janela 1, em RGBA.
-    fn pixel(&self, x: i32, y: i32) -> [u8; 4] {
-        let win = self.core.state.window(1).expect("a janela 1 existe");
-        let i = ((y * win.width() + x) * 4) as usize;
-        win.pixels[i..i + 4].try_into().unwrap()
+    /// Abre um menu e espera o lugar que o compositor deu.
+    fn open_popup(&mut self, x: i32, y: i32, w: i32, h: i32) -> usize {
+        let i = self.peers[0].create_popup(x, y, w, h);
+        self.pump("o configure do menu", |h| h.app.popups[i].configures > 0);
+        i
+    }
+
+    /// Desenha no menu e espera o compositor pôr na imagem da janela.
+    fn draw_popup(&mut self, popup: usize, margin: i32, color: [u8; 4]) {
+        let (_, _, w, h) = self.app.popups[popup].place.unwrap();
+        let copies = self.core.state.copy_count;
+        self.peers[0].draw_on(Some(popup), w + 2 * margin, h + 2 * margin, margin, color, None);
+        self.pump("a imagem do menu", |h| h.core.state.copy_count > copies);
+    }
+
+    /// O pixel (x, y) da janela 1 como vai para a textura (com os menus), em RGBA.
+    fn pixel(&mut self, x: i32, y: i32) -> [u8; 4] {
+        let win = self.core.state.windows.iter_mut().find(|w| w.id == 1).expect("a janela 1 existe");
+        let width = win.width();
+        let image = win.image();
+        let i = ((y * width + x) * 4) as usize;
+        image[i..i + 4].try_into().unwrap()
     }
 }
 
@@ -463,6 +589,123 @@ fn rodinha_e_touchpad_rolam() {
     assert_eq!(h.app.input, vec!["rolagem pelo touchpad", "rolagem -7.5 na horizontal"]);
 }
 
+#[test]
+fn menu_aparece_por_cima_no_lugar_pedido() {
+    let mut h = Harness::new();
+    h.open_and_draw(22); // a janela tem sombra: o menu conta a partir do recorte
+    let m = h.open_popup(100, 50, 200, 100);
+    assert_eq!(h.app.popups[m].place, Some((100, 50, 200, 100)));
+    assert_eq!(h.pixel(150, 80), rgba(AZUL_ESCURO), "antes da imagem do menu, só a janela");
+    h.core.state.windows[0].dirty = false;
+    h.draw_popup(m, 8, VERMELHO); // o menu também tem 8 px de sombra
+    assert!(h.core.state.window(1).unwrap().dirty, "a textura da janela precisa subir de novo");
+    assert_eq!(h.pixel(100, 50), rgba(VERMELHO), "canto do menu");
+    assert_eq!(h.pixel(299, 149), rgba(VERMELHO), "outro canto do menu");
+    assert_eq!(h.pixel(99, 50), rgba(AZUL_ESCURO), "a sombra do menu não aparece");
+    assert_eq!(h.pixel(300, 149), rgba(AZUL_ESCURO));
+    assert_eq!(h.pixel(150, 150), rgba(AZUL_ESCURO));
+}
+
+#[test]
+fn menu_que_nao_cabe_e_empurrado_para_dentro() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    let m = h.open_popup(1270, 710, 200, 100); // perto do canto de baixo à direita
+    let (x, y, w, hh) = h.app.popups[m].place.unwrap();
+    assert!(x + w <= WINDOW_SIZE.0 && y + hh <= WINDOW_SIZE.1, "o menu cabe no telão: {:?}", (x, y, w, hh));
+}
+
+#[test]
+fn mouse_e_clique_vao_para_o_menu() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    let m = h.open_popup(100, 50, 200, 100);
+    h.draw_popup(m, 8, VERMELHO);
+    h.core.pointer_motion(1, 150.0, 80.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.wait_input(3);
+    // No menu: (150 − 100 + 8, 80 − 50 + 8), contando a sombra do menu.
+    assert_eq!(h.app.input, vec!["mouse entrou em 58,38 (menu)", "botão 272 apertou", "botão 272 soltou"]);
+    h.app.input.clear();
+    // De volta na janela. (Com o botão apertado, o mouse ficaria "preso" ao
+    // menu, como num arrastar: é a regra do Wayland.)
+    h.core.pointer_motion(1, 50.0, 300.0);
+    h.wait_input(2);
+    assert_eq!(h.app.input, vec!["mouse saiu", "mouse entrou em 50,300"]);
+}
+
+#[test]
+fn clique_fora_do_menu_com_grab_fecha_o_menu() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    h.core.focus(Some(1));
+    h.wait_input(1);
+    let m = h.open_popup(100, 50, 200, 100);
+    let seat = h.app.seat.clone().unwrap();
+    h.app.popups[m].popup.grab(&seat, h.app.keyboard_serial);
+    h.draw_popup(m, 0, VERMELHO);
+    h.pump("o teclado ir para o menu", |h| h.app.input.len() >= 3);
+    assert_eq!(h.app.input[1..], ["teclado saiu", "teclado entrou (menu)"], "o menu com grab recebe as setas");
+    h.app.input.clear();
+    h.core.pointer_motion(1, 600.0, 600.0); // fora do menu
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.pump("o menu fechar", |h| h.app.popups[m].done);
+    h.pump("um pouco mais", |_| true);
+    assert_eq!(h.app.input, vec!["mouse entrou em 600,600"], "o clique que fechou o menu não vai para a janela");
+    // O app obedece e destrói o menu: ele some da imagem e o teclado volta.
+    h.app.input.clear();
+    let popup = h.app.popups.remove(m);
+    popup.popup.destroy();
+    popup.xdg_surface.destroy();
+    popup.surface.destroy();
+    h.pump("o teclado voltar", |h| h.app.input.len() >= 2);
+    assert_eq!(h.app.input, vec!["teclado saiu", "teclado entrou"]);
+    assert!(h.core.state.window(1).unwrap().popups.is_empty());
+    assert_eq!(h.pixel(150, 80), rgba(AZUL_ESCURO), "sem o menu, a imagem volta a ser só a janela");
+    h.core.pointer_button(0x110, true); // agora o clique vai para a janela
+    h.wait_input(3);
+    assert_eq!(h.app.input[2], "botão 272 apertou");
+}
+
+#[test]
+fn copiar_num_app_e_colar_no_outro() {
+    let mut h = Harness::new();
+    h.open_and_draw(0);
+    let b = h.add_peer();
+    h.open_window_of(b);
+    let (w, hh) = h.peers[b].app.size;
+    h.peers[b].draw_on(None, w, hh, 0, VERMELHO, None);
+    h.pump("a janela do segundo app", |h| h.core.state.window(2).is_some_and(|w| w.mapped));
+
+    // O app 1 (com o foco) copia um texto.
+    h.core.focus(Some(1));
+    h.wait_input(1);
+    let qh = h.qh.clone();
+    let source = h.app.data_manager.as_ref().unwrap().create_data_source(&qh, ());
+    source.offer("text/plain;charset=utf-8".into());
+    let serial = h.app.keyboard_serial;
+    h.app.data_device.as_ref().unwrap().set_selection(Some(&source), serial);
+    h.pump("o compositor guardar a seleção", |_| true);
+
+    // O app 2 ganha o foco e vê o que tem para colar.
+    h.core.focus(Some(2));
+    h.pump("a oferta chegar no app 2", |h| h.peers[b].app.selection.is_some());
+    assert!(h.peers[b].app.offered.contains(&"text/plain;charset=utf-8".to_string()));
+
+    // O app 2 cola: pede o texto por um cano; o app 1 escreve nele.
+    let (mut reader, writer) = UnixStream::pair().unwrap();
+    let offer = h.peers[b].app.selection.clone().unwrap();
+    offer.receive("text/plain;charset=utf-8".into(), writer.as_fd());
+    let _ = h.peers[b].conn.flush();
+    drop(writer); // só o app 1 fica com a ponta de escrever
+    h.pump("o app 1 mandar o texto", |h| h.app.copied_text_sent);
+    let mut text = String::new();
+    reader.read_to_string(&mut text).unwrap();
+    assert_eq!(text, "ação copiada");
+}
+
 // --- O app de teste responde ao compositor ------------------------------------
 
 impl Dispatch<wl_registry::WlRegistry, ()> for App {
@@ -481,7 +724,12 @@ impl Dispatch<wl_registry::WlRegistry, ()> for App {
                 "xdg_wm_base" => app.wm_base = Some(registry.bind(name, version.min(5), qh, ())),
                 "zxdg_decoration_manager_v1" => app.decoration_manager = Some(registry.bind(name, 1, qh, ())),
                 "wl_seat" => app.seat = Some(registry.bind(name, version.min(8), qh, ())),
+                "wl_data_device_manager" => app.data_manager = Some(registry.bind(name, version.min(3), qh, ())),
                 _ => {}
+            }
+            // O "data device" (copiar e colar) precisa do seat e do gerente.
+            if let (Some(manager), Some(seat), None) = (&app.data_manager, &app.seat, &app.data_device) {
+                app.data_device = Some(manager.get_data_device(seat, qh, ()));
             }
         }
     }
@@ -509,7 +757,10 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for App {
                 app.keymap = String::from_utf8_lossy(&text).into_owned();
             }
             wl_keyboard::Event::RepeatInfo { rate, delay } => app.repeat = (rate, delay),
-            wl_keyboard::Event::Enter { .. } => app.input.push("teclado entrou".into()),
+            wl_keyboard::Event::Enter { serial, surface, .. } => {
+                app.keyboard_serial = serial;
+                app.input.push(format!("teclado entrou{}", app.popup_mark(&surface)));
+            }
             wl_keyboard::Event::Leave { .. } => app.input.push("teclado saiu".into()),
             wl_keyboard::Event::Key { key, state, .. } => {
                 let pressed = state == WEnum::Value(wl_keyboard::KeyState::Pressed);
@@ -529,8 +780,8 @@ impl Dispatch<wl_pointer::WlPointer, ()> for App {
             if axis == WEnum::Value(wl_pointer::Axis::VerticalScroll) { "vertical" } else { "horizontal" }
         };
         match event {
-            wl_pointer::Event::Enter { surface_x, surface_y, .. } => {
-                app.input.push(format!("mouse entrou em {surface_x},{surface_y}"))
+            wl_pointer::Event::Enter { surface_x, surface_y, surface, .. } => {
+                app.input.push(format!("mouse entrou em {surface_x},{surface_y}{}", app.popup_mark(&surface)))
             }
             wl_pointer::Event::Leave { .. } => app.input.push("mouse saiu".into()),
             wl_pointer::Event::Motion { surface_x, surface_y, .. } => {
@@ -611,9 +862,79 @@ impl Dispatch<wl_callback::WlCallback, ()> for App {
     }
 }
 
+impl App {
+    /// " (menu)" se a superfície for de um menu deste app (para os testes saberem onde caiu).
+    fn popup_mark(&self, surface: &wl_surface::WlSurface) -> &'static str {
+        if self.popups.iter().any(|p| &p.surface == surface) {
+            " (menu)"
+        } else {
+            ""
+        }
+    }
+}
+
+/// O xdg_surface de um menu (o número é o índice em `App::popups`).
+impl Dispatch<xdg_surface::XdgSurface, usize> for App {
+    fn event(app: &mut Self, surface: &xdg_surface::XdgSurface, event: xdg_surface::Event, index: &usize, _: &Connection, _: &QueueHandle<Self>) {
+        if let xdg_surface::Event::Configure { serial } = event {
+            surface.ack_configure(serial);
+            if let Some(p) = app.popups.get_mut(*index) {
+                p.configures += 1;
+            }
+        }
+    }
+}
+
+impl Dispatch<xdg_popup::XdgPopup, usize> for App {
+    fn event(app: &mut Self, _: &xdg_popup::XdgPopup, event: xdg_popup::Event, index: &usize, _: &Connection, _: &QueueHandle<Self>) {
+        let Some(p) = app.popups.get_mut(*index) else { return };
+        match event {
+            xdg_popup::Event::Configure { x, y, width, height } => p.place = Some((x, y, width, height)),
+            xdg_popup::Event::PopupDone => p.done = true,
+            _ => {}
+        }
+    }
+}
+
+impl Dispatch<wl_data_device::WlDataDevice, ()> for App {
+    fn event(app: &mut Self, _: &wl_data_device::WlDataDevice, event: wl_data_device::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        match event {
+            wl_data_device::Event::DataOffer { .. } => app.offered.clear(),
+            wl_data_device::Event::Selection { id } => app.selection = id,
+            _ => {}
+        }
+    }
+
+    // O compositor cria um objeto "oferta" para cada coisa copiada.
+    event_created_child!(App, wl_data_device::WlDataDevice, [
+        wl_data_device::EVT_DATA_OFFER_OPCODE => (wl_data_offer::WlDataOffer, ()),
+    ]);
+}
+
+impl Dispatch<wl_data_offer::WlDataOffer, ()> for App {
+    fn event(app: &mut Self, _: &wl_data_offer::WlDataOffer, event: wl_data_offer::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        if let wl_data_offer::Event::Offer { mime_type } = event {
+            app.offered.push(mime_type);
+        }
+    }
+}
+
+/// O app que copiou: quando alguém cola, ele escreve o texto no cano.
+impl Dispatch<wl_data_source::WlDataSource, ()> for App {
+    fn event(app: &mut Self, _: &wl_data_source::WlDataSource, event: wl_data_source::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        if let wl_data_source::Event::Send { fd, .. } = event {
+            let mut pipe = std::fs::File::from(fd);
+            pipe.write_all("ação copiada".as_bytes()).unwrap();
+            app.copied_text_sent = true; // o cano fecha aqui (o arquivo sai de cena)
+        }
+    }
+}
+
 delegate_noop!(App: wl_compositor::WlCompositor);
 delegate_noop!(App: ignore wl_surface::WlSurface);
 delegate_noop!(App: ignore wl_shm::WlShm);
 delegate_noop!(App: wl_shm_pool::WlShmPool);
 delegate_noop!(App: ignore wl_buffer::WlBuffer);
 delegate_noop!(App: zxdg_decoration_manager_v1::ZxdgDecorationManagerV1);
+delegate_noop!(App: xdg_positioner::XdgPositioner);
+delegate_noop!(App: wl_data_device_manager::WlDataDeviceManager);

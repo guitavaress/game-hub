@@ -32,7 +32,10 @@ use smithay::wayland::compositor::{
 };
 use smithay::wayland::output::{OutputHandler, OutputManagerState};
 use smithay::wayland::selection::data_device::{
-    ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
+    set_data_device_focus, ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
+};
+use smithay::wayland::selection::primary_selection::{
+    set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
 };
 use smithay::wayland::selection::SelectionHandler;
 use smithay::wayland::shell::xdg::decoration::{XdgDecorationHandler, XdgDecorationState};
@@ -41,12 +44,13 @@ use smithay::wayland::shell::xdg::{
     XdgToplevelSurfaceData,
 };
 use smithay::wayland::shm::{with_buffer_contents, ShmHandler, ShmState};
+use smithay::utils::{Logical, Rectangle};
 use smithay::{
-    delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm, delegate_xdg_decoration,
-    delegate_xdg_shell,
+    delegate_compositor, delegate_data_device, delegate_output, delegate_primary_selection, delegate_seat,
+    delegate_shm, delegate_xdg_decoration, delegate_xdg_shell,
 };
 
-use crate::pixels::{copy_rows, crop_rect, damaged_rows, Rect, ShmLayout};
+use crate::pixels::{blend_over, copy_rows, crop_rect, damaged_rows, Rect, ShmLayout};
 
 /// Tamanho com que toda janela nasce (o de um telão), até o telão pedir outro
 /// com `resize`.
@@ -81,8 +85,30 @@ pub struct Win {
     pub dirty: bool,
     /// Já mandou a primeira imagem (só então a Godot fica sabendo da janela).
     pub mapped: bool,
-    /// Pedidos de "me avise quando mostrar": respondidos em `frame_done()`.
+    /// Pedidos de "me avise quando mostrar" (da janela e dos menus):
+    /// respondidos em `frame_done()`.
     pub callbacks: Vec<WlCallback>,
+    /// Os menus abertos desta janela (e os submenus), do mais antigo para o
+    /// mais novo: o último fica por cima.
+    pub popups: Vec<Popup>,
+    /// A imagem da janela com os menus por cima (só usada quando há menu).
+    composed: Vec<u8>,
+}
+
+/// Um menu ("popup"): o do botão direito, o de uma lista, uma dica...
+/// Ele é desenhado por cima da janela, dentro da mesma textura.
+pub struct Popup {
+    pub surface: PopupSurface,
+    /// Quem abriu o menu: a janela ou outro menu (submenu).
+    parent: WlSurface,
+    /// Onde o menu fica, a partir do canto do recorte do pai.
+    pub pos: (i32, i32),
+    /// A imagem do menu (só o recorte, sem sombra), em RGBA.
+    pub pixels: Vec<u8>,
+    pub crop: Rect,
+    pub mapped: bool,
+    /// O menu pediu o "grab": um clique fora fecha os menus, e ele recebe o teclado.
+    pub grab: bool,
 }
 
 impl Win {
@@ -92,6 +118,80 @@ impl Win {
 
     pub fn height(&self) -> i32 {
         self.crop.h
+    }
+
+    /// A imagem que vai para a textura: a janela, com os menus por cima.
+    pub fn image(&mut self) -> &[u8] {
+        if !self.popups.iter().any(|p| p.mapped) {
+            return &self.pixels;
+        }
+        self.composed.clear();
+        self.composed.extend_from_slice(&self.pixels);
+        for i in 0..self.popups.len() {
+            let (x, y) = self.popup_position(i);
+            let p = &self.popups[i];
+            if p.mapped {
+                blend_over(&mut self.composed, self.crop.w, self.crop.h, &p.pixels, p.crop.w, p.crop.h, x, y);
+            }
+        }
+        &self.composed
+    }
+
+    /// Onde o canto do menu `index` fica na imagem da janela (somando os pais).
+    pub fn popup_position(&self, index: usize) -> (i32, i32) {
+        let popup = &self.popups[index];
+        let (px, py) = self.surface_position(&popup.parent);
+        (px + popup.pos.0, py + popup.pos.1)
+    }
+
+    /// Onde o canto do recorte desta superfície (a janela ou um menu) fica na imagem.
+    fn surface_position(&self, surface: &WlSurface) -> (i32, i32) {
+        match self.popups.iter().position(|p| p.surface.wl_surface() == surface) {
+            Some(i) => self.popup_position(i),
+            None => (0, 0), // a própria janela
+        }
+    }
+
+    /// O menu mais de cima que tem o ponto (x, y) da imagem, se houver.
+    pub fn popup_at(&self, x: f64, y: f64) -> Option<usize> {
+        (0..self.popups.len()).rev().find(|&i| {
+            let p = &self.popups[i];
+            let (px, py) = self.popup_position(i);
+            p.mapped
+                && x >= px as f64
+                && y >= py as f64
+                && x < (px + p.crop.w) as f64
+                && y < (py + p.crop.h) as f64
+        })
+    }
+
+    /// Quem recebe o teclado: o menu com "grab" mais de cima, ou a janela.
+    pub fn keyboard_target(&self) -> WlSurface {
+        match self.popups.iter().rev().find(|p| p.grab) {
+            Some(p) => p.surface.wl_surface().clone(),
+            None => self.toplevel.wl_surface().clone(),
+        }
+    }
+
+    /// A superfície (janela ou menu) e onde o canto dela (0, 0 do app, com a
+    /// sombra) fica na imagem: é o que o mouse precisa para achar o ponto certo.
+    fn pointer_target(&self, popup: Option<usize>) -> (WlSurface, (f64, f64)) {
+        match popup {
+            Some(i) => {
+                let (x, y) = self.popup_position(i);
+                let p = &self.popups[i];
+                (p.surface.wl_surface().clone(), ((x - p.crop.x) as f64, (y - p.crop.y) as f64))
+            }
+            None => (self.toplevel.wl_surface().clone(), (-self.crop.x as f64, -self.crop.y as f64)),
+        }
+    }
+
+    /// A área onde os menus podem ficar (a imagem da janela), contada a partir
+    /// do canto do recorte de `parent`: o menu é empurrado para caber no telão.
+    fn popup_area(&self, parent: &WlSurface) -> Rectangle<i32, Logical> {
+        let (w, h) = if self.crop.is_empty() { WINDOW_SIZE } else { (self.crop.w, self.crop.h) };
+        let (px, py) = self.surface_position(parent);
+        Rectangle::new((-px, -py).into(), (w, h).into())
     }
 }
 
@@ -103,8 +203,15 @@ pub struct State {
     shm_state: ShmState,
     seat_state: SeatState<State>,
     data_device_state: DataDeviceState,
+    primary_selection_state: PrimarySelectionState,
     _output_manager: OutputManagerState,
     pub seat: Seat<State>,
+    /// A janela que o hub escolheu para o teclado (o telão em uso).
+    pub focused_window: Option<i64>,
+    /// Onde o mouse está: a janela e, se for o caso, o menu.
+    pointer_over: Option<(i64, Option<usize>)>,
+    /// O clique que fechou os menus não vai para o app, nem o "soltou" dele.
+    swallow_release: Option<u32>,
     output: Output,
     pub windows: Vec<Win>,
     next_id: i64,
@@ -146,6 +253,10 @@ impl State {
             _decoration_state: XdgDecorationState::new::<State>(&dh),
             shm_state: ShmState::new::<State>(&dh, vec![]),
             data_device_state: DataDeviceState::new::<State>(&dh),
+            primary_selection_state: PrimarySelectionState::new::<State>(&dh),
+            focused_window: None,
+            pointer_over: None,
+            swallow_release: None,
             _output_manager: OutputManagerState::new(),
             seat_state,
             seat,
@@ -164,61 +275,82 @@ impl State {
         self.windows.iter().find(|w| w.id == id)
     }
 
-    /// Lê a imagem nova do app para a janela: só o recorte e só as linhas com dano.
-    fn read_buffer(&mut self, index: usize, buffer: &wl_buffer::WlBuffer, damage: &[Damage]) {
-        let surface = self.windows[index].toplevel.wl_surface().clone();
-        let geometry = with_states(&surface, |states| {
-            states.cached_state.get::<SurfaceCachedState>().current().geometry
-        })
-        .map(|g| Rect::new(g.loc.x, g.loc.y, g.size.w, g.size.h));
-        // A escala é 1 e não há rotação: dano "da superfície" e "do buffer" usam os mesmos números.
-        let damage: Vec<Rect> = damage
-            .iter()
-            .map(|d| match d {
-                Damage::Surface(r) => Rect::new(r.loc.x, r.loc.y, r.size.w, r.size.h),
-                Damage::Buffer(r) => Rect::new(r.loc.x, r.loc.y, r.size.w, r.size.h),
-            })
-            .collect();
-
-        let start = Instant::now();
-        let win = &mut self.windows[index];
-        let copied = with_buffer_contents(buffer, |ptr, len, data| {
-            // SEGURANÇA: o Smithay garante que `ptr` aponta para `len` bytes
-            // mapeados enquanto esta função roda.
-            let src = unsafe { std::slice::from_raw_parts(ptr, len) };
-            let layout = ShmLayout {
-                offset: data.offset,
-                width: data.width,
-                height: data.height,
-                stride: data.stride,
-                format: data.format,
-            };
-            let crop = crop_rect(data.width, data.height, geometry);
-            // Recorte novo (tamanho ou sombra mudaram) ou primeira imagem: copia tudo.
-            let rows = if crop != win.crop || win.pixels.is_empty() {
-                win.pixels = vec![0u8; (crop.w * crop.h * 4) as usize];
-                win.crop = crop;
-                0..crop.h
+    /// Em qual janela (índice) está esta superfície, e se é um menu (índice do menu).
+    fn find(&self, surface: &WlSurface) -> Option<(usize, Option<usize>)> {
+        self.windows.iter().enumerate().find_map(|(wi, w)| {
+            if w.toplevel.wl_surface() == surface {
+                Some((wi, None))
             } else {
-                damaged_rows(&crop, &damage)
-            };
-            if rows.is_empty() {
-                return Some(false);
+                w.popups.iter().position(|p| p.surface.wl_surface() == surface).map(|pi| (wi, Some(pi)))
             }
-            copy_rows(src, &layout, &crop, rows, &mut win.pixels).then_some(true)
-        });
-        match copied {
-            Ok(Some(true)) => {
-                win.dirty = true;
-                self.copy_us_total += start.elapsed().as_micros();
-                self.copy_count += 1;
-            }
-            Ok(Some(false)) => {} // nada mudou dentro do recorte
-            _ => {
-                // Formato que o hub não entende (ou memória com defeito): esquece a imagem.
-                win.pixels.clear();
-                win.crop = Rect::default();
-            }
+        })
+    }
+
+    /// Põe o teclado em quem deve recebê-lo na janela com o foco (a janela
+    /// ou o menu com "grab").
+    fn refresh_keyboard_focus(&mut self) {
+        let target = self.focused_window.and_then(|id| self.window(id)).map(|w| w.keyboard_target());
+        let keyboard = self.seat.get_keyboard().unwrap();
+        if keyboard.current_focus() != target {
+            keyboard.set_focus(self, target, SERIAL_COUNTER.next_serial());
+        }
+    }
+
+    /// Fecha todos os menus da janela (o app recebe "popup_done" e os destrói).
+    fn dismiss_popups(&mut self, window_index: usize) {
+        for popup in self.windows[window_index].popups.iter().rev() {
+            popup.surface.send_popup_done();
+        }
+    }
+}
+
+/// Lê a imagem nova do app (de uma janela ou de um menu) para `pixels`: só o
+/// recorte e só as linhas com dano. Devolve Some(true) se copiou, Some(false)
+/// se nada mudou e None se a imagem não serve (formato que o hub não entende).
+fn read_picture(
+    surface: &WlSurface,
+    buffer: &wl_buffer::WlBuffer,
+    damage: &[Damage],
+    pixels: &mut Vec<u8>,
+    crop_now: &mut Rect,
+) -> Option<bool> {
+    let geometry = with_states(surface, |states| states.cached_state.get::<SurfaceCachedState>().current().geometry)
+        .map(|g| Rect::new(g.loc.x, g.loc.y, g.size.w, g.size.h));
+    // A escala é 1 e não há rotação: dano "da superfície" e "do buffer" usam os mesmos números.
+    let damage: Vec<Rect> = damage
+        .iter()
+        .map(|d| match d {
+            Damage::Surface(r) => Rect::new(r.loc.x, r.loc.y, r.size.w, r.size.h),
+            Damage::Buffer(r) => Rect::new(r.loc.x, r.loc.y, r.size.w, r.size.h),
+        })
+        .collect();
+    let copied = with_buffer_contents(buffer, |ptr, len, data| {
+        // SEGURANÇA: o Smithay garante que `ptr` aponta para `len` bytes
+        // mapeados enquanto esta função roda.
+        let src = unsafe { std::slice::from_raw_parts(ptr, len) };
+        let layout =
+            ShmLayout { offset: data.offset, width: data.width, height: data.height, stride: data.stride, format: data.format };
+        let crop = crop_rect(data.width, data.height, geometry);
+        // Recorte novo (tamanho ou sombra mudaram) ou primeira imagem: copia tudo.
+        let rows = if crop != *crop_now || pixels.is_empty() {
+            *pixels = vec![0u8; (crop.w * crop.h * 4) as usize];
+            *crop_now = crop;
+            0..crop.h
+        } else {
+            damaged_rows(&crop, &damage)
+        };
+        if rows.is_empty() {
+            return Some(false);
+        }
+        copy_rows(src, &layout, &crop, rows, pixels).then_some(true)
+    });
+    match copied {
+        Ok(Some(changed)) => Some(changed),
+        _ => {
+            // Formato que o hub não entende (ou memória com defeito): esquece a imagem.
+            pixels.clear();
+            *crop_now = Rect::default();
+            None
         }
     }
 }
@@ -285,6 +417,7 @@ impl Core {
     /// "Quadro mostrado": responde os pedidos dos apps, que podem desenhar o
     /// próximo. Só responde quem pediu (um app parado não gasta nada).
     pub fn frame_done(&mut self) {
+        // (os pedidos dos menus também ficam na lista da janela)
         let now = self.now_ms();
         for win in self.state.windows.iter_mut() {
             for callback in win.callbacks.drain(..) {
@@ -316,12 +449,11 @@ impl Core {
     /// terminal); as outras, não. Tirar o foco solta as teclas que estavam
     /// apertadas, do ponto de vista do app.
     pub fn focus(&mut self, id: Option<i64>) {
+        let id = id.filter(|&id| self.state.window(id).is_some());
+        self.state.focused_window = id;
+        // O teclado vai para a janela (ou para o menu com "grab" dela).
+        self.state.refresh_keyboard_focus();
         let target = id.and_then(|id| self.state.window(id)).map(|w| w.toplevel.clone());
-        let keyboard = self.state.seat.get_keyboard().unwrap();
-        let surface = target.as_ref().map(|t| t.wl_surface().clone());
-        if keyboard.current_focus() != surface {
-            keyboard.set_focus(&mut self.state, surface, SERIAL_COUNTER.next_serial());
-        }
         for win in &self.state.windows {
             let active = target.as_ref() == Some(&win.toplevel);
             win.toplevel.with_pending_state(|state| {
@@ -341,8 +473,7 @@ impl Core {
 
     /// A janela com o foco do teclado, se houver.
     pub fn focused(&self) -> Option<i64> {
-        let focus = self.state.seat.get_keyboard()?.current_focus()?;
-        self.state.windows.iter().find(|w| *w.toplevel.wl_surface() == focus).map(|w| w.id)
+        self.state.focused_window
     }
 
     /// Uma tecla para a janela, com o código evdev do Linux. Se a janela não
@@ -374,18 +505,21 @@ impl Core {
     /// a sombra; 0, 0 é o canto de cima à esquerda).
     pub fn pointer_motion(&mut self, id: i64, x: f64, y: f64) {
         let Some(win) = self.state.window(id) else { return };
-        // A imagem é só o recorte: para o app, o ponto fica deslocado pela sombra.
-        let location = (x + win.crop.x as f64, y + win.crop.y as f64);
-        let surface = win.toplevel.wl_surface().clone();
+        // Em cima de um menu, o mouse é do menu; senão, da janela. A imagem é
+        // só o recorte: para o app, o ponto fica deslocado pela sombra.
+        let popup = win.popup_at(x, y);
+        let (surface, origin) = win.pointer_target(popup);
+        self.state.pointer_over = Some((id, popup));
         let pointer = self.state.seat.get_pointer().unwrap();
-        let event = MotionEvent { location: location.into(), serial: SERIAL_COUNTER.next_serial(), time: self.now_ms() };
-        pointer.motion(&mut self.state, Some((surface, (0.0, 0.0).into())), &event);
+        let event = MotionEvent { location: (x, y).into(), serial: SERIAL_COUNTER.next_serial(), time: self.now_ms() };
+        pointer.motion(&mut self.state, Some((surface, origin.into())), &event);
         pointer.frame(&mut self.state);
         self.flush();
     }
 
     /// O ponteiro saiu de cima da janela (a mira saiu do telão).
     pub fn pointer_leave(&mut self) {
+        self.state.pointer_over = None;
         let pointer = self.state.seat.get_pointer().unwrap();
         let event = MotionEvent { location: (0.0, 0.0).into(), serial: SERIAL_COUNTER.next_serial(), time: self.now_ms() };
         pointer.motion(&mut self.state, None, &event);
@@ -396,6 +530,21 @@ impl Core {
     /// Botão do mouse, com o código do Linux (0x110 esquerdo, 0x111 direito,
     /// 0x112 do meio). Vai para a janela onde o ponteiro está.
     pub fn pointer_button(&mut self, button: u32, pressed: bool) {
+        if !pressed && self.state.swallow_release == Some(button) {
+            self.state.swallow_release = None;
+            return;
+        }
+        // Um clique fora dos menus com "grab" fecha os menus (e não vai para o app).
+        if pressed {
+            let over_popup = matches!(self.state.pointer_over, Some((_, Some(_))));
+            let grabbing = self.state.windows.iter().position(|w| w.popups.iter().any(|p| p.grab));
+            if let (Some(index), false) = (grabbing, over_popup) {
+                self.state.dismiss_popups(index);
+                self.state.swallow_release = Some(button);
+                self.flush();
+                return;
+            }
+        }
         let pointer = self.state.seat.get_pointer().unwrap();
         let state = if pressed { ButtonState::Pressed } else { ButtonState::Released };
         let event = ButtonEvent { serial: SERIAL_COUNTER.next_serial(), time: self.now_ms(), button, state };
@@ -464,32 +613,67 @@ impl CompositorHandler for State {
         &client.get_data::<ClientState>().unwrap().compositor_state
     }
 
-    /// O app terminou de mudar a janela ("commit"): pode ter imagem nova.
+    /// O app terminou de mudar a janela ou um menu ("commit"): pode ter imagem nova.
     fn commit(&mut self, surface: &WlSurface) {
-        let Some(index) = self.windows.iter().position(|w| w.toplevel.wl_surface() == surface) else {
+        let Some((index, popup)) = self.find(surface) else {
             return;
         };
         // O protocolo xdg pede: o app faz um commit vazio, e só então o
-        // compositor manda o primeiro "configure" (o tamanho da janela).
-        if !self.windows[index].toplevel.is_initial_configure_sent() {
-            self.windows[index].toplevel.send_configure();
+        // compositor manda o primeiro "configure" (o tamanho e o lugar).
+        match popup {
+            None if !self.windows[index].toplevel.is_initial_configure_sent() => {
+                self.windows[index].toplevel.send_configure();
+            }
+            Some(pi) if !self.windows[index].popups[pi].surface.is_initial_configure_sent() => {
+                let _ = self.windows[index].popups[pi].surface.send_configure();
+            }
+            _ => {}
         }
         let (buffer, damage, callbacks) = with_states(surface, |states| {
             let mut guard = states.cached_state.get::<SurfaceAttributes>();
             let attrs = guard.current();
             (attrs.buffer.take(), std::mem::take(&mut attrs.damage), std::mem::take(&mut attrs.frame_callbacks))
         });
-        self.windows[index].callbacks.extend(callbacks);
+        let win = &mut self.windows[index];
+        win.callbacks.extend(callbacks);
+
+        if let Some(pi) = popup {
+            // Um menu: a imagem dele entra na textura da janela.
+            let p = &mut win.popups[pi];
+            match buffer {
+                Some(BufferAssignment::NewBuffer(buffer)) => {
+                    let start = Instant::now();
+                    if read_picture(surface, &buffer, &damage, &mut p.pixels, &mut p.crop) == Some(true) {
+                        self.copy_us_total += start.elapsed().as_micros();
+                        self.copy_count += 1;
+                    }
+                    buffer.release();
+                    p.mapped = !p.pixels.is_empty();
+                }
+                Some(BufferAssignment::Removed) => {
+                    p.pixels.clear();
+                    p.mapped = false;
+                }
+                None => return,
+            }
+            win.dirty = win.mapped;
+            return;
+        }
+
         match buffer {
             Some(BufferAssignment::NewBuffer(buffer)) => {
-                self.read_buffer(index, &buffer, &damage);
+                let start = Instant::now();
+                if read_picture(surface, &buffer, &damage, &mut win.pixels, &mut win.crop) == Some(true) {
+                    win.dirty = true;
+                    self.copy_us_total += start.elapsed().as_micros();
+                    self.copy_count += 1;
+                }
                 // Já copiamos: o app pode reaproveitar a memória.
                 buffer.release();
             }
             Some(BufferAssignment::Removed) => {
                 // O app escondeu a janela. Para a Godot, ela fechou; se voltar,
                 // abre de novo (com o mesmo id), refazendo o primeiro "configure".
-                let win = &mut self.windows[index];
                 win.toplevel.reset_initial_configure_sent();
                 win.pixels.clear();
                 win.crop = Rect::default();
@@ -502,7 +686,6 @@ impl CompositorHandler for State {
             }
             None => {}
         }
-        let win = &mut self.windows[index];
         if !win.mapped && !win.pixels.is_empty() {
             win.mapped = true;
             let (app_id, title) = toplevel_names(&win.toplevel);
@@ -556,6 +739,8 @@ impl XdgShellHandler for State {
             dirty: false,
             mapped: false,
             callbacks: Vec::new(),
+            popups: Vec::new(),
+            composed: Vec::new(),
         });
     }
 
@@ -564,6 +749,9 @@ impl XdgShellHandler for State {
             let win = self.windows.remove(i);
             if win.mapped {
                 self.events.push(Event::Closed(win.id));
+            }
+            if self.focused_window == Some(win.id) {
+                self.focused_window = None;
             }
         }
     }
@@ -590,10 +778,67 @@ impl XdgShellHandler for State {
         surface.send_configure();
     }
 
-    // Menus (popups) ficam para a 14.18.
-    fn new_popup(&mut self, _surface: PopupSurface, _positioner: PositionerState) {}
-    fn grab(&mut self, _surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {}
-    fn reposition_request(&mut self, _surface: PopupSurface, _positioner: PositionerState, _token: u32) {}
+    /// Menu novo: calcula o lugar dele (empurrado para caber na janela). O
+    /// "configure" com esse lugar sai no primeiro commit do menu.
+    fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
+        let Some(parent) = surface.get_parent_surface() else { return };
+        let Some((index, _)) = self.find(&parent) else {
+            // Menu de uma janela que o hub não conhece: fecha na hora.
+            surface.send_popup_done();
+            return;
+        };
+        let win = &mut self.windows[index];
+        let geometry = positioner.get_unconstrained_geometry(win.popup_area(&parent));
+        surface.with_pending_state(|state| {
+            state.geometry = geometry;
+            state.positioner = positioner;
+        });
+        win.popups.push(Popup {
+            surface,
+            parent,
+            pos: (geometry.loc.x, geometry.loc.y),
+            pixels: Vec::new(),
+            crop: Rect::default(),
+            mapped: false,
+            grab: false,
+        });
+    }
+
+    /// O menu quer o "grab" (menus de verdade pedem): ele recebe o teclado
+    /// (setas, Enter, Esc) e um clique fora fecha os menus.
+    fn grab(&mut self, surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {
+        let Some((index, Some(pi))) = self.find(surface.wl_surface()) else { return };
+        self.windows[index].popups[pi].grab = true;
+        self.refresh_keyboard_focus();
+    }
+
+    /// O app pediu para mudar o lugar do menu (ex.: a lista cresceu).
+    fn reposition_request(&mut self, surface: PopupSurface, positioner: PositionerState, token: u32) {
+        let Some((index, Some(pi))) = self.find(surface.wl_surface()) else { return };
+        let win = &mut self.windows[index];
+        let parent = win.popups[pi].parent.clone();
+        let geometry = positioner.get_unconstrained_geometry(win.popup_area(&parent));
+        surface.with_pending_state(|state| {
+            state.geometry = geometry;
+            state.positioner = positioner;
+        });
+        win.popups[pi].pos = (geometry.loc.x, geometry.loc.y);
+        win.dirty = win.mapped;
+        surface.send_repositioned(token);
+        let _ = surface.send_configure();
+    }
+
+    /// O menu fechou: sai da imagem, e o teclado volta para quem tinha antes.
+    fn popup_destroyed(&mut self, surface: PopupSurface) {
+        let Some((index, Some(pi))) = self.find(surface.wl_surface()) else { return };
+        let win = &mut self.windows[index];
+        win.popups.remove(pi);
+        win.dirty = win.mapped;
+        if matches!(self.pointer_over, Some((id, Some(_))) if id == win.id) {
+            self.pointer_over = Some((win.id, None));
+        }
+        self.refresh_keyboard_focus();
+    }
 }
 
 /// Decoração "do lado do servidor": o app não desenha barra de título nem
@@ -624,12 +869,19 @@ impl SeatHandler for State {
         &mut self.seat_state
     }
 
-    fn focus_changed(&mut self, _seat: &Seat<Self>, _focused: Option<&WlSurface>) {}
+    /// O copiar e colar segue o teclado: o app com o foco é quem pode ler e
+    /// trocar o que está copiado (e o "colar com o botão do meio").
+    fn focus_changed(&mut self, seat: &Seat<Self>, focused: Option<&WlSurface>) {
+        let client = focused.and_then(|s| self.dh.get_client(s.id()).ok());
+        set_data_device_focus(&self.dh, seat, client.clone());
+        set_primary_focus(&self.dh, seat, client);
+    }
     // O formato do cursor que o app pede é ignorado: o hub desenha o seu.
     fn cursor_image(&mut self, _seat: &Seat<Self>, _image: CursorImageStatus) {}
 }
 
-// Copiar e colar entre os apps do hub (o "data device"); a 14.18 completa.
+// Copiar e colar entre os apps do hub (o "data device" e a "seleção primária",
+// a do botão do meio). Ainda não conversa com a área de transferência do Omarchy.
 impl SelectionHandler for State {
     type SelectionUserData = ();
 }
@@ -637,6 +889,12 @@ impl SelectionHandler for State {
 impl DataDeviceHandler for State {
     fn data_device_state(&self) -> &DataDeviceState {
         &self.data_device_state
+    }
+}
+
+impl PrimarySelectionHandler for State {
+    fn primary_selection_state(&self) -> &PrimarySelectionState {
+        &self.primary_selection_state
     }
 }
 
@@ -651,4 +909,5 @@ delegate_xdg_shell!(State);
 delegate_xdg_decoration!(State);
 delegate_seat!(State);
 delegate_data_device!(State);
+delegate_primary_selection!(State);
 delegate_output!(State);

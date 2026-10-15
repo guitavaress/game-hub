@@ -3,12 +3,14 @@ extends SceneTree
 ##
 ## Abre o app (o foot, se nada for dito) dentro do compositor do hub e mostra
 ## a janela num quadro meio de lado. O teclado, o mouse e a rodinha vão para o app.
-## Shift + Esc fecha. Precisa da extensão compilada
+## Com APP2, abre um segundo app (para testar copiar num e colar no outro):
+## Shift + F12 troca a janela do quadro. Shift + Esc fecha. Precisa da extensão compilada
 ## (bash tools/linux/compilar_compositor.sh).
 ##
 ## Uso, da raiz do projeto:
 ##   godot --path . -s res://tools/linux/testar_compositor.gd
 ##   APP="brave-origin --ozone-platform=wayland --user-data-dir=/tmp/hub-brave" godot --path . -s res://tools/linux/testar_compositor.gd
+##   APP2=foot godot --path . -s res://tools/linux/testar_compositor.gd
 ##
 ## Não briga com um hub aberto: usa um socket só dele.
 
@@ -17,7 +19,9 @@ const QUAD_SIZE := Vector2(1.6, 0.9)
 
 var comp: Node
 var window_id: int = -1
-var app_pid: int = -1
+## Todas as janelas abertas (o quadro mostra a window_id).
+var windows: Array[int] = []
+var app_pids: Array[int] = []
 var quad: MeshInstance3D
 var material: StandardMaterial3D
 var label: Label
@@ -33,15 +37,16 @@ func _initialize() -> void:
 	root.add_child(comp)
 	comp.connect("window_opened", func(id: int, app_id: String, title: String, pid: int) -> void:
 		print("janela aberta: id=%d app_id=%s título=%s pid=%d" % [id, app_id, title, pid])
+		windows.append(id)
 		if window_id < 0:
-			window_id = id
-			comp.call("focus", id))
+			_show(id))
 	comp.connect("title_changed", func(id: int, title: String) -> void:
 		print("título novo (janela %d): %s" % [id, title]))
 	comp.connect("window_closed", func(id: int) -> void:
 		print("janela fechada: ", id)
+		windows.erase(id)
 		if id == window_id:
-			window_id = -1)
+			_show(windows[0] if not windows.is_empty() else -1))
 
 	# A cena: câmera e o quadro (16:9) quase ocupando a tela.
 	var world := Node3D.new()
@@ -64,12 +69,24 @@ func _initialize() -> void:
 	label.position = Vector2(10, 10)
 	root.add_child(label)
 
-	# O app, com o ambiente que o manda para dentro do compositor.
-	var command := OS.get_environment("APP") if OS.has_environment("APP") else "foot"
+	# Os apps, com o ambiente que os manda para dentro do compositor.
+	_launch(OS.get_environment("APP") if OS.has_environment("APP") else "foot")
+	if OS.has_environment("APP2"):
+		_launch(OS.get_environment("APP2"))
+
+
+func _launch(command: String) -> void:
 	var args := AppCompositor.environment(SOCKET)
 	args.append_array(command.split(" ", false))
-	app_pid = OS.create_process("env", args)
-	print("app aberto (pid %d): %s" % [app_pid, command])
+	var pid := OS.create_process("env", args)
+	app_pids.append(pid)
+	print("app aberto (pid %d): %s" % [pid, command])
+
+
+## Mostra a janela no quadro e dá o foco do teclado a ela.
+func _show(id: int) -> void:
+	window_id = id
+	comp.call("focus", id if id >= 0 else 0)
 
 
 func _process(_delta: float) -> bool:
@@ -77,13 +94,14 @@ func _process(_delta: float) -> bool:
 	var texture: Texture2D = comp.call("get_texture", window_id) if window_id >= 0 else null
 	material.albedo_texture = texture  # a textura pode ser trocada (tamanho novo)
 	material.albedo_color = Color.WHITE if texture else Color(0.1, 0.1, 0.15)
-	label.text = "FPS %d · %s · Shift+Esc fecha" % [Engine.get_frames_per_second(), str(comp.call("stats"))]
+	label.text = "FPS %d · %s · Shift+F12 troca de janela · Shift+Esc fecha" % [Engine.get_frames_per_second(), str(comp.call("stats"))]
 	return false
 
 
 func _finalize() -> void:
-	if app_pid > 0:
-		OS.kill(app_pid)
+	for pid in app_pids:
+		if pid > 0:
+			OS.kill(pid)
 
 
 func _on_input(event: InputEvent) -> void:
@@ -91,6 +109,11 @@ func _on_input(event: InputEvent) -> void:
 		var key := event as InputEventKey
 		if key.keycode == KEY_ESCAPE and key.shift_pressed:
 			quit()
+			return
+		if key.keycode == KEY_F12 and key.shift_pressed:
+			if key.pressed and not key.echo and windows.size() > 1:
+				_show(windows[(windows.find(window_id) + 1) % windows.size()])
+				print("no quadro: janela ", window_id)
 			return
 		if key.echo or window_id < 0:
 			return  # a repetição de tecla é do lado do app
