@@ -1,6 +1,6 @@
 # Fase 14: O hub no Omarchy
 
-**Status:** **reaberta** (2026-10-14). A parte 1 (14.0–14.12, o launcher) está feita no Linux. A [parte 2](#parte-2-janelas-no-mundo) põe as janelas dos apps dentro do mundo, como o Waylandcraft.
+**Status:** **reaberta** (2026-10-14). A parte 1 (14.0–14.12, o launcher) está feita no Linux. A [parte 2](#parte-2-janelas-no-mundo) pôs o compositor e as janelas dos apps dentro do mundo, como o Waylandcraft. A [parte 3](#parte-3-a-mesa-com-três-monitores) (2026-10-15) troca os telões e a estante por três monitores na mesa do computador, com os atalhos, o menu e a barra do Omarchy.
 **Branch:** `fase-14`, criada a partir da `fase-linux` (que ainda não foi para a `main`; quando for, `git rebase --onto main fase-linux fase-14`). Checkout principal (`~/git/game-hub`).
 
 ### Trabalho com o Nimbalyst
@@ -227,6 +227,8 @@ Levantamento (só leitura):
 
 - **14.22: dormir e sair (2026-10-15).** Com o hub dormindo (`HubWindow.is_sleeping`), o `AppSessions` não chama o `poll()`: os apps não recebem "quadro mostrado" e ficam ociosos, e nenhuma textura sobe; ao acordar, volta. O botão "Sair do hub" do menu de pausa, com apps nos telões, pede um segundo clique ("3 apps abertos vão fechar. Sair?"); abrir ou fechar o menu desarma. O atalho `SUPER + H` não muda: apps do mundo não têm sessão no `AppLauncher` (ele fica IDLE), então só os apps de fora reagem ao foco de volta.
 
+- **2026-10-15: a parte 3 (decisão do dono).** O dono não gostou dos telões nas paredes nem da estante de apps. No lugar: **três monitores na mesa do computador**, que são o "Linux de dentro", com os atalhos `SUPER`, o menu (`SUPER + Space`) e a barra do Omarchy funcionando ali; os apps abrem por um lançador no monitor; as configurações do hub ficam só no menu de pausa. O compositor (14.15–14.18), o `AppSessions` (14.21) e o ocioso/aviso ao sair (14.22) continuam. Veja a [parte 3](#parte-3-a-mesa-com-três-monitores).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -336,16 +338,16 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: o `xdg_popup` (menus e o botão direito do Brave) composto na textura da mãe, com o clique roteado para o popup; o data device entre os apps do hub; e o formato do cursor ignorado (o hub desenha o seu).
   - Teste: `cargo test` (popup abre na posição pedida e recebe o clique; copiar num cliente e colar no outro).
   - Commit: `Fase 14.18: popups e copiar e colar`
-- [x] **14.19 O telão** (Sonnet · medium): *trilha paralela, janela 4* · `1ecfa97` (junta em `293a559`)
+- [x] **14.19 O telão** (Sonnet · medium): *trilha paralela, janela 4* · `1ecfa97` (junta em `293a559`) · *substituída pela parte 3 (o telão vira o monitor da mesa na 14.28)*
   - Faz: `components/app_window_3d/` herda da `Screen3D`. Recebe uma "fonte de janela" (a de verdade vem do `AppSessions`; nos testes, uma falsa com uma textura qualquer). Mouse e teclas viram chamadas na fonte; Esc curto vai para o app e segurar Esc sai; a fonte recebe o tamanho; o cursor é desenhado pelo hub. Só usa a interface, sem tocar no Rust.
   - Teste: `tests/check_app_window_3d.gd` com fonte falsa (clique no meio vira as coordenadas certas, Esc curto e longo, `resize` com a resolução).
   - Commit: `Fase 14.19: o telão de app`
-- [x] **14.20 Telões na casa** (Sonnet · medium; Opus · high se o visual travar): *trilha paralela, janela 4, depois da 14.19* · `424671b` (junta em `293a559`)
+- [x] **14.20 Telões na casa** (Sonnet · medium; Opus · high se o visual travar): *trilha paralela, janela 4, depois da 14.19* · `424671b` (junta em `293a559`) · *substituída pela parte 3 (os telões saem na 14.25)*
   - Faz: `worlds/home/app_screens.gd` cria três `AppWindow3D` fixos, no alto das paredes, no grupo `app_screen`. Mostra "Livre", o cartão ao olhar e "segure X para fechar". O `home.gd` cria os telões junto do painel.
   - Teste: `tests/check_app_screens.gd` (três telões, oferta ao `AppSessions` falso, telão libera ao fechar). O `check_home` continua passando.
   - Manual: captura dos três telões (fora do repositório).
   - Commit: `Fase 14.20: telões na casa`
-- [x] **14.21 Abrir no mundo** (Sonnet · medium)
+- [x] **14.21 Abrir no mundo** (Sonnet · medium) · `a354100`
   - Faz: o autoload `AppSessions`. O `AppLauncher` passa a usar o compositor quando `AppCompositor.is_available()`, com o ambiente da decisão "Abrir", os ajustes por app (ozone, perfil do Brave) e o plano B em ~10 s. A estante de apps abre no próximo telão livre. Telões cheios mostram o aviso. O hub não some para app no mundo.
   - Teste: `tests/check_app_sessions.gd` com compositor falso:
     - janela nova liga ao app;
@@ -356,11 +358,11 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
 
     O `check_app_launcher` continua passando.
   - Commit: `Fase 14.21: abrir apps dentro do mundo`
-- [x] **14.22 Dormir, sair e o atalho** (Sonnet · medium)
+- [x] **14.22 Dormir, sair e o atalho** (Sonnet · medium) · `5c56b59`
   - Faz: compositor ocioso enquanto o hub dorme; aviso ao sair com apps abertos; o atalho `SUPER + H` sem mudança para apps fora.
   - Teste: `check_app_sessions` (dormindo, não sobe textura) e o teste do menu de pausa.
   - Commit: `Fase 14.22: o compositor ao dormir e ao sair`
-- [ ] **14.23 Medida e documentação** (Sonnet · medium): *só principal*
+- [ ] ~~**14.23 Medida e documentação**~~ (Sonnet · medium): *só principal* · *virou a 14.32, no fim da [parte 3](#parte-3-a-mesa-com-três-monitores)*
   - Faz: a medida em casa no **desktop (Alta)**, que é a meta, sem apps, com o foot parado e com o Brave tocando vídeo; no notebook (Leve), a mesma medida só como comparação antes e depois. Sem o desktop disponível, a meta fica pendente na trilha do desktop. Atualiza o README (janelas no mundo, como compilar, Esc longo, perfil do Brave), o ROADMAP, o PLATAFORMA (compositor, ambiente dos apps, X11 fora) e o CLAUDE.md (mapa: `app_sessions`, `platform/app_compositor`, `components/app_window_3d`, `native/`).
   - Commit: `Fase 14.23: documentação da parte 2`
 
@@ -388,4 +390,156 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
 6. Abra um app só X11: o hub some e o app aparece fora. `SUPER + H` traz o hub de volta.
 7. Abra um jogo da Steam: o hub some como antes. Ao voltar, os telões continuam com os apps.
 8. Esc → Sair com apps abertos: o aviso aparece.
-9. No **desktop** (Alta), a medida da 14.23 está dentro da meta. No notebook, ela só confirma que o Leve não piorou.
+9. No **desktop** (Alta), a medida da 14.32 está dentro da meta. No notebook, ela só confirma que o Leve não piorou.
+
+---
+
+# Parte 3: a mesa com três monitores
+
+## Contexto da parte 3
+O dono não gostou dos três telões nas paredes (14.19, 14.20) nem da estante de apps. A ideia nova:
+- **três monitores na mesa do computador** são o "Linux de dentro". Você senta, e eles funcionam como o desktop do Omarchy: abrir apps, usar os atalhos `SUPER`, o menu (`SUPER + Space`) e a barra;
+- **a estante de apps sai.** Os apps abrem por um lançador no monitor (o menu de apps do Omarchy, ou um do hub como plano B);
+- **as configurações do hub saem do computador** e ficam só no menu de pausa (as abas Casa e Sistema vão para lá).
+
+Respostas do dono (2026-10-15):
+- "comandos do Omarchy" = os atalhos SUPER **e** o menu e a barra do Omarchy;
+- abrir apps = lançador no monitor;
+- configurações = só no menu de pausa.
+
+O que já existe e continua: o compositor em Rust (14.15 a 14.18: janelas, imagem, teclado, mouse, menus e copiar e colar), o `AppSessions` (14.21: dono do compositor, `poll`, ambiente, perfil do Brave, plano B), o ocioso ao dormir e o aviso ao sair (14.22).
+
+## O que a investigação achou (parte 3)
+- **Os atalhos do Omarchy** são Lua: `o.bind("SUPER + RETURN", "Terminal", {omarchy="terminal"})`, em `/usr/share/omarchy/default/hypr/bindings/*.lua` (applications, utilities, tiling, media, clipboard) e no `~/.config/hypr/bindings.lua` do usuário (`hl.unbind`). O `hyprctl binds -j` dá a tecla e a descrição, **mas não o comando** (vem como `__lua N`). Então o hub **lê os arquivos Lua** e traduz:
+  - texto → comando;
+  - `{omarchy="x"}` → `omarchy-launch-x`;
+  - `{webapp=url}` → `omarchy-launch-webapp`;
+  - `{launch=...}` e `{tui=...}`;
+  - `hl.dsp.*` (fechar, focar, tela cheia, workspace) → ações do próprio hub.
+- **O Hyprland come os atalhos SUPER** antes da Godot. O caminho é um **submap** (`hl.define_submap`, `hl.dsp.submap`): sentado à mesa, o hub liga um submap quase vazio, e as teclas passam para ele.
+- **Os scripts do Omarchy abrem fora:**
+  - `omarchy-launch-*` usam `uwsm-app --` ou `systemd-run --user`, e os dois perdem o `WAYLAND_DISPLAY`;
+  - `omarchy-launch-or-focus` usa o `hyprctl` de fora.
+  - Saída: o ambiente dos apps de dentro ganha uma **pasta de "calços"** (shims) no começo do `PATH`, com `uwsm-app` e `systemd-run`, que só executam o comando. Ganha também `-u HYPRLAND_INSTANCE_SIGNATURE`: sem ele, o `hyprctl` de dentro não acha o Hyprland de fora, e o launch-or-focus cai no "abrir".
+- **O menu e a barra do Omarchy** são o Quickshell (`quickshell -n -p /usr/share/omarchy/shell`, versão 0.3.1). O `omarchy-shell` acha a instância **pelo `WAYLAND_DISPLAY`**, então uma segunda instância dentro do `gamehub-0` convive com a de fora.
+  - Precisa de **layer-shell** (barra, menu e fundo são `PanelWindow`), que o compositor ainda não tem.
+  - O compositor só tem shm (o Qt pode precisar do render por software).
+  - Os serviços duplicados (notificações, idle, lock) são o maior risco. **Vai para um spike antes de tudo.**
+
+## Decisões de arquitetura (parte 3)
+- **Cada monitor da mesa é uma "saída" (`wl_output`) do compositor**, e não uma janela. O Rust compõe cada saída numa textura só: fundo, barra, janelas e menus. Assim a barra do Omarchy aparece em cada monitor, como no desktop. Tamanho: **1920×1080 por saída** (texto legível de perto), a ser confirmado na medida da 14.32 (plano: 1600×900).
+- **A política fica em GDScript, o mecanismo em Rust.**
+  - O Rust põe as janelas onde mandam (`place(id, saída, retângulo)`), compõe e roteia o mouse pela posição na saída.
+  - Um `DeskLayout` em GDScript (testável sem o `.so`) decide o lugar de cada janela: lado a lado no monitor, foco, tela cheia, mover de monitor. O dono lê e mexe nele.
+- **Os atalhos são do hub, com os comandos do Omarchy.**
+  - `autoload/platform/omarchy_binds.gd` lê os Lua (o padrão e o do usuário) e monta "combinação → ação".
+  - A ação "rodar comando" roda com o ambiente de dentro (calços + `gamehub-0`). As ações de janela (`SUPER+W`, setas, `SUPER+F`, `SUPER+1..3`) vão para o `DeskLayout`. O que não tem tradução é ignorado e aparece no log uma vez.
+  - Os atalhos do usuário valem, porque o hub lê o `bindings.lua` dele.
+- **Submap só enquanto sentado à mesa:**
+  - liga ao sentar; volta ao normal ao levantar, ao perder o foco, ao dormir e ao sair;
+  - o `WindowHostHyprland` é quem fala com o `hyprctl` (regra 5);
+  - **saída de emergência:** um submap definido no `bindings.lua` com uma tecla que volta ao normal (o hub oferece a linha para copiar, como o atalho da 14.10). Se o hub travar, a tecla devolve os atalhos.
+- **O menu e a barra: Quickshell de dentro (A) ou do hub (B), decidido no spike.**
+  - (A) Uma segunda instância do Omarchy shell no `gamehub-0`. `SUPER + Space` e `SUPER + Alt + Space` (o menu de apps) chamam o `omarchy-menu` com o ambiente de dentro.
+  - (B) Se o Quickshell não rodar bem lá dentro, o hub desenha uma barra simples (hora, bateria, Wi-Fi e volume, que o `SystemStatus` já tem) e um lançador (busca + Enter, com a lista do `AppLibrary`). Os mesmos atalhos chamam esse lançador.
+- **Sai:** os telões (`worlds/home/app_screens.gd`, o teste dele) e a estante de apps (`worlds/home/app_shelf.gd`, o teste dele, o `"apps"` em `Home.MOVABLE` e nas 3 disposições do `home_catalog.tres`). O `AppWindow3D` é adaptado para "monitor de saída", e o `AppWindowSource` passa a falar de uma saída.
+- **Fica:** o `AppLibrary` (para o lançador B e os ícones) e o `AppLauncher` (o fluxo de fora, para quando não há compositor). Sem a estante, ele só é chamado pelo lançador B. No Windows, ou sem o `.so`, os monitores mostram "O Linux do hub precisa do compositor (só no Linux)".
+- **Regras do projeto:** o `AppSessions` não conhece a mesa. Ele acha os monitores pelo grupo `desk_monitors` (regra 1). Lua, `hyprctl`, calços e `quickshell` ficam só em `autoload/platform/`, e o `check_platform` ganha a lista nova (regra 5).
+
+## Subetapas (parte 3)
+Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
+- [x] **14.23 Plano da parte 3** (Sonnet · low)
+  - Faz: escreve esta parte no `docs/plans/fase-14.md`. Marca a 14.19 e a 14.20 como "substituídas pela parte 3" e põe a decisão do dono em "Decisões tomadas durante a fase".
+  - Commit: `Fase 14.23: plano da parte 3 (a mesa com três monitores)`
+- [ ] **14.24 Spike: submap, calços e Quickshell** (Opus · high): *precisa do dono no notebook*
+  - Faz, numa branch de spike, sem mexer no hub:
+    - (a) com o submap ligado, `SUPER + Enter` chega à Godot como tecla (o `testar_compositor.gd` imprime), e a tecla de emergência volta ao normal;
+    - (b) com os calços e o `-u HYPRLAND_INSTANCE_SIGNATURE`, o `omarchy-launch-terminal`, o `omarchy-launch-browser` e o `omarchy-launch-or-focus obsidian ...` abrem **dentro**;
+    - (c) um layer-shell mínimo no Rust e `quickshell -n -p /usr/share/omarchy/shell` no `gamehub-0`: a barra aparece? o `omarchy-menu toggle` (ambiente de dentro) abre o menu lá dentro? Os serviços duplicados (notificações, idle, lock) brigam com os de fora?
+    - (d) o leitor de Lua de teste acha quantos dos ~190 atalhos.
+  - Antes de qualquer crate novo, **pede permissão** (o Smithay já tem o `wlr_layer`; a ideia é não precisar de nada novo).
+  - Resultado em "Decisões tomadas durante a fase", com a escolha A ou B.
+  - Commit: `Fase 14.24: resultado do spike da mesa`
+- [ ] **14.25 Tirar os telões e a estante; configurações no menu de pausa** (Sonnet · medium)
+  - Faz:
+    - apaga `app_screens.gd`, `app_shelf.gd` e os testes deles; tira o `"apps"` do `Home.MOVABLE` e do `home_catalog.tres`;
+    - o `PauseMenu` ganha as abas Casa (`HomeSettingsView`) e Sistema (`SystemSettingsView`, onde houver), pelo `SettingsView.add_page`, que já existe;
+    - o `ComputerDesk` vira uma mesa mais larga com **três monitores** (o do meio de frente, os dos lados um pouco virados), que por enquanto mostram "Sem sinal";
+    - o `AppLauncher.use_world` e a estante somem do `check_app_launcher`.
+  - Teste: `check_home`, `check_pause_menu` (abas novas) e `check_computer_desk` (três telas, nenhuma dentro de móvel nas 3 disposições).
+  - Manual: captura da mesa (fora do repositório).
+  - Commit: `Fase 14.25: três monitores na mesa e configurações no menu de pausa`
+- [ ] **14.26 Saídas e composição por monitor** (Opus · high): *Rust*
+  - Faz:
+    - `set_outputs(tamanhos)` cria 3 `wl_output` (com o `xdg-output`);
+    - `place(id, saída, x, y, w, h)` manda a janela para o lugar (com `configure`);
+    - `get_output_texture(i)` devolve a saída composta (as janelas e os menus por cima, só onde mudou);
+    - o mouse por saída: `pointer_motion_output(i, x, y)` acha a superfície embaixo e dá o foco de mouse a ela.
+  - A API por janela (14.16 a 14.18) continua para os testes antigos.
+  - Teste: `cargo test` (duas janelas lado a lado na saída 0, cor certa em cada metade, clique vai para a da direita, janela na saída 2 não aparece na 0).
+  - Commit: `Fase 14.26: saídas e composição por monitor`
+- [ ] **14.27 Layer-shell** (Opus · high): *Rust; só se o spike escolher A*
+  - Faz:
+    - `wlr-layer-shell`: camadas fundo, baixo, topo e sobreposição, com âncoras e margens;
+    - a **zona exclusiva** (a barra reserva o alto): o sinal `usable_area_changed(saída, retângulo)`;
+    - o teclado `exclusive`/`on_demand` (o menu recebe as teclas) e o mouse nas camadas.
+  - Teste: `cargo test` (uma barra de 30 px reduz a área útil; um overlay com teclado exclusivo recebe a tecla; o clique na barra não vai para a janela).
+  - Commit: `Fase 14.27: layer-shell no compositor`
+- [ ] **14.28 Sentar à mesa** (Sonnet · medium; Opus · high se o visual travar)
+  - Faz:
+    - o `AppWindow3D` vira `DeskMonitor3D` (`components/desk_monitor_3d/`): mostra a textura de uma saída;
+    - `E` num monitor "senta": a câmera enquadra os três;
+    - o mouse anda pelos três (o raio acha o monitor e o pixel, e vai como `pointer_motion_output`), com o cursor do hub;
+    - segurar Esc levanta; o `AppSessions` cria as 3 saídas e acha os monitores pelo grupo `desk_monitors`.
+  - Teste: `tests/check_desk_monitors.gd` com compositor falso (raio no meio do monitor da direita vira a saída 2 e o pixel certo; Esc curto e longo; sentar e levantar).
+  - Commit: `Fase 14.28: sentar à mesa e usar os três monitores`
+- [ ] **14.29 O arranjo das janelas** (Sonnet · medium)
+  - Faz: o `DeskLayout` (GDScript puro, dentro do `AppSessions`):
+    - janela nova vai para o monitor com foco e divide o espaço lado a lado (como o dwindle, sem passar de 3 por monitor);
+    - fechar arruma de novo; foco por direção, inclusive entre monitores;
+    - tela cheia no monitor; mover a janela para o monitor 1, 2 ou 3;
+    - respeita a área útil (a barra).
+  - Teste: `tests/check_desk_layout.gd` (abrir 1, 2 e 3 janelas; fechar a do meio; foco à direita passa de monitor; tela cheia; mover para o 3).
+  - Commit: `Fase 14.29: o arranjo das janelas nos monitores`
+- [ ] **14.30 Os atalhos do Omarchy** (Sonnet · medium; Opus · high se o leitor de Lua travar)
+  - Faz:
+    - `autoload/platform/omarchy_binds.gd` lê os `bindings/*.lua` do Omarchy e o `bindings.lua` do usuário (com `hl.unbind`) e monta a tabela;
+    - sentado à mesa, a combinação vira ação (comando com o ambiente de dentro, ou ação do `DeskLayout`); o resto vai para o app com foco;
+    - o submap: ligar e desligar pelo `WindowHost`;
+    - os calços em `user://shims/` (criados pelo `platform`) e o `-u HYPRLAND_INSTANCE_SIGNATURE` no `AppCompositor.environment()`;
+    - a aba Sistema ganha "Copiar a linha da tecla de emergência".
+  - Teste:
+    - `tests/check_omarchy_binds.gd` com arquivos Lua de exemplo: texto, `omarchy=`, `webapp=`, `unbind`, `code:10` = tecla 1, e `hl.dsp.window.close()` = fechar;
+    - o `check_app_sessions` confere o ambiente novo e o `check_platform` a lista nova.
+  - Commit: `Fase 14.30: os atalhos do Omarchy na mesa`
+- [ ] **14.31 O menu e a barra** (Sonnet · medium)
+  - Faz:
+    - (A) o `AppSessions` sobe o Quickshell de dentro com o compositor (e o fecha junto), e `SUPER + Space` / `SUPER + Alt + Space` chamam o `omarchy-menu` de dentro;
+    - ou (B) a barra e o lançador do hub numa camada desenhada pela Godot por cima do monitor do meio, com a lista do `AppLibrary`.
+  - Teste: (A) `check_app_sessions` (o processo sobe e desce com o compositor, com comando falso) ou (B) `tests/check_desk_launcher.gd` (busca, Enter abre pelo `AppSessions.open_app`).
+  - Commit: `Fase 14.31: o menu e a barra do Omarchy na mesa`
+- [ ] **14.32 Medida e documentação** (Sonnet · medium): *a antiga 14.23*
+  - Faz:
+    - a medida no **desktop (Alta)**, que é a meta: os três monitores parados e com o Brave tocando vídeo num deles. No notebook, só antes e depois; sem o desktop, a meta fica pendente na trilha do desktop;
+    - README, ROADMAP, PLATAFORMA (submap, calços, Quickshell de dentro) e o mapa do `CLAUDE.md` (sai `app_shelf`/telões; entram `desk_monitor_3d`, `omarchy_binds`, `native/`).
+  - Commit: `Fase 14.32: documentação da parte 3`
+
+## Riscos (parte 3)
+- **O Quickshell não roda bem no compositor** (shm só, Qt pedindo protocolos que faltam, serviços duplicados): o spike decide, e o plano B (barra e lançador do hub) não depende dele.
+- **Submap preso** (o hub trava sentado): a tecla de emergência no `bindings.lua`; o hub também volta ao normal ao perder o foco e ao sair.
+- **Lua do Omarchy muda numa atualização:** o leitor é tolerante. O que ele não entende vira "sem ação", com aviso no log, e o teste usa arquivos de exemplo.
+- **Desempenho com 3 saídas de 1920×1080 em shm:** a imagem só sobe quando muda. A medida no desktop pode baixar para 1600×900.
+
+## Fora do escopo (parte 3)
+- Os workspaces além de 1 a 3 (cada monitor é um), o scratchpad, as janelas flutuantes e os atalhos de mouse (arrastar janela).
+- A captura de tela de dentro (`omarchy-capture-*`) e o bloqueio de tela de dentro.
+- A ponte da área de transferência com o Omarchy de fora (continua fora, como na 14.18).
+
+## Checklist de teste manual (fim da parte 3)
+1. `bash tools/linux/compilar_compositor.sh`, depois abrir o hub no notebook. Na casa não há telões nem estante, e a mesa tem três monitores com a barra.
+2. `E` no monitor do meio: a câmera enquadra os três. `SUPER + Enter` abre o terminal no monitor com foco; `SUPER + Shift + B` abre o Brave ao lado.
+3. `SUPER + Space`: o menu do Omarchy abre **no monitor**, e não no desktop de fora. Pelo menu de apps, abra o Obsidian.
+4. `SUPER + setas` troca o foco (inclusive de monitor), `SUPER + W` fecha, `SUPER + F` deixa em tela cheia no monitor e `SUPER + Shift + 3` manda a janela para o terceiro monitor.
+5. Segure Esc: você levanta, e os atalhos SUPER voltam a ser do Hyprland (teste `SUPER + Enter` fora do hub).
+6. Esc → menu de pausa: as abas Casa e Sistema estão lá.
+7. `bash tests/run_tests.sh` → `RESULTADO GERAL: TUDO OK` (com o `cargo test`).
