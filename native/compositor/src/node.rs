@@ -3,15 +3,17 @@
 //! Só o `autoload/platform/app_compositor.gd` cria este nó. A interface é pequena
 //! e não sabe nada de mundo, telão ou casa:
 //! - `start(socket, layout, variant)`, `stop()` e `poll()` (a cada quadro);
-//! - sinais `window_opened(id, app_id, title, pid)` e `window_closed(id)`;
+//! - sinais `window_opened(id, app_id, title, pid)`, `window_closed(id)` e
+//!   `title_changed(id, title)`;
 //! - `get_texture(id)`: a imagem da janela, que só sobe quando muda;
+//! - `resize(id, w, h)` e `close(id)`: o telão manda o tamanho e pede para fechar;
 //! - `key`, `pointer_motion` e `pointer_button`: teclado e mouse para a janela.
 //!
 //! Não há laço de eventos separado: o `poll()` faz tudo sem esperar
 //! (aceita apps novos, lê as mensagens, sobe as imagens e responde).
+//! O compositor em si é o `Core` (wayland.rs); aqui só fica a parte da Godot.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 
 use godot::classes::image::Format;
@@ -22,36 +24,20 @@ use smithay::backend::input::{ButtonState, KeyState};
 use smithay::input::keyboard::{FilterResult, Keycode};
 use smithay::input::pointer::{ButtonEvent, MotionEvent};
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
-use smithay::reexports::wayland_server::{Display, ListeningSocket};
 use smithay::utils::SERIAL_COUNTER;
 
-use crate::wayland::{toplevel_names, ClientState, Event, State};
+use crate::wayland::{toplevel_names, Core, Event};
 
-/// Tudo o que existe só enquanto o compositor está ligado.
-struct Running {
-    display: Display<State>,
-    listener: ListeningSocket,
-    state: State,
-    /// O relógio dos eventos (os apps só comparam um tempo com o outro).
-    start: Instant,
-}
-
-impl Running {
-    fn now_ms(&self) -> u32 {
-        self.start.elapsed().as_millis() as u32
-    }
-
-    /// A "superfície" (a área de desenho) da janela com esse id.
-    fn surface(&self, id: i64) -> Option<WlSurface> {
-        self.state.window(id).map(|w| w.toplevel.wl_surface().clone())
-    }
+/// A "superfície" (a área de desenho) da janela com esse id.
+fn surface(core: &Core, id: i64) -> Option<WlSurface> {
+    core.state.window(id).map(|w| w.toplevel.wl_surface().clone())
 }
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
 pub struct HubCompositor {
     base: Base<Node>,
-    running: Option<Running>,
+    running: Option<Core>,
     /// A textura de cada janela (id → textura), criada na primeira imagem.
     textures: HashMap<i64, Gd<ImageTexture>>,
     /// Quanto tempo as subidas de textura levaram, somado (para a medida).
@@ -75,35 +61,29 @@ impl HubCompositor {
     #[signal]
     fn window_closed(id: i64);
 
+    #[signal]
+    fn title_changed(id: i64, title: GString);
+
     /// Abre o socket (ex.: "gamehub-0", dentro do XDG_RUNTIME_DIR) com o
     /// layout do teclado (ex.: "br", variante ""). Devolve false se falhar
     /// (o motivo vai para o log).
     #[func]
     fn start(&mut self, socket: GString, layout: GString, variant: GString) -> bool {
         self.stop();
-        let display: Display<State> = match Display::new() {
-            Ok(d) => d,
-            Err(e) => {
-                godot_error!("Compositor: não deu para criar o display Wayland: {e}");
-                return false;
+        let started = Core::new(&layout.to_string(), &variant.to_string()).and_then(|mut core| {
+            core.listen(&socket.to_string())?;
+            Ok(core)
+        });
+        match started {
+            Ok(core) => {
+                self.running = Some(core);
+                true
             }
-        };
-        let listener = match ListeningSocket::bind(socket.to_string()) {
-            Ok(l) => l,
-            Err(e) => {
-                godot_error!("Compositor: não deu para abrir o socket {socket}: {e}");
-                return false;
-            }
-        };
-        let state = match State::new(display.handle(), &layout.to_string(), &variant.to_string()) {
-            Ok(s) => s,
             Err(e) => {
                 godot_error!("Compositor: {e}");
-                return false;
+                false
             }
-        };
-        self.running = Some(Running { display, listener, state, start: Instant::now() });
-        true
+        }
     }
 
     /// Desliga: fecha o socket, e os apps conectados perdem a conexão.
@@ -122,34 +102,25 @@ impl HubCompositor {
     /// as imagens novas e avisa os apps que o quadro foi mostrado.
     #[func]
     fn poll(&mut self) {
-        let Some(run) = self.running.as_mut() else { return };
-        while let Ok(Some(stream)) = run.listener.accept() {
-            if let Err(e) = run.display.handle().insert_client(stream, Arc::new(ClientState::default())) {
-                godot_error!("Compositor: app recusado: {e}");
-            }
-        }
-        if let Err(e) = run.display.dispatch_clients(&mut run.state) {
-            godot_error!("Compositor: erro ao ler as mensagens dos apps: {e}");
+        let Some(core) = self.running.as_mut() else { return };
+        if let Err(e) = core.dispatch() {
+            godot_error!("Compositor: {e}");
         }
 
         // As imagens que mudaram viram Image (a subida para a placa vem depois).
         let mut images: Vec<(i64, Gd<Image>)> = Vec::new();
-        let now_ms = run.now_ms();
-        for win in run.state.windows.iter_mut() {
-            if win.dirty && win.width > 0 {
+        for win in core.state.windows.iter_mut() {
+            if win.dirty && win.width() > 0 {
                 win.dirty = false;
                 let bytes = PackedByteArray::from(win.pixels.as_slice());
-                if let Some(image) = Image::create_from_data(win.width, win.height, false, Format::RGBA8, &bytes) {
+                if let Some(image) = Image::create_from_data(win.width(), win.height(), false, Format::RGBA8, &bytes) {
                     images.push((win.id, image));
                 }
             }
-            // "Quadro mostrado": o app pode desenhar o próximo.
-            for callback in win.callbacks.drain(..) {
-                callback.done(now_ms);
-            }
         }
-        let events: Vec<Event> = run.state.events.drain(..).collect();
-        let _ = run.display.flush_clients();
+        // "Quadro mostrado": quem pediu pode desenhar o próximo.
+        core.frame_done();
+        let events = core.take_events();
 
         for (id, image) in images {
             self.upload(id, image);
@@ -174,6 +145,11 @@ impl HubCompositor {
                     let args = ["window_closed".to_variant(), id.to_variant()];
                     self.base_mut().call_deferred("emit_signal", &args);
                 }
+                Event::TitleChanged(id, title) => {
+                    let args =
+                        ["title_changed".to_variant(), id.to_variant(), GString::from(title.as_str()).to_variant()];
+                    self.base_mut().call_deferred("emit_signal", &args);
+                }
             }
         }
     }
@@ -188,18 +164,31 @@ impl HubCompositor {
     #[func]
     fn get_image(&self, id: i64) -> Option<Gd<Image>> {
         let win = self.running.as_ref()?.state.window(id)?;
-        if win.width <= 0 {
+        if win.width() <= 0 {
             return None;
         }
         let bytes = PackedByteArray::from(win.pixels.as_slice());
-        Image::create_from_data(win.width, win.height, false, Format::RGBA8, &bytes)
+        Image::create_from_data(win.width(), win.height(), false, Format::RGBA8, &bytes)
+    }
+
+    /// Pede ao app outro tamanho para a janela (o telão manda a resolução dele).
+    /// A textura muda de tamanho quando a imagem nova chegar.
+    #[func]
+    fn resize(&mut self, id: i64, width: i32, height: i32) -> bool {
+        self.running.as_mut().is_some_and(|core| core.resize(id, width, height))
+    }
+
+    /// Pede ao app para fechar a janela. Quando ele fechar, sai o `window_closed`.
+    #[func]
+    fn close(&mut self, id: i64) -> bool {
+        self.running.as_mut().is_some_and(|core| core.close(id))
     }
 
     #[func]
     fn get_title(&self, id: i64) -> GString {
         self.running
             .as_ref()
-            .and_then(|run| run.state.window(id))
+            .and_then(|core| core.state.window(id))
             .map(|w| GString::from(toplevel_names(&w.toplevel).1.as_str()))
             .unwrap_or_default()
     }
@@ -208,49 +197,49 @@ impl HubCompositor {
     /// do GDScript traduz a tecla da Godot). A janela ganha o foco do teclado.
     #[func]
     fn key(&mut self, id: i64, evdev: i32, pressed: bool) {
-        let Some(run) = self.running.as_mut() else { return };
-        let Some(surface) = run.surface(id) else { return };
-        let keyboard = run.state.seat.get_keyboard().unwrap();
+        let Some(core) = self.running.as_mut() else { return };
+        let Some(surface) = surface(core, id) else { return };
+        let keyboard = core.state.seat.get_keyboard().unwrap();
         if keyboard.current_focus().as_ref() != Some(&surface) {
-            keyboard.set_focus(&mut run.state, Some(surface), SERIAL_COUNTER.next_serial());
+            keyboard.set_focus(&mut core.state, Some(surface), SERIAL_COUNTER.next_serial());
         }
-        let time = run.now_ms();
+        let time = core.now_ms();
         let state = if pressed { KeyState::Pressed } else { KeyState::Released };
         // O xkb numera as teclas 8 acima do evdev (uma herança do X11).
         keyboard.input::<(), _>(
-            &mut run.state,
+            &mut core.state,
             Keycode::new(evdev as u32 + 8),
             state,
             SERIAL_COUNTER.next_serial(),
             time,
             |_, _, _| FilterResult::Forward,
         );
-        let _ = run.display.flush_clients();
+        core.flush();
     }
 
     /// O ponteiro em (x, y), em pixels da janela (0, 0 é o canto de cima à esquerda).
     #[func]
     fn pointer_motion(&mut self, id: i64, x: f64, y: f64) {
-        let Some(run) = self.running.as_mut() else { return };
-        let Some(surface) = run.surface(id) else { return };
-        let pointer = run.state.seat.get_pointer().unwrap();
-        let event = MotionEvent { location: (x, y).into(), serial: SERIAL_COUNTER.next_serial(), time: run.now_ms() };
-        pointer.motion(&mut run.state, Some((surface, (0.0, 0.0).into())), &event);
-        pointer.frame(&mut run.state);
-        let _ = run.display.flush_clients();
+        let Some(core) = self.running.as_mut() else { return };
+        let Some(surface) = surface(core, id) else { return };
+        let pointer = core.state.seat.get_pointer().unwrap();
+        let event = MotionEvent { location: (x, y).into(), serial: SERIAL_COUNTER.next_serial(), time: core.now_ms() };
+        pointer.motion(&mut core.state, Some((surface, (0.0, 0.0).into())), &event);
+        pointer.frame(&mut core.state);
+        core.flush();
     }
 
     /// Botão do mouse, com o código do Linux (0x110 esquerdo, 0x111 direito,
     /// 0x112 do meio). Vai para a janela onde o ponteiro está.
     #[func]
     fn pointer_button(&mut self, button: i32, pressed: bool) {
-        let Some(run) = self.running.as_mut() else { return };
-        let pointer = run.state.seat.get_pointer().unwrap();
+        let Some(core) = self.running.as_mut() else { return };
+        let pointer = core.state.seat.get_pointer().unwrap();
         let state = if pressed { ButtonState::Pressed } else { ButtonState::Released };
-        let event = ButtonEvent { serial: SERIAL_COUNTER.next_serial(), time: run.now_ms(), button: button as u32, state };
-        pointer.button(&mut run.state, &event);
-        pointer.frame(&mut run.state);
-        let _ = run.display.flush_clients();
+        let event = ButtonEvent { serial: SERIAL_COUNTER.next_serial(), time: core.now_ms(), button: button as u32, state };
+        pointer.button(&mut core.state, &event);
+        pointer.frame(&mut core.state);
+        core.flush();
     }
 
     /// Números para a medida: janelas abertas e o custo médio (em
@@ -259,8 +248,8 @@ impl HubCompositor {
     fn stats(&self) -> VarDictionary {
         let mut d = VarDictionary::new();
         let average = |total: u128, count: u64| if count > 0 { (total / count as u128) as i64 } else { 0 };
-        if let Some(run) = self.running.as_ref() {
-            let s = &run.state;
+        if let Some(core) = self.running.as_ref() {
+            let s = &core.state;
             d.set("janelas", s.windows.len() as i64);
             d.set("copias", s.copy_count as i64);
             d.set("copia_media_us", average(s.copy_us_total, s.copy_count));

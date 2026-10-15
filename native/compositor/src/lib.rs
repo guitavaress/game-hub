@@ -11,13 +11,17 @@
 //!
 //! - `pixels`: a conversão da imagem (testada com `cargo test`);
 //! - `wayland`: o que os apps enxergam (janelas, teclado, mouse, monitor);
-//! - `node`: o nó `HubCompositor` da Godot.
+//! - `node`: o nó `HubCompositor` da Godot;
+//! - `tests`: o compositor com um app de teste (só no `cargo test`).
 
 use godot::prelude::*;
 
 mod node;
 mod pixels;
 mod wayland;
+
+#[cfg(test)]
+mod tests;
 
 /// A entrada da GDExtension (a Godot procura `gdext_rust_init`).
 struct HubExtension;

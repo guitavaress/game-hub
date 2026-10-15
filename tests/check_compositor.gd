@@ -117,15 +117,17 @@ func _real_compositor() -> void:
 	if comp == null:
 		return
 	root.add_child(comp)
-	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "key", "pointer_motion", "pointer_button", "stats"]:
+	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "key", "pointer_motion", "pointer_button", "stats"]:
 		_check("o nó tem %s()" % method, comp.has_method(method))
-	for sig in ["window_opened", "window_closed"]:
+	for sig in ["window_opened", "window_closed", "title_changed"]:
 		_check("o nó tem o sinal %s" % sig, comp.has_signal(sig))
 	_check("o socket está aberto (%s)" % socket_file, FileAccess.file_exists(socket_file))
 	for i in 5:
 		comp.call("poll")
 		await process_frame
 	_check("sem app, nenhuma textura", comp.call("get_texture", 1) == null)
+	_check("resize/close de janela que não existe devolvem false",
+			not comp.call("resize", 1, 640, 360) and not comp.call("close", 1))
 	var stats: Dictionary = comp.call("stats")
 	_check("stats() conta 0 janelas", stats.get("janelas", -1) == 0)
 	comp.queue_free()

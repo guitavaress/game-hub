@@ -35,6 +35,8 @@ func _initialize() -> void:
 		print("janela aberta: id=%d app_id=%s título=%s pid=%d" % [id, app_id, title, pid])
 		if window_id < 0:
 			window_id = id)
+	comp.connect("title_changed", func(id: int, title: String) -> void:
+		print("título novo (janela %d): %s" % [id, title]))
 	comp.connect("window_closed", func(id: int) -> void:
 		print("janela fechada: ", id)
 		if id == window_id:

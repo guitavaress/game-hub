@@ -189,6 +189,14 @@ Levantamento (só leitura):
   - **Licenças:** `tools/linux/checar_licencas.sh` lê o `cargo metadata` (sem baixar nada) e avalia a expressão SPDX de cada crate: 84 crates, nenhum GPL; MPL-2.0 só nos do godot-rust. Roda no fim do `compilar_compositor.sh` e da bateria.
   - **Bateria:** o `cargo test` (5 testes da conversão de imagem) roda só na bateria inteira, no Linux, com Rust e depois da primeira compilação (`--offline`: a bateria nunca baixa crate). Sem isso, escreve "pulado".
   - **O spike saiu do repositório:** o quadro com teclado e mouse virou `tools/linux/testar_compositor.gd` (usa o ponto único). O teste sem janela do foot sai de cena: a 14.16 põe um cliente Wayland de teste no `cargo test`.
+- **14.16: janelas e imagem (2026-10-15).**
+  - **O compositor virou um `Core` sem Godot** (`wayland.rs`): o nó `HubCompositor` só chama o `Core` e transforma os eventos em sinais. Assim, o `cargo test` liga o compositor de verdade com um app de teste (crate `wayland-client` 0.31.14, MIT, só nos testes; permissão do dono em 2026-10-15) na mesma thread, sem Godot e sem socket em disco: 10 testes (abrir com nome, título, pid e cor; recorte da sombra; dano; imagem sem dano; `frame done` só para quem pediu; `resize`; `close`; app que cai; título novo; esconder e mostrar).
+  - **Recorte pela geometria da janela** (`set_window_geometry`): a sombra fica de fora. O Brave abre em 1280×720 certinho (no spike vinha 1324×764).
+  - **A janela nasce "encostada nos quatro lados"** (estados `Tiled`) **e com decoração do lado do servidor** (`xdg-decoration`): o foot e o Brave não desenham barra de título nem sombra. O telão mostra o nome do app.
+  - **Só as linhas com dano são copiadas.** A troca de cores (BGRA → RGBA) **continua no Rust**, e não na placa de vídeo: assim a textura sai num formato comum, e o telão usa um material normal, sem shader especial. A troca agora é feita número a número (o compilador processa vários pixels de uma vez): no notebook, só para comparar, a cópia de 1280×720 inteira caiu de 1,5 ms para 1,0 ms. A subida da textura continua inteira (a Godot não tem subida parcial).
+  - **Tamanho mínimo dos apps:** pedido 800×450, o Brave respondeu 800×600 (o mínimo do Chromium). O telão deve usar o tamanho **da textura** para achar o pixel do mouse, e não o tamanho que pediu.
+  - **Esconder a janela** (commit sem imagem) sai como `window_closed`; se o app mostrar de novo, sai outro `window_opened` com o mesmo id.
+  - Sinais novos: `title_changed(id, title)`; funções novas: `resize(id, w, h)` e `close(id)`.
 
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
@@ -286,7 +294,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/app_compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
   - Teste: `tests/check_compositor.gd` (sem `.so`: `is_available()` falso e nada quebra; tabela evdev: letras, números, ABNT2 `ç` e `/?`, setas, F1–F12) e o `check_platform` com a lista nova.
   - Commit: `Fase 14.15: extensão do compositor e o ponto único`
-- [ ] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4*
+- [x] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4* · `HASH`
   - Faz: no Rust, xdg-shell (toplevel), shm, `frame done` só quando pedido, título, `app_id`, pid do cliente, `resize`, `close`, dano → textura. Os sinais do `HubCompositor`.
   - Teste: `cargo test` com um cliente Wayland de teste (crate `wayland-client`) que manda um buffer de cor conhecida. O compositor abre a janela, a textura tem a cor certa e, ao fechar, sai o `window_closed`.
   - Commit: `Fase 14.16: janelas e imagem no compositor`
