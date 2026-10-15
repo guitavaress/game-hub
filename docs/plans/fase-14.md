@@ -294,7 +294,7 @@ Branch `fase-14` (checkout principal). A trilha paralela só entra na janela 4 (
   - Faz: o crate `native/compositor/` arrumado (comentários em português), `tools/linux/compilar_compositor.sh`, o `.gdextension`, o `.gitignore` (`native/bin/`, `native/**/target/`), a checagem de licenças dos crates (sem GPL) e `autoload/platform/app_compositor.gd` (`is_available()`, `create()`, tabela evdev, layout). O `run_tests.sh` roda `cargo test` se houver `cargo`; senão, escreve "pulado".
   - Teste: `tests/check_compositor.gd` (sem `.so`: `is_available()` falso e nada quebra; tabela evdev: letras, números, ABNT2 `ç` e `/?`, setas, F1–F12) e o `check_platform` com a lista nova.
   - Commit: `Fase 14.15: extensão do compositor e o ponto único`
-- [x] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4* · `HASH`
+- [x] **14.16 Janelas e imagem** (Opus · high): *principal, janela 4* · `f755f61`
   - Faz: no Rust, xdg-shell (toplevel), shm, `frame done` só quando pedido, título, `app_id`, pid do cliente, `resize`, `close`, dano → textura. Os sinais do `HubCompositor`.
   - Teste: `cargo test` com um cliente Wayland de teste (crate `wayland-client`) que manda um buffer de cor conhecida. O compositor abre a janela, a textura tem a cor certa e, ao fechar, sai o `window_closed`.
   - Commit: `Fase 14.16: janelas e imagem no compositor`
