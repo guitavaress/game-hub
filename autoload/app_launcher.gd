@@ -52,8 +52,6 @@ const FIND_WINDOW_TIMEOUT: float = 10.0
 
 var state: State = State.IDLE
 
-## Pode abrir no mundo (telões)? Os testes do fluxo de fora desligam.
-var use_world: bool = true
 ## A última sessão que acabou foi uma abertura no mundo? (a estante lê)
 var last_session_in_world: bool = false
 
@@ -105,7 +103,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## O próximo app vai abrir num telão (e não fora, com o hub dormindo)?
 func opens_in_world() -> bool:
-	return use_world and AppSessions.can_open_in_world()
+	return AppSessions.can_open_in_world()
 
 
 func is_busy() -> bool:

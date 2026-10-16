@@ -366,7 +366,6 @@ const ANCHORS: Dictionary[String, Array] = {
 ## e que ainda não está aqui é ignorado.
 const MOVABLE: Dictionary[String, Array] = {
 	"estante": [preload("res://worlds/home/library_shelf.gd"), "LibraryShelf"],
-	"apps": [preload("res://worlds/home/app_shelf.gd"), "AppShelf"],
 	"mural": [preload("res://worlds/home/friends_wall.gd"), "FriendsWall"],
 	"estatisticas": [preload("res://worlds/home/stats_wall.gd"), "StatsWall"],
 	"espelho": [preload("res://worlds/home/home_mirror.gd"), "HomeMirror"],
@@ -400,9 +399,6 @@ func _build_furniture() -> void:
 	_system_panel.position = Vector3(get_anchor_transform(COMPUTER_ANCHOR).origin.x, 0.0, -ROOM_SIZE.z / 2.0)
 	add_child(_system_panel)
 	_system_panel.set_accent(_neon_color())
-	var screens := AppScreens.new()  # os telões das janelas dos apps (Fase 14.20)
-	screens.name = "AppScreens"
-	add_child(screens)
 	_place_furniture()
 
 

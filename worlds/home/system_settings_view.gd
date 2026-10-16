@@ -1,6 +1,6 @@
 class_name SystemSettingsView
 extends VBoxContainer
-## A aba "SISTEMA" do computador (Fase 14.10), só onde dá (no Linux):
+## A aba "SISTEMA" do menu de pausa (Fase 14.10; veio do computador na 14.25), só onde dá (no Linux):
 ##   - o interruptor "Abrir o hub ao entrar no Omarchy" (liga e apaga o
 ##     autostart, via Autostart);
 ##   - o botão "Copiar a linha do atalho", para colar no bindings.lua. O hub nunca

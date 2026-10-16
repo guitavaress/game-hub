@@ -9,7 +9,7 @@ const ANCHORS: Array[String] = ["oeste", "leste", "sul_esquerda", "sul_direita",
 @export var id: String = ""
 @export var display_name: String = ""
 ## Móvel (id) → lugar (uma das ANCHORS). Ids que a casa conhece: "estante",
-## "apps", "mural", "estatisticas" e "espelho". O computador fica sempre em "norte_direita".
+## "mural", "estatisticas" e "espelho". O computador fica sempre em "norte_direita".
 @export var placements: Dictionary[String, String] = {}
 ## Quantos graus o jogador gira do norte para o oeste ao nascer.
 @export var spawn_turn_degrees: float = 35.0

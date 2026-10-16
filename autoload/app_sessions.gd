@@ -7,7 +7,7 @@ extends Node
 ##
 ## Este sistema não conhece mundos. Os telões são achados pelo grupo
 ## "app_screens" (o nó que os guarda tem free_count(), offer(source),
-## release(screen) e screen_of(source); hoje é o AppScreens da casa).
+## release(screen) e screen_of(source); a 14.28 põe aqui os monitores da mesa).
 ##
 ## Regras:
 ##   - a primeira janela nova depois de um open_app() é do app que foi aberto;

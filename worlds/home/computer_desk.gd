@@ -1,17 +1,16 @@
 class_name ComputerDesk
 extends Node3D
-## A MESA DO COMPUTADOR da casa (Fase 9): uma mesa com um monitor. A tela do
-## monitor é um Screen3D que mostra as configurações (SettingsView, as mesmas
-## abas do menu de pausa, mais a aba "Casa") e o botão "Sair do hub". E no monitor aproxima a
-## câmera; Esc devolve.
-##
-## Desenho provisório: o acabamento final da mesa é da subetapa 9.9.
+## A MESA DO COMPUTADOR da casa: uma mesa larga com TRÊS MONITORES (Fase 14.25),
+## o do meio de frente e os dos lados um pouco virados para dentro. Por enquanto
+## os três mostram "Sem sinal": a 14.28 liga cada um a uma saída do compositor.
+## As configurações (Casa, Sistema...) moraram aqui até a 14.24; agora são abas
+## do menu de pausa (Esc).
 ##
 ## Convenção: a origem fica no chão, no meio da mesa, e a FRENTE (+Z) aponta
 ## para o lado de onde o jogador vem.
 
 ## Tampo da mesa (largura, altura do chão até o tampo, profundidade), em metros.
-const DESK_SIZE: Vector3 = Vector3(1.6, 0.75, 0.7)
+const DESK_SIZE: Vector3 = Vector3(2.8, 0.75, 0.7)
 const TOP_THICKNESS: float = 0.05
 ## Tamanho da tela e altura do meio dela (do chão).
 const SCREEN_SIZE: Vector2 = Vector2(0.8, 0.45)
@@ -21,39 +20,39 @@ const BEZEL: float = 0.025
 const MONITOR_DEPTH: float = 0.04
 ## Pixels do conteúdo da tela (mesma proporção da tela).
 const SCREEN_RESOLUTION: Vector2i = Vector2i(1152, 648)
+## Os monitores dos lados: quanto ficam afastados do meio (x) e quanto giram para dentro.
+const SIDE_OFFSET: float = 0.88
+const SIDE_TURN_DEGREES: float = 22.0
 
 const DESK_COLOR: Color = Color(0.3, 0.19, 0.11)
 const LAMP_COLOR: Color = Color(1.0, 0.74, 0.48)
 const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
 
-var _screen: Screen3D
-var _settings: SettingsView
-var _home_view: HomeSettingsView
-var _system_view: SystemSettingsView
+## Um monitor sem nada ligado: mostra "Sem sinal" e não aceita foco.
+class MonitorScreen extends Screen3D:
+	func get_look_info() -> Dictionary:
+		return {"title": screen_name, "detail": "Sem sinal", "action": ""}
+
+	func interact(_player: Node) -> void:
+		pass
+
+## Esquerda, meio, direita.
+var _screens: Array[Screen3D] = []
 
 
 func _ready() -> void:
 	_build_desk()
-	_build_monitor()
+	_build_monitors()
 
 
-## A tela do monitor (para os testes e para quem quiser saber se está em uso).
+## A tela do monitor do MEIO (para os testes).
 func get_screen() -> Screen3D:
-	return _screen
+	return _screens[1] if _screens.size() == 3 else null
 
 
-func get_settings() -> SettingsView:
-	return _settings
-
-
-## A aba "Casa" (tema, móveis e cores).
-func get_home_view() -> HomeSettingsView:
-	return _home_view
-
-
-## A aba "Sistema" (null onde o sistema não sabe abrir o hub ao entrar).
-func get_system_view() -> SystemSettingsView:
-	return _system_view
+## Os três monitores: esquerda, meio, direita.
+func get_screens() -> Array[Screen3D]:
+	return _screens
 
 
 # --- Montagem -------------------------------------------------------------------
@@ -71,8 +70,8 @@ func _build_desk() -> void:
 		_add_box("Side", Vector3(0.04, leg_height, DESK_SIZE.z - 0.08), Vector3(x, leg_height / 2.0, 0.0), steel)
 		_add_box("Foot", Vector3(0.06, 0.03, DESK_SIZE.z - 0.04), Vector3(x, 0.015, 0.0), steel, false)
 	var dark := _material(Color(0.07, 0.07, 0.08), 0.5)
-	_add_box("Keyboard", Vector3(0.44, 0.02, 0.14), Vector3(-0.05, DESK_SIZE.y + 0.01, 0.12), dark, false)
-	_add_box("Mouse", Vector3(0.06, 0.02, 0.1), Vector3(0.3, DESK_SIZE.y + 0.01, 0.12), dark, false)
+	_add_box("Keyboard", Vector3(0.44, 0.02, 0.14), Vector3(-0.05, DESK_SIZE.y + 0.01, 0.2), dark, false)
+	_add_box("Mouse", Vector3(0.06, 0.02, 0.1), Vector3(0.3, DESK_SIZE.y + 0.01, 0.2), dark, false)
 	_build_desk_lamp(Vector3(-DESK_SIZE.x / 2.0 + 0.18, DESK_SIZE.y, -0.12))
 
 
@@ -93,95 +92,54 @@ func _build_desk_lamp(at: Vector3) -> void:
 	add_child(light)
 
 
-## Monitor no fundo da mesa: pé, corpo e a tela (Screen3D) na frente do corpo.
-func _build_monitor() -> void:
-	var dark := _material(MONITOR_COLOR, 0.4)
+## Os três monitores no fundo da mesa. O do meio fica de frente; os dos lados
+## recuam um pouco e giram para dentro.
+func _build_monitors() -> void:
 	var back_z := -DESK_SIZE.z / 2.0 + 0.15
+	var names: Array[String] = ["Monitor esquerdo", "Monitor do meio", "Monitor direito"]
+	for i in 3:
+		var side := float(i - 1)  # -1, 0, 1
+		var turn := -side * deg_to_rad(SIDE_TURN_DEGREES)
+		var holder := Node3D.new()
+		holder.name = "Monitor%d" % (i + 1)
+		holder.position = Vector3(side * SIDE_OFFSET, 0.0, back_z + absf(side) * 0.1)
+		holder.rotation.y = turn
+		add_child(holder)
+		_build_monitor(holder, names[i])
+
+
+## Um monitor: pé, corpo e a tela (Screen3D) na frente do corpo. A origem do
+## "holder" é o pé do monitor, no tampo.
+func _build_monitor(holder: Node3D, screen_name: String) -> void:
+	var dark := _material(MONITOR_COLOR, 0.4)
 	var stand_height := SCREEN_HEIGHT - SCREEN_SIZE.y / 2.0 - DESK_SIZE.y
-	_add_box("MonitorBase", Vector3(0.28, 0.02, 0.2), Vector3(0.0, DESK_SIZE.y + 0.01, back_z), dark, false)
-	_add_box("MonitorStand", Vector3(0.06, stand_height, 0.04), Vector3(0.0, DESK_SIZE.y + stand_height / 2.0, back_z - 0.02), dark, false)
+	_add_box_to(holder, "Base", Vector3(0.28, 0.02, 0.2), Vector3(0.0, DESK_SIZE.y + 0.01, 0.0), dark)
+	_add_box_to(holder, "Stand", Vector3(0.06, stand_height, 0.04), Vector3(0.0, DESK_SIZE.y + stand_height / 2.0, -0.02), dark)
 	var body_size := Vector3(SCREEN_SIZE.x + BEZEL * 2.0, SCREEN_SIZE.y + BEZEL * 2.0, MONITOR_DEPTH)
-	_add_box("MonitorBody", body_size, Vector3(0.0, SCREEN_HEIGHT, back_z + MONITOR_DEPTH / 2.0), dark, false)
+	_add_box_to(holder, "Body", body_size, Vector3(0.0, SCREEN_HEIGHT, MONITOR_DEPTH / 2.0 - 0.02), dark)
 
-	_screen = Screen3D.new()
-	_screen.name = "Screen"
-	_screen.screen_name = "Computador"
-	_screen.detail = "Configurações"
-	_screen.screen_size = SCREEN_SIZE
-	_screen.resolution = SCREEN_RESOLUTION
-	_screen.position = Vector3(0.0, SCREEN_HEIGHT, back_z + MONITOR_DEPTH + 0.002)
-	_screen.set_content(_build_screen_content())
-	_screen.focus_changed.connect(_on_focus_changed)
-	add_child(_screen)
+	var screen := MonitorScreen.new()
+	screen.name = "Screen"
+	screen.screen_name = screen_name
+	screen.screen_size = SCREEN_SIZE
+	screen.resolution = SCREEN_RESOLUTION
+	screen.position = Vector3(0.0, SCREEN_HEIGHT, MONITOR_DEPTH - 0.02 + 0.002)
+	screen.set_content(_build_no_signal())
+	holder.add_child(screen)
+	_screens.append(screen)
 
 
-## O que aparece no monitor: à esquerda, as configurações; à direita, o
-## título, uma dica e o botão "Sair do hub".
-func _build_screen_content() -> Control:
+## O que aparece num monitor sem nada ligado.
+func _build_no_signal() -> Control:
 	var background := PanelContainer.new()
 	# A tela 3D é um SubViewport: o tema do hub não chega sozinho até aqui.
 	background.theme = HubTheme.get_theme()
 	background.theme_type_variation = &"HubScreen"
-
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 56)
-	background.add_child(columns)
-
-	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(600.0, 0.0)
-	left.add_theme_constant_override("separation", 16)
-	columns.add_child(left)
-	left.add_child(HubTheme.label("CONFIGURAÇÕES", &"HubTitle"))
-	_settings = SettingsView.new()
-	_settings.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# A aba "Casa" (Fase 13.8): tema, móveis e cores. Só o computador a tem.
-	_home_view = HomeSettingsView.new()
-	_settings.add_page("Casa", _home_view)
-	# A aba "Sistema" (Fase 14.10): abrir o hub ao entrar e o atalho. Só onde dá.
-	_system_view = SystemSettingsView.new()
-	if _system_view.autostart.supported():
-		_settings.add_page("Sistema", _system_view)
-	else:
-		_system_view.free()
-		_system_view = null
-	left.add_child(_settings)
-
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 12)
-	columns.add_child(right)
-	right.add_child(HubTheme.label("GAME HUB", &"HubBrand"))
-	var hint := HubTheme.label("Clique para mudar. Cada mudança vale na hora.", &"HubBodyLight")
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	right.add_child(hint)
-	var esc_row := HBoxContainer.new()
-	esc_row.add_theme_constant_override("separation", 10)
-	esc_row.add_child(KeyHint.create("back"))
-	esc_row.add_child(HubTheme.label("voltar para a sala", &"HubBodyLight"))
-	right.add_child(esc_row)
-	var filler := Control.new()
-	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(filler)
-	right.add_child(HubTheme.line())
-	var quit_row := HBoxContainer.new()
-	quit_row.add_child(HubTheme.expander())
-	var quit := HubTheme.button("Sair do hub")
-	_settings.set_footer_controls([quit] as Array[Control])  # o teclado chega nele depois da última linha
-	quit.name = "QuitButton"
-	quit.pressed.connect(HubWindow.quit_hub)
-	quit_row.add_child(quit)
-	right.add_child(quit_row)
+	var label := HubTheme.label("SEM SINAL", &"HubTitle")
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	background.add_child(label)
 	return background
-
-
-## Ao focar, a tela mostra os valores de agora; ao sair, grava o que espera.
-func _on_focus_changed(focused: bool) -> void:
-	if focused:
-		_settings.refresh()
-		_settings.grab_tab_focus()  # o teclado e o controle começam na aba
-	else:
-		_settings.save_pending()
-		_settings.drop_focus()
 
 
 # --- Peças --------------------------------------------------------------------
@@ -189,6 +147,11 @@ func _on_focus_changed(focused: bool) -> void:
 ## Caixa com material e, se "solid", colisão (a mesma peça da casa).
 func _add_box(box_name: String, box_size: Vector3, center: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
 	return HomeDecor.make_box(self, box_name, box_size, center, material, solid)
+
+
+## O mesmo, dentro de um nó (um monitor).
+func _add_box_to(parent: Node3D, box_name: String, box_size: Vector3, center: Vector3, material: Material) -> MeshInstance3D:
+	return HomeDecor.make_box(parent, box_name, box_size, center, material, false)
 
 
 func _material(color: Color, roughness: float) -> StandardMaterial3D:

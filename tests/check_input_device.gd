@@ -119,7 +119,7 @@ func _run() -> void:
 	_check("a caixa da estante manda o marcador {interact}", box.get_look_info()["action"] == "Segure {interact} para jogar")
 	_check("a porta da casa também ({interact} para sair)", home.get_front_door().get_look_info()["action"] == "{interact} para sair")
 	_check("a porta 'Casa' da praça também", city.get_home_door().get_look_info()["action"] == "{interact} para entrar")
-	_check("a tela do computador também", home.get_node("ComputerDesk").get_screen().get_look_info()["action"] == "{interact} para usar")
+	_check("o monitor sem sinal não pede nada", home.get_node("ComputerDesk").get_screen().get_look_info()["action"] == "")
 
 	print("== O cursor do mouse ==")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

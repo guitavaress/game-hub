@@ -58,7 +58,7 @@ components/    peças reutilizáveis em qualquer mundo
   ambient_emitter/  som ambiente por categoria
 player/        primeira pessoa (camera_feel.gd: balanço, pouso e FOV da câmera); cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
 ui/            tema único (hub_theme.gd) e KeyHint (tecla que troca com o aparelho); HUD (bússola, minimapa), avisos, cartão de controles da 1ª vez, telas "Abrindo"/"Jogando", fade, menus, mapa grande, painel do metrô
-worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, estante de apps, mural, estatísticas, espelho, painel do sistema, computador) em lugares prontos; não conhece nenhum mundo
+worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, mural, estatísticas, espelho, painel do sistema, computador com três monitores) em lugares prontos; não conhece nenhum mundo
   themes/         o enfeite de cada tema (loft, cabana), que estende HomeDecor
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)

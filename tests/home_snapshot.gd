@@ -9,9 +9,9 @@ extends RefCounted
 ## ordenada: a ordem de criação não importa.
 ##
 ## Ficam de fora os móveis que dependem da biblioteca ou dos amigos (estante e
-## mural): não fazem parte do tema.
+## mural) e a mesa do computador (tem teste próprio, check_computer_desk): não fazem parte do tema.
 
-const SKIP_NODES: Array[String] = ["LibraryShelf", "AppShelf", "SystemPanel", "AppScreens", "FriendsWall", "StatsWall", "HomeMirror"]
+const SKIP_NODES: Array[String] = ["LibraryShelf", "ComputerDesk", "SystemPanel", "FriendsWall", "StatsWall", "HomeMirror"]
 
 
 static func capture(home: Node3D) -> Array[String]:

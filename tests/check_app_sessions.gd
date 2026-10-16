@@ -47,6 +47,44 @@ class FakeCompositor extends Node:
 		calls.append(["axis", dx, dy, wheel])
 
 
+## Três telões falsos, no grupo "app_screens" (o contrato do AppSessions).
+class FakeScreens extends Node3D:
+	var _screens: Array[AppWindow3D] = []
+
+	func _ready() -> void:
+		add_to_group("app_screens")
+		for i in 3:
+			var screen := AppWindow3D.new()
+			add_child(screen)
+			_screens.append(screen)
+
+	func get_screens() -> Array[AppWindow3D]:
+		return _screens
+
+	func free_count() -> int:
+		var count := 0
+		for screen in _screens:
+			if screen.get_source() == null:
+				count += 1
+		return count
+
+	func offer(source: AppWindowSource) -> AppWindow3D:
+		for screen in _screens:
+			if screen.get_source() == null:
+				screen.set_source(source)
+				return screen
+		return null
+
+	func release(screen: AppWindow3D) -> void:
+		screen.set_source(null)
+
+	func screen_of(source: AppWindowSource) -> AppWindow3D:
+		for screen in _screens:
+			if screen.get_source() == source:
+				return screen
+		return null
+
+
 func _initialize() -> void:
 	_run()
 
@@ -86,13 +124,11 @@ func _run() -> void:
 		ended.append({"id": id, "ok": ok, "msg": msg}))
 	A.app_launch_started.connect(func(id: String, _s: Node) -> void: started.append(id))
 
-	var city: Node = load("res://worlds/city/city.tscn").instantiate()
-	city.play_intro = false
-	root.add_child(city)
-	while not city.is_city_ready():
-		await process_frame
+	# Os telões da casa saíram na 14.25 (a mesa de três monitores vem na 14.28):
+	# aqui um hospedeiro falso faz o papel deles.
+	var screens := FakeScreens.new()
+	root.add_child(screens)
 	await process_frame
-	var screens: AppScreens = city.get_home().get_node("AppScreens")
 
 	print("== Sem compositor: o fluxo é o da parte 1 ==")
 	S.compositor_factory = func() -> Node: return null

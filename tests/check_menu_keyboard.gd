@@ -123,9 +123,9 @@ func _run() -> void:
 
 	print("== Computador da casa ==")
 	var home = city.get_home()
-	var desk = home.get_node("ComputerDesk")
-	var screen = desk.get_screen()
-	var desk_settings = desk.get_settings()
+	var fixture = load("res://tests/settings_screen.gd").install(home)
+	var screen = fixture.screen
+	var desk_settings = fixture.settings
 	player.teleport_to(home.get_spawn_transform())
 	player.set_indoors(home.get_environment())
 	await _frames(3)

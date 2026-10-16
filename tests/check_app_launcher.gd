@@ -40,7 +40,6 @@ func _run() -> void:
 	library.set_apps(all)
 
 	A.threaded = false
-	A.use_world = false  # o mundo tem teste próprio (check_app_sessions)
 	A.opener = func(app: DesktopApp) -> bool:
 		opened.append(app.id)
 		return open_ok

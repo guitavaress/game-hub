@@ -2,7 +2,8 @@ class_name PauseMenu
 extends CanvasLayer
 ## Menu de pausa (Esc): um painel de 460 px à esquerda, com a cidade atrás
 ## desfocada e escurecida. O título "PAUSA" e o rodapé são daqui; as abas (Som e
-## vídeo, Controles, Amigos) são do SettingsView, que fica no meio.
+## vídeo, Controles, Amigos, Casa e, onde dá, Sistema) são do SettingsView, que
+## fica no meio. A Casa e o Sistema vieram do monitor do computador (Fase 14.25).
 ##
 ## Com o menu aberto o mundo fica pausado. Ele não abre durante a espera na
 ## porta nem com um jogo abrindo ou rodando (aí o Esc é de outra coisa).
@@ -16,6 +17,8 @@ const PANEL_WIDTH: float = 460.0
 const BACKDROP_SHADER: Shader = preload("res://ui/pause_backdrop.gdshader")
 
 var _settings: SettingsView
+var _home_view: HomeSettingsView
+var _system_view: SystemSettingsView
 var _quit_button: Button
 ## Sair com apps abertos pede um segundo clique (os apps fecham junto com o hub).
 var _quit_armed: bool = false
@@ -48,6 +51,16 @@ func _ready() -> void:
 	column.add_child(HubTheme.label("PAUSA", &"HubTitle"))
 	_settings = SettingsView.new()
 	_settings.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# A aba "Casa": tema, móveis e cores (Fase 13.8).
+	_home_view = HomeSettingsView.new()
+	_settings.add_page("Casa", _home_view)
+	# A aba "Sistema": abrir o hub ao entrar e o atalho. Só onde dá (Linux).
+	_system_view = SystemSettingsView.new()
+	if _system_view.autostart.supported():
+		_settings.add_page("Sistema", _system_view)
+	else:
+		_system_view.free()
+		_system_view = null
 	column.add_child(_settings)
 	column.add_child(HubTheme.line())
 	column.add_child(_build_bottom_row())
@@ -105,6 +118,16 @@ func is_open() -> bool:
 
 func get_settings() -> SettingsView:
 	return _settings
+
+
+## A aba "Casa" (tema, móveis e cores).
+func get_home_view() -> HomeSettingsView:
+	return _home_view
+
+
+## A aba "Sistema" (null onde o sistema não sabe abrir o hub ao entrar).
+func get_system_view() -> SystemSettingsView:
+	return _system_view
 
 
 func _on_game_started(_app_id: int, _source: Node) -> void:

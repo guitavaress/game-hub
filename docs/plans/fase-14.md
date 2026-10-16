@@ -487,7 +487,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
   - Antes de qualquer crate novo, **pede permissão** (o Smithay já tem o `wlr_layer`; a ideia é não precisar de nada novo).
   - Resultado em "Decisões tomadas durante a fase", com a escolha A ou B.
   - Commit: `Fase 14.24: resultado do spike da mesa`
-- [ ] **14.25 Tirar os telões e a estante; configurações no menu de pausa** (Sonnet · medium)
+- [x] **14.25 Tirar os telões e a estante; configurações no menu de pausa** (Sonnet · medium)
   - Faz:
     - apaga `app_screens.gd`, `app_shelf.gd` e os testes deles; tira o `"apps"` do `Home.MOVABLE` e do `home_catalog.tres`;
     - o `PauseMenu` ganha as abas Casa (`HomeSettingsView`) e Sistema (`SystemSettingsView`, onde houver), pelo `SettingsView.add_page`, que já existe;

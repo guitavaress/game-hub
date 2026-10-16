@@ -375,7 +375,7 @@ func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disp
 		await process_frame
 		_check("[%s] a casa usa a disposição" % layout.id, home.get_layout() == layout)
 		var boxes := {}
-		for id in ["estante", "apps", "mural", "estatisticas", "espelho"]:
+		for id in ["estante", "mural", "estatisticas", "espelho"]:
 			var piece: Node3D = home.get_furniture(id)
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			_check("[%s] %s está na âncora %s" % [layout.id, id, layout.placements[id]],
@@ -398,7 +398,7 @@ func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disp
 				home.get_node("ComputerDesk").position.is_equal_approx(home.get_anchor_transform("norte_direita").origin))
 		# Passagem: do ponto de nascer, ao longo de x e depois de z, até 1,4 m na frente de cada móvel.
 		var spawn := Vector2(home.SPAWN_SPOT.x, home.SPAWN_SPOT.z)
-		for id in ["estante", "apps", "mural", "estatisticas", "espelho"]:
+		for id in ["estante", "mural", "estatisticas", "espelho"]:
 			var anchor: Transform3D = home.get_anchor_transform(layout.placements[id])
 			var front := anchor.origin + anchor.basis.z * 1.4
 			var points: Array[Vector2] = [spawn, Vector2(front.x, spawn.y), Vector2(front.x, front.z)]
@@ -446,7 +446,7 @@ func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
 			blocked.append("%s: porta, janela ou mesa" % kind)
 		# Cada móvel que muda de lugar, em cada um dos 6 lugares prontos.
 		for anchor: String in home.ANCHORS:
-			for id in ["estante", "apps", "mural", "estatisticas", "espelho"]:
+			for id in ["estante", "mural", "estatisticas", "espelho"]:
 				var furniture: Node3D = home.get_furniture(id)
 				furniture.transform = home.get_anchor_transform(anchor)
 				if box.intersects(_bounds(furniture, home)):
