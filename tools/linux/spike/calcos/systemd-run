@@ -1,0 +1,14 @@
+#!/bin/bash
+# Calço do hub (Fase 14.24): o systemd-run --user abre o comando fora do hub
+# (sem o WAYLAND_DISPLAY de dentro). Aqui ele só pula as opções e roda o comando.
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--) shift; break ;;
+	# opções com o valor separado (as com "=" caem no -* abaixo)
+	-p | -E | -M | -H | -u | --property | --setenv | --unit | --slice | --description | --working-directory | --uid | --gid | --nice | --machine | --host)
+		shift 2 ;;
+	-*) shift ;;
+	*) break ;;
+	esac
+done
+exec "$@"

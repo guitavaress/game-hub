@@ -1,0 +1,19 @@
+#!/bin/bash
+# Calço do hub (Fase 14.24): o uwsm-app de verdade abre o app numa unidade do
+# systemd, que nasce com o ambiente da sessão (o Hyprland de fora). Dentro do
+# hub, o app tem de herdar o ambiente de dentro: este calço só roda o comando.
+#   uwsm-app [opções] -- comando [args]   ou   uwsm-app comando [args]
+args=("$@")
+for i in "${!args[@]}"; do
+	if [[ ${args[$i]} == "--" ]]; then
+		exec "${args[@]:$((i + 1))}"
+	fi
+done
+# Sem "--": pula as opções (-s b, -t service, -a nome, -u unidade, -d desc, -T, -S...).
+while [[ $# -gt 0 && $1 == -* ]]; do
+	case $1 in
+	-[stadu]) shift 2 ;;
+	*) shift ;;
+	esac
+done
+exec "$@"

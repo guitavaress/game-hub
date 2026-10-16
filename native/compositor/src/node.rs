@@ -21,7 +21,7 @@ use godot::classes::image::Format;
 use godot::classes::{INode, Image, ImageTexture, Node};
 use godot::prelude::*;
 
-use crate::wayland::{toplevel_names, Core, Event};
+use crate::wayland::{Core, Event};
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
@@ -181,7 +181,7 @@ impl HubCompositor {
         self.running
             .as_ref()
             .and_then(|core| core.state.window(id))
-            .map(|w| GString::from(toplevel_names(&w.toplevel).1.as_str()))
+            .map(|w| GString::from(w.role.names().1.as_str()))
             .unwrap_or_default()
     }
 

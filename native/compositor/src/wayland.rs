@@ -43,11 +43,14 @@ use smithay::wayland::shell::xdg::{
     PopupSurface, PositionerState, SurfaceCachedState, ToplevelSurface, XdgShellHandler, XdgShellState,
     XdgToplevelSurfaceData,
 };
+use smithay::wayland::shell::wlr_layer::{
+    Anchor, Layer, LayerSurface, LayerSurfaceCachedState, WlrLayerShellHandler, WlrLayerShellState,
+};
 use smithay::wayland::shm::{with_buffer_contents, ShmHandler, ShmState};
 use smithay::utils::{Logical, Rectangle};
 use smithay::{
     delegate_compositor, delegate_data_device, delegate_output, delegate_primary_selection, delegate_seat,
-    delegate_shm, delegate_xdg_decoration, delegate_xdg_shell,
+    delegate_layer_shell, delegate_shm, delegate_xdg_decoration, delegate_xdg_shell,
 };
 
 use crate::pixels::{blend_over, copy_rows, crop_rect, damaged_rows, Rect, ShmLayout};
@@ -72,11 +75,44 @@ pub enum Event {
     TitleChanged(i64, String),
 }
 
+/// O que a superfície é: uma janela comum (xdg) ou uma camada (layer-shell:
+/// barra, fundo, menu do Omarchy). SPIKE 14.24: a camada vira uma "janela" com
+/// textura própria, para ver se o Quickshell desenha aqui dentro.
+pub enum Role {
+    Toplevel(ToplevelSurface),
+    /// A camada, o nome dela (namespace) e o nível (fundo, baixo, topo, overlay).
+    Layer(LayerSurface, String, Layer),
+}
+
+impl Role {
+    pub fn wl_surface(&self) -> &WlSurface {
+        match self {
+            Role::Toplevel(t) => t.wl_surface(),
+            Role::Layer(l, _, _) => l.wl_surface(),
+        }
+    }
+
+    pub fn toplevel(&self) -> Option<&ToplevelSurface> {
+        match self {
+            Role::Toplevel(t) => Some(t),
+            Role::Layer(..) => None,
+        }
+    }
+
+    /// O nome do app e o título (para a camada: "layer:<nome>" e o nível).
+    pub fn names(&self) -> (String, String) {
+        match self {
+            Role::Toplevel(t) => toplevel_names(t),
+            Role::Layer(_, namespace, layer) => (format!("layer:{namespace}"), format!("{layer:?}")),
+        }
+    }
+}
+
 /// Uma janela de app.
 pub struct Win {
     /// Número que a Godot usa para falar desta janela (1, 2, 3...).
     pub id: i64,
-    pub toplevel: ToplevelSurface,
+    pub role: Role,
     /// A última imagem (só o recorte da janela), em RGBA: 4 bytes por pixel.
     pub pixels: Vec<u8>,
     /// Onde o recorte está dentro da imagem do app (a sombra fica de fora).
@@ -169,7 +205,7 @@ impl Win {
     pub fn keyboard_target(&self) -> WlSurface {
         match self.popups.iter().rev().find(|p| p.grab) {
             Some(p) => p.surface.wl_surface().clone(),
-            None => self.toplevel.wl_surface().clone(),
+            None => self.role.wl_surface().clone(),
         }
     }
 
@@ -182,7 +218,7 @@ impl Win {
                 let p = &self.popups[i];
                 (p.surface.wl_surface().clone(), ((x - p.crop.x) as f64, (y - p.crop.y) as f64))
             }
-            None => (self.toplevel.wl_surface().clone(), (-self.crop.x as f64, -self.crop.y as f64)),
+            None => (self.role.wl_surface().clone(), (-self.crop.x as f64, -self.crop.y as f64)),
         }
     }
 
@@ -199,6 +235,7 @@ pub struct State {
     pub dh: DisplayHandle,
     compositor_state: CompositorState,
     xdg_shell_state: XdgShellState,
+    layer_shell_state: WlrLayerShellState,
     _decoration_state: XdgDecorationState,
     shm_state: ShmState,
     seat_state: SeatState<State>,
@@ -250,6 +287,7 @@ impl State {
         Ok(State {
             compositor_state: CompositorState::new::<State>(&dh),
             xdg_shell_state: XdgShellState::new::<State>(&dh),
+            layer_shell_state: WlrLayerShellState::new::<State>(&dh),
             _decoration_state: XdgDecorationState::new::<State>(&dh),
             shm_state: ShmState::new::<State>(&dh, vec![]),
             data_device_state: DataDeviceState::new::<State>(&dh),
@@ -278,7 +316,7 @@ impl State {
     /// Em qual janela (índice) está esta superfície, e se é um menu (índice do menu).
     fn find(&self, surface: &WlSurface) -> Option<(usize, Option<usize>)> {
         self.windows.iter().enumerate().find_map(|(wi, w)| {
-            if w.toplevel.wl_surface() == surface {
+            if w.role.wl_surface() == surface {
                 Some((wi, None))
             } else {
                 w.popups.iter().position(|p| p.surface.wl_surface() == surface).map(|pi| (wi, Some(pi)))
@@ -294,6 +332,39 @@ impl State {
         if keyboard.current_focus() != target {
             keyboard.set_focus(self, target, SERIAL_COUNTER.next_serial());
         }
+    }
+
+    /// Tira a janela (ou camada) da lista e avisa a Godot, se ela já aparecia.
+    fn remove_window(&mut self, surface: &WlSurface) {
+        if let Some(i) = self.windows.iter().position(|w| w.role.wl_surface() == surface) {
+            let win = self.windows.remove(i);
+            if win.mapped {
+                self.events.push(Event::Closed(win.id));
+            }
+            if self.focused_window == Some(win.id) {
+                self.focused_window = None;
+            }
+        }
+    }
+
+    /// Guarda um menu novo da janela `index` (aberto pela janela, por outro
+    /// menu ou por uma camada) e calcula o lugar dele.
+    fn track_popup(&mut self, index: usize, parent: WlSurface, surface: PopupSurface, positioner: PositionerState) {
+        let win = &mut self.windows[index];
+        let geometry = positioner.get_unconstrained_geometry(win.popup_area(&parent));
+        surface.with_pending_state(|state| {
+            state.geometry = geometry;
+            state.positioner = positioner;
+        });
+        win.popups.push(Popup {
+            surface,
+            parent,
+            pos: (geometry.loc.x, geometry.loc.y),
+            pixels: Vec::new(),
+            crop: Rect::default(),
+            mapped: false,
+            grab: false,
+        });
     }
 
     /// Fecha todos os menus da janela (o app recebe "popup_done" e os destrói).
@@ -435,10 +506,12 @@ impl Core {
     /// a janela não existe. O app responde com uma imagem nova desse tamanho.
     pub fn resize(&mut self, id: i64, width: i32, height: i32) -> bool {
         let Some(win) = self.state.windows.iter().find(|w| w.id == id) else { return false };
+        // SPIKE 14.24: a camada decide o tamanho dela (pela saída).
+        let Some(toplevel) = win.role.toplevel() else { return true };
         let size = (width.clamp(1, MAX_SIZE), height.clamp(1, MAX_SIZE));
-        win.toplevel.with_pending_state(|state| state.size = Some(size.into()));
-        if win.toplevel.is_initial_configure_sent() {
-            win.toplevel.send_pending_configure();
+        toplevel.with_pending_state(|state| state.size = Some(size.into()));
+        if toplevel.is_initial_configure_sent() {
+            toplevel.send_pending_configure();
         }
         self.flush();
         true
@@ -453,10 +526,11 @@ impl Core {
         self.state.focused_window = id;
         // O teclado vai para a janela (ou para o menu com "grab" dela).
         self.state.refresh_keyboard_focus();
-        let target = id.and_then(|id| self.state.window(id)).map(|w| w.toplevel.clone());
+        let target = id.and_then(|id| self.state.window(id)).map(|w| w.role.wl_surface().clone());
         for win in &self.state.windows {
-            let active = target.as_ref() == Some(&win.toplevel);
-            win.toplevel.with_pending_state(|state| {
+            let Some(toplevel) = win.role.toplevel() else { continue };
+            let active = target.as_ref() == Some(toplevel.wl_surface());
+            toplevel.with_pending_state(|state| {
                 if active {
                     state.states.set(xdg_toplevel::State::Activated);
                 } else {
@@ -464,8 +538,8 @@ impl Core {
                 }
             });
             // Só manda se mudou alguma coisa.
-            if win.toplevel.is_initial_configure_sent() {
-                win.toplevel.send_pending_configure();
+            if toplevel.is_initial_configure_sent() {
+                toplevel.send_pending_configure();
             }
         }
         self.flush();
@@ -579,7 +653,10 @@ impl Core {
     /// O app pode perguntar antes ("salvar?"); quando fechar, sai o `Closed`.
     pub fn close(&mut self, id: i64) -> bool {
         let Some(win) = self.state.windows.iter().find(|w| w.id == id) else { return false };
-        win.toplevel.send_close();
+        match &win.role {
+            Role::Toplevel(t) => t.send_close(),
+            Role::Layer(l, _, _) => l.send_close(),
+        }
         self.flush();
         true
     }
@@ -621,9 +698,13 @@ impl CompositorHandler for State {
         // O protocolo xdg pede: o app faz um commit vazio, e só então o
         // compositor manda o primeiro "configure" (o tamanho e o lugar).
         match popup {
-            None if !self.windows[index].toplevel.is_initial_configure_sent() => {
-                self.windows[index].toplevel.send_configure();
-            }
+            None => match &self.windows[index].role {
+                Role::Toplevel(t) if !t.is_initial_configure_sent() => {
+                    t.send_configure();
+                }
+                Role::Layer(l, _, _) => configure_layer(l),
+                _ => {}
+            },
             Some(pi) if !self.windows[index].popups[pi].surface.is_initial_configure_sent() => {
                 let _ = self.windows[index].popups[pi].surface.send_configure();
             }
@@ -674,7 +755,9 @@ impl CompositorHandler for State {
             Some(BufferAssignment::Removed) => {
                 // O app escondeu a janela. Para a Godot, ela fechou; se voltar,
                 // abre de novo (com o mesmo id), refazendo o primeiro "configure".
-                win.toplevel.reset_initial_configure_sent();
+                if let Some(t) = win.role.toplevel() {
+                    t.reset_initial_configure_sent();
+                }
                 win.pixels.clear();
                 win.crop = Rect::default();
                 win.dirty = false;
@@ -688,7 +771,7 @@ impl CompositorHandler for State {
         }
         if !win.mapped && !win.pixels.is_empty() {
             win.mapped = true;
-            let (app_id, title) = toplevel_names(&win.toplevel);
+            let (app_id, title) = win.role.names();
             let pid = surface
                 .client()
                 .and_then(|c| c.get_credentials(&self.dh).ok())
@@ -696,6 +779,66 @@ impl CompositorHandler for State {
                 .unwrap_or(-1);
             self.events.push(Event::Opened(win.id, app_id, title, pid));
         }
+    }
+}
+
+/// SPIKE 14.24: o tamanho que a camada recebe. Encostada nos dois lados (ex.:
+/// a barra, de ponta a ponta), ela ganha a largura (ou altura) toda da saída;
+/// senão, o que pediu. As margens ainda não contam.
+fn configure_layer(layer: &LayerSurface) {
+    let (output_w, output_h) = WINDOW_SIZE;
+    let (size, anchor) = with_states(layer.wl_surface(), |states| {
+        let mut guard = states.cached_state.get::<LayerSurfaceCachedState>();
+        let current = guard.current();
+        (current.size, current.anchor)
+    });
+    let w = if size.w == 0 || anchor.contains(Anchor::LEFT | Anchor::RIGHT) { output_w } else { size.w };
+    let h = if size.h == 0 || anchor.contains(Anchor::TOP | Anchor::BOTTOM) { output_h } else { size.h };
+    layer.with_pending_state(|state| state.size = Some((w, h).into()));
+    layer.send_pending_configure();
+}
+
+impl WlrLayerShellHandler for State {
+    fn shell_state(&mut self) -> &mut WlrLayerShellState {
+        &mut self.layer_shell_state
+    }
+
+    /// Camada nova (barra, fundo, menu). Ela recebe o tamanho no primeiro
+    /// commit (em `commit`), como as janelas.
+    fn new_layer_surface(
+        &mut self,
+        surface: LayerSurface,
+        _output: Option<smithay::reexports::wayland_server::protocol::wl_output::WlOutput>,
+        layer: Layer,
+        namespace: String,
+    ) {
+        self.output.enter(surface.wl_surface());
+        let id = self.next_id;
+        self.next_id += 1;
+        self.windows.push(Win {
+            id,
+            role: Role::Layer(surface, namespace, layer),
+            pixels: Vec::new(),
+            crop: Rect::default(),
+            dirty: false,
+            mapped: false,
+            callbacks: Vec::new(),
+            popups: Vec::new(),
+            composed: Vec::new(),
+        });
+    }
+
+    fn new_popup(&mut self, parent: LayerSurface, popup: PopupSurface) {
+        let Some((index, _)) = self.find(parent.wl_surface()) else {
+            popup.send_popup_done();
+            return;
+        };
+        let positioner = popup.with_pending_state(|state| state.positioner);
+        self.track_popup(index, parent.wl_surface().clone(), popup, positioner);
+    }
+
+    fn layer_destroyed(&mut self, surface: LayerSurface) {
+        self.remove_window(surface.wl_surface());
     }
 }
 
@@ -733,7 +876,7 @@ impl XdgShellHandler for State {
         self.next_id += 1;
         self.windows.push(Win {
             id,
-            toplevel: surface,
+            role: Role::Toplevel(surface),
             pixels: Vec::new(),
             crop: Rect::default(),
             dirty: false,
@@ -745,21 +888,13 @@ impl XdgShellHandler for State {
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
-        if let Some(i) = self.windows.iter().position(|w| w.toplevel == surface) {
-            let win = self.windows.remove(i);
-            if win.mapped {
-                self.events.push(Event::Closed(win.id));
-            }
-            if self.focused_window == Some(win.id) {
-                self.focused_window = None;
-            }
-        }
+        self.remove_window(surface.wl_surface());
     }
 
     fn title_changed(&mut self, surface: ToplevelSurface) {
-        let Some(win) = self.windows.iter().find(|w| w.toplevel == surface) else { return };
+        let Some(win) = self.windows.iter().find(|w| w.role.wl_surface() == surface.wl_surface()) else { return };
         if win.mapped {
-            let (_, title) = toplevel_names(&win.toplevel);
+            let (_, title) = win.role.names();
             self.events.push(Event::TitleChanged(win.id, title));
         }
     }
@@ -781,27 +916,14 @@ impl XdgShellHandler for State {
     /// Menu novo: calcula o lugar dele (empurrado para caber na janela). O
     /// "configure" com esse lugar sai no primeiro commit do menu.
     fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
+        // Sem pai: é menu de uma camada, que chega depois em WlrLayerShellHandler::new_popup.
         let Some(parent) = surface.get_parent_surface() else { return };
         let Some((index, _)) = self.find(&parent) else {
             // Menu de uma janela que o hub não conhece: fecha na hora.
             surface.send_popup_done();
             return;
         };
-        let win = &mut self.windows[index];
-        let geometry = positioner.get_unconstrained_geometry(win.popup_area(&parent));
-        surface.with_pending_state(|state| {
-            state.geometry = geometry;
-            state.positioner = positioner;
-        });
-        win.popups.push(Popup {
-            surface,
-            parent,
-            pos: (geometry.loc.x, geometry.loc.y),
-            pixels: Vec::new(),
-            crop: Rect::default(),
-            mapped: false,
-            grab: false,
-        });
+        self.track_popup(index, parent, surface, positioner);
     }
 
     /// O menu quer o "grab" (menus de verdade pedem): ele recebe o teclado
@@ -906,6 +1028,7 @@ impl OutputHandler for State {}
 delegate_compositor!(State);
 delegate_shm!(State);
 delegate_xdg_shell!(State);
+delegate_layer_shell!(State);
 delegate_xdg_decoration!(State);
 delegate_seat!(State);
 delegate_data_device!(State);

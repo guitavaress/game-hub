@@ -1,0 +1,6 @@
+#!/bin/bash
+# Calço do hub (Fase 14.24): o Brave de dentro usa um perfil só do hub. Sem isso,
+# ele acha o Brave de fora aberto e abre a janela lá ("existing browser session").
+# O hub põe o perfil em HUB_BRAVE_PROFILE (o mesmo da 14.21: user://apps/brave).
+profile=${HUB_BRAVE_PROFILE:-${XDG_RUNTIME_DIR:-/tmp}/gamehub-brave}
+exec /usr/bin/brave-origin --user-data-dir="$profile" --ozone-platform=wayland "$@"

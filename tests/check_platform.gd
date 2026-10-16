@@ -15,7 +15,8 @@ const EXPECTED_BACKEND: Dictionary = {"Windows": "windows", "Linux": "linux"}
 ## O compositor (Fase 14.15): só o autoload/platform/app_compositor.gd carrega a extensão e cria o nó.
 const PLATFORM_ONLY: Array[String] = ["WinRegistry", "tasklist", "OS.execute(\"reg\"", "\"/proc", "OS.execute(\"hyprctl\"", ".desktop\"", "uwsm-app", "gtk-launch", "/sys/class", "nmcli", "wpctl", "/autostart/", "omarchy-launch-or-focus", "HubCompositor", "WAYLAND_DISPLAY", "GDExtensionManager"]
 ## Pastas que a varredura pula (os testes citam esses nomes de propósito).
-const SKIP_DIRS: Array[String] = ["res://autoload/platform", "res://tests", "res://.godot"]
+# SPIKE 14.24: os scripts do spike (só nesta branch) falam com o hyprctl direto.
+const SKIP_DIRS: Array[String] = ["res://autoload/platform", "res://tests", "res://.godot", "res://tools/linux/spike"]
 
 var failures := 0
 
