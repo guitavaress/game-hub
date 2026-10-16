@@ -1,9 +1,15 @@
 //! O lado Wayland do compositor: o que os apps enxergam.
 //!
 //! Um app aberto pelo hub conecta no socket do hub (ex.: `gamehub-0`) e acha
-//! aqui um "monitor" (o output `HUB-1`), um teclado e um mouse (o seat), e
-//! o xdg-shell, que é o jeito de criar janelas. Cada janela ("toplevel") vira
-//! um `Win`, com a imagem já em RGBA, pronta para a Godot.
+//! aqui os "monitores" (os outputs `HUB-1`, `HUB-2`...), um teclado e um mouse
+//! (o seat), e o xdg-shell, que é o jeito de criar janelas. Cada janela
+//! ("toplevel") vira um `Win`, com a imagem já em RGBA, pronta para a Godot.
+//!
+//! Saídas (Fase 14.26): cada monitor da mesa é uma saída (`wl_output`, com o
+//! `xdg-output`). O hub diz onde cada janela fica (`place`), e o compositor
+//! junta as janelas de uma saída numa imagem só (`compose_outputs`), que vira
+//! a textura daquele monitor. O mouse também é por saída
+//! (`pointer_motion_output`): o compositor acha a janela embaixo do ponto.
 //!
 //! Nada aqui conhece a Godot: o `Core` é o compositor inteiro, e o nó
 //! (`node.rs`) só chama o `Core` e transforma os `Event`s em sinais. Por isso
@@ -20,7 +26,7 @@ use smithay::input::{Seat, SeatHandler, SeatState};
 use smithay::output::{Mode, Output, PhysicalProperties, Scale, Subpixel};
 use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode as DecorationMode;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
-use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
+use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason, GlobalId};
 use smithay::reexports::wayland_server::protocol::wl_callback::WlCallback;
 use smithay::reexports::wayland_server::protocol::{wl_buffer, wl_seat, wl_surface::WlSurface};
 use smithay::reexports::wayland_server::{Client, Display, DisplayHandle, ListeningSocket, Resource};
@@ -50,7 +56,7 @@ use smithay::{
     delegate_shm, delegate_xdg_decoration, delegate_xdg_shell,
 };
 
-use crate::pixels::{blend_over, copy_rows, crop_rect, damaged_rows, Rect, ShmLayout};
+use crate::pixels::{blend_over, blend_over_clipped, copy_rows, crop_rect, damaged_rows, fill, Rect, ShmLayout};
 
 /// Tamanho com que toda janela nasce (o de um telão), até o telão pedir outro
 /// com `resize`.
@@ -60,6 +66,12 @@ pub const MAX_SIZE: i32 = 4096;
 /// Quanto um "dente" da rodinha do mouse rola, em pixels (o mesmo número que
 /// o Linux usa: os apps esperam 15).
 pub const WHEEL_STEP: f64 = 15.0;
+
+/// Quantas saídas o hub aceita (a mesa tem 3; folga para o futuro).
+pub const MAX_OUTPUTS: usize = 8;
+/// A cor de uma saída onde não há janela (até o fundo do Omarchy chegar pelo
+/// layer-shell, na 14.27). RGBA.
+pub const OUTPUT_BACKGROUND: [u8; 4] = [18, 18, 22, 255];
 
 /// O que aconteceu e a Godot precisa saber (vira sinal no nó).
 #[derive(Debug, PartialEq, Eq)]
@@ -93,6 +105,22 @@ pub struct Win {
     pub popups: Vec<Popup>,
     /// A imagem da janela com os menus por cima (só usada quando há menu).
     composed: Vec<u8>,
+    /// Onde a janela fica: (saída, retângulo em pixels da saída). None: em
+    /// nenhuma saída (só a textura própria, a API por janela da parte 2).
+    pub place: Option<(usize, Rect)>,
+    /// Mudou desde a última composição das saídas (o `dirty` é da textura própria).
+    out_dirty: bool,
+}
+
+/// Um monitor da mesa, visto pelos apps (a `Output`) e pelo hub (a imagem composta).
+pub struct OutputSlot {
+    pub output: Output,
+    global: GlobalId,
+    pub size: (i32, i32),
+    /// A imagem composta (RGBA): o fundo e as janelas desta saída.
+    pub pixels: Vec<u8>,
+    /// Precisa compor de novo (uma janela entrou, saiu ou mudou de lugar).
+    dirty: bool,
 }
 
 /// Um menu ("popup"): o do botão direito, o de uma lista, uma dica...
@@ -112,6 +140,22 @@ pub struct Popup {
 }
 
 impl Win {
+    /// A imagem mudou: sobe de novo a textura própria e a da saída.
+    fn touch(&mut self) {
+        self.dirty = true;
+        self.out_dirty = true;
+    }
+
+    /// O pedaço da saída que a janela cobre de verdade: o lugar dela,
+    /// cortado pelo tamanho da imagem (o app pode não ter redesenhado ainda).
+    fn visible_rect(&self) -> Option<(usize, Rect)> {
+        let (output, rect) = self.place?;
+        if !self.mapped || self.crop.is_empty() {
+            return None;
+        }
+        Some((output, rect.intersect(&Rect::new(rect.x, rect.y, self.crop.w, self.crop.h))))
+    }
+
     pub fn width(&self) -> i32 {
         self.crop.w
     }
@@ -212,7 +256,9 @@ pub struct State {
     pointer_over: Option<(i64, Option<usize>)>,
     /// O clique que fechou os menus não vai para o app, nem o "soltou" dele.
     swallow_release: Option<u32>,
-    output: Output,
+    /// Os monitores, na ordem (0 é o da esquerda). Começa com um só, do
+    /// tamanho de um telão, até o hub chamar `set_outputs`.
+    pub outputs: Vec<OutputSlot>,
     pub windows: Vec<Win>,
     next_id: i64,
     pub events: Vec<Event>,
@@ -232,20 +278,8 @@ impl State {
         seat.add_keyboard(xkb, 400, 30).map_err(|e| format!("keymap do layout '{layout}' falhou: {e}"))?;
         seat.add_pointer();
 
-        // Um "monitor" de mentira, do tamanho de um telão.
-        let output = Output::new(
-            "HUB-1".into(),
-            PhysicalProperties {
-                size: (0, 0).into(),
-                subpixel: Subpixel::Unknown,
-                make: "Game Hub".into(),
-                model: "Telao".into(),
-            },
-        );
-        let mode = Mode { size: WINDOW_SIZE.into(), refresh: 60_000 };
-        output.change_current_state(Some(mode), Some(Transform::Normal), Some(Scale::Integer(1)), Some((0, 0).into()));
-        output.set_preferred(mode);
-        output.create_global::<State>(&dh);
+        // Um "monitor" de mentira, do tamanho de um telão (o hub troca com set_outputs).
+        let outputs = vec![new_output(&dh, 0, WINDOW_SIZE, 0)];
 
         Ok(State {
             compositor_state: CompositorState::new::<State>(&dh),
@@ -257,10 +291,11 @@ impl State {
             focused_window: None,
             pointer_over: None,
             swallow_release: None,
-            _output_manager: OutputManagerState::new(),
+            // Com o xdg-output: apps como o Quickshell perguntam o nome e o lugar de cada monitor.
+            _output_manager: OutputManagerState::new_with_xdg_output::<State>(&dh),
             seat_state,
             seat,
-            output,
+            outputs,
             windows: Vec::new(),
             next_id: 1,
             events: Vec::new(),
@@ -302,6 +337,65 @@ impl State {
             popup.surface.send_popup_done();
         }
     }
+
+    /// A saída precisa compor de novo (se existir).
+    fn mark_output(&mut self, place: Option<(usize, Rect)>) {
+        if let Some(slot) = place.and_then(|(o, _)| self.outputs.get_mut(o)) {
+            slot.dirty = true;
+        }
+    }
+
+    /// A janela mais de cima da saída `output` que cobre o ponto (x, y).
+    pub fn window_at(&self, output: usize, x: f64, y: f64) -> Option<i64> {
+        self.windows.iter().rev().find_map(|w| {
+            let (o, r) = w.visible_rect()?;
+            let inside = o == output
+                && x >= r.x as f64
+                && y >= r.y as f64
+                && x < (r.x + r.w) as f64
+                && y < (r.y + r.h) as f64;
+            inside.then_some(w.id)
+        })
+    }
+
+    /// Monta a imagem da saída `index`: o fundo e, por cima, as janelas dela
+    /// (na ordem da lista: a última fica por cima), cada uma no seu lugar.
+    fn compose(&mut self, index: usize) {
+        let (w, h) = self.outputs[index].size;
+        let mut pixels = std::mem::take(&mut self.outputs[index].pixels);
+        pixels.resize((w * h * 4) as usize, 0);
+        fill(&mut pixels, OUTPUT_BACKGROUND);
+        for win in self.windows.iter_mut() {
+            let Some((o, clip)) = win.visible_rect() else { continue };
+            if o != index {
+                continue;
+            }
+            let (ww, wh) = (win.width(), win.height());
+            blend_over_clipped(&mut pixels, w, h, win.image(), ww, wh, clip.x, clip.y, clip);
+        }
+        let slot = &mut self.outputs[index];
+        slot.pixels = pixels;
+        slot.dirty = false;
+    }
+}
+
+/// Cria um monitor (`HUB-1`, `HUB-2`...) com o tamanho dado, a `x` pixels da
+/// borda esquerda do primeiro (os monitores ficam lado a lado, como na mesa).
+fn new_output(dh: &DisplayHandle, index: usize, size: (i32, i32), x: i32) -> OutputSlot {
+    let output = Output::new(
+        format!("HUB-{}", index + 1),
+        PhysicalProperties {
+            size: (0, 0).into(),
+            subpixel: Subpixel::Unknown,
+            make: "Game Hub".into(),
+            model: "Monitor da mesa".into(),
+        },
+    );
+    let mode = Mode { size: size.into(), refresh: 60_000 };
+    output.change_current_state(Some(mode), Some(Transform::Normal), Some(Scale::Integer(1)), Some((x, 0).into()));
+    output.set_preferred(mode);
+    let global = output.create_global::<State>(dh);
+    OutputSlot { output, global, size, pixels: Vec::new(), dirty: true }
 }
 
 /// Lê a imagem nova do app (de uma janela ou de um menu) para `pixels`: só o
@@ -575,6 +669,114 @@ impl Core {
         self.flush();
     }
 
+    // --- Saídas (Fase 14.26) ---------------------------------------------------
+
+    /// Troca os monitores pelos de `sizes` (largura, altura de cada um), lado
+    /// a lado. Os apps veem os monitores velhos sumirem e os novos chegarem.
+    /// Janelas que estavam numa saída que deixou de existir ficam sem lugar.
+    pub fn set_outputs(&mut self, sizes: &[(i32, i32)]) -> bool {
+        if sizes.is_empty() || sizes.len() > MAX_OUTPUTS {
+            return false;
+        }
+        let state = &mut self.state;
+        for slot in state.outputs.drain(..) {
+            for win in &state.windows {
+                slot.output.leave(win.toplevel.wl_surface());
+            }
+            state.dh.remove_global::<State>(slot.global);
+        }
+        let mut x = 0;
+        for (i, &(w, h)) in sizes.iter().enumerate() {
+            let size = (w.clamp(1, MAX_SIZE), h.clamp(1, MAX_SIZE));
+            state.outputs.push(new_output(&state.dh, i, size, x));
+            x += size.0;
+        }
+        let count = state.outputs.len();
+        for win in state.windows.iter_mut() {
+            match win.place {
+                Some((o, _)) if o < count => state.outputs[o].output.enter(win.toplevel.wl_surface()),
+                Some(_) => win.place = None,
+                None => {}
+            }
+        }
+        self.flush();
+        true
+    }
+
+    pub fn output_count(&self) -> usize {
+        self.state.outputs.len()
+    }
+
+    /// Põe a janela na saída `output`, no retângulo `rect` (pixels da saída), e
+    /// pede ao app esse tamanho. `output` None tira a janela das saídas.
+    /// Devolve false se a janela ou a saída não existem.
+    pub fn place(&mut self, id: i64, output: Option<usize>, rect: Rect) -> bool {
+        if output.is_some_and(|o| o >= self.state.outputs.len()) {
+            return false;
+        }
+        let Some(wi) = self.state.windows.iter().position(|w| w.id == id) else { return false };
+        let rect = Rect::new(rect.x, rect.y, rect.w.clamp(1, MAX_SIZE), rect.h.clamp(1, MAX_SIZE));
+        let new = output.map(|o| (o, rect));
+        let old = self.state.windows[wi].place;
+        if old == new {
+            return true;
+        }
+        self.state.mark_output(old);
+        self.state.mark_output(new);
+        let surface = self.state.windows[wi].toplevel.wl_surface().clone();
+        for (i, slot) in self.state.outputs.iter().enumerate() {
+            if output == Some(i) {
+                slot.output.enter(&surface);
+            } else {
+                slot.output.leave(&surface);
+            }
+        }
+        self.state.windows[wi].place = new;
+        let old_size = old.map(|(_, r)| (r.w, r.h));
+        if output.is_some() && old_size != Some((rect.w, rect.h)) {
+            self.resize(id, rect.w, rect.h);
+        }
+        self.flush();
+        true
+    }
+
+    /// Põe a janela por cima das outras (na composição e para o mouse).
+    pub fn raise(&mut self, id: i64) -> bool {
+        let Some(wi) = self.state.windows.iter().position(|w| w.id == id) else { return false };
+        let win = self.state.windows.remove(wi);
+        let place = win.place;
+        self.state.windows.push(win);
+        self.state.mark_output(place);
+        true
+    }
+
+    /// Junta de novo as saídas que mudaram. Devolve quais (os índices).
+    pub fn compose_outputs(&mut self) -> Vec<usize> {
+        let state = &mut self.state;
+        let mut changed = Vec::new();
+        for o in 0..state.outputs.len() {
+            let touched = state.windows.iter().any(|w| w.out_dirty && matches!(w.place, Some((p, _)) if p == o));
+            if state.outputs[o].dirty || touched {
+                state.compose(o);
+                changed.push(o);
+            }
+        }
+        for win in state.windows.iter_mut() {
+            win.out_dirty = false;
+        }
+        changed
+    }
+
+    /// O ponteiro em (x, y), em pixels da saída `output`: vai para a janela
+    /// (ou o menu) que estiver embaixo. Sem janela embaixo, o ponteiro sai dos apps.
+    pub fn pointer_motion_output(&mut self, output: usize, x: f64, y: f64) {
+        let target = self.state.window_at(output, x, y).and_then(|id| Some((id, self.state.window(id)?.place?.1)));
+        match target {
+            Some((id, rect)) => self.pointer_motion(id, x - rect.x as f64, y - rect.y as f64),
+            None => self.pointer_leave(),
+        }
+    }
+
     /// Pede ao app para fechar a janela (como o X da barra de título).
     /// O app pode perguntar antes ("salvar?"); quando fechar, sai o `Closed`.
     pub fn close(&mut self, id: i64) -> bool {
@@ -657,6 +859,7 @@ impl CompositorHandler for State {
                 None => return,
             }
             win.dirty = win.mapped;
+            win.out_dirty |= win.mapped;
             return;
         }
 
@@ -664,7 +867,7 @@ impl CompositorHandler for State {
             Some(BufferAssignment::NewBuffer(buffer)) => {
                 let start = Instant::now();
                 if read_picture(surface, &buffer, &damage, &mut win.pixels, &mut win.crop) == Some(true) {
-                    win.dirty = true;
+                    win.touch();
                     self.copy_us_total += start.elapsed().as_micros();
                     self.copy_count += 1;
                 }
@@ -682,12 +885,15 @@ impl CompositorHandler for State {
                     win.mapped = false;
                     self.events.push(Event::Closed(win.id));
                 }
+                let place = win.place;
+                self.mark_output(place);
                 return;
             }
             None => {}
         }
         if !win.mapped && !win.pixels.is_empty() {
             win.mapped = true;
+            win.out_dirty = true;
             let (app_id, title) = toplevel_names(&win.toplevel);
             let pid = surface
                 .client()
@@ -728,7 +934,10 @@ impl XdgShellHandler for State {
             // Sem barra de título do app: o hub mostra o nome no telão.
             state.decoration_mode = Some(DecorationMode::ServerSide);
         });
-        self.output.enter(surface.wl_surface());
+        // Até ganhar um lugar, a janela "está" no primeiro monitor (o app usa a escala dele).
+        if let Some(slot) = self.outputs.first() {
+            slot.output.enter(surface.wl_surface());
+        }
         let id = self.next_id;
         self.next_id += 1;
         self.windows.push(Win {
@@ -741,6 +950,8 @@ impl XdgShellHandler for State {
             callbacks: Vec::new(),
             popups: Vec::new(),
             composed: Vec::new(),
+            place: None,
+            out_dirty: false,
         });
     }
 
@@ -750,6 +961,7 @@ impl XdgShellHandler for State {
             if win.mapped {
                 self.events.push(Event::Closed(win.id));
             }
+            self.mark_output(win.place);
             if self.focused_window == Some(win.id) {
                 self.focused_window = None;
             }
@@ -824,6 +1036,7 @@ impl XdgShellHandler for State {
         });
         win.popups[pi].pos = (geometry.loc.x, geometry.loc.y);
         win.dirty = win.mapped;
+        win.out_dirty |= win.mapped;
         surface.send_repositioned(token);
         let _ = surface.send_configure();
     }
@@ -834,6 +1047,7 @@ impl XdgShellHandler for State {
         let win = &mut self.windows[index];
         win.popups.remove(pi);
         win.dirty = win.mapped;
+        win.out_dirty |= win.mapped;
         if matches!(self.pointer_over, Some((id, Some(_))) if id == win.id) {
             self.pointer_over = Some((win.id, None));
         }

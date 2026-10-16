@@ -19,7 +19,8 @@ use wayland_client::{delegate_noop, event_created_child, Connection, Dispatch, E
 use wayland_protocols::xdg::decoration::zv1::client::{zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1};
 use wayland_protocols::xdg::shell::client::{xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base};
 
-use crate::wayland::{Core, Event, WINDOW_SIZE};
+use crate::pixels::Rect;
+use crate::wayland::{Core, Event, OUTPUT_BACKGROUND, WINDOW_SIZE};
 
 /// O lado do app: o que ele já recebeu do compositor.
 #[derive(Default)]
@@ -60,6 +61,10 @@ struct App {
     selection: Option<wl_data_offer::WlDataOffer>,
     offered: Vec<String>,
     copied_text_sent: bool,
+    /// Os monitores (wl_output) que o compositor anuncia (os números dos globais).
+    outputs: Vec<u32>,
+    /// O compositor anuncia o xdg-output (nome e lugar de cada monitor).
+    xdg_output: bool,
 }
 
 /// Um menu do app de teste.
@@ -306,6 +311,23 @@ impl Harness {
         let copies = self.core.state.copy_count;
         self.peers[0].draw_on(Some(popup), w + 2 * margin, h + 2 * margin, margin, color, None);
         self.pump("a imagem do menu", |h| h.core.state.copy_count > copies);
+    }
+
+    /// Põe a janela `id` (do app `who`) na saída e espera o app receber o
+    /// tamanho do lugar e desenhar com ele, na cor `color`.
+    fn place_and_draw(&mut self, who: usize, id: i64, output: usize, rect: Rect, color: [u8; 4]) {
+        assert!(self.core.place(id, Some(output), rect));
+        self.pump("o tamanho do lugar", |h| h.peers[who].app.size == (rect.w, rect.h));
+        let copies = self.core.state.copy_count;
+        self.peers[who].draw_on(None, rect.w, rect.h, 0, color, None);
+        self.pump("a imagem no tamanho do lugar", |h| h.core.state.copy_count > copies);
+    }
+
+    /// O pixel (x, y) da saída `output` composta, em RGBA.
+    fn output_pixel(&self, output: usize, x: i32, y: i32) -> [u8; 4] {
+        let slot = &self.core.state.outputs[output];
+        let i = ((y * slot.size.0 + x) * 4) as usize;
+        slot.pixels[i..i + 4].try_into().unwrap()
     }
 
     /// O pixel (x, y) da janela 1 como vai para a textura (com os menus), em RGBA.
@@ -706,6 +728,157 @@ fn copiar_num_app_e_colar_no_outro() {
     assert_eq!(text, "ação copiada");
 }
 
+// --- Saídas: os monitores da mesa (Fase 14.26) ----------------------------------
+
+const VERDE: [u8; 4] = [0, 180, 0, 0];
+
+/// Três monitores; nos testes, pequenos (a mesa usa 1920×1080).
+const MONITORES: [(i32, i32); 3] = [(640, 240), (640, 240), (640, 240)];
+
+/// Compositor com três saídas e dois apps, cada um com uma janela aberta
+/// (a do app 0 é a 1, a do app 1 é a 2).
+fn mesa_com_duas_janelas() -> Harness {
+    let mut h = Harness::new();
+    assert!(h.core.set_outputs(&MONITORES));
+    h.add_peer();
+    h.open_window_of(0);
+    h.open_window_of(1);
+    h
+}
+
+#[test]
+fn set_outputs_anuncia_tres_monitores_com_xdg_output() {
+    let mut h = Harness::new();
+    h.pump("o primeiro monitor", |h| h.app.outputs.len() == 1);
+    assert!(h.app.xdg_output, "o xdg-output é anunciado");
+    assert!(h.core.set_outputs(&MONITORES));
+    h.pump("os três monitores (o velho sai)", |h| h.app.outputs.len() == 3);
+    assert_eq!(h.core.output_count(), 3);
+    let x: Vec<i32> = h.core.state.outputs.iter().map(|o| o.output.current_location().x).collect();
+    assert_eq!(x, vec![0, 640, 1280], "lado a lado");
+    assert!(!h.core.set_outputs(&[]), "nenhum monitor é recusado");
+    assert_eq!(h.core.output_count(), 3);
+}
+
+#[test]
+fn duas_janelas_lado_a_lado_na_saida_0() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    h.place_and_draw(1, 2, 0, Rect::new(320, 0, 320, 240), VERDE);
+    let changed = h.core.compose_outputs();
+    assert!(changed.contains(&0));
+    assert_eq!(h.output_pixel(0, 10, 10), rgba(AZUL_ESCURO), "metade da esquerda");
+    assert_eq!(h.output_pixel(0, 319, 239), rgba(AZUL_ESCURO));
+    assert_eq!(h.output_pixel(0, 320, 0), rgba(VERDE), "metade da direita");
+    assert_eq!(h.output_pixel(0, 639, 120), rgba(VERDE));
+    assert_eq!(h.output_pixel(1, 10, 10), OUTPUT_BACKGROUND, "a saída 1 está vazia");
+    assert_eq!(h.core.state.window_at(0, 400.0, 100.0), Some(2));
+    assert_eq!(h.core.state.window_at(0, 100.0, 100.0), Some(1));
+    assert_eq!(h.core.state.window_at(1, 100.0, 100.0), None);
+}
+
+#[test]
+fn janela_na_saida_2_nao_aparece_na_0() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    h.place_and_draw(1, 2, 0, Rect::new(320, 0, 320, 240), VERDE);
+    h.core.compose_outputs();
+    // A janela 2 vai para a saída 2, no mesmo lugar e tamanho.
+    assert!(h.core.place(2, Some(2), Rect::new(320, 0, 320, 240)));
+    let changed = h.core.compose_outputs();
+    assert_eq!(changed, vec![0, 2], "só as duas saídas que mudaram");
+    assert_eq!(h.output_pixel(0, 400, 100), OUTPUT_BACKGROUND, "saiu da 0");
+    assert_eq!(h.output_pixel(2, 400, 100), rgba(VERDE), "chegou na 2");
+    assert_eq!(h.output_pixel(0, 100, 100), rgba(AZUL_ESCURO), "a outra continua");
+    // Tirar a janela das saídas.
+    assert!(h.core.place(2, None, Rect::default()));
+    assert_eq!(h.core.compose_outputs(), vec![2]);
+    assert_eq!(h.output_pixel(2, 400, 100), OUTPUT_BACKGROUND);
+    assert!(!h.core.place(2, Some(3), Rect::new(0, 0, 10, 10)), "saída que não existe");
+    assert!(!h.core.place(99, Some(0), Rect::new(0, 0, 10, 10)), "janela que não existe");
+}
+
+#[test]
+fn clique_vai_para_a_janela_da_direita() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    h.place_and_draw(1, 2, 0, Rect::new(320, 0, 320, 240), VERDE);
+    h.core.pointer_motion_output(0, 400.0, 100.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.pump("o clique no app da direita", |h| h.peers[1].app.input.len() >= 3);
+    assert_eq!(h.peers[1].app.input, vec!["mouse entrou em 80,100", "botão 272 apertou", "botão 272 soltou"]);
+    assert!(h.peers[0].app.input.is_empty(), "o app da esquerda não recebe nada");
+    // Num canto sem janela (outra saída), o mouse sai dos apps.
+    h.core.pointer_motion_output(1, 10.0, 10.0);
+    h.pump("o mouse sair", |h| h.peers[1].app.input.len() >= 4);
+    assert_eq!(h.peers[1].app.input[3], "mouse saiu");
+}
+
+#[test]
+fn compoe_so_quando_muda() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    h.place_and_draw(1, 2, 1, Rect::new(0, 0, 320, 240), VERDE);
+    assert_eq!(h.core.compose_outputs(), vec![0, 1, 2], "a primeira vez, todas");
+    assert!(h.core.compose_outputs().is_empty(), "nada mudou, nada compõe");
+    let copies = h.core.state.copy_count;
+    h.peers[1].draw_on(None, 320, 240, 0, VERMELHO, Some((10, 20)));
+    h.pump("a imagem nova", |h| h.core.state.copy_count > copies);
+    assert_eq!(h.core.compose_outputs(), vec![1], "só a saída da janela que mudou");
+    assert_eq!(h.output_pixel(1, 5, 15), rgba(VERMELHO));
+}
+
+#[test]
+fn janela_maior_que_o_lugar_nao_invade_a_vizinha() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(1, 2, 0, Rect::new(320, 0, 320, 240), VERDE);
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    // O app 0 ignora o tamanho e desenha 400 de largura: o que sobra é cortado.
+    let copies = h.core.state.copy_count;
+    h.peers[0].draw_on(None, 400, 240, 0, AZUL_ESCURO, None);
+    h.pump("a imagem grande", |h| h.core.state.copy_count > copies);
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(0, 330, 10), rgba(VERDE));
+    assert_eq!(h.core.state.window_at(0, 330.0, 10.0), Some(2));
+}
+
+#[test]
+fn raise_poe_por_cima() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(0, 1, 0, Rect::new(0, 0, 320, 240), AZUL_ESCURO);
+    h.place_and_draw(1, 2, 0, Rect::new(100, 0, 320, 240), VERDE); // por cima, sobrepondo
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(0, 150, 10), rgba(VERDE));
+    assert!(h.core.raise(1));
+    assert_eq!(h.core.compose_outputs(), vec![0]);
+    assert_eq!(h.output_pixel(0, 150, 10), rgba(AZUL_ESCURO));
+    assert_eq!(h.core.state.window_at(0, 150.0, 10.0), Some(1));
+}
+
+#[test]
+fn fechar_a_janela_limpa_a_saida() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(1, 2, 0, Rect::new(320, 0, 320, 240), VERDE);
+    h.core.compose_outputs();
+    assert!(h.core.close(2));
+    h.pump("o app 1 receber o pedido de fechar", |h| h.peers[1].app.close_requested);
+    h.peers[1].app.toplevel.take().unwrap().destroy();
+    h.peers[1].app.xdg_surface.take().unwrap().destroy();
+    h.pump("a janela fechar", |h| h.events.contains(&Event::Closed(2)));
+    assert_eq!(h.core.compose_outputs(), vec![0]);
+    assert_eq!(h.output_pixel(0, 400, 100), OUTPUT_BACKGROUND);
+}
+
+#[test]
+fn trocar_as_saidas_tira_o_lugar_de_quem_sobrou() {
+    let mut h = mesa_com_duas_janelas();
+    h.place_and_draw(1, 2, 2, Rect::new(0, 0, 320, 240), VERDE);
+    assert!(h.core.set_outputs(&[(640, 240)]));
+    assert!(h.core.state.window(2).unwrap().place.is_none(), "a saída 2 sumiu");
+    assert_eq!(h.core.compose_outputs(), vec![0]);
+}
+
 // --- O app de teste responde ao compositor ------------------------------------
 
 impl Dispatch<wl_registry::WlRegistry, ()> for App {
@@ -717,8 +890,14 @@ impl Dispatch<wl_registry::WlRegistry, ()> for App {
         _: &Connection,
         qh: &QueueHandle<Self>,
     ) {
+        if let wl_registry::Event::GlobalRemove { name } = event {
+            app.outputs.retain(|&n| n != name);
+            return;
+        }
         if let wl_registry::Event::Global { name, interface, version } = event {
             match interface.as_str() {
+                "wl_output" => app.outputs.push(name),
+                "zxdg_output_manager_v1" => app.xdg_output = true,
                 "wl_compositor" => app.compositor = Some(registry.bind(name, version.min(4), qh, ())),
                 "wl_shm" => app.shm = Some(registry.bind(name, 1, qh, ())),
                 "xdg_wm_base" => app.wm_base = Some(registry.bind(name, version.min(5), qh, ())),

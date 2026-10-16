@@ -122,7 +122,8 @@ func _real_compositor() -> void:
 	if comp == null:
 		return
 	root.add_child(comp)
-	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "focus", "key", "pointer_motion", "pointer_leave", "pointer_button", "pointer_axis", "stats"]:
+	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "focus", "key", "pointer_motion", "pointer_leave", "pointer_button", "pointer_axis", "stats",
+			"set_outputs", "get_output_count", "place", "raise", "get_output_texture", "get_output_image", "window_at", "pointer_motion_output"]:
 		_check("o nó tem %s()" % method, comp.has_method(method))
 	for sig in ["window_opened", "window_closed", "title_changed"]:
 		_check("o nó tem o sinal %s" % sig, comp.has_signal(sig))
@@ -135,6 +136,20 @@ func _real_compositor() -> void:
 			not comp.call("resize", 1, 640, 360) and not comp.call("close", 1))
 	var stats: Dictionary = comp.call("stats")
 	_check("stats() conta 0 janelas", stats.get("janelas", -1) == 0)
+
+	# Saídas (Fase 14.26): os três monitores da mesa.
+	var sizes: Array[Vector2i] = [Vector2i(1920, 1080), Vector2i(1920, 1080), Vector2i(1920, 1080)]
+	_check("set_outputs() com 3 monitores", comp.call("set_outputs", sizes) and comp.call("get_output_count") == 3)
+	_check("set_outputs() sem nenhum é recusado", not comp.call("set_outputs", [] as Array[Vector2i]) and comp.call("get_output_count") == 3)
+	comp.call("poll")
+	var output_texture: Texture2D = comp.call("get_output_texture", 2)
+	_check("cada saída tem a textura composta (1920×1080)", output_texture != null
+			and output_texture.get_size() == Vector2(1920, 1080) and comp.call("get_output_texture", 3) == null)
+	var output_image: Image = comp.call("get_output_image", 0)
+	_check("a saída vazia mostra o fundo", output_image != null and output_image.get_pixel(960, 540).a == 1.0)
+	_check("sem janela, window_at() dá 0", comp.call("window_at", 1, 100.0, 100.0) == 0)
+	_check("place() de janela que não existe devolve false", not comp.call("place", 1, 0, 0, 0, 640, 360))
+	_check("stats() conta 3 saídas", comp.call("stats").get("saidas", -1) == 3)
 	comp.queue_free()
 	await process_frame
 	await process_frame

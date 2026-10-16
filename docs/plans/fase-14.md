@@ -256,6 +256,16 @@ Levantamento (só leitura):
     - O Hyprland deixa **vários atalhos na mesma tecla** (ALT + TAB foca e traz para a frente; F9 tem o apertar e o soltar): a tabela é uma lista, não um mapa.
     - Lua 5.5: a variável do `for` é constante (não dá para reatribuir).
 
+- **14.26: as saídas (2026-10-15).**
+  - **API do nó:**
+    - `set_outputs([Vector2i...])` troca os monitores (`HUB-1`, `HUB-2`, `HUB-3`, lado a lado, com o `xdg-output`);
+    - `place(id, saída, x, y, w, h)` põe a janela e pede o tamanho (saída negativa tira); `raise(id)` põe por cima;
+    - `get_output_texture(i)` / `get_output_image(i)` dão a saída composta; `window_at(i, x, y)` diz qual janela está no ponto (para o hub dar o foco no clique, na 14.28/14.29);
+    - `pointer_motion_output(i, x, y)` manda o mouse para a janela embaixo (ou tira o mouse dos apps, se não houver janela).
+  - **A janela com lugar numa saída não sobe a textura própria**, só a da saída (para não pagar duas cópias). Sem lugar, tudo funciona como na parte 2.
+  - **A composição** só refaz as saídas que mudaram (uma janela desenhou, entrou, saiu, fechou ou subiu), mas a saída inteira: fundo liso (`OUTPUT_BACKGROUND`, até o fundo do Omarchy chegar pela 14.27) e as janelas por cima, cada uma cortada pelo seu lugar (um app que desenha maior que o pedido não invade a vizinha). Pixel opaco é só copiado. Recompor só o pedaço que mudou fica para a medida da 14.32, se pesar.
+  - **Os menus** continuam dentro da imagem da janela (presos ao retângulo dela).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -496,7 +506,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
   - Teste: `check_home`, `check_pause_menu` (abas novas) e `check_computer_desk` (três telas, nenhuma dentro de móvel nas 3 disposições).
   - Manual: captura da mesa (fora do repositório).
   - Commit: `Fase 14.25: três monitores na mesa e configurações no menu de pausa`
-- [ ] **14.26 Saídas e composição por monitor** (Opus · high): *Rust*
+- [x] **14.26 Saídas e composição por monitor** (Opus · high): *Rust*
   - Faz:
     - `set_outputs(tamanhos)` cria 3 `wl_output` (com o `xdg-output`);
     - `place(id, saída, x, y, w, h)` manda a janela para o lugar (com `configure`);

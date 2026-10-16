@@ -141,7 +141,25 @@ pub fn copy_rows(src: &[u8], layout: &ShmLayout, crop: &Rect, rows: Range<i32>, 
 /// transparente já vem pela metade), então misturar é: cor de cima +
 /// cor de baixo × (1 − transparência de cima).
 pub fn blend_over(dst: &mut [u8], dst_w: i32, dst_h: i32, src: &[u8], src_w: i32, src_h: i32, x: i32, y: i32) {
-    let area = Rect::new(0, 0, dst_w, dst_h).intersect(&Rect::new(x, y, src_w, src_h));
+    blend_over_clipped(dst, dst_w, dst_h, src, src_w, src_h, x, y, Rect::new(0, 0, dst_w, dst_h));
+}
+
+/// O mesmo que `blend_over`, mas só dentro de `clip` (em pixels de `dst`).
+/// Usado para pôr cada janela no lugar dela no monitor (Fase 14.26): se a
+/// imagem do app ainda for maior que o lugar, o que sobra não invade a vizinha.
+#[allow(clippy::too_many_arguments)]
+pub fn blend_over_clipped(
+    dst: &mut [u8],
+    dst_w: i32,
+    dst_h: i32,
+    src: &[u8],
+    src_w: i32,
+    src_h: i32,
+    x: i32,
+    y: i32,
+    clip: Rect,
+) {
+    let area = Rect::new(0, 0, dst_w, dst_h).intersect(&clip).intersect(&Rect::new(x, y, src_w, src_h));
     if area.is_empty() || dst.len() < (dst_w * dst_h * 4) as usize || src.len() < (src_w * src_h * 4) as usize {
         return;
     }
@@ -150,11 +168,22 @@ pub fn blend_over(dst: &mut [u8], dst_w: i32, dst_h: i32, src: &[u8], src_w: i32
         let s0 = (((row - y) * src_w + (area.x - x)) * 4) as usize;
         let len = (area.w * 4) as usize;
         for (d, s) in dst[d0..d0 + len].chunks_exact_mut(4).zip(src[s0..s0 + len].chunks_exact(4)) {
+            if s[3] == 255 {
+                d.copy_from_slice(s); // opaco (o caso mais comum): só copia
+                continue;
+            }
             let keep = 255 - s[3] as u32; // quanto da cor de baixo continua aparecendo
             for c in 0..4 {
                 d[c] = (s[c] as u32 + (d[c] as u32 * keep + 127) / 255).min(255) as u8;
             }
         }
+    }
+}
+
+/// Pinta a imagem inteira (RGBA) de uma cor só.
+pub fn fill(dst: &mut [u8], color: [u8; 4]) {
+    for d in dst.chunks_exact_mut(4) {
+        d.copy_from_slice(&color);
     }
 }
 
@@ -274,6 +303,22 @@ mod tests {
         let mut dst = [9u8; 4].to_vec();
         blend_over(&mut dst, 1, 1, &[255, 0, 0, 255], 1, 1, 5, 5);
         assert_eq!(dst, vec![9; 4]);
+    }
+
+    #[test]
+    fn janela_cortada_pelo_lugar_dela() {
+        // Monitor 4×1 preto; janela 3×1 branca em x = 1, mas o lugar dela só tem 2 de largura.
+        let mut dst = [0, 0, 0, 255].repeat(4);
+        let src = [255, 255, 255, 255].repeat(3);
+        blend_over_clipped(&mut dst, 4, 1, &src, 3, 1, 1, 0, Rect::new(1, 0, 2, 1));
+        assert_eq!(dst, [[0, 0, 0, 255], [255; 4], [255; 4], [0, 0, 0, 255]].concat());
+    }
+
+    #[test]
+    fn pinta_de_uma_cor() {
+        let mut dst = vec![0u8; 8];
+        fill(&mut dst, [1, 2, 3, 4]);
+        assert_eq!(dst, vec![1, 2, 3, 4, 1, 2, 3, 4]);
     }
 
     /// Só para comparar caminhos (rode com `cargo test --release -- --ignored --nocapture`).
