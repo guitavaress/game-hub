@@ -229,6 +229,33 @@ Levantamento (só leitura):
 
 - **2026-10-15: a parte 3 (decisão do dono).** O dono não gostou dos telões nas paredes nem da estante de apps. No lugar: **três monitores na mesa do computador**, que são o "Linux de dentro", com os atalhos `SUPER`, o menu (`SUPER + Space`) e a barra do Omarchy funcionando ali; os apps abrem por um lançador no monitor; as configurações do hub ficam só no menu de pausa. O compositor (14.15–14.18), o `AppSessions` (14.21) e o ocioso/aviso ao sair (14.22) continuam. Veja a [parte 3](#parte-3-a-mesa-com-três-monitores).
 
+- **14.24: o spike da mesa (2026-10-15), na branch `spike-14.24` (`d545a3d`). Escolha: (A), o Quickshell de dentro.** As quatro perguntas deram certo no notebook. O código do spike fica na branch (não entra na fase); o layer-shell dela é o ponto de partida da 14.27.
+  - **(a) Submap: funciona, sem mexer na config do dono.**
+    - O hub liga o submap sozinho com `hyprctl eval` (Lua em tempo real): `hl.define_submap(...)` e `hl.dispatch(hl.dsp.submap(...))`.
+    - Com o submap ligado, `SUPER + Enter`, `Space`, `W`, `1` e `F` chegam à Godot como teclas, e nada acontece fora. Ganhar o foco liga o submap e perder desliga.
+    - **Armadilhas:**
+      - o `OS.execute` da Godot **come as aspas duplas** dos argumentos: o Lua mandado pelo hub usa só aspas simples, e o retorno do `hyprctl eval` é conferido (o erro vem com código 7);
+      - um submap sem nenhuma tecla não é registrado: ele precisa ter pelo menos uma (a de sair);
+      - um `reload` do Hyprland (o Omarchy faz isso ao trocar o tema) **apaga as teclas do submap, mas deixa o Hyprland dentro dele**, com os atalhos mortos. O hub define o submap de novo a cada entrada e ao ver o evento `configreloaded`. A rede de segurança é a linha universal no `bindings.lua`, testada (funciona dentro do submap e depois do reload): `hl.bind("SUPER + SHIFT + ESCAPE", hl.dsp.submap("reset"), { submap_universal = true, description = "Game Hub: sair do submap" })`;
+      - o `hl.timer` funciona (a trava de 120 s do spike). No hub, a ideia é um "vigia": o hub renova o timer a cada poucos segundos, e, se ele travar, o Hyprland sai do submap sozinho.
+    - O `wtype` (teclas de mentira) só dispara atalhos do Hyprland com o `Escape`. Para testar atalhos, só com a mão do dono.
+  - **(b) Calços: os scripts do Omarchy abrem dentro.** Ficaram três: `uwsm-app` e `systemd-run` (só rodam o comando) e **`brave-origin`**, que põe o perfil só do hub. Sem ele, o `omarchy-launch-browser` e os webapps acham o Brave de fora e abrem a janela lá. Com eles e o `-u HYPRLAND_INSTANCE_SIGNATURE`, abriram dentro: o terminal (foot), o navegador, o Obsidian (`launch-or-focus`) e dois webapps (janelas novas do mesmo Brave).
+    - Ressalva: o `launch-or-focus` sempre abre outra janela, porque o `hyprctl` de dentro não acha nada. Se incomodar, um calço `hyprctl` que responda `clients -j` com as janelas do hub (fora do escopo por enquanto).
+    - Um perfil novo do Brave mostra a tela de boas-vindas e segura os webapps até alguém clicar.
+  - **(c) Layer-shell e Quickshell: funciona.**
+    - O layer-shell mínimo no Rust deu cerca de 100 linhas, **sem crate novo** (o `wlr_layer` já vem no Smithay).
+    - `quickshell -n -p /usr/share/omarchy/shell` dentro do compositor, com `QT_QUICK_BACKEND=software`, desenha a barra (1280×26), o fundo, as notificações, e o menu abre com `omarchy-menu toggle` (ambiente de dentro). A cópia média ficou em 0,8 ms.
+    - Serviços repetidos falham sem estrago: o polkit ("já existe um agente"), as notificações (o nome no D-Bus já tem dono) e o portal. O idle não dispara (o compositor não tem o protocolo de ociosidade), e o bloqueio de tela também não (falta o `ext-session-lock`).
+    - **Ressalvas:**
+      - sem o `HYPRLAND_INSTANCE_SIGNATURE`, os workspaces da barra ficam parados (1 a 5): a barra de dentro não sabe dos monitores da mesa (fica para depois da parte 3);
+      - a segunda instância roda de novo os scripts da barra (o `cpu-status` a cada 2 s, um `inotifywait -r` na home): o custo entra na medida da 14.32;
+      - o `wl-clipboard` do Omarchy abre uma janela de 1×1: o hub ignora janelas minúsculas;
+      - o `shell.json` do dono não mudou; arquivos de estado (uso dos agentes) são escritos pelas duas instâncias.
+  - **(d) Os atalhos: 229 de 229.** Em vez de imitar o Lua no GDScript, o leitor **roda a config de verdade** (`~/.config/hypr/hyprland.lua`) num `lua` com um `hl` falso, que só anota os atalhos. O `lua` é dependência do Hyprland, então sempre existe onde o Omarchy roda. Laços (workspaces 1 a 10), `if` (apps pré-instalados) e `hl.unbind` do usuário saem certos.
+    - Bateu com o `hyprctl binds` um a um: 132 comandos, 92 ações de janela (`window.move` 26, `focus` 21, `window.resize` 13, grupos, tela cheia...) e 5 funções Lua (copiar, colar e recortar universais e o zoom), que viram ações do hub ou são ignoradas.
+    - O Hyprland deixa **vários atalhos na mesma tecla** (ALT + TAB foca e traz para a frente; F9 tem o apertar e o soltar): a tabela é uma lista, não um mapa.
+    - Lua 5.5: a variável do `for` é constante (não dá para reatribuir).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -451,7 +478,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
 - [x] **14.23 Plano da parte 3** (Sonnet · low)
   - Faz: escreve esta parte no `docs/plans/fase-14.md`. Marca a 14.19 e a 14.20 como "substituídas pela parte 3" e põe a decisão do dono em "Decisões tomadas durante a fase".
   - Commit: `Fase 14.23: plano da parte 3 (a mesa com três monitores)`
-- [ ] **14.24 Spike: submap, calços e Quickshell** (Opus · high): *precisa do dono no notebook*
+- [x] **14.24 Spike: submap, calços e Quickshell** (Opus · high): *precisa do dono no notebook* · `d545a3d` (branch `spike-14.24`) · *escolha: A*
   - Faz, numa branch de spike, sem mexer no hub:
     - (a) com o submap ligado, `SUPER + Enter` chega à Godot como tecla (o `testar_compositor.gd` imprime), e a tecla de emergência volta ao normal;
     - (b) com os calços e o `-u HYPRLAND_INSTANCE_SIGNATURE`, o `omarchy-launch-terminal`, o `omarchy-launch-browser` e o `omarchy-launch-or-focus obsidian ...` abrem **dentro**;
@@ -478,7 +505,8 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
   - A API por janela (14.16 a 14.18) continua para os testes antigos.
   - Teste: `cargo test` (duas janelas lado a lado na saída 0, cor certa em cada metade, clique vai para a da direita, janela na saída 2 não aparece na 0).
   - Commit: `Fase 14.26: saídas e composição por monitor`
-- [ ] **14.27 Layer-shell** (Opus · high): *Rust; só se o spike escolher A*
+- [ ] **14.27 Layer-shell** (Opus · high): *Rust; o spike escolheu A*
+  - Ponto de partida: o `Role::Layer` e o `configure_layer` da branch `spike-14.24` (sem margens, sem zona exclusiva, uma textura por camada).
   - Faz:
     - `wlr-layer-shell`: camadas fundo, baixo, topo e sobreposição, com âncoras e margens;
     - a **zona exclusiva** (a barra reserva o alto): o sinal `usable_area_changed(saída, retângulo)`;
@@ -503,20 +531,20 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
   - Commit: `Fase 14.29: o arranjo das janelas nos monitores`
 - [ ] **14.30 Os atalhos do Omarchy** (Sonnet · medium; Opus · high se o leitor de Lua travar)
   - Faz:
-    - `autoload/platform/omarchy_binds.gd` lê os `bindings/*.lua` do Omarchy e o `bindings.lua` do usuário (com `hl.unbind`) e monta a tabela;
+    - `autoload/platform/omarchy_binds.gd` roda um leitor em Lua (como o `spike_binds.lua` da 14.24: a config real com um `hl` falso) e monta a tabela (uma lista: várias ações por tecla);
     - sentado à mesa, a combinação vira ação (comando com o ambiente de dentro, ou ação do `DeskLayout`); o resto vai para o app com foco;
-    - o submap: ligar e desligar pelo `WindowHost`;
-    - os calços em `user://shims/` (criados pelo `platform`) e o `-u HYPRLAND_INSTANCE_SIGNATURE` no `AppCompositor.environment()`;
+    - o submap: ligar e desligar pelo `WindowHost` (Lua só com aspas simples, retorno conferido, definido de novo a cada entrada e no `configreloaded`, e o vigia com `hl.timer`);
+    - os calços (`uwsm-app`, `systemd-run`, `brave-origin`) em `user://shims/` (criados pelo `platform`) e o `-u HYPRLAND_INSTANCE_SIGNATURE` no `AppCompositor.environment()`;
     - a aba Sistema ganha "Copiar a linha da tecla de emergência".
   - Teste:
-    - `tests/check_omarchy_binds.gd` com arquivos Lua de exemplo: texto, `omarchy=`, `webapp=`, `unbind`, `code:10` = tecla 1, e `hl.dsp.window.close()` = fechar;
+    - `tests/check_omarchy_binds.gd` com arquivos Lua de exemplo: texto, `omarchy=`, `webapp=`, `unbind`, `code:10` = tecla 1, `hl.dsp.window.close()` = fechar e duas ações na mesma tecla;
     - o `check_app_sessions` confere o ambiente novo e o `check_platform` a lista nova.
   - Commit: `Fase 14.30: os atalhos do Omarchy na mesa`
 - [ ] **14.31 O menu e a barra** (Sonnet · medium)
   - Faz:
-    - (A) o `AppSessions` sobe o Quickshell de dentro com o compositor (e o fecha junto), e `SUPER + Space` / `SUPER + Alt + Space` chamam o `omarchy-menu` de dentro;
-    - ou (B) a barra e o lançador do hub numa camada desenhada pela Godot por cima do monitor do meio, com a lista do `AppLibrary`.
-  - Teste: (A) `check_app_sessions` (o processo sobe e desce com o compositor, com comando falso) ou (B) `tests/check_desk_launcher.gd` (busca, Enter abre pelo `AppSessions.open_app`).
+    - (A, a escolha da 14.24) o `AppSessions` sobe o Quickshell de dentro com o compositor (`QT_QUICK_BACKEND=software`; e o fecha junto), e `SUPER + Space` / `SUPER + Alt + Space` chamam o `omarchy-menu` de dentro;
+    - (B fica como plano B, se o Quickshell quebrar numa atualização) a barra e o lançador do hub numa camada desenhada pela Godot por cima do monitor do meio, com a lista do `AppLibrary`.
+  - Teste: `check_app_sessions` (o processo sobe e desce com o compositor, com comando falso).
   - Commit: `Fase 14.31: o menu e a barra do Omarchy na mesa`
 - [ ] **14.32 Medida e documentação** (Sonnet · medium): *a antiga 14.23*
   - Faz:
