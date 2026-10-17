@@ -74,6 +74,17 @@ var seat_begin_hook: Callable = func() -> bool: return HubWindow.seat_begin()
 var seat_keepalive_hook: Callable = func() -> void: HubWindow.seat_keepalive()
 var seat_end_hook: Callable = func() -> void: HubWindow.seat_end()
 
+## O Quickshell do Omarchy de dentro (14.31): sobe junto com o compositor e
+## desce com ele. start: func() -> int (o pid, ou -1); stop: func(pid: int).
+var shell_starter: Callable = AppCompositor.start_shell
+var shell_stopper: Callable = func(pid: int) -> void: OS.kill(pid)
+var _shell_pid: int = -1
+
+## Janelas de até este tamanho (em pixels, na largura ou na altura) são
+## auxiliares, não apps: o wl-clipboard do Omarchy abre uma de 1×1. O hub não as
+## põe nos monitores nem as fecha.
+const MIN_WINDOW_SIZE := 8
+
 ## De quanto em quanto tempo, sentado, o submap é definido de novo e o vigia renovado.
 const KEEPALIVE_SECONDS := 5.0
 
@@ -155,6 +166,7 @@ func _process(delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	_stop_shell()
 	if _shortcuts_on:
 		_shortcuts_on = false
 		seat_end_hook.call()
@@ -478,12 +490,27 @@ func _ensure_compositor() -> bool:
 	node.connect("usable_area_changed", _on_usable_area_changed)
 	_setup_outputs()
 	_attach_sources()
+	_shell_pid = int(shell_starter.call())
 	return true
+
+
+## Desce o Quickshell de dentro (o compositor some junto, e ele perderia a conexão de qualquer jeito).
+func _stop_shell() -> void:
+	if _shell_pid > 0:
+		shell_stopper.call(_shell_pid)
+	_shell_pid = -1
+
+
+## O Quickshell de dentro está rodando? (os testes e o menu de pausa podem perguntar)
+func has_shell() -> bool:
+	return _shell_pid > 0
 
 
 func _on_window_opened(id: int, wl_app_id: String, title: String, pid: int) -> void:
 	if _monitors().is_empty():
 		close_window(id)  # sem monitor: não tem onde mostrar
+		return
+	if _is_helper_window(id):
 		return
 	var app_id := _pending_app
 	if not app_id.is_empty():
@@ -504,6 +531,12 @@ func _on_window_opened(id: int, wl_app_id: String, title: String, pid: int) -> v
 	_apply(output)
 	_focus_window(id)
 	window_ready.emit(id, app_id)
+
+
+## A janela é minúscula (um auxiliar, como o wl-clipboard)?
+func _is_helper_window(id: int) -> bool:
+	var texture := _compositor.call("get_texture", id) as Texture2D
+	return texture != null and (texture.get_width() <= MIN_WINDOW_SIZE or texture.get_height() <= MIN_WINDOW_SIZE)
 
 
 ## A saída da janela nova: onde o mouse esteve por último, ou a do meio.

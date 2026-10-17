@@ -302,6 +302,14 @@ Levantamento (só leitura):
   - **A aba Sistema** ganhou "TECLA DE EMERGÊNCIA": a linha para colar no `bindings.lua` (`submap_universal = true`, vale em qualquer submap) e o botão de copiar. O hub nunca escreve na config do Hyprland.
   - Esta etapa não testa o Hyprland de verdade (nem um `wtype`, que só dispara atalhos com o Esc): os testes usam um `hyprctl` falso e arquivos de exemplo. O teste com a mão do dono está no checklist.
 
+- **14.31: o menu e a barra (2026-10-17).** Escolha A, a da 14.24.
+  - **O Quickshell do Omarchy sobe junto com o compositor** (o `AppSessions`, quando cria o compositor, chama `AppCompositor.start_shell()`): `env -u HYPRLAND_INSTANCE_SIGNATURE ... QT_QUICK_BACKEND=software quickshell -n -p $OMARCHY_PATH/shell` (o padrão é `/usr/share/omarchy`). Sem o Quickshell ou sem a pasta do shell, o hub segue sem barra (`shell_arguments()` devolve vazio). Ao sair (`_exit_tree`), o hub mata o processo.
+  - **`SUPER + Space` e `SUPER + Alt + Space` já funcionavam desde a 14.30** (o comando `omarchy-menu` abre com o ambiente de dentro): agora tem o Quickshell de dentro para desenhar o menu.
+  - **Prova com o hub de verdade** (notebook, sem janela): `attach_monitors()` subiu o Quickshell; ele criou a barra e o fundo nas três saídas (área útil das saídas em y = 26 e altura 1054); `AppCompositor.run_command("omarchy-menu toggle")` abriu o menu como sobreposição, e um Esc por `key_focused` o fechou; ao fim da prova não sobrou processo.
+  - **Janelas auxiliares:** o `wl-clipboard` do Omarchy abre uma janela de 1×1 (chegou como uma janela normal e tomaria um lugar no arranjo). O `AppSessions` ignora as de até 8 px na largura ou na altura (`MIN_WINDOW_SIZE`): não ganham lugar nem foco, e também não são fechadas.
+  - **O plano B (a barra e o lançador desenhados pelo hub)** não foi feito: o Quickshell rodou bem, e o plano diz que o B só entra se ele quebrar numa atualização do Omarchy. Fica registrado como risco.
+  - **Ressalvas que seguem (da 14.24):** os workspaces da barra ficam parados (o Quickshell de dentro não fala com o Hyprland); o idle e o bloqueio de tela de dentro não existem; a segunda instância repete os scripts da barra (custo para a medida da 14.32).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -586,7 +594,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
     - `tests/check_omarchy_binds.gd` com arquivos Lua de exemplo: texto, `omarchy=`, `webapp=`, `unbind`, `code:10` = tecla 1, `hl.dsp.window.close()` = fechar e duas ações na mesma tecla;
     - o `check_app_sessions` confere o ambiente novo e o `check_platform` a lista nova.
   - Commit: `Fase 14.30: os atalhos do Omarchy na mesa`
-- [ ] **14.31 O menu e a barra** (Sonnet · medium)
+- [x] **14.31 O menu e a barra** (Sonnet · medium)
   - Faz:
     - (A, a escolha da 14.24) o `AppSessions` sobe o Quickshell de dentro com o compositor (`QT_QUICK_BACKEND=software`; e o fecha junto), e `SUPER + Space` / `SUPER + Alt + Space` chamam o `omarchy-menu` de dentro;
     - (B fica como plano B, se o Quickshell quebrar numa atualização) a barra e o lançador do hub numa camada desenhada pela Godot por cima do monitor do meio, com a lista do `AppLibrary`.

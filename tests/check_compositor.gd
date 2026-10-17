@@ -125,6 +125,25 @@ func _run() -> void:
 		OS.execute(shims_dir.path_join("systemd-run"), ["--user", "--scope", "-p", "X=1", "echo", "dentro2"], shim_out)
 		_check("o calço do systemd-run pula as opções", str(shim_out[0]).strip_edges() == "dentro2")
 
+	print("== o Quickshell do Omarchy de dentro ==")
+	var omarchy := OS.get_temp_dir().path_join("omarchy_teste_%d" % OS.get_process_id())
+	_check("sem a pasta do shell, não há comando", AppCompositor.shell_arguments(omarchy).is_empty())
+	DirAccess.make_dir_recursive_absolute(omarchy.path_join("shell"))
+	_check("pasta sem shell.qml, não há comando", AppCompositor.shell_arguments(omarchy).is_empty())
+	var qml := FileAccess.open(omarchy.path_join("shell/shell.qml"), FileAccess.WRITE)
+	qml.store_string("// exemplo")
+	qml.close()
+	var command := AppCompositor.shell_arguments(omarchy)
+	var has_quickshell := OS.execute("sh", PackedStringArray(["-c", "command -v quickshell"])) == 0
+	if has_quickshell:
+		_check("com tudo no lugar: quickshell -n -p <pasta do shell>", command.size() == 4 and command[0].ends_with("quickshell")
+				and command.slice(1) == PackedStringArray(["-n", "-p", omarchy.path_join("shell")]))
+	else:
+		_check("sem o quickshell instalado, não há comando", command.is_empty())
+	DirAccess.remove_absolute(omarchy.path_join("shell/shell.qml"))
+	DirAccess.remove_absolute(omarchy.path_join("shell"))
+	DirAccess.remove_absolute(omarchy)
+
 	print("== com a extensão ==")
 	if not AppCompositor.is_available():
 		print("   pulado: extensão não compilada (ou fora do Linux)")

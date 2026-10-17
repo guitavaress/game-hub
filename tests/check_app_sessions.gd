@@ -28,6 +28,13 @@ class FakeCompositor extends Node:
 		calls.append(["set_outputs", sizes.size()])
 		return true
 
+	## Janelas de mentira minúsculas (como o wl-clipboard).
+	var tiny: Array[int] = []
+
+	func get_texture(id: int) -> Texture2D:
+		var size := 1 if id in tiny else 800
+		return ImageTexture.create_from_image(Image.create(size, size, false, Image.FORMAT_RGBA8))
+
 	func get_output_texture(_output: int) -> Texture2D:
 		var image := Image.create(8, 8, false, Image.FORMAT_RGBA8)
 		return ImageTexture.create_from_image(image)
@@ -142,11 +149,17 @@ func _run() -> void:
 
 	print("== Com compositor: uma saída e uma fonte por monitor ==")
 	var comp := FakeCompositor.new()
+	var shell_events: Array[String] = []
+	S.shell_starter = func() -> int:
+		shell_events.append("sobe")
+		return 4242
+	S.shell_stopper = func(pid: int) -> void: shell_events.append("desce %d" % pid)
 	S.compositor_factory = func() -> Node: return comp
 	S._tried = false
 	_check("agora abre no mundo", S.can_open_in_world() and A.opens_in_world() and S.get_compositor() == comp)
 	await process_frame
 	_check("o poll roda a cada quadro", comp.polls > 0)
+	_check("o Quickshell do Omarchy sobe junto com o compositor, uma vez só", shell_events == ["sobe"] and S.has_shell())
 	_check("o compositor ganhou 3 saídas, do tamanho dos monitores", comp.output_sizes == [Vector2i(1920, 1080), Vector2i(1920, 1080), Vector2i(1920, 1080)])
 	var sources_ok := true
 	for monitor in monitors:
@@ -307,6 +320,15 @@ func _run() -> void:
 		comp.window_closed.emit(id)
 	_check("fechando tudo, as vagas voltam", S.free_slots() == 9 and S.window_count() == 0)
 
+	print("== Janelas auxiliares (o wl-clipboard de 1×1) ==")
+	comp.tiny.append(50)
+	comp.calls.clear()
+	comp.window_opened.emit(50, "io.github.bugaevc.wl-clipboard", "", 900)
+	_check("a janela minúscula não ganha lugar nem foco, e não é fechada", S.window_count() == 0 and S.app_of(50) == ""
+			and S.focused_window() == 0 and comp.calls.is_empty() and 50 not in comp.closed_ids)
+	comp.window_closed.emit(50)
+	_check("fechar uma auxiliar não quebra", S.window_count() == 0)
+
 	print("== Atalhos do Omarchy sentado à mesa (14.30) ==")
 	var ran: Array[String] = []
 	var seat_log: Array[String] = []
@@ -382,6 +404,8 @@ func _run() -> void:
 	_check("sem onde mostrar, a janela é fechada", comp.closed_ids.back() == 4 and S.app_of(4) == "" and S.window_count() == 0)
 	_check("sem monitores, não abre no mundo", not S.can_open_in_world())
 
+	S._stop_shell()
+	_check("ao desligar, o Quickshell desce com o compositor", shell_events == ["sobe", "desce 4242"] and not S.has_shell())
 	var file := FileAccess.open(root.get_node("AppConfig").CONFIG_PATH, FileAccess.WRITE)
 	file.store_string(config_backup)
 	file.close()

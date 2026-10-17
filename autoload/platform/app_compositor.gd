@@ -121,6 +121,42 @@ static func environment(socket: String = SOCKET) -> PackedStringArray:
 	return env
 
 
+## O Quickshell do Omarchy (a barra, o fundo, o menu e as notificações) como
+## aplicativo DE DENTRO do hub (Fase 14.31). A pasta do shell fica em
+## $OMARCHY_PATH/shell (padrão /usr/share/omarchy/shell). Devolve os argumentos
+## do comando (programa e opções), ou vazio se o Quickshell ou o shell do Omarchy
+## não estão instalados (o hub segue sem barra).
+static func shell_arguments(omarchy_dir: String = "") -> PackedStringArray:
+	if omarchy_dir.is_empty():
+		omarchy_dir = OS.get_environment("OMARCHY_PATH")
+	if omarchy_dir.is_empty():
+		omarchy_dir = "/usr/share/omarchy"
+	var shell_dir := omarchy_dir.path_join("shell")
+	if not DirAccess.dir_exists_absolute(shell_dir) or not FileAccess.file_exists(shell_dir.path_join("shell.qml")):
+		return PackedStringArray()
+	var found: Array = []
+	if OS.execute("sh", PackedStringArray(["-c", "command -v quickshell"]), found) != 0:
+		return PackedStringArray()
+	return PackedStringArray([str(found[0]).strip_edges(), "-n", "-p", shell_dir])
+
+
+## Sobe o Quickshell do Omarchy dentro do compositor. Devolve o número do
+## processo, ou -1 se não deu (ou não há Quickshell). Só o AppSessions chama, e
+## só uma vez por compositor.
+##   - QT_QUICK_BACKEND=software: o compositor só aceita memória compartilhada (shm);
+##   - os serviços repetidos (polkit, notificações, idle) falham sem estrago:
+##     o de fora segue com o trabalho.
+static func start_shell(socket: String = SOCKET) -> int:
+	var command := shell_arguments()
+	if command.is_empty():
+		return -1
+	var args := environment(socket)
+	args.append("QT_QUICK_BACKEND=software")
+	args.append_array(command)
+	var pid := OS.create_process("env", args)
+	return pid if pid > 0 else -1
+
+
 ## Abre um comando de shell (ex.: "omarchy-launch-terminal") DENTRO do hub, com o
 ## ambiente de dentro. Devolve true se o processo começou.
 static func run_command(command: String, socket: String = SOCKET) -> bool:
