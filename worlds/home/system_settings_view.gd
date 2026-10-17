@@ -4,12 +4,16 @@ extends VBoxContainer
 ##   - o interruptor "Abrir o hub ao entrar no Omarchy" (liga e apaga o
 ##     autostart, via Autostart);
 ##   - o botão "Copiar a linha do atalho", para colar no bindings.lua. O hub nunca
-##     escreve na config do Hyprland: o atalho é do usuário.
+##     escreve na config do Hyprland: o atalho é do usuário;
+##   - o botão "Copiar a linha da tecla de emergência" (Fase 14.30): sentado à
+##     mesa, o Hyprland fica num submap; esta tecla volta tudo ao normal.
 ## É uma página do SettingsView (add_page). O teclado e o controle andam pelos
 ## botões como no resto do SettingsView.
 
 const SHORTCUT_HELP: String = "Para chamar o hub com %s, cole a linha abaixo no fim de ~/.config/hypr/bindings.lua e recarregue o Hyprland."
 const COPIED_TEXT: String = "Linha copiada. Cole em ~/.config/hypr/bindings.lua."
+const EMERGENCY_HELP: String = "Sentado à mesa, o hub fica com os atalhos do Omarchy. Cole a linha abaixo em ~/.config/hypr/bindings.lua: SUPER + SHIFT + ESC devolve os atalhos ao Hyprland mesmo se o hub travar."
+const EMERGENCY_COPIED_TEXT: String = "Linha copiada. Cole em ~/.config/hypr/bindings.lua e recarregue o Hyprland."
 const FAILED_TEXT: String = "Não consegui mexer no arquivo de autostart."
 
 ## Quem liga e desliga o autostart. Os testes trocam por um de pasta de exemplo.
@@ -17,6 +21,7 @@ var autostart: Autostart = Autostart.new()
 
 var _check: CheckButton
 var _copy_button: Button
+var _emergency_button: Button
 var _status: Label
 ## true enquanto o interruptor está sendo marcado (não é o usuário mexendo).
 var _refreshing: bool = false
@@ -50,6 +55,21 @@ func _ready() -> void:
 	button_row.add_child(_copy_button)
 	add_child(button_row)
 
+	add_child(HubTheme.label("TECLA DE EMERGÊNCIA", &"HubSection"))
+	var emergency_help := HubTheme.label(EMERGENCY_HELP, &"HubBodyLight")
+	emergency_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(emergency_help)
+	var emergency_line := HubTheme.label(Autostart.emergency_line(), &"HubBodyLight")
+	emergency_line.name = "EmergencyLine"
+	emergency_line.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+	add_child(emergency_line)
+	var emergency_row := HBoxContainer.new()
+	_emergency_button = HubTheme.button("Copiar a linha da tecla de emergência")
+	_emergency_button.name = "EmergencyButton"
+	_emergency_button.pressed.connect(_on_copy_emergency)
+	emergency_row.add_child(_emergency_button)
+	add_child(emergency_row)
+
 	_status = HubTheme.label("", &"HubBodyLight")
 	_status.name = "Status"
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -72,6 +92,11 @@ func _on_toggled(on: bool) -> void:
 	else:
 		_status.text = FAILED_TEXT
 	refresh()  # mostra o que de fato ficou valendo
+
+
+func _on_copy_emergency() -> void:
+	DisplayServer.clipboard_set(Autostart.emergency_line())
+	_status.text = EMERGENCY_COPIED_TEXT
 
 
 func _on_copy() -> void:

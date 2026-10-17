@@ -56,6 +56,17 @@ var my_pid: int = OS.get_process_id()
 ## Pasta "/proc" (os testes trocam por uma de exemplo).
 var proc_dir: String = "/proc"
 
+## O submap do assento (Fase 14.30), e quanto tempo o vigia espera sem
+## notícia do hub antes de desligar o submap sozinho (o hub renova a cada poucos segundos).
+const SEAT_SUBMAP: String = "gamehub_seat"
+const SEAT_WATCHDOG_MS: int = 20000
+
+## Quem roda um comando Lua no Hyprland (hyprctl eval): func(lua: String) -> bool
+## (true = o Hyprland aceitou). Os testes trocam.
+var run_eval: Callable = _run_eval
+## Cada renovação do vigia ganha um número; só o último timer desliga o submap.
+var _seat_generation: int = 0
+
 ## Workspace para onde o hub volta ("" = não mexemos em nada).
 var _return_workspace: String = ""
 ## true se o hub foi mesmo para o workspace especial.
@@ -210,6 +221,44 @@ func show_hub() -> void:
 				PackedStringArray(["focuswindow", "address:%s" % address]))
 	_return_workspace = ""
 	_hidden = false
+
+
+# --- Atalhos do Omarchy sentado à mesa (Fase 14.30) ---------------------------
+# O Lua mandado pelo hub usa SÓ aspas simples: o OS.execute da Godot come as
+# aspas duplas dos argumentos. O retorno é conferido (erro vem com código 7).
+
+func supports_seat_shortcuts() -> bool:
+	return true
+
+
+func seat_begin() -> bool:
+	return _seat_submap()
+
+
+func seat_keepalive() -> void:
+	_seat_submap()
+
+
+func seat_end() -> void:
+	_seat_generation += 1
+	run_eval.call("gamehub_seat_gen = %d; hl.dispatch(hl.dsp.submap('reset'))" % _seat_generation)
+
+
+## (Re)define o submap, entra nele e arma o vigia desta geração.
+func _seat_submap() -> bool:
+	_seat_generation += 1
+	var lua := "hl.define_submap('%s', function() hl.bind('SUPER + SHIFT + ESCAPE', hl.dsp.submap('reset'), {description = 'Game Hub: sair do submap'}) end); " % SEAT_SUBMAP
+	lua += "gamehub_seat_gen = %d; hl.dispatch(hl.dsp.submap('%s')); " % [_seat_generation, SEAT_SUBMAP]
+	lua += "hl.timer(function() if gamehub_seat_gen == %d then hl.dispatch(hl.dsp.submap('reset')) end end, {timeout = %d, type = 'oneshot'})" % [_seat_generation, SEAT_WATCHDOG_MS]
+	return bool(run_eval.call(lua))
+
+
+func _run_eval(lua: String) -> bool:
+	var output: Array = []
+	var code := OS.execute(hyprctl_command, PackedStringArray(["eval", lua]), output, true)
+	if code != 0:
+		push_warning("Hyprland recusou o comando do assento (código %d)." % code)
+	return code == 0
 
 
 # --- Janelas de app (Fase 14.5) -----------------------------------------------

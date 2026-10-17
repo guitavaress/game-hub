@@ -69,6 +69,33 @@ func show_hub() -> void:
 	pass
 
 
+# --- Atalhos do Omarchy sentado à mesa (Fase 14.30) ---------------------------
+# O jogador sentado à mesa usa os atalhos do Omarchy (SUPER + Enter...) DENTRO
+# do hub. Para o Hyprland de fora não agir sobre eles, o hub liga um "submap"
+# quase vazio enquanto está sentado: as combinações chegam à Godot como teclas.
+
+## true = este sistema sabe ligar o submap (só o Hyprland).
+func supports_seat_shortcuts() -> bool:
+	return false
+
+
+## O jogador sentou: liga o submap. Devolve false se o sistema recusou.
+func seat_begin() -> bool:
+	return false
+
+
+## Chamado a cada poucos segundos enquanto sentado: define o submap de novo
+## (um "hyprctl reload" apaga as teclas dele) e renova o vigia que desliga o
+## submap sozinho se o hub travar.
+func seat_keepalive() -> void:
+	pass
+
+
+## O jogador levantou (ou o hub saiu): desliga o submap.
+func seat_end() -> void:
+	pass
+
+
 # --- Janelas de app (Fase 14.5) -----------------------------------------------
 # Estas quatro podem rodar numa thread (não mexem na árvore de nós).
 

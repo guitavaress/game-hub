@@ -96,15 +96,104 @@ static func create(socket: String = SOCKET) -> Node:
 
 
 ## O ambiente para um app abrir dentro do compositor (no formato do comando
-## "env": "NOME=valor"). O DISPLAY (X11) fica como está: um app que só fala
-## X11 abre fora, no Hyprland, e o fluxo da parte 1 cuida dele.
+## "env": opções "-u NOME" e depois "NOME=valor"). O DISPLAY (X11) fica como
+## está: um app que só fala X11 abre fora, no Hyprland, e o fluxo da parte 1 cuida dele.
+##
+## Fase 14.30, para os scripts do Omarchy abrirem DENTRO:
+##   - sem o HYPRLAND_INSTANCE_SIGNATURE, o hyprctl de dentro não acha o
+##     Hyprland de fora (o launch-or-focus não acha "a janela já aberta lá");
+##   - os "calços" (uwsm-app, systemd-run, brave-origin) vêm primeiro no PATH.
+##     O uwsm-app e o systemd-run de verdade abrem o app numa unidade do systemd,
+##     com o ambiente de FORA, e a janela apareceria lá. O brave-origin de dentro
+##     usa o perfil só do hub (veja SHIMS).
 static func environment(socket: String = SOCKET) -> PackedStringArray:
-	return PackedStringArray([
+	var env := PackedStringArray(["-u", "HYPRLAND_INSTANCE_SIGNATURE"])
+	env.append_array([
 		"WAYLAND_DISPLAY=" + socket,
 		"GDK_BACKEND=wayland",
 		"QT_QPA_PLATFORM=wayland",
 		"SDL_VIDEODRIVER=wayland",
 	])
+	var shims := ensure_shims()
+	if not shims.is_empty():
+		env.append("PATH=%s:%s" % [shims, OS.get_environment("PATH")])
+		env.append("HUB_BRAVE_PROFILE=" + ProjectSettings.globalize_path("user://apps/brave"))
+	return env
+
+
+## Abre um comando de shell (ex.: "omarchy-launch-terminal") DENTRO do hub, com o
+## ambiente de dentro. Devolve true se o processo começou.
+static func run_command(command: String, socket: String = SOCKET) -> bool:
+	var args := environment(socket)
+	args.append_array(["bash", "-c", command])
+	return OS.create_process("env", args) > 0
+
+
+## Os calços, por nome do arquivo. Nasceram no spike da 14.24: cada um só roda o
+## comando, sem a unidade do systemd que levaria o app para fora do hub.
+const SHIMS: Dictionary = {
+	"uwsm-app": """#!/bin/bash
+# Calço do hub (Fase 14.30): o uwsm-app de verdade abre o app numa unidade do
+# systemd, que nasce com o ambiente da sessão (o Hyprland de fora). Dentro do
+# hub, o app tem de herdar o ambiente de dentro: este calço só roda o comando.
+#   uwsm-app [opções] -- comando [args]   ou   uwsm-app comando [args]
+args=("$@")
+for i in "${!args[@]}"; do
+	if [[ ${args[$i]} == "--" ]]; then
+		exec "${args[@]:$((i + 1))}"
+	fi
+done
+# Sem "--": pula as opções (-s b, -t service, -a nome, -u unidade, -d desc, -T, -S...).
+while [[ $# -gt 0 && $1 == -* ]]; do
+	case $1 in
+	-[stadu]) shift 2 ;;
+	*) shift ;;
+	esac
+done
+exec "$@"
+""",
+	"systemd-run": """#!/bin/bash
+# Calço do hub (Fase 14.30): o systemd-run --user abre o comando fora do hub
+# (sem o WAYLAND_DISPLAY de dentro). Aqui ele só pula as opções e roda o comando.
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--) shift; break ;;
+	# opções com o valor separado (as com "=" caem no -* abaixo)
+	-p | -E | -M | -H | -u | --property | --setenv | --unit | --slice | --description | --working-directory | --uid | --gid | --nice | --machine | --host)
+		shift 2 ;;
+	-*) shift ;;
+	*) break ;;
+	esac
+done
+exec "$@"
+""",
+	"brave-origin": """#!/bin/bash
+# Calço do hub (Fase 14.30): o Brave de dentro usa um perfil só do hub. Sem isso,
+# ele acha o Brave de fora aberto e abre a janela lá ("existing browser session").
+# O hub põe o perfil em HUB_BRAVE_PROFILE (o mesmo da 14.21: user://apps/brave).
+profile=${HUB_BRAVE_PROFILE:-${XDG_RUNTIME_DIR:-/tmp}/gamehub-brave}
+exec /usr/bin/brave-origin --user-data-dir="$profile" --ozone-platform=wayland "$@"
+""",
+}
+
+
+## Garante os calços em user://shims/ (cria ou atualiza, executáveis) e devolve a
+## pasta, ou "" se não deu para criar. Só no Linux.
+static func ensure_shims(dir: String = "user://shims") -> String:
+	if OS.get_name() != "Linux":
+		return ""
+	DirAccess.make_dir_recursive_absolute(dir)
+	for shim_name: String in SHIMS:
+		var path := dir.path_join(shim_name)
+		if FileAccess.file_exists(path) and FileAccess.get_file_as_string(path) == SHIMS[shim_name]:
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			return ""
+		file.store_string(SHIMS[shim_name])
+		file.close()
+		FileAccess.set_unix_permissions(path, 0x1ED)  # rwxr-xr-x (0755)
+	return ProjectSettings.globalize_path(dir)
 
 
 ## O código evdev da tecla do evento, ou -1 se a tecla não tiver tradução.

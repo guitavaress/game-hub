@@ -294,6 +294,14 @@ Levantamento (só leitura):
   - **Ações no `AppSessions` (os atalhos da 14.30 chamam):** `focus_direction(Vector2i)`, `toggle_fullscreen()`, `move_focused_to(saída)`, `close_focused()`.
   - A barra muda a área útil: o arranjo recalcula e o `AppSessions` manda os lugares novos. Se o número de monitores diminui, as janelas vão para o último que tiver vaga, e as que não couberem são fechadas.
 
+- **14.30: os atalhos do Omarchy (2026-10-17).**
+  - **O leitor:** `autoload/platform/omarchy_binds.lua` (do spike) roda a config de verdade (`hypr.hyprland`) com um `hl` falso, ou um arquivo dado (os testes usam `tests/fixtures/omarchy_binds_exemplo.lua`). `OmarchyBinds` (platform) vira as linhas JSON numa tabela `combinação -> lista de ações`: `exec` (comando), `desk` (fechar, tela cheia, foco por direção, foco no monitor N, mover para o monitor N: o workspace N é o monitor N) ou `ignore` (flutuar, grupos, arrastar, o "soltou", funções Lua: o hub não faz nada, mas a tecla é do atalho e não vai para o app). Neste notebook a config real tem 226 combinações.
+  - **Sentado, as combinações chegam à Godot:** o `AppSessions` liga o submap pelo `HubWindow.seat_begin()` (que passa ao `WindowHost`; só o Hyprland sabe) e desliga ao levantar. A combinação da tabela executa (comando aberto dentro do hub, ou ação do arranjo) e **o "apertou" e o "soltou" dela não vão para o app**; o resto vai. Segurar a tecla não repete o atalho. Sem submap (fora do Hyprland, ou o Hyprland recusou) ou sem a tabela (sem `lua`), os atalhos ficam desligados e tudo vai para o app. A tabela é lida na primeira vez que se senta.
+  - **O submap:** `gamehub_seat`, com a tecla de emergência dentro (`SUPER + SHIFT + ESC`). O Lua mandado pelo hub tem só aspas simples, e o retorno do `hyprctl eval` é conferido. **O vigia:** um `hl.timer` de 20 s que só vale para a "geração" atual; o hub redefine o submap e renova o vigia a cada 5 s sentado (`AppSessions.KEEPALIVE_SECONDS`). Se o hub travar, em até 20 s o Hyprland sai sozinho do submap; se o Omarchy recarregar a config (apaga as teclas do submap), o hub redefine em até 5 s. **Decisão:** em vez de ouvir o evento `configreloaded` (o `WindowHost` ainda não escuta o socket de eventos do Hyprland), o hub só redefine o submap a cada 5 s.
+  - **O ambiente de dentro** (`AppCompositor.environment()`): `env -u HYPRLAND_INSTANCE_SIGNATURE`, e os calços `uwsm-app`, `systemd-run` e `brave-origin` em `user://shims/` (criados e atualizados na hora, executáveis) vêm primeiro no PATH; o `HUB_BRAVE_PROFILE` aponta para o perfil do hub. `AppCompositor.run_command(comando)` abre um comando de shell com esse ambiente.
+  - **A aba Sistema** ganhou "TECLA DE EMERGÊNCIA": a linha para colar no `bindings.lua` (`submap_universal = true`, vale em qualquer submap) e o botão de copiar. O hub nunca escreve na config do Hyprland.
+  - Esta etapa não testa o Hyprland de verdade (nem um `wtype`, que só dispara atalhos com o Esc): os testes usam um `hyprctl` falso e arquivos de exemplo. O teste com a mão do dono está no checklist.
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -567,7 +575,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
     - respeita a área útil (a barra).
   - Teste: `tests/check_desk_layout.gd` (abrir 1, 2 e 3 janelas; fechar a do meio; foco à direita passa de monitor; tela cheia; mover para o 3).
   - Commit: `Fase 14.29: o arranjo das janelas nos monitores`
-- [ ] **14.30 Os atalhos do Omarchy** (Sonnet · medium; Opus · high se o leitor de Lua travar)
+- [x] **14.30 Os atalhos do Omarchy** (Sonnet · medium; Opus · high se o leitor de Lua travar)
   - Faz:
     - `autoload/platform/omarchy_binds.gd` roda um leitor em Lua (como o `spike_binds.lua` da 14.24: a config real com um `hl` falso) e monta a tabela (uma lista: várias ações por tecla);
     - sentado à mesa, a combinação vira ação (comando com o ambiente de dentro, ou ação do `DeskLayout`); o resto vai para o app com foco;

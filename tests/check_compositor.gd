@@ -101,6 +101,29 @@ func _run() -> void:
 	_check("o app vai para o socket do hub", env.has("WAYLAND_DISPLAY=" + AppCompositor.SOCKET))
 	_check("GTK e Qt forçados no Wayland", env.has("GDK_BACKEND=wayland") and env.has("QT_QPA_PLATFORM=wayland"))
 	_check("o DISPLAY (X11) não é mexido", not ",".join(env).contains("DISPLAY=:"))
+	# Fase 14.30: os scripts do Omarchy abrem dentro.
+	_check("o app não enxerga o Hyprland de fora (env -u)", env.size() > 2 and env[0] == "-u" and env[1] == "HYPRLAND_INSTANCE_SIGNATURE")
+	if OS.get_name() == "Linux":
+		var shims_dir := ProjectSettings.globalize_path("user://shims")
+		var path_entry := ""
+		for entry in env:
+			if entry.begins_with("PATH="):
+				path_entry = entry
+		_check("os calços vêm primeiro no PATH", path_entry.begins_with("PATH=" + shims_dir + ":"))
+		var all_shims := true
+		for shim_name: String in AppCompositor.SHIMS:
+			var shim_path := shims_dir.path_join(shim_name)
+			all_shims = all_shims and FileAccess.file_exists(shim_path) and (FileAccess.get_unix_permissions(shim_path) & 0x40) != 0
+			all_shims = all_shims and FileAccess.get_file_as_string(shim_path).begins_with("#!/bin/bash")
+		_check("uwsm-app, systemd-run e brave-origin existem e são executáveis", all_shims and AppCompositor.SHIMS.size() == 3)
+		_check("o Brave de dentro usa o perfil do hub", ",".join(env).contains("HUB_BRAVE_PROFILE=") and ",".join(env).contains("apps/brave"))
+		# O calço do uwsm-app só roda o comando (sem unidade do systemd).
+		var shim_out: Array = []
+		OS.execute(shims_dir.path_join("uwsm-app"), ["--", "echo", "dentro"], shim_out)
+		_check("o calço do uwsm-app roda o comando", str(shim_out[0]).strip_edges() == "dentro")
+		shim_out.clear()
+		OS.execute(shims_dir.path_join("systemd-run"), ["--user", "--scope", "-p", "X=1", "echo", "dentro2"], shim_out)
+		_check("o calço do systemd-run pula as opções", str(shim_out[0]).strip_edges() == "dentro2")
 
 	print("== com a extensão ==")
 	if not AppCompositor.is_available():

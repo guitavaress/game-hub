@@ -307,6 +307,74 @@ func _run() -> void:
 		comp.window_closed.emit(id)
 	_check("fechando tudo, as vagas voltam", S.free_slots() == 9 and S.window_count() == 0)
 
+	print("== Atalhos do Omarchy sentado à mesa (14.30) ==")
+	var ran: Array[String] = []
+	var seat_log: Array[String] = []
+	S.binds_loader = func() -> Dictionary: return OmarchyBinds.parse("""{"action":{"cmd":"omarchy-launch-terminal","kind":"exec"},"keys":"SUPER+RETURN","release":false}
+{"action":{"args":[],"kind":"dsp","name":"window.close"},"keys":"SUPER+W","release":false}
+{"action":{"args":[{"mode":"fullscreen"}],"kind":"dsp","name":"window.fullscreen"},"keys":"SUPER+F","release":false}
+{"action":{"args":[{"direction":"l"}],"kind":"dsp","name":"focus"},"keys":"SUPER+LEFT","release":false}
+{"action":{"args":[{"workspace":"1"}],"kind":"dsp","name":"window.move"},"keys":"SHIFT+SUPER+CODE:10","release":false}
+{"action":{"args":[{"workspace":"3"}],"kind":"dsp","name":"focus"},"keys":"SUPER+CODE:12","release":false}
+{"action":{"args":[{"action":"toggle"}],"kind":"dsp","name":"window.float"},"keys":"SUPER+T","release":false}""")
+	S.command_runner = func(command: String) -> bool:
+		ran.append(command)
+		return true
+	var begin_ok: Array[bool] = [true]
+	S.seat_begin_hook = func() -> bool:
+		seat_log.append("begin")
+		return begin_ok[0]
+	S.seat_keepalive_hook = func() -> void: seat_log.append("keepalive")
+	S.seat_end_hook = func() -> void: seat_log.append("end")
+	S._binds_loaded = false
+	comp.window_opened.emit(40, "foot", "Esquerda", 800)
+	comp.window_opened.emit(41, "foot", "Direita", 801)  # as duas na saída 2: 40 à esquerda, 41 à direita
+	var seat_source: DeskMonitorSource = monitors[2].get_source()
+	_check("sem sentar, SUPER + Enter vai para o app", not S.handle_shortcut(_key(KEY_ENTER, true, {"meta": true})) and ran.is_empty())
+	seat_source.set_focused(true)
+	_check("sentar liga o submap e lê a tabela", seat_log == ["begin"] and S._shortcuts_on)
+	seat_source.send_key(_key(KEY_ENTER, true, {"meta": true}))
+	_check("SUPER + Enter abre o terminal dentro do hub", ran == ["omarchy-launch-terminal"])
+	comp.calls.clear()
+	seat_source.send_key(_key(KEY_ENTER, true, {"meta": true}))
+	seat_source.send_key(_key(KEY_ENTER, false, {"meta": true}))
+	var key_calls := comp.calls.filter(func(c: Array) -> bool: return c[0] == "key_focused")
+	_check("a tecla do atalho (apertou e soltou) não vai para o app", key_calls.is_empty())
+	ran.clear()
+	var echo := _key(KEY_ENTER, true, {"meta": true})
+	echo.echo = true
+	seat_source.send_key(echo)
+	_check("segurar a tecla não repete o atalho", ran.is_empty())
+	seat_source.send_key(_key(KEY_A, true, {}))
+	_check("uma tecla comum vai para o app", ["key_focused", 30, true] in comp.calls)
+	seat_source.send_key(_key(KEY_T, true, {"meta": true}))
+	var swallowed_float := not (["key_focused", 20, true] in comp.calls)
+	_check("um atalho que o hub não faz (flutuar) também não vai para o app", swallowed_float and ran.is_empty())
+	_check("sentado, o foco está na janela da direita", S.focused_window() == 41)
+	seat_source.send_key(_key(KEY_LEFT, true, {"meta": true}))
+	_check("SUPER + seta para a esquerda passa o foco", S.focused_window() == 40)
+	comp.closed_ids.clear()
+	seat_source.send_key(_key(KEY_W, true, {"meta": true}))
+	_check("SUPER + W fecha a janela em foco", comp.closed_ids == [40])
+	seat_source.send_key(_key(KEY_F, true, {"meta": true}))
+	_check("SUPER + F põe em tela cheia", S._layout.fullscreen_of(2) == 40)
+	seat_source.send_key(_key(KEY_F, true, {"meta": true}))
+	seat_source.send_key(_key(KEY_1, true, {"meta": true, "shift": true}))
+	_check("SUPER + SHIFT + 1 manda a janela para o monitor 1", S.output_of(40) == 0)
+	seat_source.send_key(_key(KEY_3, true, {"meta": true}))
+	_check("SUPER + 3 foca o monitor 3 (a janela de cima dele)", S.focused_window() == 41)
+	S._process(KEEPALIVE_TEST)
+	_check("a cada poucos segundos o submap é definido de novo (o vigia é renovado)", seat_log.back() == "keepalive")
+	seat_source.set_focused(false)
+	_check("levantar desliga o submap, e as teclas voltam para o app", seat_log.back() == "end" and not S._shortcuts_on
+			and not S.handle_shortcut(_key(KEY_ENTER, true, {"meta": true})))
+	begin_ok[0] = false
+	seat_source.set_focused(true)
+	_check("se o submap não liga (fora do Hyprland), os atalhos ficam desligados", not S._shortcuts_on)
+	seat_source.set_focused(false)
+	for id in [40, 41]:
+		comp.window_closed.emit(id)
+
 	print("== Sem monitores, a janela é fechada ==")
 	desk.free()
 	await process_frame
@@ -320,6 +388,20 @@ func _run() -> void:
 	root.get_node("AppConfig")._config.load(root.get_node("AppConfig").CONFIG_PATH)
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+const KEEPALIVE_TEST := 6.0
+
+
+## Uma tecla da Godot, com os modificadores.
+func _key(code: Key, pressed: bool, mods: Dictionary) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = pressed
+	e.meta_pressed = mods.get("meta", false)
+	e.shift_pressed = mods.get("shift", false)
+	return e
 
 
 func _check(label: String, ok: bool) -> void:

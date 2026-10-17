@@ -253,6 +253,28 @@ func wake() -> void:
 	woke_up.emit()
 
 
+# --- Atalhos do Omarchy sentado à mesa (Fase 14.30) --------------------------
+
+## Este sistema sabe deixar os atalhos do Omarchy para o hub enquanto o jogador
+## está sentado à mesa? (O Hyprland, sim.)
+func supports_seat_shortcuts() -> bool:
+	return _can_control_window() and _window_host.supports_seat_shortcuts()
+
+
+func seat_begin() -> bool:
+	return supports_seat_shortcuts() and _window_host.seat_begin()
+
+
+func seat_keepalive() -> void:
+	if supports_seat_shortcuts():
+		_window_host.seat_keepalive()
+
+
+func seat_end() -> void:
+	if supports_seat_shortcuts():
+		_window_host.seat_end()
+
+
 # --- Janelas de app (Fase 14.5) ----------------------------------------------
 # Repassam ao WindowHost. Podem ser chamadas de uma thread (o AppLauncher
 # consulta assim). Sem controle da janela (testes, editor): "não sei".

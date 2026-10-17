@@ -98,6 +98,13 @@ func shortcut_line() -> String:
 	return 'o.bind("%s", "Game Hub", "%s")' % [SHORTCUT_KEY, launch.replace("\\", "\\\\").replace('"', '\\"')]
 
 
+## A linha de EMERGÊNCIA para o ~/.config/hypr/bindings.lua (Fase 14.30): com o
+## jogador sentado à mesa, o Hyprland está num submap quase vazio, e esta tecla
+## (que vale dentro de qualquer submap) volta tudo ao normal, mesmo se o hub travar.
+static func emergency_line() -> String:
+	return 'hl.bind("SUPER + SHIFT + ESCAPE", hl.dsp.submap("reset"), { submap_universal = true, description = "Game Hub: sair do submap" })'
+
+
 ## Entre aspas do .desktop: \ " ` $ ganham uma barra, e % vira %%.
 static func _desktop_quote(text: String) -> String:
 	var out := text.replace("\\", "\\\\").replace('"', '\\"').replace("`", "\\`").replace("$", "\\$").replace("%", "%%")

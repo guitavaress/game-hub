@@ -22,7 +22,12 @@ extends Node
 ##     por monitor (cheio, vai para o vizinho; tudo cheio, a janela é fechada);
 ##   - clicar numa janela dá o foco e a põe por cima; o teclado segue a janela em
 ##     foco (ou o menu e a barra do Omarchy, que o compositor trata);
-##   - sem monitores na cena, a janela é fechada (não tem onde mostrar).
+##   - sem monitores na cena, a janela é fechada (não tem onde mostrar);
+##   - ATALHOS DO OMARCHY (14.30): sentado à mesa, o hub liga o submap do
+##     Hyprland (pelo HubWindow), as combinações chegam como teclas, e as que
+##     estão na tabela do OmarchyBinds viram ação: um comando aberto DENTRO do
+##     hub (omarchy-launch-terminal, omarchy-menu...) ou uma ação do arranjo
+##     (fechar, tela cheia, foco, mover de monitor). O resto vai para o app.
 
 ## A janela de um app abriu e já está num monitor.
 signal window_ready(id: int, app_id: String)
@@ -58,6 +63,29 @@ var _output_sources: Dictionary = {}
 ## O arranjo das janelas nos monitores.
 var _layout := DeskLayout.new()
 
+## Os atalhos do Omarchy (14.30). Os testes trocam os ganchos.
+## Lê a tabela de atalhos: func() -> Dictionary (veja OmarchyBinds).
+var binds_loader: Callable = OmarchyBinds.read_table
+## Abre um comando dentro do hub: func(command: String) -> bool.
+var command_runner: Callable = AppCompositor.run_command
+## Liga/renova/desliga o submap do Hyprland (pelo HubWindow): sentar liga (devolve
+## se deu), a cada KEEPALIVE_SECONDS renova, levantar desliga.
+var seat_begin_hook: Callable = func() -> bool: return HubWindow.seat_begin()
+var seat_keepalive_hook: Callable = func() -> void: HubWindow.seat_keepalive()
+var seat_end_hook: Callable = func() -> void: HubWindow.seat_end()
+
+## De quanto em quanto tempo, sentado, o submap é definido de novo e o vigia renovado.
+const KEEPALIVE_SECONDS := 5.0
+
+var _binds: Dictionary = {}
+var _binds_loaded: bool = false
+## Os atalhos estão valendo (o submap ligou). Fora do Hyprland ficam desligados:
+## todas as teclas vão para o app.
+var _shortcuts_on: bool = false
+var _keepalive_left: float = 0.0
+## As teclas cujo "apertou" virou atalho: o "soltou" delas também não vai para o app.
+var _swallowed: Dictionary = {}
+
 
 ## Um monitor da mesa, visto pelo DeskMonitor3D. Traduz o que o monitor pede
 ## (pixels da saída, teclas da Godot, rolagem) para o que o compositor entende.
@@ -75,6 +103,8 @@ class OutputSource extends DeskMonitorSource:
 		return _sessions.output_texture(output)
 
 	func send_key(event: InputEventKey) -> void:
+		if _sessions.handle_shortcut(event):
+			return  # era um atalho do Omarchy
 		if event.echo:
 			return  # a repetição de tecla é feita pelo próprio app
 		var code := AppCompositor.evdev_code(event)
@@ -114,9 +144,20 @@ func is_dormant() -> bool:
 	return HubWindow.is_sleeping
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _compositor != null and not is_dormant():
 		_compositor.call("poll")
+	if _shortcuts_on:
+		_keepalive_left -= delta
+		if _keepalive_left <= 0.0:
+			_keepalive_left = KEEPALIVE_SECONDS
+			seat_keepalive_hook.call()
+
+
+func _exit_tree() -> void:
+	if _shortcuts_on:
+		_shortcuts_on = false
+		seat_end_hook.call()
 
 
 # --- Perguntas ---------------------------------------------------------------
@@ -232,6 +273,62 @@ func set_seated(on: bool) -> void:
 	_seated = on
 	if _compositor != null:
 		_compositor.call("focus", _desk_focus if on else 0)
+	if on:
+		if not _binds_loaded:
+			_binds_loaded = true
+			_binds = binds_loader.call()
+		_shortcuts_on = not _binds.is_empty() and bool(seat_begin_hook.call())
+		_keepalive_left = KEEPALIVE_SECONDS
+	elif _shortcuts_on:
+		_shortcuts_on = false
+		seat_end_hook.call()
+	_swallowed.clear()
+
+
+## Uma tecla do jogador sentado: se for um atalho do Omarchy, executa e devolve
+## true (a tecla não vai para o app); senão false. O "soltou" de uma tecla que
+## virou atalho também é engolido.
+func handle_shortcut(event: InputEventKey) -> bool:
+	if not _shortcuts_on:
+		return false
+	if not event.pressed:
+		return _swallowed.erase(event.keycode)
+	var actions: Array = _binds.get(OmarchyBinds.key_id(event), [])
+	if actions.is_empty():
+		return false
+	_swallowed[event.keycode] = true
+	if not event.echo:  # segurar a tecla não repete o atalho
+		for action: Dictionary in actions:
+			_run_shortcut(action)
+	return true
+
+
+func _run_shortcut(action: Dictionary) -> void:
+	match str(action.get("kind", "")):
+		"exec":
+			command_runner.call(str(action.get("cmd", "")))
+		"desk":
+			match str(action.get("name", "")):
+				"close":
+					close_focused()
+				"fullscreen":
+					toggle_fullscreen()
+				"focus_dir":
+					var directions := {"l": Vector2i.LEFT, "r": Vector2i.RIGHT, "u": Vector2i.UP, "d": Vector2i.DOWN}
+					focus_direction(directions.get(str(action.get("dir", "")), Vector2i.ZERO))
+				"focus_output":
+					focus_output(int(action.get("output", -1)))
+				"move_output":
+					move_focused_to(int(action.get("output", -1)))
+
+
+## Foco para a janela de cima do monitor `output` (0, 1, 2). false se não há.
+func focus_output(output: int) -> bool:
+	for i in range(_stack.size() - 1, -1, -1):
+		if output_of(_stack[i]) == output:
+			_focus_window(_stack[i])
+			return true
+	return false
 
 
 ## O mouse andou na saída `output`, no pixel dado.

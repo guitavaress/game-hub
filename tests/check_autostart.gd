@@ -73,6 +73,11 @@ func _run() -> void:
 	_check("copiar põe a linha na área de transferência", DisplayServer.clipboard_get() == view.autostart.shortcut_line()
 			or DisplayServer.get_name() == "headless")
 	_check("e avisa", view.find_child("Status", true, false).text == SystemSettingsView.COPIED_TEXT)
+	_check("a tecla de emergência aparece na tela, com o botão de copiar", view.find_child("EmergencyLine", true, false) != null
+			and view.find_child("EmergencyButton", true, false) != null)
+	view._on_copy_emergency()
+	_check("copiar a emergência põe a linha certa e avisa", (DisplayServer.clipboard_get() == Autostart.emergency_line()
+			or DisplayServer.get_name() == "headless") and view.find_child("Status", true, false).text == SystemSettingsView.EMERGENCY_COPIED_TEXT)
 
 	DirAccess.remove_absolute(dir)
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
