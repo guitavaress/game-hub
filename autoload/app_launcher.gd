@@ -131,6 +131,11 @@ func launch(app_id: String, source: Node = null) -> bool:
 		return false
 
 	var in_world := opens_in_world()
+	if in_world and AppSessions.free_slots() == 0:
+		app_session_ended.emit(app_id, source, false,
+				"Os monitores estão cheios\nFeche uma janela para abrir outro app.")
+		return false
+
 	_tracking = bool(can_track.call())
 	_before = list_windows.call() if _tracking else PackedStringArray()
 	_wm_class = app.wm_class

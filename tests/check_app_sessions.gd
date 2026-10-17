@@ -272,12 +272,46 @@ func _run() -> void:
 	_check("launch devolve false e avisa", not launched and ended.size() == 1 and not ended[0]["ok"]
 			and A.state == A.State.IDLE)
 
+	print("== O arranjo: várias janelas, ações e monitores cheios ==")
+	comp.window_closed.emit(5)
+	comp.calls.clear()
+	comp.usable[1] = Rect2i(0, 26, 1920, 1054)
+	comp.usable_area_changed.emit(1, comp.usable[1])
+	comp.window_opened.emit(10, "foot", "A", 500)  # o mouse esteve na saída 2
+	comp.window_opened.emit(11, "foot", "B", 501)
+	comp.window_opened.emit(12, "foot", "C", 502)
+	_check("três janelas no monitor do mouse se dividem",
+			["place", 10, 2, 0, 0, 960, 1080] in comp.calls and ["place", 11, 2, 960, 0, 960, 540] in comp.calls
+			and ["place", 12, 2, 960, 540, 960, 540] in comp.calls)
+	comp.window_opened.emit(13, "foot", "D", 503)
+	_check("com o monitor cheio, a quarta vai para o vizinho", S.output_of(13) == 1 and S.free_slots() == 5)
+	comp.calls.clear()
+	_check("foco para a direita passa de monitor (a mais perto)", S.focused_window() == 13 and S.focus_direction(Vector2i.RIGHT) and S.focused_window() == 10)
+	_check("tela cheia liga, põe por cima e desliga", S.toggle_fullscreen() and ["place", 10, 2, 0, 0, 1920, 1080] in comp.calls
+			and ["raise", 10] in comp.calls and not S.toggle_fullscreen())
+	_check("mover para o monitor 1 (saída 0)", S.move_focused_to(0) and S.output_of(10) == 0)
+	_check("mover para onde já está é recusado", not S.move_focused_to(0))
+	comp.closed_ids.clear()
+	S.close_focused()
+	_check("fechar a janela em foco pede ao app", comp.closed_ids == [10])
+	comp.window_closed.emit(10)
+	for i in 6:
+		comp.window_opened.emit(20 + i, "foot", "Enche", 600 + i)
+	_check("tudo cheio: nenhuma vaga", S.free_slots() == 0 and S.window_count() == 9)
+	comp.window_opened.emit(30, "foot", "Sobra", 700)
+	_check("a janela que não cabe é fechada", comp.closed_ids == [10, 30] and S.window_count() == 9)
+	ended.clear()
+	_check("launch avisa que os monitores estão cheios", not A.launch("foot", null) and ended.size() == 1
+			and ended[0]["msg"].begins_with("Os monitores estão cheios"))
+	for id in [11, 12, 13, 20, 21, 22, 23, 24, 25]:
+		comp.window_closed.emit(id)
+	_check("fechando tudo, as vagas voltam", S.free_slots() == 9 and S.window_count() == 0)
+
 	print("== Sem monitores, a janela é fechada ==")
 	desk.free()
 	await process_frame
 	comp.window_opened.emit(4, "foot", "Mais um", 301)
-	_check("sem onde mostrar, a janela é fechada (a 5, da seção anterior, segue aberta)", comp.closed_ids == [4]
-			and S.app_of(4) == "" and S.window_count() == 1)
+	_check("sem onde mostrar, a janela é fechada", comp.closed_ids.back() == 4 and S.app_of(4) == "" and S.window_count() == 0)
 	_check("sem monitores, não abre no mundo", not S.can_open_in_world())
 
 	var file := FileAccess.open(root.get_node("AppConfig").CONFIG_PATH, FileAccess.WRITE)

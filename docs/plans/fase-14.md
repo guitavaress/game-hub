@@ -287,6 +287,13 @@ Levantamento (só leitura):
   - **Prova com o compositor de verdade** (notebook, com janela, script fora do repositório): `attach_monitors()` criou as 3 saídas, um `foot` aberto pelo socket ocupou a saída do meio inteira (1920×1080), e a pose sentada mostrou os três monitores. Cópia média ~3 a 4 ms por quadro do terminal em tela cheia (só para comparar; a medida é a 14.32).
   - Nos testes com `-s`, o `ComputerDesk` agora fala com o autoload `AppSessions`: o teste não pode tipar a variável como `ComputerDesk` (o script compilaria antes do autoload existir).
 
+- **14.29: o arranjo das janelas (2026-10-17).**
+  - **`autoload/desk_layout.gd` (`DeskLayout`, RefCounted puro):** o "dwindle" simplificado. 1 janela = área útil toda; 2 = lado a lado; 3 = a primeira à esquerda e as outras duas empilhadas à direita; no máximo 3 por monitor. Fechar arruma de novo (a ordem de chegada se mantém). Janela nova vai para o monitor do mouse; se estiver cheio, para o vizinho mais perto; tudo cheio, a janela é fechada e o `AppLauncher` avisa "Os monitores estão cheios" antes de abrir (`AppSessions.free_slots()`).
+  - **Tela cheia:** uma por monitor, ocupa a área útil e vai por cima; as outras ficam escondidas embaixo e não são alvo do foco. Fechar a janela em tela cheia solta a tela cheia.
+  - **Foco por direção:** compara o centro das janelas, com os monitores lado a lado na ordem das saídas; a janela mais perto na direção ganha (o desvio para o lado pesa o dobro).
+  - **Ações no `AppSessions` (os atalhos da 14.30 chamam):** `focus_direction(Vector2i)`, `toggle_fullscreen()`, `move_focused_to(saída)`, `close_focused()`.
+  - A barra muda a área útil: o arranjo recalcula e o `AppSessions` manda os lugares novos. Se o número de monitores diminui, as janelas vão para o último que tiver vaga, e as que não couberem são fechadas.
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -552,7 +559,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
     - segurar Esc levanta; o `AppSessions` cria as 3 saídas e acha os monitores pelo grupo `desk_monitors`.
   - Teste: `tests/check_desk_monitors.gd` (antes `check_app_window_3d`) com fontes falsas e o `check_app_sessions` com compositor falso (raio no meio do monitor da direita vira a saída 2 e o pixel certo; Esc curto e longo; sentar e levantar).
   - Commit: `Fase 14.28: sentar à mesa e usar os três monitores`
-- [ ] **14.29 O arranjo das janelas** (Sonnet · medium)
+- [x] **14.29 O arranjo das janelas** (Sonnet · medium)
   - Faz: o `DeskLayout` (GDScript puro, dentro do `AppSessions`):
     - janela nova vai para o monitor com foco e divide o espaço lado a lado (como o dwindle, sem passar de 3 por monitor);
     - fechar arruma de novo; foco por direção, inclusive entre monitores;

@@ -17,8 +17,9 @@ extends Node
 ##     outra janela do mesmo cliente (mesmo pid) conta como do mesmo app, e uma
 ##     de um app aberto por fora (apontado para o socket do hub) tem o app_id dela;
 ##   - janela nova vai para o monitor onde o mouse esteve por último (o do meio
-##     se ainda não houve mouse), ocupa a área útil dele (sem a faixa da barra)
-##     e ganha o foco. Quem arruma várias janelas é o DeskLayout (14.29);
+##     se ainda não houve mouse) e ganha o foco; o DeskLayout (14.29) arruma as
+##     janelas do monitor na área útil dele (sem a faixa da barra), no máximo 3
+##     por monitor (cheio, vai para o vizinho; tudo cheio, a janela é fechada);
 ##   - clicar numa janela dá o foco e a põe por cima; o teclado segue a janela em
 ##     foco (ou o menu e a barra do Omarchy, que o compositor trata);
 ##   - sem monitores na cena, a janela é fechada (não tem onde mostrar).
@@ -54,6 +55,8 @@ var _pointer_output: int = -1
 ## Quantas saídas o compositor tem e a fonte de cada monitor (saída -> OutputSource).
 var _output_count: int = 0
 var _output_sources: Dictionary = {}
+## O arranjo das janelas nos monitores.
+var _layout := DeskLayout.new()
 
 
 ## Um monitor da mesa, visto pelo DeskMonitor3D. Traduz o que o monitor pede
@@ -132,6 +135,10 @@ func can_open_in_world() -> bool:
 	return true
 
 
+## Quantas janelas ainda cabem nos monitores (0 = cheio).
+func free_slots() -> int:
+	return _layout.free_slots() if _output_count > 0 else DeskLayout.MAX_PER_OUTPUT
+
 ## Quantas janelas de apps estão abertas nos monitores.
 func window_count() -> int:
 	return _titles.size()
@@ -194,9 +201,7 @@ func _setup_outputs() -> void:
 	if sizes.is_empty() or not bool(_compositor.call("set_outputs", sizes)):
 		return
 	_output_count = sizes.size()
-	# As janelas que estavam numa saída que sumiu perdem o lugar: põe de novo.
-	for id: int in _stack:
-		_place(id, mini(output_of(id), _output_count - 1))
+	_sync_areas()
 
 
 func _attach_sources() -> void:
@@ -255,22 +260,81 @@ func _focus_window(id: int) -> void:
 		_compositor.call("focus", id)
 
 
-## Põe a janela na área útil da saída (sem a faixa da barra), do tamanho dela.
-func _place(id: int, output: int) -> void:
-	if _compositor == null or output < 0:
-		return
+## Passa as áreas úteis de todas as saídas ao arranjo e arruma tudo. As janelas
+## de saídas que sumiram e não couberam em outra são fechadas.
+func _sync_areas() -> void:
+	var areas: Array[Rect2i] = []
+	for o in _output_count:
+		areas.append(_usable(o))
+	for id in _layout.set_areas(areas):
+		close_window(id)
+		_forget(id)
+	for o in _output_count:
+		_apply(o)
+
+
+func _usable(output: int) -> Rect2i:
 	var area := _compositor.call("get_usable_area", output) as Rect2i
-	if area.size.x <= 0 or area.size.y <= 0:
+	return area if area.size.x > 0 and area.size.y > 0 else Rect2i(Vector2i.ZERO, Vector2i(1920, 1080))
+
+
+## Manda para o compositor o lugar de cada janela da saída (a em tela cheia vai por cima).
+func _apply(output: int) -> void:
+	if _compositor == null:
 		return
-	_window_output[id] = output
-	_compositor.call("place", id, output, area.position.x, area.position.y, area.size.x, area.size.y)
+	var rects := _layout.rects(output)
+	for id: int in _layout.windows_on(output):
+		var rect: Rect2i = rects[id]
+		_window_output[id] = output
+		_compositor.call("place", id, output, rect.position.x, rect.position.y, rect.size.x, rect.size.y)
+	var full := _layout.fullscreen_of(output)
+	if full != 0:
+		_compositor.call("raise", full)
 
 
 ## A barra (ou outra camada) mudou a área útil: as janelas da saída se ajustam.
 func _on_usable_area_changed(output: int, _rect: Rect2i) -> void:
-	for id: int in _stack:
-		if output_of(id) == output:
-			_place(id, output)
+	if output >= 0 and output < _output_count:
+		_layout.set_area(output, _usable(output))
+		_apply(output)
+
+
+# --- Ações do teclado (os atalhos do Omarchy chamam, 14.30) ------------------
+
+## Foco para a janela vizinha na direção (Vector2i.LEFT, RIGHT, UP, DOWN),
+## inclusive em outro monitor. true se mudou.
+func focus_direction(direction: Vector2i) -> bool:
+	var next := _layout.neighbor(_desk_focus, direction)
+	if next == 0 or _compositor == null:
+		return false
+	_focus_window(next)
+	return true
+
+
+## Tela cheia na janela em foco (liga/desliga). true se ficou em tela cheia.
+func toggle_fullscreen() -> bool:
+	if _desk_focus == 0:
+		return false
+	var on := _layout.toggle_fullscreen(_desk_focus)
+	_apply(_layout.output_of(_desk_focus))
+	return on
+
+
+## Manda a janela em foco para o monitor `output` (0, 1, 2). false se não deu
+## (não existe, já está lá ou está cheio).
+func move_focused_to(output: int) -> bool:
+	var from := _layout.output_of(_desk_focus)
+	if not _layout.move_to(_desk_focus, output):
+		return false
+	_apply(from)
+	_apply(output)
+	return true
+
+
+## Pede para fechar a janela em foco.
+func close_focused() -> void:
+	if _desk_focus != 0:
+		close_window(_desk_focus)
 
 
 # --- Abrir -------------------------------------------------------------------
@@ -333,10 +397,14 @@ func _on_window_opened(id: int, wl_app_id: String, title: String, pid: int) -> v
 		app_id = _app_by_pid[pid]
 	else:
 		app_id = wl_app_id  # um app aberto por fora, apontado para o socket do hub
+	var output := _layout.add(id, _target_output())
+	if output < 0:
+		close_window(id)  # todos os monitores cheios
+		return
 	_titles[id] = title
 	_app_of_window[id] = app_id
 	_stack.append(id)
-	_place(id, _target_output())
+	_apply(output)
 	_focus_window(id)
 	window_ready.emit(id, app_id)
 
@@ -352,15 +420,22 @@ func _target_output() -> int:
 func _on_window_closed(id: int) -> void:
 	if not _titles.has(id):
 		return
-	_titles.erase(id)
-	_app_of_window.erase(id)
-	_window_output.erase(id)
-	_stack.erase(id)
+	var output := _layout.remove(id)
+	_forget(id)
+	if output >= 0:
+		_apply(output)
 	if _desk_focus == id:
 		_desk_focus = _stack.back() if not _stack.is_empty() else 0
 		if _seated and _compositor != null:
 			_compositor.call("focus", _desk_focus)
 	window_gone.emit(id)
+
+
+func _forget(id: int) -> void:
+	_titles.erase(id)
+	_app_of_window.erase(id)
+	_window_output.erase(id)
+	_stack.erase(id)
 
 
 func _on_title_changed(id: int, title: String) -> void:
