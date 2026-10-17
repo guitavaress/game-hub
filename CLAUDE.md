@@ -5,8 +5,8 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–13, a parte 1 da Fase 14, visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
-- **Em andamento:** Fase 14 reaberta. A parte 2 fez o compositor Wayland aninhado (o hub mostra janelas de apps, como o **Waylandcraft**); a parte 3 troca os telões e a estante de apps por **três monitores na mesa do computador**, com os atalhos, o menu e a barra do Omarchy. Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
+- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Fase 14 (feita no Linux):** o hub é um compositor Wayland aninhado (como o **Waylandcraft**) e a casa tem **três monitores na mesa do computador**, com a barra, o menu e os atalhos do Omarchy dentro. **Falta** a medida no desktop (Alta). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -28,8 +28,9 @@ autoload/      sistemas globais; não conhecem nenhum mundo
   store_info, game_categories         tags da loja → categoria/bairro
   game_art                            capas (cache local da Steam → CDN → user://cache)
   game_launcher, hub_window           abrir jogo, minimizar/voltar, sessão
-  app_library, desktop_app            os programas instalados (estante de apps): lista, ordem, ocultos, ícones
+  app_library, desktop_app            os programas instalados: lista, ordem, ocultos, ícones
   app_launcher                        abrir um app e acompanhar a janela dele (irmão do game_launcher)
+  app_sessions, desk_layout           o compositor e os monitores da mesa (grupo desk_monitors): saídas, janelas, foco, atalhos; o arranjo das janelas
   system_status                       bateria, rede e volume, a cada 5 s (painel da casa)
   friends_service, steam_friend       amigos pela Steam Web API
   app_config, graphics_quality        user://config.cfg, qualidade gráfica
@@ -40,7 +41,8 @@ autoload/      sistemas globais; não conhecem nenhum mundo
     desktop_apps (+ linux, windows)     lista de programas, ícones, abrir (.desktop / Menu Iniciar)
     system_info (+ linux)               bateria, rede e volume
     autostart                           abrir o hub ao entrar na sessão; a linha do atalho
-    app_compositor                      o compositor (Linux): carrega a extensão nativa, cria o nó, teclas → evdev, layout
+    app_compositor                      o compositor (Linux): carrega a extensão nativa, cria o nó, teclas → evdev, layout, ambiente de dentro e calços, Quickshell
+    omarchy_binds (+ .lua)              os atalhos do Omarchy (lê a config do Hyprland); o submap fica no window_host_hyprland
     win_registry                        lê o registro do Windows
 profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
                a lista do mundo em world_profile.tres; Profiles lê.
@@ -53,6 +55,7 @@ components/    peças reutilizáveis em qualquer mundo
   transit_stop/     parada de transporte (lógica do metrô; a aparência é do mundo)
   travel_door/      porta de viagem (E leva a outro lugar; a aparência é de quem usa)
   screen_3d/        tela 3D clicável (o conteúdo é qualquer Control)
+  desk_monitor_3d/  um monitor da mesa (uma saída do compositor; sentar, mouse pelos três, Esc longo levanta)
   avatar/           o corpo do avatar (AvatarBody), pintado por parte; vale para você e para os hologramas
   library_stats/    os números da biblioteca (horas, mais jogados, bairros), sem tela
   ambient_emitter/  som ambiente por categoria

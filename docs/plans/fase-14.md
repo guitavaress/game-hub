@@ -310,6 +310,19 @@ Levantamento (só leitura):
   - **O plano B (a barra e o lançador desenhados pelo hub)** não foi feito: o Quickshell rodou bem, e o plano diz que o B só entra se ele quebrar numa atualização do Omarchy. Fica registrado como risco.
   - **Ressalvas que seguem (da 14.24):** os workspaces da barra ficam parados (o Quickshell de dentro não fala com o Hyprland); o idle e o bloqueio de tela de dentro não existem; a segunda instância repete os scripts da barra (custo para a medida da 14.32).
 
+- **14.32: a medida e a documentação (2026-10-17).**
+  - **A meta (desktop, Alta) segue pendente:** o desktop não estava à mão. Fica para a trilha do desktop (também no ROADMAP): os três monitores de 1920×1080 parados, e com o Brave tocando vídeo num deles; se pesar, baixar a saída para 1600×900 (basta mudar `ComputerDesk.SCREEN_RESOLUTION`, que o `AppSessions` repassa às saídas).
+  - **Notebook (só comparação), a casa vista da pose sentada, 1280×720, qualidade Leve aplicada na janela, 8 s por cenário** (script fora do repositório; o teto é 60 FPS por causa do VSync):
+
+    | cenário | FPS | média | p99 | pior quadro | cópia do app | subida da textura |
+    |---|---|---|---|---|---|---|
+    | A: sem compositor (monitores "Sem sinal") | 60,0 | 16,7 ms | 16,7 ms | 16,7 ms | – | – |
+    | B: compositor + Quickshell parados (barra e fundo nas 3 saídas) | 56,4 | 17,7 ms | 33,3 ms | 133 ms | 1,1 ms | 3,2 ms |
+    | C: B + terminal em tela cheia escrevendo sem parar | 55,4 | 18,1 ms | 31,9 ms | 58 ms | 5,5 ms | 2,3 ms |
+
+  - **Leitura:** ligar o compositor custa ~3 FPS no notebook, e um terminal em tela cheia escrevendo sem parar custa só ~1 FPS a mais. O pior quadro de B (133 ms) é o Quickshell de dentro acabando de subir (carrega o shell inteiro); depois ele só redesenha o relógio. As cópias que sobem por segundo ficam em ~6/s parado e ~40/s com o terminal. A composição ainda refaz a saída inteira quando alguma janela muda; recompor só o pedaço que mudou fica para se o desktop pesar.
+  - **Documentação:** README (a seção "A mesa com três monitores", o que mudou na casa), ROADMAP (Fase 14 feita no Linux, "Pronto quando" da parte 3, a medida pendente na trilha do desktop), PLATAFORMA (compositor, ambiente de dentro, calços, atalhos, submap e Quickshell) e o mapa do `CLAUDE.md`.
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -600,7 +613,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
     - (B fica como plano B, se o Quickshell quebrar numa atualização) a barra e o lançador do hub numa camada desenhada pela Godot por cima do monitor do meio, com a lista do `AppLibrary`.
   - Teste: `check_app_sessions` (o processo sobe e desce com o compositor, com comando falso).
   - Commit: `Fase 14.31: o menu e a barra do Omarchy na mesa`
-- [ ] **14.32 Medida e documentação** (Sonnet · medium): *a antiga 14.23*
+- [x] **14.32 Medida e documentação** (Sonnet · medium): *a antiga 14.23*
   - Faz:
     - a medida no **desktop (Alta)**, que é a meta: os três monitores parados e com o Brave tocando vídeo num deles. No notebook, só antes e depois; sem o desktop, a meta fica pendente na trilha do desktop;
     - README, ROADMAP, PLATAFORMA (submap, calços, Quickshell de dentro) e o mapa do `CLAUDE.md` (sai `app_shelf`/telões; entram `desk_monitor_3d`, `omarchy_binds`, `native/`).

@@ -27,7 +27,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 | **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | ✅ pronta: casa na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](plans/fase-13.md) |
 | **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland), com as janelas dos programas dentro do mundo, como o Waylandcraft | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); 🟡 janelas no mundo na [Fase 14](#fase-14-o-hub-no-omarchy) (reaberta); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
+| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland), com as janelas dos programas dentro do mundo, como o Waylandcraft | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); ✅ janelas no mundo (a mesa com três monitores) na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
 | **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔜 perfis do usuário (local) na [Fase 18](#fase-18-mundos-abertos); compartilhamento e loja no [Horizonte](#horizonte-sem-compromisso) |
 
 ## O que já foi feito
@@ -38,7 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
-- **Fase 14, parte 1** (2026-10): estante de apps na casa (abrir por cima, como um jogo), painel do sistema, autostart e atalho. A fase foi **reaberta** para pôr as janelas dentro do mundo. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
+- **Fase 14** (2026-10): painel do sistema, autostart e atalho (parte 1); o hub como compositor Wayland (parte 2); e a **mesa com três monitores**, com a barra, o menu e os atalhos do Omarchy dentro do hub (parte 3). Falta a medida no desktop. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
 - **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
@@ -168,7 +168,7 @@ Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** tema
 
 **Pronto quando:** trocar de loft para cabana pelo computador muda a casa na hora, sem código novo por tema; a parede mostra as estatísticas reais; o espelho mostra o avatar escolhido, que fica salvo no `config.cfg`.
 
-### Fase 14: O hub no Omarchy 🟡 reaberta (2026-10-14)
+### Fase 14: O hub no Omarchy ✅ feita no Linux (2026-10-17; reaberta em 2026-10-14)
 
 Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 
@@ -188,7 +188,11 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 
 **Pronto quando (parte 1):** no notebook, abrir o Firefox ou o terminal pelo hub funciona como abrir um jogo (o hub some e volta), e a casa mostra a bateria certa.
 
+**Parte 3 (2026-10-15):** o dono não gostou dos telões nas paredes nem da estante de apps. No lugar, **três monitores na mesa do computador**, que são o "Linux de dentro": o compositor ganhou monitores (saídas), camadas (layer-shell, para a barra e o menu) e um arranjo das janelas; o Quickshell do Omarchy roda dentro, e sentado à mesa valem os atalhos do Omarchy (lidos da config de verdade, com o submap do Hyprland e uma tecla de emergência). As configurações da casa moram só no menu de pausa.
+
 **Pronto quando (parte 2):** no notebook, o terminal e o Brave abertos pela estante aparecem em telões da casa; dá para digitar (com os acentos do ABNT2), clicar e abrir menus neles sem o hub sumir; sem a extensão compilada, tudo funciona como na parte 1.
+
+**Pronto quando (parte 3):** no notebook, `E` na mesa senta e mostra a barra do Omarchy nos três monitores; `SUPER + Enter` abre o terminal no monitor com o mouse, `SUPER + Space` abre o menu do Omarchy ali, as setas trocam o foco entre as janelas e os monitores, segurar Esc levanta e os atalhos voltam ao Hyprland. **Falta:** a medida no desktop (Alta).
 
 ### Trilha do desktop
 
@@ -197,7 +201,7 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 **Objetivo:** fazer tudo o que só o desktop responde e juntar o trabalho na `main`.
 
 **Entregas:**
-- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade).
+- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade); **a medida da mesa na Alta** (Fase 14, 14.32: três monitores de 1920×1080, parados e com o Brave tocando vídeo; se pesar, baixar para 1600×900).
 - **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
 - **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** para medir ao vivo e o **Sky3D** no lugar das fotos HDRI do céu (ou no começo da Fase 15), cada um com permissão para baixar.
 - Juntar a `fase-linux` na `main`, se o dono pedir.
