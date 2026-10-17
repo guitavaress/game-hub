@@ -55,6 +55,10 @@ var _stack: Array[int] = []
 ## A janela com o foco da mesa (0 = nenhuma) e se o jogador está sentado.
 var _desk_focus: int = 0
 var _seated: bool = false
+## O monitor "ativo" (-1 = ainda nenhum): o da janela em foco, ou um monitor
+## vazio para onde o jogador foi com SUPER + seta ou SUPER + 1/2/3. O zoom da
+## câmera segue este.
+var _active_output: int = -1
 ## A saída onde o mouse esteve por último (-1 = ainda nenhuma).
 var _pointer_output: int = -1
 ## Quantas saídas o compositor tem e a fonte de cada monitor (saída -> OutputSource).
@@ -142,7 +146,7 @@ class OutputSource extends DeskMonitorSource:
 		return _sessions.focus_title()
 
 	func get_focus_output() -> int:
-		return _sessions.output_of(_sessions.focused_window())
+		return _sessions.active_output()
 
 	func set_focused(on: bool) -> void:
 		_sessions.set_seated(on)
@@ -216,6 +220,14 @@ func focused_window() -> int:
 
 func output_of(window_id: int) -> int:
 	return int(_window_output.get(window_id, -1))
+
+
+## O monitor ativo (veja _active_output): onde está a janela em foco ou o
+## monitor vazio escolhido; -1 se nenhum.
+func active_output() -> int:
+	if _active_output >= 0 and _active_output < _output_count:
+		return _active_output
+	return output_of(_desk_focus)
 
 
 ## O título da janela em foco ("" = nenhuma).
@@ -337,13 +349,17 @@ func _run_shortcut(action: Dictionary) -> void:
 					move_focused_to(int(action.get("output", -1)))
 
 
-## Foco para a janela de cima do monitor `output` (0, 1, 2). false se não há.
+## Foco para a janela de cima do monitor `output` (0, 1, 2). Num monitor vazio,
+## só o marca como ativo (a câmera do zoom vai para lá). false se o monitor não existe.
 func focus_output(output: int) -> bool:
+	if output < 0 or output >= _output_count:
+		return false
 	for i in range(_stack.size() - 1, -1, -1):
 		if output_of(_stack[i]) == output:
 			_focus_window(_stack[i])
 			return true
-	return false
+	_active_output = output  # monitor vazio: só a câmera (o zoom) vai para lá
+	return true
 
 
 ## O mouse andou na saída `output`, no pixel dado.
@@ -365,6 +381,7 @@ func clicked(output: int, pixel: Vector2) -> void:
 
 func _focus_window(id: int) -> void:
 	_desk_focus = id
+	_active_output = output_of(id)
 	_stack.erase(id)
 	_stack.append(id)
 	_compositor.call("raise", id)
@@ -416,11 +433,30 @@ func _on_usable_area_changed(output: int, _rect: Rect2i) -> void:
 ## Foco para a janela vizinha na direção (Vector2i.LEFT, RIGHT, UP, DOWN),
 ## inclusive em outro monitor. true se mudou.
 func focus_direction(direction: Vector2i) -> bool:
-	var next := _layout.neighbor(_desk_focus, direction)
-	if next == 0 or _compositor == null:
+	if _compositor == null:
 		return false
-	_focus_window(next)
-	return true
+	# Num monitor vazio (a janela em foco está em outro), as setas andam de monitor em monitor.
+	if direction.x != 0 and _active_output >= 0 and _active_output != output_of(_desk_focus):
+		return _step_monitor(direction.x)
+	var next := _layout.neighbor(_desk_focus, direction)
+	if next != 0:
+		_focus_window(next)
+		return true
+	# Sem janela naquela direção: vai para o monitor do lado, mesmo vazio.
+	return direction.x != 0 and _step_monitor(direction.x)
+
+
+## Anda `step` monitores (-1 esquerda, 1 direita) a partir do ativo: foca a janela
+## de cima dele, ou só o marca como ativo se estiver vazio. false na borda.
+@warning_ignore("integer_division")
+func _step_monitor(step: int) -> bool:
+	var from := active_output()
+	if from < 0:
+		from = _output_count / 2
+	var target := clampi(from + step, 0, _output_count - 1)
+	if target == from or _output_count == 0:
+		return false
+	return focus_output(target)
 
 
 ## Tela cheia na janela em foco (liga/desliga). true se ficou em tela cheia.
@@ -559,6 +595,8 @@ func _on_window_closed(id: int) -> void:
 		_apply(output)
 	if _desk_focus == id:
 		_desk_focus = _stack.back() if not _stack.is_empty() else 0
+		if _desk_focus != 0:
+			_active_output = output_of(_desk_focus)
 		if _seated and _compositor != null:
 			_compositor.call("focus", _desk_focus)
 	window_gone.emit(id)

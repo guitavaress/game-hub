@@ -399,6 +399,23 @@ func _run() -> void:
 	for id in [40, 41]:
 		comp.window_closed.emit(id)
 
+	print("== Setas e SUPER + 1/2/3 também andam por monitores vazios ==")
+	comp.window_opened.emit(60, "foot", "Sozinha", 950)  # o mouse esteve na saída 2
+	_check("a janela única está no monitor 3, com o foco", S.output_of(60) == 2 and S.active_output() == 2)
+	_check("seta para a esquerda sem janela ali vai para o monitor vazio do meio", S.focus_direction(Vector2i.LEFT)
+			and S.active_output() == 1 and S.focused_window() == 60)
+	_check("o zoom (fonte) segue o monitor ativo", monitors[1].get_source().get_focus_output() == 1)
+	_check("de novo, o da esquerda", S.focus_direction(Vector2i.LEFT) and S.active_output() == 0)
+	_check("na borda, a seta não faz nada", not S.focus_direction(Vector2i.LEFT) and S.active_output() == 0)
+	_check("seta para a direita volta, passo a passo", S.focus_direction(Vector2i.RIGHT) and S.active_output() == 1)
+	_check("SUPER + 3 foca a janela do monitor 3", S.focus_output(2) and S.active_output() == 2 and S.focused_window() == 60)
+	_check("SUPER + 1 num monitor vazio só o marca como ativo", S.focus_output(0) and S.active_output() == 0 and S.focused_window() == 60)
+	_check("monitor que não existe é recusado", not S.focus_output(5))
+	_check("seta para a direita a partir do monitor vazio chega ao 2 (vazio), depois ao 3 (com a janela)", S.focus_direction(Vector2i.RIGHT)
+			and S.focus_direction(Vector2i.RIGHT) and S.active_output() == 2)
+	comp.window_closed.emit(60)
+	_check("sem janelas, o monitor ativo continua o escolhido", S.focused_window() == 0 and S.active_output() >= 0)
+
 	print("== Sem monitores, a janela é fechada ==")
 	desk.free()
 	await process_frame
