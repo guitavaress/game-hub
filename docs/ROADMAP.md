@@ -145,7 +145,7 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 | [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
 | [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy (reaberta: janelas no mundo) | V5 | notebook ✅ (é o lugar ideal) |
 | [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
-| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha | V3 | notebook (Leve) + desktop (Alta) |
+| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha (plano aprovado) | V3 | notebook (Leve) + desktop (Alta) |
 | [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
 | [17](#fase-17-visitar-a-cidade-de-um-amigo) | Visitar a cidade de um amigo | V4 (sem servidor) | notebook ✅ |
 | [18](#fase-18-mundos-abertos) | Mundos abertos | V6 (local) | notebook ✅ |
@@ -219,13 +219,15 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 - Morros de fundo e uma subida no setor do bairro (terreno simples, feito por código), sem quebrar ruas, metrô e minimapa.
 - A cidade continua igual nos outros bairros.
 
-**Risco a decidir no plano:** hoje os quarteirões de um bairro seguem os anéis em volta da praça (um arco, e não uma área compacta). O plano decide se o layout passa a agrupar o bairro num setor contíguo.
+**Plano:** [plans/fase-15.md](plans/fase-15.md) (aprovado em 2026-10-17). Decisões do dono:
+- **Portais no chão plano:** os quarteirões do RPG continuam em y = 0 (neve, arcos, pinheiros, rochas). A montanha sobe atrás do bairro, fora da borda da cidade, com uma trilha até um mirante com a torre do RPG.
+- **Setores:** todos os bairros viram fatias da praça até a borda, então cada bairro ganha uma borda própria para o seu bioma (base da Fase 16).
+- **Terreno por malha feita por código**, e não pelo Terrain3D (binários pesados no histórico e a primeira importação que derruba a Godot; veja a [avaliação](design/addons-2026-10-13.md)). Fica atrás de um ponto único, para a troca futura.
+- **Visual guiado pelas skills do projeto:** direção de arte e uma amostra aprovada antes de baixar o resto, a trilha em greybox antes de enfeitar e uma revisão visual com capturas no fim.
 
-**Assets:** pinheiro e rocha CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
+**Assets:** pinheiro, rocha, neve e passos na neve, todos CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
 
-**Terreno a decidir no plano:** o addon **Terrain3D** (terreno com LOD, mistura de neve e pedra, instanciador de pinheiros e rochas) ou uma malha simples feita por código, com um spike lado a lado. O spike de 2026-10-13 mostrou que ele carrega na Godot 4.7.2 e gera um morro por código, mas a primeira importação de um projeto zerado derruba a Godot (veja a [avaliação](design/addons-2026-10-13.md)).
-
-**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela, e a medida no notebook (Leve) não piora mais de ~3 FPS.
+**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela e uma trilha até o mirante, e o visual foi aprovado nas capturas. Desempenho: a meta é no desktop (Alta), pendente para a trilha do desktop; no notebook (Leve), só a comparação antes e depois.
 
 ### Fase 16: Biomas pela biblioteca
 
