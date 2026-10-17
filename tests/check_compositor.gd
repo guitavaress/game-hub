@@ -123,9 +123,10 @@ func _real_compositor() -> void:
 		return
 	root.add_child(comp)
 	for method in ["poll", "stop", "get_texture", "get_image", "get_title", "resize", "close", "focus", "key", "pointer_motion", "pointer_leave", "pointer_button", "pointer_axis", "stats",
-			"set_outputs", "get_output_count", "place", "raise", "get_output_texture", "get_output_image", "window_at", "pointer_motion_output"]:
+			"set_outputs", "get_output_count", "place", "raise", "get_output_texture", "get_output_image", "window_at", "pointer_motion_output",
+			"key_focused", "get_usable_area", "get_layers"]:
 		_check("o nó tem %s()" % method, comp.has_method(method))
-	for sig in ["window_opened", "window_closed", "title_changed"]:
+	for sig in ["window_opened", "window_closed", "title_changed", "usable_area_changed"]:
 		_check("o nó tem o sinal %s" % sig, comp.has_signal(sig))
 	_check("o socket está aberto (%s)" % socket_file, FileAccess.file_exists(socket_file))
 	for i in 5:
@@ -150,6 +151,11 @@ func _real_compositor() -> void:
 	_check("sem janela, window_at() dá 0", comp.call("window_at", 1, 100.0, 100.0) == 0)
 	_check("place() de janela que não existe devolve false", not comp.call("place", 1, 0, 0, 0, 640, 360))
 	_check("stats() conta 3 saídas", comp.call("stats").get("saidas", -1) == 3)
+	# Camadas (Fase 14.27): sem a barra, a saída inteira é útil.
+	_check("sem camada, a área útil é a saída inteira", comp.call("get_usable_area", 1) == Rect2i(0, 0, 1920, 1080))
+	_check("saída que não existe tem área útil vazia", comp.call("get_usable_area", 5) == Rect2i())
+	_check("sem app, nenhuma camada", (comp.call("get_layers") as Array).is_empty() and comp.call("stats").get("camadas", -1) == 0)
+	comp.call("key_focused", 30, true)  # ninguém com o teclado: não quebra
 	comp.queue_free()
 	await process_frame
 	await process_frame

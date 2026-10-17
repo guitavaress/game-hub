@@ -14,6 +14,11 @@
 //!   `get_output_image(i)`, `window_at(i, x, y)` e `pointer_motion_output(i, x, y)`.
 //!   Uma janela com lugar numa saída aparece na textura da saída, e a
 //!   textura própria dela deixa de subir (para não pagar duas vezes).
+//! - Camadas (Fase 14.27, a barra, o fundo e o menu do Quickshell): aparecem
+//!   só nas saídas, sem sinal de janela. O sinal `usable_area_changed(saída,
+//!   retângulo)` avisa a faixa que sobra para as janelas (`get_usable_area`);
+//!   `key_focused` manda a tecla para quem tem o teclado (o menu aberto, por
+//!   exemplo); `get_layers()` lista as camadas (para conferir).
 //!
 //! Não há laço de eventos separado: o `poll()` faz tudo sem esperar
 //! (aceita apps novos, lê as mensagens, sobe as imagens e responde).
@@ -27,7 +32,7 @@ use godot::classes::{INode, Image, ImageTexture, Node};
 use godot::prelude::*;
 
 use crate::pixels::Rect;
-use crate::wayland::{toplevel_names, Core, Event};
+use crate::wayland::{Core, Event};
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
@@ -61,6 +66,10 @@ impl HubCompositor {
 
     #[signal]
     fn title_changed(id: i64, title: GString);
+
+    /// A área útil da saída mudou (a barra reservou ou soltou o alto).
+    #[signal]
+    fn usable_area_changed(output: i32, rect: Rect2i);
 
     /// Abre o socket (ex.: "gamehub-0", dentro do XDG_RUNTIME_DIR) com o
     /// layout do teclado (ex.: "br", variante ""). Devolve false se falhar
@@ -109,8 +118,8 @@ impl HubCompositor {
         // As imagens que mudaram viram Image (a subida para a placa vem depois).
         let mut images: Vec<(i64, Gd<Image>)> = Vec::new();
         for win in core.state.windows.iter_mut() {
-            // Janela numa saída: aparece na textura da saída (logo abaixo).
-            if win.place.is_some() {
+            // Janela numa saída (e toda camada): aparece na textura da saída (logo abaixo).
+            if win.place.is_some() || win.is_layer() {
                 win.dirty = false;
                 continue;
             }
@@ -170,6 +179,10 @@ impl HubCompositor {
                         ["title_changed".to_variant(), id.to_variant(), GString::from(title.as_str()).to_variant()];
                     self.base_mut().call_deferred("emit_signal", &args);
                 }
+                Event::UsableAreaChanged(output, rect) => {
+                    let args = ["usable_area_changed".to_variant(), (output as i32).to_variant(), rect2i(rect).to_variant()];
+                    self.base_mut().call_deferred("emit_signal", &args);
+                }
             }
         }
     }
@@ -210,7 +223,7 @@ impl HubCompositor {
         self.running
             .as_ref()
             .and_then(|core| core.state.window(id))
-            .map(|w| GString::from(toplevel_names(&w.toplevel).1.as_str()))
+            .map(|w| GString::from(w.names().1.as_str()))
             .unwrap_or_default()
     }
 
@@ -230,6 +243,15 @@ impl HubCompositor {
     fn key(&mut self, id: i64, evdev: i32, pressed: bool) {
         if let (Some(core), Ok(evdev)) = (self.running.as_mut(), u32::try_from(evdev)) {
             core.key(id, evdev, pressed);
+        }
+    }
+
+    /// Uma tecla para quem tem o teclado agora (o menu do Omarchy aberto, a
+    /// barra ou a janela com foco), sem mudar o foco. Funciona com a mesa vazia.
+    #[func]
+    fn key_focused(&mut self, evdev: i32, pressed: bool) {
+        if let (Some(core), Ok(evdev)) = (self.running.as_mut(), u32::try_from(evdev)) {
+            core.key_focused(evdev, pressed);
         }
     }
 
@@ -339,6 +361,33 @@ impl HubCompositor {
         }
     }
 
+    /// A área da saída que sobra para as janelas (sem as faixas reservadas
+    /// pelas camadas, como a barra). Vazio se a saída não existe.
+    #[func]
+    fn get_usable_area(&self, output: i32) -> Rect2i {
+        let rect = usize::try_from(output).ok().and_then(|o| self.running.as_ref()?.usable_area(o));
+        rect.map(rect2i).unwrap_or_default()
+    }
+
+    /// As camadas (para conferir): cada uma com "nome", "nivel" (Background,
+    /// Bottom, Top ou Overlay), "saida", "lugar" (Rect2i) e "aparece".
+    #[func]
+    fn get_layers(&self) -> Array<VarDictionary> {
+        let mut list = Array::new();
+        let Some(core) = self.running.as_ref() else { return list };
+        for win in core.state.windows.iter().filter(|w| w.is_layer()) {
+            let (name, level) = win.names();
+            let mut d = VarDictionary::new();
+            d.set("nome", &GString::from(name.trim_start_matches("layer:")).to_variant());
+            d.set("nivel", &GString::from(level.as_str()).to_variant());
+            d.set("saida", win.place.map_or(-1, |(o, _)| o as i64));
+            d.set("lugar", win.place.map(|(_, r)| rect2i(r)).unwrap_or_default());
+            d.set("aparece", win.mapped);
+            list.push(&d);
+        }
+        list
+    }
+
     /// Números para a medida: janelas e menus abertos e o custo médio (em
     /// microssegundos) da cópia da imagem e da subida da textura.
     #[func]
@@ -347,7 +396,9 @@ impl HubCompositor {
         let average = |total: u128, count: u64| if count > 0 { (total / count as u128) as i64 } else { 0 };
         if let Some(core) = self.running.as_ref() {
             let s = &core.state;
-            d.set("janelas", s.windows.len() as i64);
+            let layers = s.windows.iter().filter(|w| w.is_layer()).count();
+            d.set("janelas", (s.windows.len() - layers) as i64);
+            d.set("camadas", layers as i64);
             d.set("saidas", s.outputs.len() as i64);
             d.set("menus", s.windows.iter().map(|w| w.popups.len()).sum::<usize>() as i64);
             d.set("copias", s.copy_count as i64);
@@ -367,6 +418,10 @@ impl HubCompositor {
         self.upload_us_total += start.elapsed().as_micros();
         self.upload_count += 1;
     }
+}
+
+fn rect2i(r: Rect) -> Rect2i {
+    Rect2i::from_components(r.x, r.y, r.w, r.h)
 }
 
 /// Sobe a imagem para a textura `key` do mapa: reaproveita a textura se o

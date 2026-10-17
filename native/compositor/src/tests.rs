@@ -13,11 +13,13 @@ use std::os::unix::net::UnixStream;
 
 use wayland_client::protocol::{
     wl_buffer, wl_callback, wl_compositor, wl_data_device, wl_data_device_manager, wl_data_offer, wl_data_source,
-    wl_keyboard, wl_pointer, wl_registry, wl_seat, wl_shm, wl_shm_pool, wl_surface,
+    wl_keyboard, wl_output, wl_pointer, wl_registry, wl_seat, wl_shm, wl_shm_pool, wl_surface,
 };
 use wayland_client::{delegate_noop, event_created_child, Connection, Dispatch, EventQueue, QueueHandle, WEnum};
 use wayland_protocols::xdg::decoration::zv1::client::{zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1};
 use wayland_protocols::xdg::shell::client::{xdg_popup, xdg_positioner, xdg_surface, xdg_toplevel, xdg_wm_base};
+use wayland_protocols_wlr::layer_shell::v1::client::{zwlr_layer_shell_v1, zwlr_layer_surface_v1};
+use zwlr_layer_surface_v1::{Anchor, KeyboardInteractivity};
 
 use crate::pixels::Rect;
 use crate::wayland::{Core, Event, OUTPUT_BACKGROUND, WINDOW_SIZE};
@@ -65,7 +67,46 @@ struct App {
     outputs: Vec<u32>,
     /// O compositor anuncia o xdg-output (nome e lugar de cada monitor).
     xdg_output: bool,
+    /// Os monitores ligados pelo app (o número do global e o objeto), para
+    /// pedir uma camada num monitor certo.
+    output_objects: Vec<(u32, wl_output::WlOutput)>,
+    layer_shell: Option<zwlr_layer_shell_v1::ZwlrLayerShellV1>,
+    /// As camadas que este app criou (barra, fundo, menu).
+    layers: Vec<TestLayer>,
 }
+
+/// Uma camada do app de teste.
+struct TestLayer {
+    surface: wl_surface::WlSurface,
+    layer: zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
+    /// O tamanho do último configure.
+    size: (i32, i32),
+    configures: u32,
+    /// O compositor mandou fechar (o monitor sumiu).
+    closed: bool,
+}
+
+/// O que a camada de teste pede.
+#[derive(Clone, Copy)]
+struct LayerAsk {
+    level: zwlr_layer_shell_v1::Layer,
+    anchor: Anchor,
+    size: (u32, u32),
+    zone: i32,
+    keyboard: KeyboardInteractivity,
+    /// Em qual monitor (None: o compositor escolhe).
+    output: Option<usize>,
+}
+
+/// A barra do alto, de ponta a ponta: 30 px, reservando o alto.
+const BARRA: LayerAsk = LayerAsk {
+    level: zwlr_layer_shell_v1::Layer::Top,
+    anchor: Anchor::Top.union(Anchor::Left).union(Anchor::Right),
+    size: (0, 30),
+    zone: 30,
+    keyboard: KeyboardInteractivity::None,
+    output: None,
+};
 
 /// Um menu do app de teste.
 struct TestPopup {
@@ -139,6 +180,12 @@ impl Peer {
     /// Abre um menu ancorado no ponto (x, y) da janela, de `w`×`h`, que cresce
     /// para baixo e para a direita e pode ser empurrado para caber.
     fn create_popup(&mut self, x: i32, y: i32, w: i32, h: i32) -> usize {
+        self.create_popup_on(None, x, y, w, h)
+    }
+
+    /// Como `create_popup`, mas o pai pode ser uma camada (`layer`: o índice
+    /// em `App::layers`), como o menu que desce da barra.
+    fn create_popup_on(&mut self, layer: Option<usize>, x: i32, y: i32, w: i32, h: i32) -> usize {
         let qh = self.qh.clone();
         let index = self.app.popups.len();
         let wm_base = self.app.wm_base.as_ref().unwrap();
@@ -152,7 +199,15 @@ impl Peer {
         );
         let surface = self.app.compositor.as_ref().unwrap().create_surface(&qh, ());
         let xdg_surface = wm_base.get_xdg_surface(&surface, &qh, index);
-        let popup = xdg_surface.get_popup(self.app.xdg_surface.as_ref(), &positioner, &qh, index);
+        let popup = match layer {
+            // O menu de uma camada nasce sem pai e é ligado pela camada.
+            Some(l) => {
+                let popup = xdg_surface.get_popup(None, &positioner, &qh, index);
+                self.app.layers[l].layer.get_popup(&popup);
+                popup
+            }
+            None => xdg_surface.get_popup(self.app.xdg_surface.as_ref(), &positioner, &qh, index),
+        };
         surface.commit();
         self.app.popups.push(TestPopup { surface, xdg_surface, popup, place: None, configures: 0, done: false });
         index
@@ -163,19 +218,7 @@ impl Peer {
     /// (declarada com set_window_geometry). `damage`: só essa faixa de linhas
     /// avisada como mudada (None = tudo).
     fn draw_on(&mut self, popup: Option<usize>, w: i32, h: i32, margin: i32, color: [u8; 4], damage: Option<(i32, i32)>) {
-        let stride = w * 4;
-        let mut bytes = Vec::with_capacity((stride * h) as usize);
-        for y in 0..h {
-            for x in 0..w {
-                let shadow = x < margin || y < margin || x >= w - margin || y >= h - margin;
-                bytes.extend_from_slice(if shadow { &SOMBRA } else { &color });
-            }
-        }
-        let mut file = tempfile::tempfile().unwrap();
-        file.write_all(&bytes).unwrap();
-        let qh = self.qh.clone();
-        let pool = self.app.shm.as_ref().unwrap().create_pool(file.as_fd(), stride * h, &qh, ());
-        let buffer = pool.create_buffer(0, w, h, stride, wl_shm::Format::Xrgb8888, &qh, ());
+        let buffer = self.buffer(w, h, margin, color);
         let (surface, xdg_surface) = match popup {
             Some(i) => (self.app.popups[i].surface.clone(), self.app.popups[i].xdg_surface.clone()),
             None => (self.app.surface.clone().unwrap(), self.app.xdg_surface.clone().unwrap()),
@@ -189,7 +232,52 @@ impl Peer {
             None => surface.damage_buffer(0, 0, i32::MAX, i32::MAX),
         }
         surface.commit();
-        pool.destroy();
+    }
+
+    /// Uma imagem `w`×`h` em memória compartilhada (veja `draw_on`).
+    fn buffer(&self, w: i32, h: i32, margin: i32, color: [u8; 4]) -> wl_buffer::WlBuffer {
+        let stride = w * 4;
+        let mut bytes = Vec::with_capacity((stride * h) as usize);
+        for y in 0..h {
+            for x in 0..w {
+                let shadow = x < margin || y < margin || x >= w - margin || y >= h - margin;
+                bytes.extend_from_slice(if shadow { &SOMBRA } else { &color });
+            }
+        }
+        let mut file = tempfile::tempfile().unwrap();
+        file.write_all(&bytes).unwrap();
+        let qh = self.qh.clone();
+        let pool = self.app.shm.as_ref().unwrap().create_pool(file.as_fd(), stride * h, &qh, ());
+        let buffer = pool.create_buffer(0, w, h, stride, wl_shm::Format::Xrgb8888, &qh, ());
+        pool.destroy(); // o buffer continua valendo
+        buffer
+    }
+
+    /// Cria uma camada (como o Quickshell faz) e faz o commit inicial, vazio.
+    fn create_layer(&mut self, ask: LayerAsk) -> usize {
+        let qh = self.qh.clone();
+        let index = self.app.layers.len();
+        let surface = self.app.compositor.as_ref().unwrap().create_surface(&qh, ());
+        let output = ask.output.map(|i| self.app.output_objects[i].1.clone());
+        let shell = self.app.layer_shell.as_ref().unwrap();
+        let layer = shell.get_layer_surface(&surface, output.as_ref(), ask.level, "teste".into(), &qh, index);
+        layer.set_size(ask.size.0, ask.size.1);
+        layer.set_anchor(ask.anchor);
+        layer.set_exclusive_zone(ask.zone);
+        layer.set_keyboard_interactivity(ask.keyboard);
+        surface.commit();
+        self.app.layers.push(TestLayer { surface, layer, size: (0, 0), configures: 0, closed: false });
+        index
+    }
+
+    /// Desenha a camada inteira no tamanho que o compositor deu, na cor `color`.
+    fn draw_layer(&mut self, index: usize, color: [u8; 4]) {
+        let (w, h) = self.app.layers[index].size;
+        let buffer = self.buffer(w, h, 0, color);
+        let surface = &self.app.layers[index].surface;
+        surface.attach(Some(&buffer), 0, 0);
+        surface.damage_buffer(0, 0, i32::MAX, i32::MAX);
+        surface.commit();
     }
 }
 
@@ -321,6 +409,28 @@ impl Harness {
         let copies = self.core.state.copy_count;
         self.peers[who].draw_on(None, rect.w, rect.h, 0, color, None);
         self.pump("a imagem no tamanho do lugar", |h| h.core.state.copy_count > copies);
+    }
+
+    /// O app `who` cria a camada e espera o primeiro configure (o tamanho).
+    fn open_layer(&mut self, who: usize, ask: LayerAsk) -> usize {
+        let i = self.peers[who].create_layer(ask);
+        self.pump("o configure da camada", |h| h.peers[who].app.layers[i].configures > 0);
+        i
+    }
+
+    /// Desenha a camada e espera o compositor copiar a imagem.
+    fn draw_layer(&mut self, who: usize, index: usize, color: [u8; 4]) {
+        let copies = self.core.state.copy_count;
+        self.peers[who].draw_layer(index, color);
+        self.pump("a imagem da camada", |h| h.core.state.copy_count > copies);
+    }
+
+    /// A camada aberta e desenhada (o id dela no compositor é o último criado).
+    fn open_and_draw_layer(&mut self, who: usize, ask: LayerAsk, color: [u8; 4]) -> (usize, i64) {
+        let i = self.open_layer(who, ask);
+        self.draw_layer(who, i, color);
+        let id = self.core.state.windows.iter().filter(|w| w.is_layer()).map(|w| w.id).max().unwrap();
+        (i, id)
     }
 
     /// O pixel (x, y) da saída `output` composta, em RGBA.
@@ -879,6 +989,238 @@ fn trocar_as_saidas_tira_o_lugar_de_quem_sobrou() {
     assert_eq!(h.core.compose_outputs(), vec![0]);
 }
 
+// --- Camadas (Fase 14.27) -------------------------------------------------------
+
+const AMARELO: [u8; 4] = [0, 200, 200, 0];
+const ROXO: [u8; 4] = [120, 0, 90, 0];
+
+/// Três monitores, e o app 0 já sabe deles e do layer-shell.
+fn mesa_com_camadas() -> Harness {
+    let mut h = Harness::new();
+    assert!(h.core.set_outputs(&MONITORES));
+    h.pump("os três monitores e o layer-shell", |h| h.app.output_objects.len() == 3 && h.app.layer_shell.is_some());
+    h
+}
+
+/// A mesa com um segundo app que tem uma janela (id 1) na saída `output`,
+/// ocupando-a toda, em verde. Devolve o número do app da janela.
+fn mesa_com_janela(h: &mut Harness, output: usize) -> usize {
+    let w = h.add_peer();
+    h.open_window_of(w);
+    h.place_and_draw(w, 1, output, Rect::new(0, 0, 640, 240), VERDE);
+    w
+}
+
+/// Fecha a camada `i` do app `who` (como o app faz ao sair).
+fn destroy_layer(h: &mut Harness, who: usize, i: usize) {
+    let layer = &h.peers[who].app.layers[i];
+    layer.layer.destroy();
+    layer.surface.destroy();
+}
+
+fn input_has(h: &Harness, who: usize, line: &str) -> bool {
+    h.peers[who].app.input.iter().any(|s| s == line)
+}
+
+#[test]
+fn barra_de_30_px_reduz_a_area_util() {
+    let mut h = mesa_com_camadas();
+    let (i, id) = h.open_and_draw_layer(0, LayerAsk { output: Some(1), ..BARRA }, AMARELO);
+    assert_eq!(h.app.layers[i].size, (640, 30), "a largura da saída e a altura pedida");
+    assert_eq!(h.core.state.window(id).unwrap().place, Some((1, Rect::new(0, 0, 640, 30))));
+    assert_eq!(h.core.usable_area(1), Some(Rect::new(0, 30, 640, 210)), "o alto fica reservado");
+    assert_eq!(h.core.usable_area(0), Some(Rect::new(0, 0, 640, 240)), "a outra saída não muda");
+    assert!(h.events.contains(&Event::UsableAreaChanged(1, Rect::new(0, 30, 640, 210))));
+    assert!(!h.events.iter().any(|e| matches!(e, Event::Opened(..))), "camada não vira janela para a Godot");
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(1, 10, 10), rgba(AMARELO));
+    assert_eq!(h.output_pixel(1, 10, 40), OUTPUT_BACKGROUND);
+    // A barra fecha: a faixa fica livre de novo.
+    h.events.clear();
+    destroy_layer(&mut h, 0, i);
+    h.pump("a área útil voltar", |h| h.events.contains(&Event::UsableAreaChanged(1, Rect::new(0, 0, 640, 240))));
+    assert!(h.events.iter().all(|e| !matches!(e, Event::Closed(_))), "nem aviso de janela fechada");
+    assert_eq!(h.core.compose_outputs(), vec![1]);
+    assert_eq!(h.output_pixel(1, 10, 10), OUTPUT_BACKGROUND);
+}
+
+#[test]
+fn overlay_com_teclado_exclusivo_recebe_a_tecla() {
+    let mut h = mesa_com_camadas();
+    let w = mesa_com_janela(&mut h, 0);
+    h.core.focus(Some(1));
+    h.pump("o teclado na janela", |h| input_has(h, w, "teclado entrou"));
+    let menu = LayerAsk {
+        level: zwlr_layer_shell_v1::Layer::Overlay,
+        anchor: Anchor::empty(),
+        size: (200, 100),
+        zone: 0,
+        keyboard: KeyboardInteractivity::Exclusive,
+        output: Some(0),
+    };
+    let (i, id) = h.open_and_draw_layer(0, menu, AMARELO);
+    assert_eq!(h.core.state.window(id).unwrap().place, Some((0, Rect::new(220, 70, 200, 100))), "no meio");
+    h.pump("o teclado no menu", |h| input_has(h, 0, "teclado entrou (camada)"));
+    assert_eq!(h.peers[w].app.input.last().unwrap(), "teclado saiu");
+    // O hub manda a tecla para a janela, mas quem recebe é o menu.
+    h.core.key(1, 30, true);
+    h.core.key(1, 30, false);
+    // E a tecla "para quem tem o teclado" também.
+    h.core.key_focused(28, true);
+    h.pump("as teclas no menu", |h| input_has(h, 0, "tecla 28 apertou"));
+    let keys: Vec<&String> = h.app.input.iter().filter(|s| s.starts_with("tecla ")).collect();
+    assert_eq!(keys, vec!["tecla 30 apertou", "tecla 30 soltou", "tecla 28 apertou"]);
+    assert!(!h.peers[w].app.input.iter().any(|s| s.starts_with("tecla ")), "a janela não recebe");
+    assert_eq!(h.core.focused(), Some(1), "o foco do hub continua na janela");
+    // O menu fecha: o teclado volta para a janela.
+    h.peers[w].app.input.clear();
+    destroy_layer(&mut h, 0, i);
+    h.pump("o teclado de volta na janela", |h| input_has(h, w, "teclado entrou"));
+}
+
+#[test]
+fn clique_na_barra_nao_vai_para_a_janela() {
+    let mut h = mesa_com_camadas();
+    let w = mesa_com_janela(&mut h, 0);
+    h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(0, 100, 10), rgba(AMARELO), "a barra fica por cima da janela");
+    assert_eq!(h.output_pixel(0, 100, 100), rgba(VERDE));
+    assert_eq!(h.core.state.window_at(0, 100.0, 10.0), None, "na barra não há janela para focar");
+    assert_eq!(h.core.state.window_at(0, 100.0, 100.0), Some(1));
+    h.core.pointer_motion_output(0, 100.0, 10.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.pump("o clique na barra", |h| h.app.input.len() >= 3);
+    assert_eq!(h.app.input, vec!["mouse entrou em 100,10 (camada)", "botão 272 apertou", "botão 272 soltou"]);
+    assert!(h.peers[w].app.input.is_empty(), "a janela embaixo não recebe nada");
+    // Saindo da barra para a janela, o mouse muda de dono.
+    h.core.pointer_motion_output(0, 100.0, 100.0);
+    h.pump("o mouse na janela", |h| input_has(h, w, "mouse entrou em 100,100"));
+}
+
+#[test]
+fn fundo_fica_atras_das_janelas() {
+    let mut h = mesa_com_camadas();
+    let fundo = LayerAsk {
+        level: zwlr_layer_shell_v1::Layer::Background,
+        anchor: Anchor::Top | Anchor::Bottom | Anchor::Left | Anchor::Right,
+        size: (0, 0),
+        zone: -1,
+        keyboard: KeyboardInteractivity::None,
+        output: Some(2),
+    };
+    let (i, _) = h.open_and_draw_layer(0, fundo, ROXO);
+    assert_eq!(h.app.layers[i].size, (640, 240), "estica na saída inteira");
+    let w = h.add_peer();
+    h.open_window_of(w);
+    // A camada nasceu antes: a janela é a de id 2.
+    h.place_and_draw(w, 2, 2, Rect::new(0, 0, 320, 240), VERDE);
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(2, 10, 10), rgba(VERDE), "a janela fica na frente do fundo");
+    assert_eq!(h.output_pixel(2, 400, 10), rgba(ROXO), "fora da janela, o fundo");
+    assert_eq!(h.core.usable_area(2), Some(Rect::new(0, 0, 640, 240)), "o fundo não reserva nada");
+    assert_eq!(h.core.state.window_at(2, 400.0, 10.0), None);
+    h.core.pointer_motion_output(2, 400.0, 10.0);
+    h.pump("o mouse no fundo", |h| input_has(h, 0, "mouse entrou em 400,10 (camada)"));
+}
+
+#[test]
+fn camada_on_demand_ganha_o_teclado_no_clique() {
+    let mut h = mesa_com_camadas();
+    let w = mesa_com_janela(&mut h, 0);
+    h.core.focus(Some(1));
+    let busca = LayerAsk { output: Some(0), keyboard: KeyboardInteractivity::OnDemand, ..BARRA };
+    h.open_and_draw_layer(0, busca, AMARELO);
+    assert!(!input_has(&h, 0, "teclado entrou (camada)"), "só ganha o teclado no clique");
+    h.core.pointer_motion_output(0, 50.0, 10.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.pump("o teclado na barra", |h| input_has(h, 0, "teclado entrou (camada)"));
+    assert!(input_has(&h, w, "teclado saiu"));
+    // Clicar na janela devolve o teclado para ela.
+    h.peers[w].app.input.clear();
+    h.core.pointer_motion_output(0, 50.0, 100.0);
+    h.core.pointer_button(0x110, true);
+    h.core.pointer_button(0x110, false);
+    h.pump("o teclado de volta", |h| input_has(h, w, "teclado entrou"));
+    assert!(input_has(&h, 0, "teclado saiu"));
+}
+
+#[test]
+fn menu_da_barra_desce_para_fora_dela() {
+    let mut h = mesa_com_camadas();
+    let (i, _) = h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    let p = h.peers[0].create_popup_on(Some(i), 10, 30, 100, 80);
+    h.pump("o configure do menu", |h| h.app.popups[p].configures > 0);
+    assert_eq!(h.app.popups[p].place, Some((10, 30, 100, 80)), "embaixo da barra, sem ser empurrado para dentro dela");
+    h.draw_popup(p, 0, VERMELHO);
+    h.core.compose_outputs();
+    assert_eq!(h.output_pixel(0, 20, 60), rgba(VERMELHO), "o menu aparece fora da faixa da barra");
+    assert_eq!(h.output_pixel(0, 200, 60), OUTPUT_BACKGROUND);
+    h.core.pointer_motion_output(0, 20.0, 60.0);
+    h.pump("o mouse no menu", |h| input_has(h, 0, "mouse entrou em 10,30 (menu)"));
+}
+
+#[test]
+fn camada_sem_monitor_vai_para_o_da_janela_com_foco() {
+    let mut h = mesa_com_camadas();
+    mesa_com_janela(&mut h, 2);
+    h.core.focus(Some(1));
+    let (_, id) = h.open_and_draw_layer(0, BARRA, AMARELO);
+    assert_eq!(h.core.state.window(id).unwrap().place.map(|(o, _)| o), Some(2));
+    assert_eq!(h.core.usable_area(2), Some(Rect::new(0, 30, 640, 210)));
+}
+
+#[test]
+fn esconder_a_camada_solta_a_faixa_e_pede_configure_de_novo() {
+    let mut h = mesa_com_camadas();
+    let (i, _) = h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    assert_eq!(h.core.usable_area(0).unwrap().y, 30);
+    let surface = h.app.layers[i].surface.clone();
+    surface.attach(None, 0, 0);
+    surface.commit();
+    h.pump("a faixa ficar livre", |h| h.core.usable_area(0) == Some(Rect::new(0, 0, 640, 240)));
+    // Para voltar: commit vazio, configure novo, imagem.
+    let before = h.app.layers[i].configures;
+    surface.commit();
+    h.pump("o configure de novo", |h| h.app.layers[i].configures > before);
+    assert_eq!(h.app.layers[i].size, (640, 30));
+    h.draw_layer(0, i, AMARELO);
+    assert_eq!(h.core.usable_area(0).unwrap().y, 30, "reservou de novo");
+}
+
+#[test]
+fn trocar_as_saidas_fecha_as_camadas() {
+    let mut h = mesa_com_camadas();
+    let (i, id) = h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    assert!(h.core.set_outputs(&MONITORES));
+    h.pump("o aviso de fechar a camada", |h| h.app.layers[i].closed);
+    assert!(h.core.state.window(id).unwrap().place.is_none());
+    assert_eq!(h.core.usable_area(0), Some(Rect::new(0, 0, 640, 240)), "os monitores novos nascem livres");
+    assert!(!h.core.place(id, Some(0), Rect::new(0, 0, 10, 10)), "o hub não muda o lugar de uma camada");
+}
+
+#[test]
+fn fechar_a_camada_e_dar_commit_na_superficie_nao_derruba_o_app() {
+    // O Quickshell faz assim ao fechar o menu: destrói a camada e depois
+    // esvazia a superfície (attach nil + commit) antes de destruí-la.
+    let mut h = mesa_com_camadas();
+    let (i, _) = h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    let surface = h.app.layers[i].surface.clone();
+    h.app.layers[i].layer.destroy();
+    surface.attach(None, 0, 0);
+    surface.commit();
+    h.pump("a faixa ficar livre", |h| h.core.usable_area(0) == Some(Rect::new(0, 0, 640, 240)));
+    for _ in 0..5 {
+        h.pump("mais um pouco", |_| true);
+    }
+    assert!(h.conn.protocol_error().is_none(), "erro de protocolo: {:?}", h.conn.protocol_error());
+    // O app continua vivo: cria outra camada e ela aparece.
+    h.open_and_draw_layer(0, LayerAsk { output: Some(0), ..BARRA }, AMARELO);
+    assert_eq!(h.core.usable_area(0).unwrap().y, 30);
+}
+
 // --- O app de teste responde ao compositor ------------------------------------
 
 impl Dispatch<wl_registry::WlRegistry, ()> for App {
@@ -892,11 +1234,16 @@ impl Dispatch<wl_registry::WlRegistry, ()> for App {
     ) {
         if let wl_registry::Event::GlobalRemove { name } = event {
             app.outputs.retain(|&n| n != name);
+            app.output_objects.retain(|(n, _)| *n != name);
             return;
         }
         if let wl_registry::Event::Global { name, interface, version } = event {
             match interface.as_str() {
-                "wl_output" => app.outputs.push(name),
+                "wl_output" => {
+                    app.outputs.push(name);
+                    app.output_objects.push((name, registry.bind(name, version.min(4), qh, ())));
+                }
+                "zwlr_layer_shell_v1" => app.layer_shell = Some(registry.bind(name, version.min(4), qh, ())),
                 "zxdg_output_manager_v1" => app.xdg_output = true,
                 "wl_compositor" => app.compositor = Some(registry.bind(name, version.min(4), qh, ())),
                 "wl_shm" => app.shm = Some(registry.bind(name, 1, qh, ())),
@@ -1042,10 +1389,13 @@ impl Dispatch<wl_callback::WlCallback, ()> for App {
 }
 
 impl App {
-    /// " (menu)" se a superfície for de um menu deste app (para os testes saberem onde caiu).
+    /// " (menu)" se a superfície for de um menu deste app, " (camada)" se
+    /// for de uma camada (para os testes saberem onde caiu).
     fn popup_mark(&self, surface: &wl_surface::WlSurface) -> &'static str {
         if self.popups.iter().any(|p| &p.surface == surface) {
             " (menu)"
+        } else if self.layers.iter().any(|l| &l.surface == surface) {
+            " (camada)"
         } else {
             ""
         }
@@ -1109,6 +1459,31 @@ impl Dispatch<wl_data_source::WlDataSource, ()> for App {
     }
 }
 
+/// A camada do app de teste (o número é o índice em `App::layers`).
+impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, usize> for App {
+    fn event(
+        app: &mut Self,
+        layer: &zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
+        event: zwlr_layer_surface_v1::Event,
+        index: &usize,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        let Some(l) = app.layers.get_mut(*index) else { return };
+        match event {
+            zwlr_layer_surface_v1::Event::Configure { serial, width, height } => {
+                layer.ack_configure(serial);
+                l.size = (width as i32, height as i32);
+                l.configures += 1;
+            }
+            zwlr_layer_surface_v1::Event::Closed => l.closed = true,
+            _ => {}
+        }
+    }
+}
+
+delegate_noop!(App: zwlr_layer_shell_v1::ZwlrLayerShellV1);
+delegate_noop!(App: ignore wl_output::WlOutput);
 delegate_noop!(App: wl_compositor::WlCompositor);
 delegate_noop!(App: ignore wl_surface::WlSurface);
 delegate_noop!(App: ignore wl_shm::WlShm);

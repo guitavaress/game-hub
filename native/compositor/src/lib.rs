@@ -10,12 +10,14 @@
 //! linha de código dele foi copiada.
 //!
 //! - `pixels`: a conversão da imagem (testada com `cargo test`);
-//! - `wayland`: o que os apps enxergam (janelas, teclado, mouse, monitor);
+//! - `wayland`: o que os apps enxergam (janelas, teclado, mouse, monitor, camadas);
+//! - `layers`: o lugar das camadas do layer-shell (a conta, testada à parte);
 //! - `node`: o nó `HubCompositor` da Godot;
 //! - `tests`: o compositor com um app de teste (só no `cargo test`).
 
 use godot::prelude::*;
 
+mod layers;
 mod node;
 mod pixels;
 mod wayland;

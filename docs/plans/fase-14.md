@@ -266,6 +266,18 @@ Levantamento (só leitura):
   - **A composição** só refaz as saídas que mudaram (uma janela desenhou, entrou, saiu, fechou ou subiu), mas a saída inteira: fundo liso (`OUTPUT_BACKGROUND`, até o fundo do Omarchy chegar pela 14.27) e as janelas por cima, cada uma cortada pelo seu lugar (um app que desenha maior que o pedido não invade a vizinha). Pixel opaco é só copiado. Recompor só o pedaço que mudou fica para a medida da 14.32, se pesar.
   - **Os menus** continuam dentro da imagem da janela (presos ao retângulo dela).
 
+- **14.27: as camadas (2026-10-17).**
+  - **Uma camada é um `Win` com o papel `Role::Layer`**: aproveita a cópia da imagem, os menus e o mouse das janelas, mas a Godot não fica sabendo dela (nenhum `window_opened`). O hub não muda o lugar dela (`place`, `raise` e `resize` devolvem false): o lugar sai das âncoras, das margens e da zona exclusiva (`native/compositor/src/layers.rs`, a conta pura, na ordem do sway: primeiro as que reservam espaço, da sobreposição para o fundo, depois as outras na área útil, ou na saída inteira com -1).
+  - **Ordem na saída:** fundo liso, camadas de fundo e de baixo, janelas, camadas de topo e de sobreposição. Os menus de uma camada podem sair dela (o menu que desce da barra); os de uma janela continuam presos ao lugar dela.
+  - **Área útil:** o sinal `usable_area_changed(saída, Rect2i)` e o `get_usable_area(saída)`. É onde o `DeskLayout` (14.29) arruma as janelas. Só uma camada que aparece reserva a faixa; esconder (commit sem imagem) solta a faixa, e ela volta com um commit vazio e um configure novo.
+  - **Teclado, nesta ordem:** a camada de topo ou de sobreposição com teclado `exclusive` (o menu aberto), a camada que ganhou o teclado num clique (`on_demand`) ou num menu com "grab", e a janela que o hub escolheu (`focus`). O `key(id, ...)` continua, e o `key_focused(evdev, apertou)` manda a tecla para quem tem o teclado (serve com a mesa sem janela). Clicar numa janela, ou o hub chamar `focus`, tira o teclado da camada `on_demand`; a `exclusive` só larga quando some.
+  - **Mouse:** a camada respeita a "região de clique" do app (uma camada transparente pode deixar o clique passar). O `window_at` só devolve janela: em cima da barra dá 0 (o clique na barra não dá foco à janela de baixo).
+  - **Saída de uma camada:** a que o app pediu; sem pedido (o `omarchy-menu`), a da janela com foco, senão a 0. O `set_outputs` fecha as camadas (o monitor delas sumiu) e o app cria outras nos monitores novos.
+  - **Contorno de um defeito do Smithay 0.7** (achado com o Quickshell de verdade): quando o app destrói a camada, o Smithay zera o estado dela, mas a conferência "largura 0 precisa das duas âncoras" continua presa à superfície. O Quickshell, ao fechar o menu, faz mais um commit vazio na superfície, e o erro derrubava o app inteiro (a barra e o fundo juntos). Um gancho nosso, registrado na criação de cada superfície (roda antes do do Smithay), deixa a conferência passar para uma camada já destruída. Teste: `fechar_a_camada_e_dar_commit_na_superficie_nao_derruba_o_app`.
+  - **Prova com o Quickshell do Omarchy** (notebook, sem janela, script fora do repositório): com três saídas de 1280×720, ele criou uma barra (`omarchy-bar`, 1280×26, topo) e um fundo (`omarchy-background`, fundo) em cada uma, e a área útil das três ficou em y = 26. O `omarchy-menu toggle` (ambiente de dentro) abriu o menu como sobreposição na saída 0, por cima do fundo escurecido; um Esc pelo `key_focused` fechou só o menu. Cópia média de 0,4 a 0,5 ms (só para comparar).
+  - O app de teste do `cargo test` usa o lado do app do layer-shell: o crate `wayland-protocols-wlr` 0.3.12 (MIT) entrou só nos testes (`dev-dependencies`). Ele já estava no `Cargo.lock`, porque o Smithay usa o lado do compositor dele; nada foi baixado.
+  - 59 testes no `cargo test` (17 novos: 7 da conta das camadas e 10 de integração).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -515,7 +527,7 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
   - A API por janela (14.16 a 14.18) continua para os testes antigos.
   - Teste: `cargo test` (duas janelas lado a lado na saída 0, cor certa em cada metade, clique vai para a da direita, janela na saída 2 não aparece na 0).
   - Commit: `Fase 14.26: saídas e composição por monitor`
-- [ ] **14.27 Layer-shell** (Opus · high): *Rust; o spike escolheu A*
+- [x] **14.27 Layer-shell** (Opus · high): *Rust; o spike escolheu A*
   - Ponto de partida: o `Role::Layer` e o `configure_layer` da branch `spike-14.24` (sem margens, sem zona exclusiva, uma textura por camada).
   - Faz:
     - `wlr-layer-shell`: camadas fundo, baixo, topo e sobreposição, com âncoras e margens;

@@ -19,3 +19,5 @@ smithay = { version = "=0.7.0", default-features = false, features = ["wayland_f
 tempfile = "=3.27.0"
 wayland-client = "=0.31.14"
 wayland-protocols = { version = "=0.32.13", features = ["client", "unstable"] }
+# O lado do app do layer-shell (o Smithay já usa o lado do compositor deste crate).
+wayland-protocols-wlr = { version = "=0.3.12", features = ["client"] }
