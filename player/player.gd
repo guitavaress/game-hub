@@ -490,6 +490,13 @@ func focus_on(screen: Node3D) -> void:
 	screen.set_focused(true, self)
 
 
+## Com o foco numa tela, desliza a câmera para outra pose (ex.: o zoom num
+## monitor da mesa). Não faz nada fora do foco ou saindo dele.
+func move_focus_camera(pose: Transform3D) -> void:
+	if _focus_screen != null and not _focus_leaving:
+		_slide_camera(pose)
+
+
 ## Sai do foco: a câmera volta para a cabeça e o jogador ganha os controles
 ## de novo. "instant" pula a animação (ex.: um jogo abriu).
 func leave_focus(instant: bool = false) -> void:

@@ -231,6 +231,7 @@ No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://g
 
 **Usar:**
 - Olhe para um monitor e aperte **E**: você senta, e a câmera enquadra os três. O mouse anda pelos três e os apps recebem o teclado.
+- **SUPER + Z** aproxima a câmera do monitor da janela em foco (de novo, volta a ver os três). Com o zoom ligado, a câmera acompanha o foco de um monitor para o outro (`SUPER + setas`, `SUPER + 1/2/3` ou um clique).
 - **Segure Esc** (0,6 s) para levantar. Um Esc curto vai para o app. O botão B do controle faz o mesmo.
 - Os monitores mostram o **fundo, a barra e o menu do Omarchy** (o Quickshell, rodando dentro do hub). Sentado, os **atalhos do Omarchy** funcionam ali: `SUPER + Enter` (terminal), `SUPER + Shift + B` (navegador), `SUPER + Space` (menu), `SUPER + W` (fechar), `SUPER + F` (tela cheia), `SUPER + setas` (foco, inclusive entre monitores), `SUPER + 1/2/3` (focar o monitor), `SUPER + Shift + 1/2/3` (mandar a janela para o monitor). As janelas se dividem sozinhas (até 3 por monitor). O que não é atalho vai para o app.
 - Os apps abrem **dentro** do hub. Para abrir um de fora, em outro terminal: `env WAYLAND_DISPLAY=gamehub-0 foot`.

@@ -41,6 +41,12 @@ func get_title() -> String:
 	return ""
 
 
+## Em qual monitor (índice da saída) está a janela em foco; -1 se não há.
+## O zoom do monitor usa isto para aproximar a câmera do monitor certo.
+func get_focus_output() -> int:
+	return -1
+
+
 ## O jogador sentou à mesa (true) ou levantou (false): o teclado lá dentro
 ## segue isso.
 func set_focused(_on: bool) -> void:

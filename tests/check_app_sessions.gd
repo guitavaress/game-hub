@@ -205,6 +205,8 @@ func _run() -> void:
 	right_source.send_button(MOUSE_BUTTON_LEFT, true)
 	_check("o botão esquerdo vira 0x110", ["button", 0x110, true] in comp.calls)
 	_check("clicar numa janela dá o foco a ela e a põe por cima", S.focused_window() == 2 and ["raise", 2] in comp.calls)
+	_check("a fonte diz em que monitor está a janela em foco (para o zoom)", right_source.get_focus_output() == S.output_of(2)
+			and right_source.get_focus_output() >= 0)
 	comp.window_hit = 0
 	comp.calls.clear()
 	right_source.send_button(MOUSE_BUTTON_LEFT, true)

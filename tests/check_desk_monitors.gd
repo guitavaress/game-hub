@@ -11,6 +11,8 @@ extends SceneTree
 ##   - o mouse anda de um monitor para o outro, e o cursor só aparece onde está;
 ##   - com o botão apertado o mouse fica preso no monitor do clique;
 ##   - as teclas vão para a fonte; Esc curto chega, Esc longo (ou B) levanta;
+##   - SUPER + Z aproxima a câmera do monitor da janela em foco, a câmera segue o
+##     foco de um monitor para o outro, e de novo volta a enquadrar os três;
 ##   - levantar solta o foco das fontes e tira o mouse dos apps.
 
 var failures := 0
@@ -24,6 +26,10 @@ class FakeSource extends DeskMonitorSource:
 	var buttons: Array = []
 	var scrolls: Array[Vector2] = []
 	var leaves := 0
+	var focus_output := -1
+
+	func get_focus_output() -> int:
+		return focus_output
 
 	func get_texture() -> Texture2D:
 		return texture
@@ -52,6 +58,10 @@ class FakeSource extends DeskMonitorSource:
 
 class FakePlayer extends Node:
 	var left := 0
+	var poses: Array[Transform3D] = []
+
+	func move_focus_camera(pose: Transform3D) -> void:
+		poses.append(pose)
 
 	func leave_focus() -> void:
 		left += 1
@@ -168,6 +178,48 @@ func _run() -> void:
 	middle._input(_motion(Vector2(2.0, 2.0)))
 	_check("a mira fora dos monitores tira o mouse dos apps", sources[1].leaves >= 1 and middle._under == null)
 
+	print("== Zoom no monitor em foco (SUPER + Z) ==")
+	var window_size := root.get_visible_rect().size
+	var window_aspect := window_size.x / maxf(window_size.y, 1.0)
+	_focus_output(sources, 2)
+	var forwarded_before: int = sources[1].keys.size()
+	middle._input(_key(KEY_Z, true, {"meta": true}))
+	var zoom_pose: Transform3D = player.poses.back() if not player.poses.is_empty() else Transform3D()
+	_check("SUPER + Z leva a câmera para o monitor da janela em foco (o da direita)",
+			zoom_pose.is_equal_approx(right.get_zoom_pose(camera.fov, window_aspect)) and player.poses.size() == 1)
+	_check("a câmera fica de frente para o monitor, e não de lado", zoom_pose.basis.z.dot(right.global_basis.z) > 0.999)
+	camera.global_transform = zoom_pose
+	await process_frame
+	var corners_in := true
+	for pixel in [Vector2.ZERO, Vector2(right.resolution)]:
+		var on_screen := camera.unproject_position(right.pixel_to_world(pixel))
+		corners_in = corners_in and Rect2(Vector2.ZERO, window_size).has_point(on_screen)
+	_check("o monitor aproximado cabe na janela, quase inteira", corners_in)
+	_check("a tecla do zoom não vai para o app", sources[1].keys.size() == forwarded_before)
+	_focus_output(sources, 0)
+	middle._process(0.01)
+	_check("o foco mudou de monitor: a câmera segue (agora o da esquerda)", player.poses.size() == 2
+			and player.poses.back().is_equal_approx(left.get_zoom_pose(camera.fov, window_aspect)))
+	middle._process(0.01)
+	_check("sem mudar o foco, a câmera não anda de novo", player.poses.size() == 2)
+	middle._input(_key(KEY_Z, true, {"meta": true}))
+	_check("SUPER + Z de novo volta a enquadrar os três", player.poses.size() == 3
+			and player.poses.back().is_equal_approx(middle.get_camera_pose(camera.fov, window_aspect)))
+	_focus_output(sources, 2)
+	middle._process(0.01)
+	_check("sem zoom, mudar o foco não mexe na câmera", player.poses.size() == 3)
+	_focus_output(sources, -1)
+	middle._input(_key(KEY_Z, true, {"meta": true}))
+	_check("sem janela em foco, o zoom vai para o monitor do meio (ou o do mouse)", player.poses.size() == 4)
+	middle._input(_key(KEY_Z, true, {"meta": true, "shift": true}))
+	_check("SUPER + SHIFT + Z não é o zoom", player.poses.size() == 4)
+	middle._input(_key(KEY_Z, true, {}))
+	_check("Z sozinho vai para o app", sources[1].keys.size() > forwarded_before and player.poses.size() == 4)
+	camera.global_transform = middle.get_camera_pose(camera.fov, window_aspect)
+	player.poses.clear()
+	for source in sources:
+		source.keys.clear()
+
 	print("== Teclas, Esc curto e longo ==")
 	middle._input(_key(KEY_A, true))
 	_check("tecla comum chega na fonte", sources[1].keys.back().keycode == KEY_A)
@@ -227,11 +279,19 @@ func _run() -> void:
 	quit(1 if failures > 0 else 0)
 
 
-func _key(code: Key, pressed: bool) -> InputEventKey:
+## Todas as fontes dizem o mesmo (a janela em foco é uma só, como no AppSessions).
+func _focus_output(sources: Array[FakeSource], output: int) -> void:
+	for source in sources:
+		source.focus_output = output
+
+
+func _key(code: Key, pressed: bool, mods: Dictionary = {}) -> InputEventKey:
 	var e := InputEventKey.new()
 	e.keycode = code
 	e.physical_keycode = code
 	e.pressed = pressed
+	e.meta_pressed = mods.get("meta", false)
+	e.shift_pressed = mods.get("shift", false)
 	return e
 
 

@@ -9,6 +9,9 @@ extends Screen3D
 ##     saída certa) e o cursor é desenhado pelo hub, só no monitor onde está;
 ##   - o teclado vai para quem tem o teclado lá dentro (o menu, a barra ou a
 ##     janela em foco), pela fonte;
+##   - SUPER + Z aproxima a câmera do monitor da janela em foco (de novo, volta a
+##     ver os três). Com o zoom ligado, a câmera acompanha o foco de um monitor
+##     para o outro;
 ##   - Esc curto vai para o app; SEGURAR o Esc (EXIT_HOLD_TIME) levanta. O botão
 ##     B do controle segue a mesma regra.
 ## Quem recebe o E é o "líder" do assento: o monitor que ganhou o foco do
@@ -42,6 +45,8 @@ var _under: DeskMonitor3D = null
 var _cursor: Vector2 = Vector2.INF
 var _capture: DeskMonitor3D = null
 var _buttons_down: int = 0
+## Só no líder: o monitor com o zoom ligado (null = vendo os três).
+var _zoomed: DeskMonitor3D = null
 ## O desenho do monitor sem sinal já está atualizado.
 var _idle_drawn: bool = false
 
@@ -109,6 +114,51 @@ func interact(player: Node) -> void:
 	super.interact(player)
 
 
+## Onde a câmera fica para olhar SÓ este monitor de frente (o zoom): longe o
+## bastante para a tela ocupar "focus_fill" da janela.
+func get_zoom_pose(fov_degrees: float, aspect: float) -> Transform3D:
+	var half_tan := tan(deg_to_rad(fov_degrees) / 2.0)
+	var by_height := (screen_size.y / 2.0) / half_tan
+	var by_width := (screen_size.x / 2.0) / (half_tan * maxf(aspect, 0.1))
+	var distance := maxf(by_height, by_width) / focus_fill
+	return Transform3D(global_basis.orthonormalized(), to_global(Vector3(0.0, 0.0, distance)))
+
+
+## Liga o zoom no monitor da janela em foco (ou no do mouse, ou no do meio); se
+## já está ligado, desliga e volta a enquadrar os três. Só vale sentado.
+func toggle_zoom() -> void:
+	if not is_focused() or _player == null or not _player.has_method("move_focus_camera"):
+		return
+	if _zoomed != null:
+		_zoomed = null
+	else:
+		_zoomed = _zoom_target()
+	_aim_camera()
+
+
+## O monitor que o zoom deve mostrar: o da janela em foco; sem janela, o do mouse; senão o do meio.
+@warning_ignore("integer_division")
+func _zoom_target() -> DeskMonitor3D:
+	var seat := _seat()
+	var source := _seat_source()
+	var wanted := source.get_focus_output() if source != null else -1
+	for monitor in seat:
+		if monitor.output_index == wanted:
+			return monitor
+	return _under if _under != null else seat[seat.size() / 2]
+
+
+## Desliza a câmera para a pose de agora (o zoom, ou os três).
+func _aim_camera() -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null or _player == null:
+		return
+	var window := get_viewport().get_visible_rect().size
+	var aspect := window.x / maxf(window.y, 1.0)
+	var pose := _zoomed.get_zoom_pose(camera.fov, aspect) if _zoomed != null else get_camera_pose(camera.fov, aspect)
+	_player.move_focus_camera(pose)
+
+
 ## Onde a câmera fica ao sentar: de frente para o monitor do meio, longe o
 ## bastante para os TRÊS caberem na janela (os cantos dos lados incluídos).
 @warning_ignore("integer_division")
@@ -140,6 +190,7 @@ func set_focused(on: bool, player: Node = null) -> void:
 	if not changed:
 		return
 	_cancel_hold()
+	_zoomed = null
 	_under = null
 	_capture = null
 	_buttons_down = 0
@@ -160,6 +211,14 @@ func _process(delta: float) -> void:
 			_cancel_hold()
 			if _player != null and _player.has_method("leave_focus"):
 				_player.leave_focus()
+	# Com o zoom ligado, a câmera segue o foco de um monitor para o outro.
+	if _zoomed != null:
+		var source := _seat_source()
+		if source != null and source.get_focus_output() >= 0:
+			var target := _zoom_target()
+			if target != _zoomed:
+				_zoomed = target
+				_aim_camera()
 	_update_view()
 
 
@@ -178,6 +237,11 @@ func _input(event: InputEvent) -> void:
 		var key := event as InputEventKey
 		if key.keycode == KEY_F11:
 			return  # tela cheia continua sendo do hub
+		if key.keycode == KEY_Z and key.meta_pressed and not key.shift_pressed:
+			if key.pressed and not key.echo:
+				toggle_zoom()
+			get_viewport().set_input_as_handled()
+			return  # SUPER + Z é do hub (não existe no Omarchy)
 		var source := _seat_source()
 		if source != null:
 			source.send_key(key)

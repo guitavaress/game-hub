@@ -141,6 +141,9 @@ class OutputSource extends DeskMonitorSource:
 	func get_title() -> String:
 		return _sessions.focus_title()
 
+	func get_focus_output() -> int:
+		return _sessions.output_of(_sessions.focused_window())
+
 	func set_focused(on: bool) -> void:
 		_sessions.set_seated(on)
 
