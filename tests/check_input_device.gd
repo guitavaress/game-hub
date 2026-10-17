@@ -119,7 +119,11 @@ func _run() -> void:
 	_check("a caixa da estante manda o marcador {interact}", box.get_look_info()["action"] == "Segure {interact} para jogar")
 	_check("a porta da casa também ({interact} para sair)", home.get_front_door().get_look_info()["action"] == "{interact} para sair")
 	_check("a porta 'Casa' da praça também", city.get_home_door().get_look_info()["action"] == "{interact} para entrar")
-	_check("o monitor sem sinal não pede nada", home.get_node("ComputerDesk").get_screen().get_look_info()["action"] == "")
+	var monitor = home.get_node("ComputerDesk").get_screen()
+	monitor.available = false  # sem compositor (Windows): o monitor só explica
+	_check("o monitor sem compositor não pede nada", monitor.get_look_info()["action"] == "")
+	monitor.available = true
+	_check("o monitor que pode ligar usa o marcador {interact}", monitor.get_look_info()["action"] == "{interact} para sentar")
 
 	print("== O cursor do mouse ==")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

@@ -18,8 +18,8 @@ func _run() -> void:
 	await process_frame
 
 	print("== Os três monitores ==")
-	var desk: ComputerDesk = home.get_node("ComputerDesk")
-	var screens := desk.get_screens()
+	var desk = home.get_node("ComputerDesk")  # sem tipo: veja check_desk_monitors
+	var screens: Array[DeskMonitor3D] = desk.get_screens()
 	_check("são três telas", screens.size() == 3)
 	_check("get_screen() é a do meio", desk.get_screen() == screens[1])
 	var front: Vector3 = screens[1].global_basis.z
@@ -31,10 +31,18 @@ func _run() -> void:
 	var sem_sinal := true
 	for screen in screens:
 		var info: Dictionary = screen.get_look_info()
-		sem_sinal = sem_sinal and info["detail"] == "Sem sinal" and info["action"] == ""
+		screen.available = false  # como no Windows: sem compositor, o monitor só explica
+		info = screen.get_look_info()
+		sem_sinal = sem_sinal and info["detail"].begins_with("O Linux do hub") and info["action"] == ""
 		screen.interact(null)
 		sem_sinal = sem_sinal and not screen.is_focused()
-	_check("os três mostram Sem sinal e não aceitam foco", sem_sinal)
+		screen.available = true
+		info = screen.get_look_info()
+		sem_sinal = sem_sinal and info["detail"] == "Sem sinal" and screen.get_source() == null
+	_check("sem fonte, os três mostram Sem sinal (ou o aviso do Linux) e não sentam", sem_sinal)
+	var in_group := get_nodes_in_group("desk_monitors").size() == 3
+	_check("os três estão no grupo desk_monitors, nas saídas 0, 1 e 2", in_group
+			and screens[0].output_index == 0 and screens[2].output_index == 2)
 
 	print("== Dentro da mesa e da sala ==")
 	var catalog := Profiles.home_catalog()

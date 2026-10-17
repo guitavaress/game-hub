@@ -1,8 +1,8 @@
-class_name AppWindowView
+class_name DeskMonitorView
 extends Control
-## O CONTEÚDO do telão (Fase 14.19): desenha a imagem da janela do app e, por
-## cima, o cursor e a barrinha do "segure Esc". O cursor é desenhado pelo hub
-## (a janela do app não sabe onde está o mouse no mundo).
+## O CONTEÚDO de um monitor da mesa (Fase 14.19, 14.28): desenha a imagem da
+## saída do compositor e, por cima, o cursor e a barrinha do "segure Esc". O
+## cursor é desenhado pelo hub (os apps não sabem onde está o mouse no mundo).
 
 const CURSOR_COLOR := Color(1, 1, 1)
 const CURSOR_EDGE := Color(0, 0, 0)
@@ -12,8 +12,9 @@ var texture: Texture2D = null
 var cursor: Vector2 = Vector2.INF
 ## 0 a 1: quanto do Esc longo já passou (0 = nada desenhado).
 var exit_progress: float = 0.0
-## Texto quando ainda não há imagem.
-var idle_text: String = "Livre"
+## Texto quando ainda não há imagem, e uma linha menor embaixo dele.
+var idle_text: String = "SEM SINAL"
+var idle_detail: String = ""
 
 
 func _draw() -> void:
@@ -22,10 +23,15 @@ func _draw() -> void:
 		draw_texture_rect(texture, Rect2(Vector2.ZERO, size), false)
 	else:
 		var font := get_theme_default_font()
-		var font_size := 48
+		var font_size := int(size.y / 14.0)
 		var text_size := font.get_string_size(idle_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 		draw_string(font, (size - text_size) / 2.0 + Vector2(0.0, text_size.y * 0.7), idle_text,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1, 0.35))
+		if idle_detail != "":
+			var small := int(font_size / 2.5)
+			var detail_size := font.get_string_size(idle_detail, HORIZONTAL_ALIGNMENT_LEFT, -1, small)
+			draw_string(font, Vector2((size.x - detail_size.x) / 2.0, size.y / 2.0 + text_size.y * 1.6), idle_detail,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, small, Color(1, 1, 1, 0.25))
 	if exit_progress > 0.0:
 		draw_rect(Rect2(0.0, size.y - 10.0, size.x * clampf(exit_progress, 0.0, 1.0), 10.0), Color(1.0, 0.75, 0.2))
 	if cursor != Vector2.INF:

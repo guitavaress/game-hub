@@ -278,6 +278,15 @@ Levantamento (só leitura):
   - O app de teste do `cargo test` usa o lado do app do layer-shell: o crate `wayland-protocols-wlr` 0.3.12 (MIT) entrou só nos testes (`dev-dependencies`). Ele já estava no `Cargo.lock`, porque o Smithay usa o lado do compositor dele; nada foi baixado.
   - 59 testes no `cargo test` (17 novos: 7 da conta das camadas e 10 de integração).
 
+- **14.28: sentar à mesa (2026-10-17).**
+  - **`components/app_window_3d/` virou `components/desk_monitor_3d/`:** `DeskMonitor3D` (a tela), `DeskMonitorSource` (o contrato de uma saída; no lugar do `AppWindowSource`, sem `resize`: a saída tem o tamanho do monitor) e `DeskMonitorView` (a imagem, o cursor, a barrinha do Esc e o "SEM SINAL" desenhado por ela). Os três monitores da mesa (`ComputerDesk`) são `DeskMonitor3D`, de 1920×1080, no grupo `desk_monitors`, cada um com o seu `output_index`.
+  - **Um assento só:** `E` em qualquer monitor senta, e esse monitor vira o "líder": cuida de todo o mouse e teclado, e os outros só desenham. A câmera enquadra os três (a pose vem dos 12 cantos, com folga para o canto mais perto). O raio acha o monitor mais perto e o pixel; o cursor só aparece no monitor onde o mouse está. Com um botão apertado, o mouse fica preso no monitor do clique (arrastar para fora vale, preso na borda). Clique fora dos três não vira clique no app. Esc curto e B curto chegam ao app; longos levantam.
+  - **`E` num monitor sem fonte liga o compositor** (sinal `seat_requested`, ligado pela `ComputerDesk` a `AppSessions.attach_monitors()`), porque o compositor só nasce quando alguém precisa dele. Sem compositor possível (Windows), o monitor mostra "O Linux do hub precisa do compositor (só no Linux)" e não senta (`AppSessions.is_supported()` alimenta o `available` do monitor).
+  - **`AppSessions` ganhou as saídas:** cria uma saída por monitor (`set_outputs`) e uma `OutputSource` por monitor, que manda o mouse para `pointer_motion_output`, as teclas para `key_focused` e o clique para `window_at` + `raise` + `focus` (clicar numa janela dá o foco a ela; clicar na barra não muda). Sentar dá o teclado à janela em foco; levantar faz `focus(0)`.
+  - **Onde a janela nova vai (até o `DeskLayout`, 14.29):** o monitor onde o mouse esteve por último (o do meio, se ainda não houve mouse), ocupando a área útil dele (sem a faixa da barra), com o foco. Quando a barra muda a área útil, as janelas da saída se ajustam. `free_screens()` e o aviso "Os telões estão cheios" saíram: a 14.29 põe o limite de 3 por monitor.
+  - **Prova com o compositor de verdade** (notebook, com janela, script fora do repositório): `attach_monitors()` criou as 3 saídas, um `foot` aberto pelo socket ocupou a saída do meio inteira (1920×1080), e a pose sentada mostrou os três monitores. Cópia média ~3 a 4 ms por quadro do terminal em tela cheia (só para comparar; a medida é a 14.32).
+  - Nos testes com `-s`, o `ComputerDesk` agora fala com o autoload `AppSessions`: o teste não pode tipar a variável como `ComputerDesk` (o script compilaria antes do autoload existir).
+
 ## Checklist de teste manual (fim da parte 1)
 1. No notebook, rode o hub (`godot --path ~/git/game-hub`). Em casa, olhe à esquerda do janelão: a estante de apps mostra ícones (Brave, Foot, Spotify...). Passe a página e troque o filtro (Internet, Sistema...).
 2. Segure E no **Foot**: "Abrindo…", o hub some e o terminal aparece no lugar dele. Feche o terminal (`exit`): o hub volta, na frente da estante.
@@ -535,13 +544,13 @@ Substituem a 14.23 antiga: a medida e os documentos vão para o fim (14.32).
     - o teclado `exclusive`/`on_demand` (o menu recebe as teclas) e o mouse nas camadas.
   - Teste: `cargo test` (uma barra de 30 px reduz a área útil; um overlay com teclado exclusivo recebe a tecla; o clique na barra não vai para a janela).
   - Commit: `Fase 14.27: layer-shell no compositor`
-- [ ] **14.28 Sentar à mesa** (Sonnet · medium; Opus · high se o visual travar)
+- [x] **14.28 Sentar à mesa** (Sonnet · medium; Opus · high se o visual travar)
   - Faz:
     - o `AppWindow3D` vira `DeskMonitor3D` (`components/desk_monitor_3d/`): mostra a textura de uma saída;
     - `E` num monitor "senta": a câmera enquadra os três;
     - o mouse anda pelos três (o raio acha o monitor e o pixel, e vai como `pointer_motion_output`), com o cursor do hub;
     - segurar Esc levanta; o `AppSessions` cria as 3 saídas e acha os monitores pelo grupo `desk_monitors`.
-  - Teste: `tests/check_desk_monitors.gd` com compositor falso (raio no meio do monitor da direita vira a saída 2 e o pixel certo; Esc curto e longo; sentar e levantar).
+  - Teste: `tests/check_desk_monitors.gd` (antes `check_app_window_3d`) com fontes falsas e o `check_app_sessions` com compositor falso (raio no meio do monitor da direita vira a saída 2 e o pixel certo; Esc curto e longo; sentar e levantar).
   - Commit: `Fase 14.28: sentar à mesa e usar os três monitores`
 - [ ] **14.29 O arranjo das janelas** (Sonnet · medium)
   - Faz: o `DeskLayout` (GDScript puro, dentro do `AppSessions`):

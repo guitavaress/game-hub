@@ -116,10 +116,10 @@ func _run() -> void:
 	_check("sem apps abertos, o botão é o de sempre", quit_button.text == "Sair do hub")
 	menu._quit_armed = false
 	var sessions = root.get_node("AppSessions")
-	sessions._sources[99] = AppWindowSource.new()  # um app "aberto" de mentira
+	sessions._titles[99] = "Terminal"  # um app "aberto" de mentira
 	menu._on_quit_pressed()
 	_check("1º clique só avisa", menu._quit_armed and quit_button.text.contains("vai fechar"))
-	sessions._sources.erase(99)
+	sessions._titles.erase(99)
 	menu._disarm_quit()
 	_check("fechar o menu desarma o aviso", quit_button.text == "Sair do hub" and not menu._quit_armed)
 

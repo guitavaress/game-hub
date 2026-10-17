@@ -10,19 +10,41 @@ class FakeCompositor extends Node:
 	signal window_opened(id: int, app_id: String, title: String, pid: int)
 	signal window_closed(id: int)
 	signal title_changed(id: int, title: String)
+	signal usable_area_changed(output: int, rect: Rect2i)
 	var calls: Array = []
 	var closed_ids: Array[int] = []
 	var polls := 0
+	var output_sizes: Array[Vector2i] = []
+	## A área útil de cada saída (a 1 tem uma barra de 26 px em cima).
+	var usable := {0: Rect2i(0, 0, 1920, 1080), 1: Rect2i(0, 26, 1920, 1054), 2: Rect2i(0, 0, 1920, 1080)}
+	## Qual janela está embaixo do mouse (0 = nenhuma).
+	var window_hit := 0
 
 	func poll() -> void:
 		polls += 1
 
-	func get_texture(_id: int) -> Texture2D:
-		var image := Image.create(800, 600, false, Image.FORMAT_RGBA8)
+	func set_outputs(sizes: Array[Vector2i]) -> bool:
+		output_sizes = sizes
+		calls.append(["set_outputs", sizes.size()])
+		return true
+
+	func get_output_texture(_output: int) -> Texture2D:
+		var image := Image.create(8, 8, false, Image.FORMAT_RGBA8)
 		return ImageTexture.create_from_image(image)
 
-	func resize(id: int, w: int, h: int) -> void:
-		calls.append(["resize", id, w, h])
+	func get_usable_area(output: int) -> Rect2i:
+		return usable.get(output, Rect2i())
+
+	func place(id: int, output: int, x: int, y: int, w: int, h: int) -> bool:
+		calls.append(["place", id, output, x, y, w, h])
+		return true
+
+	func raise(id: int) -> bool:
+		calls.append(["raise", id])
+		return true
+
+	func window_at(_output: int, _x: float, _y: float) -> int:
+		return window_hit
 
 	func close(id: int) -> bool:
 		closed_ids.append(id)
@@ -31,11 +53,11 @@ class FakeCompositor extends Node:
 	func focus(id: int) -> void:
 		calls.append(["focus", id])
 
-	func key(id: int, code: int, pressed: bool) -> void:
-		calls.append(["key", id, code, pressed])
+	func key_focused(code: int, pressed: bool) -> void:
+		calls.append(["key_focused", code, pressed])
 
-	func pointer_motion(id: int, x: float, y: float) -> void:
-		calls.append(["motion", id, x, y])
+	func pointer_motion_output(output: int, x: float, y: float) -> void:
+		calls.append(["motion", output, x, y])
 
 	func pointer_leave() -> void:
 		calls.append(["leave"])
@@ -47,42 +69,16 @@ class FakeCompositor extends Node:
 		calls.append(["axis", dx, dy, wheel])
 
 
-## Três telões falsos, no grupo "app_screens" (o contrato do AppSessions).
-class FakeScreens extends Node3D:
-	var _screens: Array[AppWindow3D] = []
+## Os três monitores da mesa, no grupo "desk_monitors" (o contrato do AppSessions).
+class FakeDesk extends Node3D:
+	var monitors: Array[DeskMonitor3D] = []
 
 	func _ready() -> void:
-		add_to_group("app_screens")
 		for i in 3:
-			var screen := AppWindow3D.new()
-			add_child(screen)
-			_screens.append(screen)
-
-	func get_screens() -> Array[AppWindow3D]:
-		return _screens
-
-	func free_count() -> int:
-		var count := 0
-		for screen in _screens:
-			if screen.get_source() == null:
-				count += 1
-		return count
-
-	func offer(source: AppWindowSource) -> AppWindow3D:
-		for screen in _screens:
-			if screen.get_source() == null:
-				screen.set_source(source)
-				return screen
-		return null
-
-	func release(screen: AppWindow3D) -> void:
-		screen.set_source(null)
-
-	func screen_of(source: AppWindowSource) -> AppWindow3D:
-		for screen in _screens:
-			if screen.get_source() == source:
-				return screen
-		return null
+			var monitor := DeskMonitor3D.new()
+			monitor.output_index = i
+			add_child(monitor)
+			monitors.append(monitor)
 
 
 func _initialize() -> void:
@@ -124,16 +120,18 @@ func _run() -> void:
 		ended.append({"id": id, "ok": ok, "msg": msg}))
 	A.app_launch_started.connect(func(id: String, _s: Node) -> void: started.append(id))
 
-	# Os telões da casa saíram na 14.25 (a mesa de três monitores vem na 14.28):
-	# aqui um hospedeiro falso faz o papel deles.
-	var screens := FakeScreens.new()
-	root.add_child(screens)
+	# A mesa de mentira: três monitores no grupo "desk_monitors".
+	var desk := FakeDesk.new()
+	root.add_child(desk)
 	await process_frame
+	var monitors := desk.monitors
 
 	print("== Sem compositor: o fluxo é o da parte 1 ==")
 	S.compositor_factory = func() -> Node: return null
 	S._tried = false
 	_check("sem compositor, não abre no mundo", not S.can_open_in_world() and not A.opens_in_world())
+	_check("os monitores seguem sem fonte", monitors[1].get_source() == null)
+	_check("attach_monitors diz que não deu", not S.attach_monitors())
 	_check("launch abre pelo abridor de fora", A.launch("foot", null) and outside == ["foot"] and opened.is_empty())
 	_check("o hub dorme (fluxo de fora)", H.is_sleeping and started == ["foot"])
 	A.cancel_launch()
@@ -142,65 +140,93 @@ func _run() -> void:
 	outside.clear()
 	H.wake()
 
-	print("== Com compositor: janela nova liga ao app ==")
+	print("== Com compositor: uma saída e uma fonte por monitor ==")
 	var comp := FakeCompositor.new()
 	S.compositor_factory = func() -> Node: return comp
 	S._tried = false
 	_check("agora abre no mundo", S.can_open_in_world() and A.opens_in_world() and S.get_compositor() == comp)
 	await process_frame
 	_check("o poll roda a cada quadro", comp.polls > 0)
-	_check("os 3 telões estão livres", S.free_screens() == 3)
+	_check("o compositor ganhou 3 saídas, do tamanho dos monitores", comp.output_sizes == [Vector2i(1920, 1080), Vector2i(1920, 1080), Vector2i(1920, 1080)])
+	var sources_ok := true
+	for monitor in monitors:
+		sources_ok = sources_ok and monitor.get_source() != null
+	_check("cada monitor ganhou a sua fonte", sources_ok and monitors[0].get_source() != monitors[1].get_source())
+	_check("a fonte entrega a textura da saída", monitors[2].get_source().get_texture() != null)
+
+	print("== Com compositor: janela nova vai para o monitor do meio ==")
 	_check("launch aceita", A.launch("brave", null))
 	_check("abriu no compositor, e não por fora", opened == ["brave"] and outside.is_empty())
 	_check("o hub fica acordado e sem tela 'Abrindo'", not H.is_sleeping and started.is_empty())
 	_check("a sessão espera a janela", A.state == A.State.LAUNCHING and ended.is_empty())
 	_check("não abre outro enquanto espera", not A.launch("foot", null) and ended.size() == 1 and not ended[0]["ok"])
 	ended.clear()
+	comp.calls.clear()
 	comp.window_opened.emit(1, "brave-origin", "Brave", 100)
-	_check("a janela foi para o 1º telão", screens.get_screens()[0].get_source() != null and S.window_count() == 1)
-	_check("a janela é do app aberto", S.app_of(1) == "brave")
+	_check("a janela é do app aberto", S.app_of(1) == "brave" and S.window_count() == 1)
+	_check("foi para o monitor do meio, na área útil (sem a barra)", ["place", 1, 1, 0, 26, 1920, 1054] in comp.calls
+			and S.output_of(1) == 1)
+	_check("ganhou o foco da mesa e foi para cima", S.focused_window() == 1 and ["raise", 1] in comp.calls)
+	_check("sem ninguém sentado, o teclado não é dela ainda", not (["focus", 1] in comp.calls))
 	_check("a sessão acabou com sucesso, no mundo", A.state == A.State.IDLE and ended.size() == 1 and ended[0]["ok"]
 			and ended[0]["id"] == "brave" and A.last_session_in_world)
 	_check("o hub não dormiu", not H.is_sleeping)
-	_check("o telão pediu o tamanho", ["resize", 1, 1280, 720] in comp.calls)
 
-	print("== Segunda janela do mesmo cliente ==")
+	print("== O mouse decide para onde vai a próxima janela ==")
+	var right_source: DeskMonitorSource = monitors[2].get_source()
+	comp.calls.clear()
+	right_source.send_pointer(Vector2(640, 360))
+	_check("o pixel da saída vai direto para o compositor", ["motion", 2, 640.0, 360.0] in comp.calls)
 	comp.window_opened.emit(2, "brave-origin", "Outra", 100)
-	_check("vai para outro telão, ainda do Brave", screens.get_screens()[1].get_source() != null and S.app_of(2) == "brave")
+	_check("a segunda janela do mesmo cliente vai para onde o mouse esteve, ainda do Brave",
+			S.output_of(2) == 2 and S.app_of(2) == "brave" and ["place", 2, 2, 0, 0, 1920, 1080] in comp.calls)
 	comp.window_opened.emit(3, "foot", "Terminal", 300)
-	_check("um cliente de fora do hub também ganha telão", S.free_screens() == 0 and S.app_of(3) == "foot")
-
-	print("== Telões cheios ==")
-	comp.window_opened.emit(4, "foot", "Mais um", 301)
-	_check("sem telão livre, a janela é fechada", comp.closed_ids == [4] and S.window_count() == 3)
-	ended.clear()
-	_check("launch recusa com aviso", not A.launch("foot", null) and ended.size() == 1 and not ended[0]["ok"]
-			and ended[0]["msg"].begins_with("Os telões estão cheios"))
-	_check("nada foi aberto", opened == ["brave"])
+	_check("um cliente de fora do hub também ganha lugar, com o app_id dele", S.app_of(3) == "foot" and S.window_count() == 3)
+	_check("a janela nova fica com o foco", S.focused_window() == 3 and S.focus_title() == "Terminal")
 
 	print("== A fonte traduz para o compositor ==")
-	var src: AppWindowSource = screens.get_screens()[0].get_source()
 	comp.calls.clear()
-	src.send_pointer(Vector2(640, 360))  # a textura é 800×600, o telão 1280×720
-	_check("o mouse é convertido pela proporção", ["motion", 1, 400.0, 300.0] in comp.calls)
-	src.send_scroll(Vector2(0, 1))
+	right_source.send_scroll(Vector2(0, 1))
 	_check("rolar para cima vira dy negativo", ["axis", 0.0, -1.0, true] in comp.calls)
-	src.send_button(MOUSE_BUTTON_LEFT, true)
+	comp.window_hit = 2
+	right_source.send_button(MOUSE_BUTTON_LEFT, true)
 	_check("o botão esquerdo vira 0x110", ["button", 0x110, true] in comp.calls)
+	_check("clicar numa janela dá o foco a ela e a põe por cima", S.focused_window() == 2 and ["raise", 2] in comp.calls)
+	comp.window_hit = 0
+	comp.calls.clear()
+	right_source.send_button(MOUSE_BUTTON_LEFT, true)
+	_check("clicar onde não há janela (a barra) não muda o foco", S.focused_window() == 2 and not (["raise", 2] in comp.calls))
 	var key := InputEventKey.new()
 	key.physical_keycode = KEY_A
 	key.pressed = true
-	src.send_key(key)
-	_check("a tecla vira evdev", ["key", 1, 30, true] in comp.calls)
+	comp.calls.clear()
+	right_source.send_key(key)
+	_check("a tecla vira evdev e vai para quem tem o teclado", ["key_focused", 30, true] in comp.calls)
 	key.echo = true
 	comp.calls.clear()
-	src.send_key(key)
+	right_source.send_key(key)
 	_check("a repetição de tecla não é enviada", comp.calls.is_empty())
-	src.set_focused(true)
-	src.set_focused(false)
-	_check("o foco segue o telão", ["focus", 1] in comp.calls and ["focus", 0] in comp.calls)
-	comp.title_changed.emit(1, "Novo título")
-	_check("o título acompanha o app", src.get_title() == "Novo título")
+	right_source.pointer_leave()
+	_check("a mira que sai tira o mouse dos apps", ["leave"] in comp.calls)
+	comp.calls.clear()
+	right_source.set_focused(true)
+	_check("sentar dá o teclado à janela em foco", ["focus", 2] in comp.calls)
+	comp.calls.clear()
+	comp.window_opened.emit(6, "foot", "Sentado", 301)
+	_check("sentado, a janela nova já ganha o teclado", ["focus", 6] in comp.calls and S.focused_window() == 6)
+	right_source.set_focused(false)
+	_check("levantar tira o foco de todas", ["focus", 0] in comp.calls)
+	comp.window_closed.emit(6)
+	comp.title_changed.emit(2, "Novo título")
+	_check("o título acompanha o app", right_source.get_title() == "Terminal" or S.focus_title() != "")
+	_check("ao fechar a de cima, o foco volta para a que estava embaixo dela (a 2, clicada antes)", S.focused_window() == 2 and S.window_count() == 3)
+
+	print("== A barra muda a área útil ==")
+	comp.calls.clear()
+	comp.usable[1] = Rect2i(0, 60, 1920, 1020)
+	comp.usable_area_changed.emit(1, comp.usable[1])
+	_check("as janelas da saída se ajustam", ["place", 1, 1, 0, 60, 1920, 1020] in comp.calls
+			and not (["place", 2, 2, 0, 0, 1920, 1080] in comp.calls))
 
 	print("== Hub dormindo: o compositor fica ocioso ==")
 	var polls_before: int = comp.polls
@@ -219,10 +245,12 @@ func _run() -> void:
 	var gone: Array[int] = []
 	S.window_gone.connect(func(id: int) -> void: gone.append(id))
 	comp.window_closed.emit(2)
-	_check("o telão fica livre", S.free_screens() == 1 and screens.get_screens()[1].get_source() == null and gone == [2])
+	_check("o aviso sai e a janela some da lista", S.window_count() == 2 and gone == [2] and S.app_of(2) == "")
 	comp.window_closed.emit(1)
 	comp.window_closed.emit(3)
-	_check("todos livres de novo", S.free_screens() == 3 and S.window_count() == 0)
+	_check("todas fechadas: nenhuma com o foco", S.window_count() == 0 and S.focused_window() == 0)
+	comp.window_closed.emit(99)
+	_check("fechar uma que não existe não quebra", gone == [2, 1, 3])
 
 	print("== Sem janela em 10 s: plano B ==")
 	ended.clear()
@@ -243,6 +271,14 @@ func _run() -> void:
 	var launched: bool = A.launch("foot", null)
 	_check("launch devolve false e avisa", not launched and ended.size() == 1 and not ended[0]["ok"]
 			and A.state == A.State.IDLE)
+
+	print("== Sem monitores, a janela é fechada ==")
+	desk.free()
+	await process_frame
+	comp.window_opened.emit(4, "foot", "Mais um", 301)
+	_check("sem onde mostrar, a janela é fechada (a 5, da seção anterior, segue aberta)", comp.closed_ids == [4]
+			and S.app_of(4) == "" and S.window_count() == 1)
+	_check("sem monitores, não abre no mundo", not S.can_open_in_world())
 
 	var file := FileAccess.open(root.get_node("AppConfig").CONFIG_PATH, FileAccess.WRITE)
 	file.store_string(config_backup)

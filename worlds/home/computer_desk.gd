@@ -1,8 +1,9 @@
 class_name ComputerDesk
 extends Node3D
 ## A MESA DO COMPUTADOR da casa: uma mesa larga com TRÊS MONITORES (Fase 14.25),
-## o do meio de frente e os dos lados um pouco virados para dentro. Por enquanto
-## os três mostram "Sem sinal": a 14.28 liga cada um a uma saída do compositor.
+## o do meio de frente e os dos lados um pouco virados para dentro. Cada um é um
+## DeskMonitor3D que mostra uma saída do compositor (o "Linux de dentro", Fase
+## 14.28); sem compositor, mostram "Sem sinal". O jogador senta com E e vê os três.
 ## As configurações (Casa, Sistema...) moraram aqui até a 14.24; agora são abas
 ## do menu de pausa (Esc).
 ##
@@ -18,8 +19,8 @@ const SCREEN_HEIGHT: float = 1.2
 ## Borda do monitor em volta da tela e espessura dele.
 const BEZEL: float = 0.025
 const MONITOR_DEPTH: float = 0.04
-## Pixels do conteúdo da tela (mesma proporção da tela).
-const SCREEN_RESOLUTION: Vector2i = Vector2i(1152, 648)
+## Pixels de cada monitor = o tamanho da saída do compositor (mesma proporção da tela).
+const SCREEN_RESOLUTION: Vector2i = Vector2i(1920, 1080)
 ## Os monitores dos lados: quanto ficam afastados do meio (x) e quanto giram para dentro.
 const SIDE_OFFSET: float = 0.88
 const SIDE_TURN_DEGREES: float = 22.0
@@ -28,16 +29,8 @@ const DESK_COLOR: Color = Color(0.3, 0.19, 0.11)
 const LAMP_COLOR: Color = Color(1.0, 0.74, 0.48)
 const MONITOR_COLOR: Color = Color(0.05, 0.05, 0.06)
 
-## Um monitor sem nada ligado: mostra "Sem sinal" e não aceita foco.
-class MonitorScreen extends Screen3D:
-	func get_look_info() -> Dictionary:
-		return {"title": screen_name, "detail": "Sem sinal", "action": ""}
-
-	func interact(_player: Node) -> void:
-		pass
-
 ## Esquerda, meio, direita.
-var _screens: Array[Screen3D] = []
+var _screens: Array[DeskMonitor3D] = []
 
 
 func _ready() -> void:
@@ -46,12 +39,12 @@ func _ready() -> void:
 
 
 ## A tela do monitor do MEIO (para os testes).
-func get_screen() -> Screen3D:
+func get_screen() -> DeskMonitor3D:
 	return _screens[1] if _screens.size() == 3 else null
 
 
 ## Os três monitores: esquerda, meio, direita.
-func get_screens() -> Array[Screen3D]:
+func get_screens() -> Array[DeskMonitor3D]:
 	return _screens
 
 
@@ -105,12 +98,12 @@ func _build_monitors() -> void:
 		holder.position = Vector3(side * SIDE_OFFSET, 0.0, back_z + absf(side) * 0.1)
 		holder.rotation.y = turn
 		add_child(holder)
-		_build_monitor(holder, names[i])
+		_build_monitor(holder, names[i], i)
 
 
-## Um monitor: pé, corpo e a tela (Screen3D) na frente do corpo. A origem do
+## Um monitor: pé, corpo e a tela (DeskMonitor3D) na frente do corpo. A origem do
 ## "holder" é o pé do monitor, no tampo.
-func _build_monitor(holder: Node3D, screen_name: String) -> void:
+func _build_monitor(holder: Node3D, screen_name: String, output_index: int) -> void:
 	var dark := _material(MONITOR_COLOR, 0.4)
 	var stand_height := SCREEN_HEIGHT - SCREEN_SIZE.y / 2.0 - DESK_SIZE.y
 	_add_box_to(holder, "Base", Vector3(0.28, 0.02, 0.2), Vector3(0.0, DESK_SIZE.y + 0.01, 0.0), dark)
@@ -118,28 +111,17 @@ func _build_monitor(holder: Node3D, screen_name: String) -> void:
 	var body_size := Vector3(SCREEN_SIZE.x + BEZEL * 2.0, SCREEN_SIZE.y + BEZEL * 2.0, MONITOR_DEPTH)
 	_add_box_to(holder, "Body", body_size, Vector3(0.0, SCREEN_HEIGHT, MONITOR_DEPTH / 2.0 - 0.02), dark)
 
-	var screen := MonitorScreen.new()
+	var screen := DeskMonitor3D.new()
 	screen.name = "Screen"
+	screen.output_index = output_index
 	screen.screen_name = screen_name
+	screen.available = AppSessions.is_supported()
+	screen.seat_requested.connect(AppSessions.attach_monitors)
 	screen.screen_size = SCREEN_SIZE
 	screen.resolution = SCREEN_RESOLUTION
 	screen.position = Vector3(0.0, SCREEN_HEIGHT, MONITOR_DEPTH - 0.02 + 0.002)
-	screen.set_content(_build_no_signal())
 	holder.add_child(screen)
 	_screens.append(screen)
-
-
-## O que aparece num monitor sem nada ligado.
-func _build_no_signal() -> Control:
-	var background := PanelContainer.new()
-	# A tela 3D é um SubViewport: o tema do hub não chega sozinho até aqui.
-	background.theme = HubTheme.get_theme()
-	background.theme_type_variation = &"HubScreen"
-	var label := HubTheme.label("SEM SINAL", &"HubTitle")
-	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	background.add_child(label)
-	return background
 
 
 # --- Peças --------------------------------------------------------------------
