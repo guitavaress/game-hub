@@ -81,10 +81,17 @@ func _run() -> void:
 	_check("marca de passos de madeira", loft.footstep == "wood")
 
 	print("== a casa montada pelo perfil é igual ao retrato (13.2) ==")
+	# O retrato foi gravado na qualidade Leve (sem SSAO nem névoa volumétrica).
+	# A casa usa a qualidade do config.cfg de quem roda o teste, então fixamos a
+	# Leve só na memória (o arquivo não muda) e devolvemos depois.
+	var config: ConfigFile = root.get_node("AppConfig")._config
+	var quality_before: Variant = config.get_value("video", "quality", null)
+	config.set_value("video", "quality", "leve")
 	var home: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
 	root.add_child(home)
 	await process_frame
 	var now: Array[String] = snapshot.capture(home)
+	config.set_value("video", "quality", quality_before)  # null apaga a chave, como estava
 	var missing := lines.filter(func(line: String) -> bool: return not now.has(line))
 	var extra := now.filter(func(line: String) -> bool: return not lines.has(line))
 	for line: String in missing.slice(0, 5):

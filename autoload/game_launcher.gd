@@ -66,6 +66,9 @@ var steam_was_closed: bool = false
 var state_reader: Callable = _read_steam_state
 ## Quem abre o endereço steam://. Os testes trocam para não abrir jogo de verdade.
 var url_opener: Callable = Callable(OS, "shell_open")
+## Quem diz se o jogo está instalado: func(app_id: int) -> bool. Os testes com
+## jogos falsos trocam isto (os falsos não têm appmanifest no disco).
+var install_checker: Callable = _is_installed
 
 var _app_id: int = 0
 var _source: Node = null
@@ -181,9 +184,13 @@ func _check_can_launch(app_id: int) -> String:
 		return "App ID inválido: %d\nConfira o número do jogo." % app_id
 	if SteamLibrary.get_steam_path().is_empty():
 		return "Não encontrei a Steam neste PC\nInstale a Steam e abra o hub de novo."
-	if not SteamLibrary.is_installed(app_id):
+	if not install_checker.call(app_id):
 		return "%s não está mais instalado\nInstale pela Steam e abra o hub de novo." % _game_name(app_id)
 	return ""
+
+
+func _is_installed(app_id: int) -> bool:
+	return SteamLibrary.is_installed(app_id)
 
 
 # --- Olhando a Steam ---------------------------------------------------------
