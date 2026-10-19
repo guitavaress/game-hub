@@ -20,6 +20,10 @@ func _run() -> void:
 	var lib: GDScript = load("res://autoload/app_library.gd")
 	var config: Node = root.get_node("AppConfig")
 	var linux := DesktopAppsLinux.new(PackedStringArray([user, system]), "Hyprland:wlroots", "pt_BR.UTF-8")
+	# TryExec: só o "sh" existe. Falso de propósito: no Windows o PATH é outro
+	# (separado por ";" e com "sh.exe"), e o teste tem que dar igual nos dois.
+	var only_sh := func(program: String) -> bool: return program == "sh"
+	linux.program_exists = only_sh
 
 	print("== leitor de .desktop ==")
 	var apps := linux.list_apps()
@@ -49,6 +53,7 @@ func _run() -> void:
 	_check("Exec perde o %U", by_id.has("navegador") and by_id["navegador"].exec_line == "navegador")
 
 	var kde := DesktopAppsLinux.new(PackedStringArray([user, system]), "KDE", "")
+	kde.program_exists = only_sh
 	var kde_ids := kde.list_apps().map(func(a: DesktopApp) -> String: return a.id)
 	_check("no KDE o OnlyShowIn=KDE entra", "so-kde" in kde_ids)
 	_check("sem idioma, o nome é o padrão", kde.list_apps().filter(func(a: DesktopApp) -> bool: return a.id == "foot")[0].name == "Foot")
@@ -122,6 +127,11 @@ func _run() -> void:
 	_check("arquivo que não existe: null", lib.load_icon_image("") == null and lib.load_icon_image("/nao/existe.png") == null)
 
 	var library: Node = root.get_node("AppLibrary")
+	# O AppLibrary acha o ícone pelo backend do sistema; no Windows ele não acha
+	# ícone de app. Aqui o leitor do Linux (com os ícones falsos) fica no lugar,
+	# para dar igual nos dois sistemas; o original volta no fim do trecho.
+	var real_backend = DesktopApps._backend
+	DesktopApps._backend = finder
 	var fake_png := DesktopApp.new()
 	fake_png.id = "teste-png"
 	fake_png.name = "Com ícone"
@@ -144,6 +154,7 @@ func _run() -> void:
 	_check("icon_ready avisou os dois", ready_ids.has("teste-png") and ready_ids.has("teste-nada"))
 	_check("depois de pronto, get_icon devolve a textura", library.get_icon("teste-png") is Texture2D)
 	_check("sem imagem: null, mas o resultado fica guardado", library.get_icon("teste-nada") == null and library.has_icon_result("teste-nada"))
+	DesktopApps._backend = real_backend
 
 	print("== config.cfg ==")
 	var backup := _backup_config()

@@ -82,7 +82,7 @@ func parse_file(path: String, id: String) -> DesktopApp:
 	if not _desktop_allows(entry):
 		return null
 	var try_exec: String = entry.get("TryExec", "")
-	if try_exec != "" and not _program_exists(try_exec):
+	if try_exec != "" and not program_exists.call(try_exec):
 		return null
 	var exec_line: String = entry.get("Exec", "")
 	if exec_line == "" or exec_line.contains("steam://rungameid"):
@@ -195,7 +195,7 @@ static func split_command(line: String) -> PackedStringArray:
 func find_icon(icon_name: String) -> String:
 	if icon_name == "":
 		return ""
-	if icon_name.begins_with("/"):
+	if icon_name.is_absolute_path():  # "/..." no Linux; "C:/..." no Windows (testes)
 		return icon_name if FileAccess.file_exists(icon_name) else ""
 	for theme in icon_themes:
 		for size in ICON_SIZES:
