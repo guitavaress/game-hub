@@ -1,6 +1,6 @@
 # Fase Linux: o hub rodando no Omarchy (Hyprland) sem quebrar o Windows
 
-**Status:** concluída no Linux (L.0–L.7). Falta só o checklist no Windows (fim deste arquivo) antes de juntar na `main`.
+**Status:** concluída (L.0–L.7), conferida no Windows em 2026-10-19 e juntada na `main`.
 **Branch:** `fase-linux`
 
 ## Contexto
@@ -154,6 +154,8 @@ Hoje o código só do Windows está em três pontos: `autoload/win_registry.gd` 
 - 2026-10-04: tela cheia forçada pelo hub é opcional e vem desligada: jogos que não mudam de tamanho (Undertale) quebram com ela e também com o tiling. Para esses, a tela cheia do próprio jogo ou o `gamescope` nas opções de inicialização da Steam (o dono preferiu não instalar agora) (L.5).
 - 2026-10-04: as regras da Steam (silenciosa e sem roubar foco) ficam na config do Omarchy do dono, não no projeto: são preferência da máquina (L.5).
 - 2026-10-05: a decisão sobre os testes que dependem da biblioteca foi resolvida assim: o dono instalou Skyrim, Valheim e Stardew (sem biblioteca falsa), e o `check_phase6_audio` deixou de exigir o app 3405690: acha um prédio de esportes pela categoria e, se não houver, confere o motor pela tabela do bairro (L.6). Bateria: 24 de 24 testes passam no notebook.
+- 2026-10-19: bateria completa no desktop com Windows: 62 de 62 depois de corrigir dois testes que dependiam da máquina. O `check_home_profile` montava a casa com a qualidade do `config.cfg` do dono (o retrato é da Leve; na "alta" o SSAO liga) e agora fixa a Leve só na memória. O `check_shelf` abria um jogo falso, e o launcher procura o `appmanifest` no disco; passava no notebook porque o primeiro jogo da estante estava instalado lá. O `GameLauncher` ganhou `install_checker`, que o teste troca (como `state_reader` e `url_opener`). Falta o item 1 do checklist do Windows (jogo de verdade).
+- 2026-10-19: checklist manual no Windows feito pelo dono: nascer em casa, abrir pela estante (segurar E) e pela porta de um prédio, o hub minimiza e volta no mesmo lugar e monitor, jogo aberto por fora da Steam e hologramas de amigos. Tudo certo; a fase vai para a `main`.
 
 ## Checklist de teste manual (fim da fase)
 No notebook (Omarchy):

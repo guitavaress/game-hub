@@ -5,7 +5,7 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), visual v2 e Fase Linux (detalhes no [README](README.md); da Fase Linux falta a conferência no Windows, no fim de [docs/plans/fase-linux.md](docs/plans/fase-linux.md)).
+- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), visual v2 e Fase Linux (detalhes no [README](README.md)).
 - **Fase 14 (feita no Linux):** o hub é um compositor Wayland aninhado (como o **Waylandcraft**) e a casa tem **três monitores na mesa do computador**, com a barra, o menu e os atalhos do Omarchy dentro. **Falta** a medida no desktop (Alta). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 

@@ -1,6 +1,6 @@
 # Fase 7: World Profile
 
-**Status:** feita no Linux (falta conferir no Windows, a partir de 18/10)
+**Status:** feita (conferida no Windows em 2026-10-19)
 **Branch:** `fase-7` (criada a partir de `fase-linux`, que está no PR #1 em rascunho; quando ela for juntada na `main`, `git rebase --onto main fase-linux fase-7`)
 
 ## Contexto

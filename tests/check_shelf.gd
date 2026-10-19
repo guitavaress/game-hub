@@ -32,6 +32,9 @@ func _run() -> void:
 	launcher.url_opener = func(url: String) -> int:
 		opened.append(url)
 		return OK
+	# Os jogos são falsos: sem isto, o launcher procura o appmanifest no disco e
+	# só passa se o jogo da caixa estiver instalado de verdade nesta máquina.
+	launcher.install_checker = func(_id: int) -> bool: return true
 	var fade = root.get_node("ScreenFade")
 	var player = city.get_node("Player")
 	var hud = player.get_hud()

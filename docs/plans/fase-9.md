@@ -1,6 +1,6 @@
 # Fase 9: A casa
 
-**Status:** feita no Linux (aprovado em 2026-10-06); falta a conferência no desktop
+**Status:** feita (aprovado em 2026-10-06; conferida no Windows em 2026-10-19)
 **Branch:** `fase-9`, no checkout principal (`~/git/game-hub`), aberto como projeto no **Nimbalyst**. Até 9.3 e 9.6 a fase rodou num worktree do claude-squad (branch `guitavares/game-hub`); na migração (2026-10-10), a `fase-9` nasceu dela, em `08fcd02`. A cadeia fica `main` ← `fase-linux` ← `fase-7` ← `fase-8` ← `fase-9`.
 
 ### Trabalho com o Nimbalyst
