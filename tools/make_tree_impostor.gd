@@ -7,8 +7,12 @@ extends SceneTree
 ##
 ## Roda uma vez, COM janela (precisa da placa de vídeo), a partir da pasta do
 ## projeto:
-##   Godot --path . -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png]
+##   Godot --path . -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png] [nó]
 ## Saída padrão: res://assets/generated/tree_impostor.png (+ .json com as medidas).
+## "nó" (opcional): quando o glTF traz várias árvores lado a lado, o nome da
+## que vai na foto (as outras são apagadas). Ex. do pinheiro da Fase 15:
+##   ... -- ~/git/game-hub-fontes/polyhaven/fir_sapling_medium/fir_sapling_medium_1k.gltf \
+##          res://assets/generated/pine_impostor.png fir_sapling_medium_a_LOD0
 
 const FRAMES: int = 8
 const COLUMNS: int = 4
@@ -23,11 +27,12 @@ func _initialize() -> void:
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png]")
+		push_error("Uso: -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png] [nó]")
 		quit(1)
 		return
 	var source: String = args[0]
 	var output: String = args[1] if args.size() > 1 else DEFAULT_OUTPUT
+	var keep: String = args[2] if args.size() > 2 else ""
 	await process_frame  # a janela principal precisa estar pronta
 
 	# Um "estúdio" separado do resto: fundo transparente, luz neutra.
@@ -66,6 +71,16 @@ func _run() -> void:
 		quit(1)
 		return
 	var tree := document.generate_scene(state) as Node3D
+	if keep != "":
+		var chosen := tree.find_child(keep, true, false)
+		if chosen == null:
+			push_error("O glTF não tem o nó \"%s\"." % keep)
+			quit(1)
+			return
+		# Fica só a árvore escolhida (e o que estiver dentro dela).
+		for node in tree.find_children("*", "MeshInstance3D", true, false):
+			if node != chosen and not chosen.is_ancestor_of(node):
+				node.free()
 	var pivot := Node3D.new()
 	viewport.add_child(pivot)
 	pivot.add_child(tree)

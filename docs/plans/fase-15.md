@@ -373,6 +373,7 @@ Testes afetados:
 
 ## Decisões tomadas durante a fase
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
+- 2026-10-17: 15.0 em andamento. Brief em `docs/design/bioma-montanha.md`; amostra baixada (Snow010A, Rock058, moon_rock_02 e o pinheiro fir_sapling_medium, cujo glTF fica em `~/git/game-hub-fontes/`) e capturada por cima do bairro RPG com o `tools/capturar_pontos.gd` (novo). Resultado: rocha = forma da moon_rock_02 com a Rock058 e neve por cima; neve com tinta `#BCC5D2`. **Falta:** o dono aprovar a amostra e permitir os `footstep_snow_*` do Kenney.
 
 ## Checklist de teste manual (fim da fase)
 1. **Abrir a cidade:** `~/.local/bin/godot --path . worlds/city/city.tscn`, com a biblioteca de verdade. Sair de casa (E na porta) e abrir o mapa (M).

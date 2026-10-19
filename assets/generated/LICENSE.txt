@@ -10,3 +10,6 @@ gerados por tools/gerar_estrelas.gd, também CC0.
 
 Os arquivos tree_impostor.png e tree_impostor.json são fotos da jacaranda_tree
 da Poly Haven (CC0), geradas por tools/make_tree_impostor.gd.
+
+Os arquivos pine_impostor.png e pine_impostor.json são fotos da
+fir_sapling_medium da Poly Haven (CC0), geradas por tools/make_tree_impostor.gd.

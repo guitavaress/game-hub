@@ -259,6 +259,7 @@ Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para cri
 
 - **Céus (HDRI):** [Poly Haven](https://polyhaven.com), **CC0** (domínio público): `kloofendal_48d_partly_cloudy_puresky` (dia), `qwantani_dusk_2_puresky` (pôr do sol) e `rogland_clear_night` (noite), em 2K. Detalhes em `assets/polyhaven/LICENSE.txt`.
 - **Texturas (PBR):** [ambientCG](https://ambientcg.com), **CC0**: Bricks097, Concrete034, Concrete048, Road012A, Tiles139 e Tiles141, em 1K. Detalhes em `assets/ambientcg/LICENSE.txt`.
+- **Bioma montanha (Fase 15):** neve `Snow010A` e rocha `Rock058` da [ambientCG](https://ambientcg.com), em 1K; rocha 3D `moon_rock_02` e fotos do pinheiro `fir_sapling_medium` da [Poly Haven](https://polyhaven.com), tiradas por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). Tudo **CC0**. O modelo do pinheiro (78 MB) não fica no repositório.
 - **Pedra de calçamento (bairro Aventura):** `PavingStones070`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K.
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
 - **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
