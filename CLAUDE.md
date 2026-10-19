@@ -5,7 +5,8 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–13, visual v2 e Fase Linux (detalhes no [README](README.md)).
+- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), visual v2 e Fase Linux (detalhes no [README](README.md)).
+- **Fase 14 (feita no Linux):** o hub é um compositor Wayland aninhado (como o **Waylandcraft**) e a casa tem **três monitores na mesa do computador**, com a barra, o menu e os atalhos do Omarchy dentro. **Falta** a medida no desktop (Alta). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
@@ -15,7 +16,8 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 ## Stack
 - **Godot 4.7.2** (versão padrão, não .NET), em `C:\Godot\Godot_v4.7.2-stable_win64_console.exe` no Windows e em `~/.local/bin/godot` no Linux. **GDScript com tipagem estática** (`var x: int`). Renderer Forward+, física Jolt.
-- **Windows 10** e **Linux** (Omarchy: Hyprland 0.56, Wayland). O desktop (Ryzen 5 5600, RTX 4070) terá dual boot; o notebook de viagem é fraco (use a qualidade Leve). Detalhes de Steam, Windows e Linux: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
+- **Windows 10** e **Linux** (Omarchy: Hyprland 0.56, Wayland). O desktop (Ryzen 5 5600, RTX 4070) terá dual boot; o notebook de viagem é fraco (use a qualidade Leve).
+- **Desempenho: a meta é sempre o desktop** (Ryzen 5 5600 + RTX 4070, na Alta). O notebook **nunca** é meta, nem em plano, spike ou conclusão: lá a medida só compara o mesmo código antes e depois. Sem o desktop à mão, a meta fica pendente para a trilha do desktop. Detalhes de Steam, Windows e Linux: [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - Git, com um commit por passo concluído e testado.
 
 ## Mapa do projeto
@@ -26,12 +28,21 @@ autoload/      sistemas globais; não conhecem nenhum mundo
   store_info, game_categories         tags da loja → categoria/bairro
   game_art                            capas (cache local da Steam → CDN → user://cache)
   game_launcher, hub_window           abrir jogo, minimizar/voltar, sessão
+  app_library, desktop_app            os programas instalados: lista, ordem, ocultos, ícones
+  app_launcher                        abrir um app e acompanhar a janela dele (irmão do game_launcher)
+  app_sessions, desk_layout           o compositor e os monitores da mesa (grupo desk_monitors): saídas, janelas, foco, atalhos; o arranjo das janelas
+  system_status                       bateria, rede e volume, a cada 5 s (painel da casa)
   friends_service, steam_friend       amigos pela Steam Web API
   app_config, graphics_quality        user://config.cfg, qualidade gráfica
   input_device                        último aparelho usado (teclado/mouse ou controle) e os nomes das dicas
   platform/                           ÚNICO lugar com código de sistema operacional
     steam_client (+ backends por SO)    "onde está a Steam? qual jogo está rodando?"
-    window_host (+ hyprland)            esconder/mostrar a janela do hub
+    window_host (+ hyprland)            esconder/mostrar a janela do hub; achar a janela de um app
+    desktop_apps (+ linux, windows)     lista de programas, ícones, abrir (.desktop / Menu Iniciar)
+    system_info (+ linux)               bateria, rede e volume
+    autostart                           abrir o hub ao entrar na sessão; a linha do atalho
+    app_compositor                      o compositor (Linux): carrega a extensão nativa, cria o nó, teclas → evdev, layout, ambiente de dentro e calços, Quickshell
+    omarchy_binds (+ .lua)              os atalhos do Omarchy (lê a config do Hyprland); o submap fica no window_host_hyprland
     win_registry                        lê o registro do Windows
 profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
                a lista do mundo em world_profile.tres; Profiles lê.
@@ -44,18 +55,22 @@ components/    peças reutilizáveis em qualquer mundo
   transit_stop/     parada de transporte (lógica do metrô; a aparência é do mundo)
   travel_door/      porta de viagem (E leva a outro lugar; a aparência é de quem usa)
   screen_3d/        tela 3D clicável (o conteúdo é qualquer Control)
+  desk_monitor_3d/  um monitor da mesa (uma saída do compositor; sentar, mouse pelos três, Esc longo levanta)
   avatar/           o corpo do avatar (AvatarBody), pintado por parte; vale para você e para os hologramas
   library_stats/    os números da biblioteca (horas, mais jogados, bairros), sem tela
   ambient_emitter/  som ambiente por categoria
 player/        primeira pessoa (camera_feel.gd: balanço, pouso e FOV da câmera); cria HUD, menu de pausa (Esc), busca (Tab), mapa (M) e painel do metrô
 ui/            tema único (hub_theme.gd) e KeyHint (tecla que troca com o aparelho); HUD (bússola, minimapa), avisos, cartão de controles da 1ª vez, telas "Abrindo"/"Jogando", fade, menus, mapa grande, painel do metrô
-worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, mural, estatísticas, espelho, computador) em lugares prontos; não conhece nenhum mundo
+worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do perfil, e os móveis (estante, mural, estatísticas, espelho, painel do sistema, computador com três monitores) em lugares prontos; não conhece nenhum mundo
   themes/         o enfeite de cada tema (loft, cabana), que estende HomeDecor
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)
 tests/         bateria automática (veja tests/README.md)
-tools/         scripts de geração rodados à mão (ex.: atlas das árvores)
+tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual
 assets/        só CC0, com LICENSE em cada pasta de origem
+addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
+native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
+               só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 .claude/skills/  skills do Claude Code (jogos/design, Apache-2.0) + revisao-do-hub
 ```
@@ -78,6 +93,15 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 - Só **CC0** (Kenney, Poly Haven, ambientCG, Quaternius...), com o `LICENSE` na pasta e o crédito no README.
 - **Antes de baixar, peça permissão** dizendo o nome do arquivo, a origem e o tamanho.
 - Arquivos-fonte pesados (ex.: modelo glTF de centenas de MB) ficam **fora do repositório**. Entra só o que o jogo usa (ex.: o atlas gerado).
+
+## Addons (código de terceiros)
+Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-2026-10-13.md).
+- Licença permissiva (MIT, Apache-2.0, BSD, zlib), em `addons/<nome>/`, com o `LICENSE` junto e o crédito no README.
+  - **Exceção (dono, 2026-10-14):** o godot-rust (gdext, MPL-2.0) entra como biblioteca do `native/compositor/`, baixado pelo Cargo. Nenhum crate GPL. **O Waylandcraft é GPL-3.0: só as ideias, nenhuma linha copiada.**
+- **Antes de baixar, peça permissão** dizendo o nome, a origem, a versão e o tamanho. Vale também para os crates do Rust (lista com nome, versão e licença).
+- Versão fixada e testada na Godot 4.7.2. GDExtension só com binários de Windows e Linux x86_64. O compositor (`native/compositor/`) é só Linux; no Windows o hub segue sem ele.
+- Sempre atrás de um ponto único do projeto (ex.: GodotSteam só em `autoload/platform/`, Sky3D só no `DayNight`), para as regras de arquitetura continuarem valendo.
+- Toda adoção começa com um spike numa branch, medido no notebook (Leve).
 
 ## Como trabalhar
 

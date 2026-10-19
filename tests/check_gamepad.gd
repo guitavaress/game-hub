@@ -227,8 +227,9 @@ func _check_panels(city: Node, player, app) -> void:
 
 	print("== Computador ==")
 	var home = city.get_home()
-	var screen = home.get_node("ComputerDesk").get_screen()
-	var desk_settings = home.get_node("ComputerDesk").get_settings()
+	var fixture = load("res://tests/settings_screen.gd").install(home)
+	var screen = fixture.screen
+	var desk_settings = fixture.settings
 	player.teleport_to(home.get_spawn_transform())
 	player.set_indoors(home.get_environment())
 	await _frames(3)

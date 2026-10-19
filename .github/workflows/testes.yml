@@ -5,6 +5,7 @@
 #   check_platform       o backend certo por sistema; nada de SO fora de platform/
 #   check_steam_linux    o backend Linux, com uma home e um /proc de exemplo
 #   check_window_host    a janela no Hyprland, com um hyprctl falso
+#   check_desktop_apps_windows  a lista de apps do Menu Iniciar (pasta de exemplo)
 #   check_steam_windows  o backend Windows, com o reg.exe e o tasklist de verdade
 #                        (só no Windows; nos outros sistemas ele é "pulado")
 #
@@ -71,7 +72,7 @@ jobs:
           "$tmp/godot/$exe" --version
 
       - name: Testes de plataforma
-        run: bash tests/run_tests.sh check_platform check_steam_linux check_window_host check_steam_windows
+        run: bash tests/run_tests.sh check_platform check_steam_linux check_window_host check_steam_windows check_desktop_apps_windows
 
       # Sempre mostra a saída completa: o run_tests.sh só mostra "ok" ou "FALHOU",
       # e queremos ver que o reg.exe e o tasklist de verdade rodaram.

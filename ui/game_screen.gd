@@ -16,6 +16,8 @@ extends Control
 ## Tudo é montado por código; medidas pensadas para 1280x720 (escala junto).
 
 const BACKGROUND: Color = Color("08090C")
+## Filete da tela de um app (apps não têm bairro).
+const APP_ACCENT: Color = Color("8A94A6")
 ## O hero ocupa a largura toda: 1280 x 413 em 1280x720 (proporção de 1920x620).
 const HERO_HEIGHT_FRACTION: float = 413.0 / 720.0
 const LOGO_MAX_SIZE: Vector2 = Vector2(480.0, 170.0)
@@ -91,6 +93,26 @@ func show_opening(app_id: int) -> void:
 	_mode = "abrindo"
 	_fill_common(app_id)
 	_status_label.text = "Abrindo a Steam…" if GameLauncher.steam_was_closed else "Abrindo pela Steam…"
+	_opening.visible = true
+	_playing.visible = false
+	_clock.stop()
+	visible = true
+
+
+## Mostra a tela "Abrindo X…" de um APP comum: o ícone no lugar do logo (sem
+## hero) e o texto "Abrindo…". Sem ícone, o nome grande ocupa o lugar dele.
+func show_app_opening(app_name: String, icon: Texture2D) -> void:
+	_app_id = 0
+	_mode = "abrindo"
+	_hero.texture = null
+	_hero.visible = false
+	_hero_fade.visible = false
+	_logo.texture = icon
+	_logo.visible = icon != null
+	_name_label.text = app_name.to_upper()
+	_name_label.visible = icon == null
+	_status_label.text = "Abrindo %s…" % app_name if icon != null else "Abrindo…"
+	_accent_line.color = APP_ACCENT
 	_opening.visible = true
 	_playing.visible = false
 	_clock.stop()

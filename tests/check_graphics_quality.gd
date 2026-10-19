@@ -17,6 +17,7 @@ func _run() -> void:
 	await process_frame
 	var app := root.get_node("AppConfig")
 	var original_quality: String = app.get_quality()
+	var original_sky: String = app.get_sky()
 	var helper: GDScript = load("res://autoload/graphics_quality.gd")
 	var sun := DirectionalLight3D.new()
 	root.add_child(sun)
@@ -39,6 +40,7 @@ func _run() -> void:
 
 	# A cidade usa o mesmo ajudante no sol dela e troca junto com o menu.
 	print("== sol da cidade ==")
+	app.set_sky("fotos")  # o sol "Sun" é o do céu de fotos
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
@@ -51,6 +53,7 @@ func _run() -> void:
 	_check("Alta: sombra do sol da cidade longa", is_equal_approx(city_sun.directional_shadow_max_distance, 120.0))
 
 	app.set_quality(original_quality)
+	app.set_sky(original_sky)
 	_check("qualidade do usuário devolvida (%s)" % original_quality, app.get_quality() == original_quality)
 	sun.queue_free()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))

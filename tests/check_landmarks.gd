@@ -65,7 +65,10 @@ func _run() -> void:
 	var plaza_half: float = CityLayout.BLOCK_SIZE / 2.0
 	for node in city.find_children("*", "Node3D", true, false):
 		if String(node.scene_file_path).contains("plant_bush") \
-				and absf(node.position.x) < plaza_half and absf(node.position.z) < plaza_half:
+				and not city.get_home().is_ancestor_of(node):
+			var position: Vector3 = city.to_local(node.global_position)
+			if absf(position.x) >= plaza_half or absf(position.z) >= plaza_half:
+				continue
 			bushes += 1
 	_check("a praça não tem arbusto (%d na praça)" % bushes, bushes == 0)
 

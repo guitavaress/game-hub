@@ -23,6 +23,14 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	var app: Node = root.get_node("AppConfig")
+	var backup := FileAccess.get_file_as_string(CONFIG)
+	var original: Array = [app.get_home_theme(), app.get_home_layout(), app.get_home_wall_color(), app.get_home_neon_color(), app.get_quality()]
+	app.set_home_theme("")
+	app.set_home_layout("")
+	app.set_home_wall_color("")
+	app.set_home_neon_color("")
+	app.set_quality("leve")  # o retrato original não tem SSAO
 	var snapshot: GDScript = load("res://tests/home_snapshot.gd")
 	var portrait: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(PORTRAIT))
 	var lines: Array = portrait["linhas"]
@@ -81,17 +89,10 @@ func _run() -> void:
 	_check("marca de passos de madeira", loft.footstep == "wood")
 
 	print("== a casa montada pelo perfil é igual ao retrato (13.2) ==")
-	# O retrato foi gravado na qualidade Leve (sem SSAO nem névoa volumétrica).
-	# A casa usa a qualidade do config.cfg de quem roda o teste, então fixamos a
-	# Leve só na memória (o arquivo não muda) e devolvemos depois.
-	var config: ConfigFile = root.get_node("AppConfig")._config
-	var quality_before: Variant = config.get_value("video", "quality", null)
-	config.set_value("video", "quality", "leve")
 	var home: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
 	root.add_child(home)
 	await process_frame
 	var now: Array[String] = snapshot.capture(home)
-	config.set_value("video", "quality", quality_before)  # null apaga a chave, como estava
 	var missing := lines.filter(func(line: String) -> bool: return not now.has(line))
 	var extra := now.filter(func(line: String) -> bool: return not lines.has(line))
 	for line: String in missing.slice(0, 5):
@@ -120,6 +121,14 @@ func _run() -> void:
 	_check("nenhum dos %d scripts cita um id de tema %s" % [scripts.size(), str(offenders)],
 			scripts.size() > 50 and offenders.is_empty())
 
+	app.set_home_theme(original[0])
+	app.set_home_layout(original[1])
+	app.set_home_wall_color(original[2])
+	app.set_home_neon_color(original[3])
+	app.set_quality(original[4])
+	var restored := FileAccess.open(CONFIG, FileAccess.WRITE)
+	restored.store_string(backup)
+	restored.close()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
 

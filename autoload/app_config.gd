@@ -60,6 +60,8 @@ const VIDEO_SECTION_TEXT: String = """
 quality="alta"
 ; Hora da cidade: "relogio" (segue o relógio do PC), "dia" ou "noite".
 time_of_day="relogio"
+; Céu da cidade: "fotos" (fotos HDRI) ou "sky3d" (sol, lua e nuvens calculados).
+sky="fotos"
 ; Bússola e minimapa na tela: true ou false.
 show_map=true
 """
@@ -123,6 +125,19 @@ shirt=""
 pants=""
 """
 
+## Seção dos apps (Fase 14.2), acrescentada do mesmo jeito.
+const APPS_SECTION_TEXT: String = """
+[apps]
+
+; Só no Linux: programas que NÃO aparecem na estante de apps da casa.
+; Os ids são os nomes dos arquivos de atalho do sistema (sem a extensão), separados por
+; vírgula. Ex.: ocultos="avahi-discover,bvnc"
+ocultos=""
+; Os últimos apps abertos pelo hub (o hub escreve aqui; os mais recentes vêm
+; primeiro na estante).
+ultimos=""
+"""
+
 ## Seções novas e o texto de cada uma: se o arquivo não tiver alguma, ela é
 ## acrescentada no fim.
 const ADDED_SECTIONS: Dictionary[String, String] = {
@@ -133,11 +148,15 @@ const ADDED_SECTIONS: Dictionary[String, String] = {
 	"controls": CONTROLS_SECTION_TEXT,
 	"home": HOME_SECTION_TEXT,
 	"avatar": AVATAR_SECTION_TEXT,
+	"apps": APPS_SECTION_TEXT,
 }
 
 ## Valores aceitos para as opções de vídeo.
 const QUALITY_LEVELS: Array[String] = ["leve", "media", "alta"]
 const TIME_OF_DAY_MODES: Array[String] = ["relogio", "dia", "noite"]
+## Céu da cidade: "fotos" (três fotos HDRI misturadas) ou "sky3d" (o addon
+## Sky3D: sol, lua, estrelas e nuvens calculados). Spike de 2026-10.
+const SKY_MODES: Array[String] = ["fotos", "sky3d"]
 
 ## Canais de áudio (default_bus_layout.tres) e a opção de volume de cada um.
 const VOLUME_KEYS: Dictionary[String, String] = {
@@ -251,6 +270,17 @@ func get_time_of_day() -> String:
 func set_time_of_day(mode: String) -> void:
 	if mode in TIME_OF_DAY_MODES:
 		_set_option("video", "time_of_day", mode)
+
+
+## Céu da cidade: "fotos" (padrão) ou "sky3d".
+func get_sky() -> String:
+	var mode := str(_config.get_value("video", "sky", "fotos")).strip_edges().to_lower()
+	return mode if mode in SKY_MODES else "fotos"
+
+
+func set_sky(mode: String) -> void:
+	if mode in SKY_MODES:
+		_set_option("video", "sky", mode)
 
 
 ## Bússola e minimapa ligados? (Padrão: sim.)
@@ -383,6 +413,29 @@ func set_avatar(data: Dictionary) -> void:
 		for key: Variant in colors:
 			_set_option("avatar", str(key), str(colors[key]).strip_edges(), false)
 	settings_changed.emit("avatar", "colors")
+
+
+## Ids dos apps que o usuário escondeu da estante de apps (seção [apps]).
+func get_hidden_apps() -> Array[String]:
+	return _read_id_list("ocultos")
+
+
+## Ids dos últimos apps abertos pelo hub, o mais recente primeiro.
+func get_recent_apps() -> Array[String]:
+	return _read_id_list("ultimos")
+
+
+func set_recent_apps(ids: Array[String]) -> void:
+	_set_option("apps", "ultimos", ",".join(ids), false)
+
+
+func _read_id_list(key: String) -> Array[String]:
+	var result: Array[String] = []
+	for item in str(_config.get_value("apps", key, "")).split(",", false):
+		var clean := item.strip_edges()
+		if clean != "" and not clean in result:
+			result.append(clean)
+	return result
 
 
 ## Monitor onde os jogos abrem no Hyprland ("" = o que estiver em foco).

@@ -90,6 +90,7 @@ func _ready() -> void:
 
 	# O HUD escuta os sistemas para avisar quando algo dá errado.
 	GameLauncher.session_ended.connect(_on_session_ended)
+	AppLauncher.app_session_ended.connect(_on_app_session_ended)
 	HubWindow.woke_up.connect(_play_sound.bind(WELCOME_BACK_SOUND))
 	# Avisos de amigos: cada um aparece uma vez só por execução do hub.
 	FriendsService.problem.connect(show_report_once)
@@ -311,6 +312,13 @@ func _on_session_ended(app_id: int, _source: Node, success: bool, message: Strin
 	elif success and not HubWindow.is_sleeping:
 		# Voltou de um jogo (na troca direta de jogo o hub continua dormindo).
 		_show_session_summary(app_id)
+
+
+## Um app que não abriu (ou cuja espera foi cancelada) vira aviso; o app que
+## fechou normalmente não precisa de aviso.
+func _on_app_session_ended(_app_id: String, _source: Node, success: bool, message: String) -> void:
+	if not success and not message.is_empty():
+		show_report(message, Toast.Kind.ERROR)
 
 
 ## Aviso verde da volta: "BEM-VINDO DE VOLTA · 1 h 12 min de Balatro ·
