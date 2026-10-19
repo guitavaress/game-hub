@@ -10,6 +10,9 @@ extends WindowHost
 ##   hide_hub: o hub vai para um workspace especial (oculto), "special:gamehub".
 ##       É o "minimizar" daqui.
 ##   show_hub: o hub volta para o workspace onde estava, com foco.
+##   hide_hub_again (Fase 14.11): o atalho do Omarchy foca o hub escondido, e o
+##       Hyprland abre o "special:gamehub" por cima da tela. Durante um jogo,
+##       fechamos esse special de novo (o jogo volta a aparecer e ganha o foco).
 ##   place_game_windows: quando a janela do jogo aparece, garante que ela está
 ##       SOZINHA num workspace do monitor do jogo (se não estiver, move para um
 ##       vazio, levando a tela junto) e a põe em tela cheia de verdade (sem barra
@@ -33,6 +36,13 @@ extends WindowHost
 ## entra num comando passa pelo _clean (só letras, números e - _ . :).
 ##
 ## Achamos a NOSSA janela na lista do "hyprctl clients -j" pelo número do processo.
+##
+## Janelas de app (Fase 14.5): antes de abrir o app, guardamos os endereços de
+## todas as janelas; a janela do app é a primeira NOVA do tiling (não
+## flutuante, não a do hub, fora dos workspaces "special:"). Não dá para achar
+## pelo processo: o Brave abre uma janela nova no processo que já existia
+## (spike da 14.1). Se o app diz a classe da janela (StartupWMClass), ela vence;
+## entre várias, a que ganhou o foco por último.
 
 const SPECIAL_WORKSPACE: String = "special:gamehub"
 
@@ -45,6 +55,17 @@ var run_hyprctl: Callable = _run_hyprctl
 var my_pid: int = OS.get_process_id()
 ## Pasta "/proc" (os testes trocam por uma de exemplo).
 var proc_dir: String = "/proc"
+
+## O submap do assento (Fase 14.30), e quanto tempo o vigia espera sem
+## notícia do hub antes de desligar o submap sozinho (o hub renova a cada poucos segundos).
+const SEAT_SUBMAP: String = "gamehub_seat"
+const SEAT_WATCHDOG_MS: int = 20000
+
+## Quem roda um comando Lua no Hyprland (hyprctl eval): func(lua: String) -> bool
+## (true = o Hyprland aceitou). Os testes trocam.
+var run_eval: Callable = _run_eval
+## Cada renovação do vigia ganha um número; só o último timer desliga o submap.
+var _seat_generation: int = 0
 
 ## Workspace para onde o hub volta ("" = não mexemos em nada).
 var _return_workspace: String = ""
@@ -102,6 +123,24 @@ func hide_hub() -> void:
 	if not _hidden:
 		push_warning("Hyprland: não consegui esconder o hub; usando o minimizar da Godot.")
 		super.hide_hub()
+
+
+func hide_hub_again() -> void:
+	if not _hidden:
+		return
+	var special_name := SPECIAL_WORKSPACE.trim_prefix("special:")
+	for monitor: Variant in _query("monitors"):
+		if not monitor is Dictionary:
+			continue
+		if str(monitor.get("specialWorkspace", {}).get("name", "")) != SPECIAL_WORKSPACE:
+			continue
+		# O toggle vale para o monitor em foco: primeiro o foco no monitor onde o
+		# special está aberto. Fechar só se estiver aberto (senão o toggle o abriria).
+		var monitor_name := _clean(str(monitor.get("name", "")))
+		_dispatch("hl.dsp.focus({ monitor = '%s' })" % monitor_name,
+				PackedStringArray(["focusmonitor", monitor_name]))
+		_dispatch("hl.dsp.workspace.toggle_special('%s')" % special_name,
+				PackedStringArray(["togglespecialworkspace", special_name]))
 
 
 func place_game_windows(game_pids: Array[int], game_monitor: String, fullscreen: bool) -> void:
@@ -184,6 +223,94 @@ func show_hub() -> void:
 	_hidden = false
 
 
+# --- Atalhos do Omarchy sentado à mesa (Fase 14.30) ---------------------------
+# O Lua mandado pelo hub usa SÓ aspas simples: o OS.execute da Godot come as
+# aspas duplas dos argumentos. O retorno é conferido (erro vem com código 7).
+
+func supports_seat_shortcuts() -> bool:
+	return true
+
+
+func seat_begin() -> bool:
+	return _seat_submap()
+
+
+func seat_keepalive() -> void:
+	_seat_submap()
+
+
+func seat_end() -> void:
+	_seat_generation += 1
+	run_eval.call("gamehub_seat_gen = %d; hl.dispatch(hl.dsp.submap('reset'))" % _seat_generation)
+
+
+## (Re)define o submap, entra nele e arma o vigia desta geração.
+func _seat_submap() -> bool:
+	_seat_generation += 1
+	var lua := "hl.define_submap('%s', function() hl.bind('SUPER + SHIFT + ESCAPE', hl.dsp.submap('reset'), {description = 'Game Hub: sair do submap'}) end); " % SEAT_SUBMAP
+	lua += "gamehub_seat_gen = %d; hl.dispatch(hl.dsp.submap('%s')); " % [_seat_generation, SEAT_SUBMAP]
+	lua += "hl.timer(function() if gamehub_seat_gen == %d then hl.dispatch(hl.dsp.submap('reset')) end end, {timeout = %d, type = 'oneshot'})" % [_seat_generation, SEAT_WATCHDOG_MS]
+	return bool(run_eval.call(lua))
+
+
+func _run_eval(lua: String) -> bool:
+	var output: Array = []
+	var code := OS.execute(hyprctl_command, PackedStringArray(["eval", lua]), output, true)
+	if code != 0:
+		push_warning("Hyprland recusou o comando do assento (código %d)." % code)
+	return code == 0
+
+
+# --- Janelas de app (Fase 14.5) -----------------------------------------------
+
+func can_track_windows() -> bool:
+	return true
+
+
+func list_window_addresses() -> PackedStringArray:
+	var result := PackedStringArray()
+	for client: Variant in _query("clients"):
+		if client is Dictionary:
+			result.append(str(client.get("address", "")))
+	return result
+
+
+func find_new_window(before: PackedStringArray, wm_class: String) -> String:
+	var wanted := wm_class.strip_edges().to_lower()
+	var best: Dictionary = {}
+	var best_matches := false
+	for client: Variant in _query("clients"):
+		if not client is Dictionary:
+			continue
+		var address := str(client.get("address", ""))
+		if address.is_empty() or address in before:
+			continue
+		if client.get("floating", false) or int(client.get("pid", -1)) == my_pid:
+			continue  # aviso/launcher flutuante, ou o próprio hub
+		if str(client.get("workspace", {}).get("name", "")).begins_with("special:"):
+			continue  # escondida (ex.: um scratchpad)
+		var matches := not wanted.is_empty() and (
+				str(client.get("class", "")).to_lower() == wanted
+				or str(client.get("initialClass", "")).to_lower() == wanted)
+		# A classe certa vence; empatou, vence quem ganhou o foco por último
+		# (focusHistoryID menor).
+		if best.is_empty() or (matches and not best_matches) or (matches == best_matches
+				and int(client.get("focusHistoryID", 999)) < int(best.get("focusHistoryID", 999))):
+			best = client
+			best_matches = matches
+	return str(best.get("address", ""))
+
+
+func window_exists(address: String) -> bool:
+	var clients := _query("clients")
+	if clients.is_empty():
+		return true  # o hyprctl não respondeu (a do hub sempre existe): não dá para dizer que fechou
+	for client: Variant in clients:
+		if client is Dictionary and str(client.get("address", "")) == address:
+			return true
+	return false
+
+
 ## Manda um comando ao Hyprland. Devolve true se ele respondeu "ok".
 func _dispatch(lua: String, legacy: PackedStringArray) -> bool:
 	if not _legacy:
@@ -200,7 +327,10 @@ func _dispatch(lua: String, legacy: PackedStringArray) -> bool:
 
 ## Lista do Hyprland em JSON ("clients", "monitors", "workspaces"); [] se falhar.
 func _query(kind: String) -> Array:
-	var parsed: Variant = JSON.parse_string(run_hyprctl.call(PackedStringArray([kind, "-j"])))
+	var reply: String = run_hyprctl.call(PackedStringArray([kind, "-j"]))
+	if not reply.begins_with("["):
+		return []  # sem resposta ou erro (sem isso, o JSON reclama no log a cada consulta)
+	var parsed: Variant = JSON.parse_string(reply)
 	return parsed if parsed is Array else []
 
 

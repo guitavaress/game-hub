@@ -100,7 +100,7 @@ func _run() -> void:
 	_check("o piso voltou ao do loft", _material_color(home, "Floor").is_equal_approx(loft.floor.color))
 
 	print("== com o foco no computador ==")
-	var screen = desk.get_screen()
+	var screen = load("res://tests/settings_screen.gd").install(home).screen
 	var front: Vector3 = screen.global_basis.z
 	front.y = 0.0
 	front = front.normalized()

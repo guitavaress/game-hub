@@ -19,10 +19,17 @@ extends Node
 ## workspace oculto (lá quem cuida de monitor, posição e tamanho é o Hyprland,
 ## então não guardamos nada disso).
 ##
-## Não conhece jogos nem mundos: quem decide QUANDO dormir é o GameLauncher.
+## Janelas de app (Fase 14.5): repassa ao WindowHost as perguntas "qual janela
+## o app abriu?" e "ela ainda existe?", e avisa focus_returned quando o hub,
+## escondido, ganha o foco de novo (o atalho do Omarchy, ou um clique nele).
+##
+## Não conhece jogos nem mundos: quem decide QUANDO dormir é o GameLauncher
+## (ou o AppLauncher).
 
 ## O hub acabou de acordar (um jogo fechou).
 signal woke_up
+## O hub estava escondido e ganhou o foco (alguém o chamou de volta).
+signal focus_returned
 
 const PLACEMENT_PATH: String = "user://window.cfg"
 ## FPS máximo enquanto dorme: minimizado, e ainda visível (tela "Abrindo X…").
@@ -37,6 +44,9 @@ const WAKE_FADE_TIME: float = 0.8
 ## demorar a aparecer, e alguns jogos abrem antes um launcher).
 const GAME_WINDOW_CHECK: float = 0.5
 const GAME_WINDOW_CHECK_FOR: float = 90.0
+## Folga (s) depois de esconder: um foco que chega logo em seguida é só o
+## sistema arrumando as janelas, não alguém chamando o hub.
+const FOCUS_RETURN_GRACE: float = 1.0
 
 var is_sleeping: bool = false
 
@@ -51,6 +61,8 @@ var _window_host: WindowHost = WindowHost.create()
 var _game_pids: Array[int] = []
 var _game_window_until_ms: int = 0
 var _game_window_timer: Timer
+## Quando o hub foi escondido (Time.get_ticks_msec; 0 = não está escondido).
+var _hidden_since_ms: int = 0
 
 
 func _ready() -> void:
@@ -91,6 +103,18 @@ func quit_hub() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_close_hub()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_on_focus_in()
+
+
+## O hub ganhou o foco. Se estava escondido há mais que a folga, alguém o
+## chamou de volta: avisa (quem decide o que fazer é o AppLauncher).
+func _on_focus_in() -> void:
+	if not is_sleeping or _hidden_since_ms == 0:
+		return
+	if Time.get_ticks_msec() - _hidden_since_ms < int(FOCUS_RETURN_GRACE * 1000.0):
+		return
+	focus_returned.emit()
 
 
 ## Fecha o hub com calma (X ou Alt+F4): guarda onde a janela está, para todos
@@ -170,12 +194,28 @@ func _stop_game_window_checks() -> void:
 
 ## Minimiza (esconde) o hub que já está dormindo (ex.: o jogo acabou de aparecer).
 func minimize_now() -> void:
-	if not is_sleeping or _did_minimize:
+	if not is_sleeping:
 		return
+	if _did_minimize:
+		hide_again()  # já escondido, mas pode ter sido chamado de volta pelo atalho
+		return
+	if _hidden_since_ms == 0:
+		_hidden_since_ms = Time.get_ticks_msec()
 	Engine.max_fps = SLEEP_MAX_FPS
 	_did_minimize = _can_control_window()
 	if _did_minimize:
 		_window_host.hide_hub()
+
+
+## O hub escondido foi chamado de volta (o atalho do Omarchy), mas quem está
+## na sessão decidiu que ele não deve voltar (ex.: um jogo rodando): esconde de
+## novo, sem mexer no jogo. No Windows não faz nada.
+func hide_again() -> void:
+	if not is_sleeping or not _did_minimize:
+		return
+	# Uma nova folga: o foco que volta ao jogo agora não é "alguém chamando o hub".
+	_hidden_since_ms = Time.get_ticks_msec()
+	_window_host.hide_hub_again()
 
 
 ## O hub "acorda": tudo volta como estava, e a tela clareia.
@@ -183,6 +223,7 @@ func wake() -> void:
 	if not is_sleeping:
 		return
 	is_sleeping = false
+	_hidden_since_ms = 0
 
 	Engine.max_fps = _saved_max_fps
 	OS.low_processor_usage_mode = _saved_low_processor
@@ -210,6 +251,52 @@ func wake() -> void:
 	ScreenFade.set_message("")
 	ScreenFade.fade_in(WAKE_FADE_TIME)
 	woke_up.emit()
+
+
+# --- Atalhos do Omarchy sentado à mesa (Fase 14.30) --------------------------
+
+## Este sistema sabe deixar os atalhos do Omarchy para o hub enquanto o jogador
+## está sentado à mesa? (O Hyprland, sim.)
+func supports_seat_shortcuts() -> bool:
+	return _can_control_window() and _window_host.supports_seat_shortcuts()
+
+
+func seat_begin() -> bool:
+	return supports_seat_shortcuts() and _window_host.seat_begin()
+
+
+func seat_keepalive() -> void:
+	if supports_seat_shortcuts():
+		_window_host.seat_keepalive()
+
+
+func seat_end() -> void:
+	if supports_seat_shortcuts():
+		_window_host.seat_end()
+
+
+# --- Janelas de app (Fase 14.5) ----------------------------------------------
+# Repassam ao WindowHost. Podem ser chamadas de uma thread (o AppLauncher
+# consulta assim). Sem controle da janela (testes, editor): "não sei".
+
+## Este sistema sabe achar a janela de um app e dizer quando ela fechou?
+func can_track_windows() -> bool:
+	return _can_control_window() and _window_host.can_track_windows()
+
+
+## Os endereços de todas as janelas abertas agora (a "foto" de antes de abrir).
+func list_window_addresses() -> PackedStringArray:
+	return _window_host.list_window_addresses() if can_track_windows() else PackedStringArray()
+
+
+## A janela nova do app ("" = ainda não apareceu). Veja WindowHost.find_new_window.
+func find_new_window(before: PackedStringArray, wm_class: String) -> String:
+	return _window_host.find_new_window(before, wm_class) if can_track_windows() else ""
+
+
+## A janela do app ainda está aberta?
+func window_exists(address: String) -> bool:
+	return can_track_windows() and _window_host.window_exists(address)
 
 
 # --- Posição da janela -------------------------------------------------------

@@ -5,5 +5,8 @@ fire_crackle.wav).
 Dedicados ao domínio público (CC0 1.0 Universal):
 https://creativecommons.org/publicdomain/zero/1.0/
 
+Os arquivos sky_starfield.png e sky_starmap.png (estrelas do céu Sky3D) são
+gerados por tools/gerar_estrelas.gd, também CC0.
+
 Os arquivos tree_impostor.png e tree_impostor.json são fotos da jacaranda_tree
 da Poly Haven (CC0), geradas por tools/make_tree_impostor.gd.

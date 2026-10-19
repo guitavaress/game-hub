@@ -25,8 +25,17 @@ GameCategories="*res://autoload/game_categories.gd"
 GameArt="*res://autoload/game_art.gd"
 HubWindow="*res://autoload/hub_window.gd"
 GameLauncher="*res://autoload/game_launcher.gd"
+AppLibrary="*res://autoload/app_library.gd"
+AppSessions="*res://autoload/app_sessions.gd"
+AppLauncher="*res://autoload/app_launcher.gd"
+SystemStatus="*res://autoload/system_status.gd"
 FriendsService="*res://autoload/friends_service.gd"
 ScreenFade="*res://ui/screen_fade.gd"
+DebugMenu="*res://addons/debug_menu/debug_menu.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/debug_menu/plugin.cfg", "res://addons/sky_3d/plugin.cfg")
 
 [display]
 

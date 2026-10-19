@@ -22,6 +22,7 @@ const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], 
 ## [valor no config.cfg, nome na tela]
 const QUALITY_OPTIONS: Array[Array] = [["leve", "Leve"], ["media", "Média"], ["alta", "Alta"]]
 const TIME_OPTIONS: Array[Array] = [["relogio", "Relógio"], ["dia", "Dia"], ["noite", "Noite"]]
+const SKY_OPTIONS: Array[Array] = [["fotos", "Fotos"], ["sky3d", "Sky3D"]]
 ## [tecla, botão do controle (Xbox), o que faz]. Esta lista mostra os dois
 ## ao mesmo tempo (as dicas soltas pela tela é que trocam conforme o aparelho).
 ## Textos curtos: cada linha cabe numa linha do painel.
@@ -69,6 +70,7 @@ var _fov_value: Label
 var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
 var _time_buttons: Dictionary[String, Button] = {}
+var _sky_buttons: Dictionary[String, Button] = {}
 var _friends_check: CheckButton
 var _key_field: LineEdit
 var _steam_id_field: LineEdit
@@ -339,6 +341,10 @@ func _build_sound_page() -> Control:
 	var time_row := _row("Hora")
 	time_row.add_child(_segmented(TIME_OPTIONS, _time_buttons, _on_time_chosen))
 	page.add_child(time_row)
+
+	var sky_row := _row("Céu")
+	sky_row.add_child(_segmented(SKY_OPTIONS, _sky_buttons, AppConfig.set_sky))
+	page.add_child(sky_row)
 	return page
 
 
@@ -604,6 +610,7 @@ func refresh() -> void:
 	_choose(_quality_buttons, quality)
 	_quality_hint.text = GraphicsQuality.describe(quality)
 	_choose(_time_buttons, AppConfig.get_time_of_day())
+	_choose(_sky_buttons, AppConfig.get_sky())
 	_refresh_friends_fields()
 	_update_friends_status()
 	for i in range(TAB_NAMES.size(), _pages.size()):

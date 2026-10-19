@@ -23,6 +23,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
 | 13 | Casa, parte 2: parede de estatísticas, temas (loft e cabana), cores das paredes e do néon, posições prontas dos móveis, e um avatar que você vê num espelho | ✅ pronta no Linux (falta a conferência no desktop) |
 | 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
+| 14 | O hub no Omarchy: painel do sistema (hora, bateria, Wi-Fi, volume), abrir o hub ao entrar no Omarchy, um atalho para chamá-lo de volta e **a mesa com três monitores**: o hub é um compositor Wayland, e os apps (terminal, Brave, a barra e o menu do Omarchy) aparecem nos monitores da casa, com os atalhos do Omarchy (como o Waylandcraft) | ✅ pronta no Linux (falta a medida no desktop e a conferência no Windows) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
@@ -168,6 +169,12 @@ quality="alta"
 ; Hora da cidade: "relogio" (relógio do PC), "dia" ou "noite"
 time_of_day="relogio"
 
+[apps]
+; Programas que NÃO aparecem na estante de apps (ids dos arquivos .desktop, sem a
+; extensão, separados por vírgula). O hub guarda em "ultimos" os apps abertos
+; por último, que sobem para o começo da estante.
+ocultos="avahi-discover,bvnc"
+
 [window]
 ; Só no Linux com Hyprland: monitor onde os jogos abrem (nome do "hyprctl monitors").
 ; Vazio = o monitor em foco.
@@ -195,6 +202,8 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 - **GameArt** procura o banner (hero), a capa e o logo primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
 - **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e pergunta ao **SteamClient** qual jogo está rodando, para saber quando ele fechou. No Windows, a resposta vem do registro (`RunningAppID`); no Linux, do processo `reaper` que a Steam cria para cada jogo. Também percebe jogos abertos por fora do hub.
 - **HubWindow** esconde e pausa o hub enquanto você joga, e depois o traz de volta. No Windows, ele minimiza e volta no mesmo monitor; no Hyprland, usa um workspace oculto. Os detalhes de cada sistema estão em [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
+- **AppLibrary** e **AppLauncher** fazem pelos programas (navegador, terminal...) o que o SteamLibrary e o GameLauncher fazem pelos jogos. No Linux, a lista vem dos arquivos `.desktop` (menos os jogos da Steam, que já são prédios); no Windows, dos atalhos do Menu Iniciar. O app abre como o Omarchy abre (`uwsm-app`), o hub se esconde, e a sessão acaba quando a janela do app fecha (Hyprland) ou quando o hub volta a ter foco.
+- **SystemStatus** pergunta a bateria, a rede e o volume ao sistema a cada 5 s (e para enquanto o hub dorme), para o painel da casa.
 - **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
 
 **Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
@@ -204,12 +213,32 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela), virado para a estante e o janelão, e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
 
 - **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
+- **A mesa com três monitores** (no Linux): veja [A mesa](#a-mesa-com-três-monitores-linux). Sem o Linux (ou sem compilar o compositor), os monitores mostram "Sem sinal".
+- **Painel do sistema** (na parede norte, acima do computador): a hora, a bateria, o Wi-Fi e o volume do computador, só para ver (não mexe em nada). O que o computador não tem, como a bateria de um desktop, some.
 - **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
-- **Computador:** E aproxima a câmera da tela, que mostra as mesmas abas do menu de pausa (som e vídeo, controles, amigos), clicáveis, com o campo da chave. Esc devolve a câmera.
+- **Mesa do computador:** três monitores (veja [A mesa](#a-mesa-com-três-monitores-linux)). As configurações (som e vídeo, controles, amigos, **Casa** e **Sistema**) ficam só no menu de pausa (Esc).
 - **Estatísticas:** um quadro na parede sul (à esquerda da porta) com as **horas jogadas**, os **5 mais jogados**, as horas dos **maiores bairros** (na cor de cada um) e o **jogado por último**, com a capa. Conta só os jogos instalados. Sem horas (Steam sem conta logada) ou sem jogos, o quadro explica em vez de mostrar zeros. Atualiza quando você volta de um jogo (a Steam grava as horas com atraso: as da última sessão podem aparecer só na volta seguinte).
 - **Espelho:** na parede sul, à direita da porta. Você se vê nele, com o seu avatar, e o reflexo acompanha o que você faz (só desenha de perto e de frente, para não pesar). **E** no espelho abre o **provador**: 5 visuais prontos e as cores de pele, olhos, cabelo, camiseta e calça. O avatar fica no `config.cfg` (seção `[avatar]`).
-- **Computador, aba Casa:** escolha o **tema** (Loft ou Cabana), a **posição dos móveis** (Padrão, Espelhada ou Estante na entrada) e a **cor das paredes e do néon** (8 cores prontas e "Do tema"). A casa muda na hora, atrás do monitor. Tudo fica na seção `[home]` do `config.cfg`.
+- **Menu de pausa, aba Sistema** (só no Linux): o interruptor **Abrir o hub ao entrar no Omarchy** (cria ou apaga `~/.config/autostart/game-hub.desktop`) o botão **Copiar a linha do atalho** e o botão **Copiar a linha da tecla de emergência** (veja a mesa). O hub nunca mexe na config do Hyprland: cole a linha no fim de `~/.config/hypr/bindings.lua` e o **SUPER + H** chama o hub. Com um app aberto, ele traz o hub de volta (o app continua aberto); com o hub em outro workspace, vai até ele; durante um jogo da Steam, nada muda.
+- **Menu de pausa, aba Casa:** escolha o **tema** (Loft ou Cabana), a **posição dos móveis** (Padrão, Espelhada ou Estante na entrada) e a **cor das paredes e do néon** (8 cores prontas e "Do tema"). A casa muda na hora, atrás do monitor. Tudo fica na seção `[home]` do `config.cfg`.
 - **Portas:** E na porta do loft ("E para sair") leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
+
+## A mesa com três monitores (Linux)
+
+No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://github.com/Smithay/smithay), uma GDExtension): os programas abertos pelo hub desenham as janelas **dentro** do mundo, nos três monitores da mesa do computador. A ideia vem do Waylandcraft (só a ideia: nenhuma linha dele foi copiada).
+
+**Compilar (uma vez, e depois de mudar o Rust):** `bash tools/linux/compilar_compositor.sh` (precisa do `cargo`; a biblioteca fica em `native/bin/`, fora do git). Sem ela, o hub funciona como antes e os monitores mostram "Sem sinal".
+
+**Usar:**
+- Olhe para um monitor e aperte **E**: você senta, e a câmera enquadra os três. O mouse anda pelos três e os apps recebem o teclado.
+- **SUPER + Z** aproxima a câmera do monitor da janela em foco (de novo, volta a ver os três). Com o zoom ligado, a câmera acompanha o monitor ativo: `SUPER + ←/→` vão para a janela vizinha e, sem janela do lado, andam de monitor em monitor (mesmo vazio); `SUPER + 1/2/3` e o clique numa janela também.
+- **Segure Esc** (0,6 s) para levantar. Um Esc curto vai para o app. O botão B do controle faz o mesmo.
+- Os monitores mostram o **fundo, a barra e o menu do Omarchy** (o Quickshell, rodando dentro do hub). Sentado, os **atalhos do Omarchy** funcionam ali: `SUPER + Enter` (terminal), `SUPER + Shift + B` (navegador), `SUPER + Space` (menu), `SUPER + W` (fechar), `SUPER + F` (tela cheia), `SUPER + setas` (foco, inclusive entre monitores), `SUPER + 1/2/3` (focar o monitor), `SUPER + Shift + 1/2/3` (mandar a janela para o monitor). As janelas se dividem sozinhas (até 3 por monitor). O que não é atalho vai para o app.
+- Os apps abrem **dentro** do hub. Para abrir um de fora, em outro terminal: `env WAYLAND_DISPLAY=gamehub-0 foot`.
+
+**Tecla de emergência:** sentado, o Hyprland de fora fica num modo quase vazio (para os atalhos `SUPER` chegarem ao hub). Cole a linha de **Esc › Sistema › Copiar a linha da tecla de emergência** no seu `~/.config/hypr/bindings.lua`: **SUPER + SHIFT + ESC** devolve os atalhos ao Hyprland mesmo se o hub travar (e o Hyprland sai sozinho do modo em 20 s se o hub parar). O hub nunca escreve na sua config.
+
+**Limites conhecidos:** os números de workspace da barra ficam parados; não há bloqueio de tela nem idle lá dentro; apps que só falam X11 abrem fora do hub; a área de transferência não é compartilhada com o Omarchy de fora; no Windows não existe.
 
 ## Detalhes da cidade
 
@@ -235,6 +264,8 @@ Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para cri
 - **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
 - **Avatar e hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
 - **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds, Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
+- **Menu de depuração (F3):** [Debug Menu](https://github.com/godot-extended-libraries/godot-debug-menu) v1.2.0, de Calinou, licença **MIT** (`addons/debug_menu/LICENSE.md`). F3 alterna entre FPS, tempos de quadro e hardware.
+- **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
 - O estalo da lareira da cabana (`fire_crackle.wav`) também é gerado pelo mesmo script, CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 

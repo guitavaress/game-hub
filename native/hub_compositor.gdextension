@@ -1,0 +1,10 @@
+; A extensão do compositor (Fase 14, parte 2). Só Linux.
+; NÃO entra na lista automática da Godot (a pasta native/ tem .gdignore):
+; quem carrega é o autoload/platform/app_compositor.gd, e só se o .so existir.
+; Assim, no Windows ou sem compilar, a Godot não reclama de nada.
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = 4.7
+
+[libraries]
+linux.x86_64 = "res://native/bin/libhub_compositor.so"

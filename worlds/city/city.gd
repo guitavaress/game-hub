@@ -108,8 +108,14 @@ var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
-## O sol (e a lua) da cidade.
+## O céu de fotos: o WorldEnvironment, o sol (que de noite vira a "lua") e o
+## céu de fotos, guardado para voltar a ele se a opção Céu mudar.
+var _world_env: WorldEnvironment
 var _sun: DirectionalLight3D
+var _photo_sky: Sky
+## O céu do addon Sky3D (opção Céu = "sky3d"): ele é o WorldEnvironment e tem
+## sol e lua próprios.
+var _sky3d: Sky3D
 ## A casa do jogador e a porta "Casa" da praça.
 var _home: Home
 var _home_door: TravelDoor
@@ -284,7 +290,10 @@ func _clock_text() -> String:
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality" and _environment != null:
 		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
-		GraphicsQuality.apply_to_sun(_sun, AppConfig.get_quality())
+		for light in _sky_lights():
+			GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
+	elif section == "video" and key == "sky" and _environment != null:
+		_apply_sky(AppConfig.get_sky())
 
 
 func _on_night_changed(night: float) -> void:
@@ -665,7 +674,8 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 
 # --- Céu, chão e muros -------------------------------------------------------
 
-## Céu (três fotos HDRI misturadas), sol e o relógio de dia e noite.
+## Céu, sol e o relógio de dia e noite. O céu é o de fotos (três HDRI
+## misturadas) ou o do addon Sky3D, pela opção Céu do menu (veja _apply_sky).
 func _build_environment() -> void:
 	var sky_material := ShaderMaterial.new()
 	sky_material.shader = SKY_SHADER
@@ -673,12 +683,11 @@ func _build_environment() -> void:
 	sky_material.set_shader_parameter("sunset_sky", SKY_SUNSET)
 	sky_material.set_shader_parameter("sunset_gain", SKY_SUNSET_GAIN)
 	sky_material.set_shader_parameter("night_sky", SKY_NIGHT)
-	var sky := Sky.new()
-	sky.sky_material = sky_material
+	_photo_sky = Sky.new()
+	_photo_sky.sky_material = sky_material
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
-	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX  # cores mais "de cinema"
@@ -699,24 +708,89 @@ func _build_environment() -> void:
 	GraphicsQuality.apply_to_environment(env, AppConfig.get_quality())
 	AppConfig.settings_changed.connect(_on_settings_changed)
 
-	var world_env := WorldEnvironment.new()
-	world_env.environment = env
-	add_child(world_env)
-
-	var sun := DirectionalLight3D.new()
-	sun.name = "Sun"
-	sun.shadow_enabled = true
-	# Até onde vai a sombra: depende da qualidade (mais curta na Leve).
-	GraphicsQuality.apply_to_sun(sun, AppConfig.get_quality())
-	add_child(sun)
-	_sun = sun
-
 	_day_night = DayNight.new()
 	_day_night.environment = env
-	_day_night.sky_material = sky_material
-	_day_night.sun = sun
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
+	_apply_sky(AppConfig.get_sky())
 	add_child(_day_night)
+
+
+## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).
+## O Environment é o mesmo nos dois: neblina, efeitos e qualidade não mudam.
+func _apply_sky(mode: String) -> void:
+	for old: Node in [_world_env, _sun, _sky3d]:
+		if old != null:
+			remove_child(old)  # sai já, para não haver dois céus num quadro
+			old.queue_free()
+	_world_env = null
+	_sun = null
+	_sky3d = null
+	_day_night.sky_material = null
+	_day_night.sun = null
+	_day_night.sky3d = null
+
+	if mode == "sky3d":
+		_environment.sky = null  # vazio: o Sky3D cria o céu dele
+		_sky3d = Sky3D.new()
+		_sky3d.name = "Sky3D"
+		# set_environment, e não "environment =": o Sky3D só aceita a troca
+		# de Environment depois de entrar na cena.
+		_sky3d.set_environment(_environment)
+		add_child(_sky3d)
+		_sky3d.game_time_enabled = false  # quem anda com a hora é o DayNight
+		_sky3d.fog_enabled = false        # a neblina continua a do DayNight
+		# À noite, menos luz do céu (quase preto) e mais luz ambiente; lua mais forte.
+		_sky3d.night_sky_contribution = 0.4
+		_sky3d.moon_energy = 0.45
+		_set_sky3d_place(_sky3d.tod)
+		for light in _sky_lights():
+			_setup_sky_light(light)
+		_day_night.sky3d = _sky3d
+	else:
+		_environment.sky = _photo_sky
+		_environment.ambient_light_sky_contribution = 1.0  # o Sky3D mexe nela
+		_world_env = WorldEnvironment.new()
+		_world_env.environment = _environment
+		add_child(_world_env)
+		_sun = DirectionalLight3D.new()
+		_sun.name = "Sun"
+		_sun.shadow_enabled = true
+		_setup_sky_light(_sun)
+		add_child(_sun)
+		_day_night.sky_material = _photo_sky.sky_material
+		_day_night.sun = _sun
+	if _day_night.is_inside_tree():
+		_day_night.update_now()
+
+
+## O sol e a lua do céu atual (no céu de fotos, é uma luz só).
+func _sky_lights() -> Array[DirectionalLight3D]:
+	if _sky3d != null:
+		return [_sky3d.sun, _sky3d.moon]
+	if _sun != null:
+		return [_sun]
+	return []
+
+
+## Toda luz do céu: sombra conforme a qualidade (mais curta na Leve) e sem
+## entrar na casa nem no corpo do espelho (que ficam "dentro de casa").
+func _setup_sky_light(light: DirectionalLight3D) -> void:
+	GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
+	light.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+	light.light_cull_mask &= ~AvatarBody.reflection_layers()
+
+
+## Onde e quando fica a cidade, para o Sky3D pôr o sol, a lua (com a fase
+## certa) e as estrelas: Brasil (latitude de São Paulo) e a data do PC. A
+## longitude acompanha o fuso (-3 h × 15°), e o sol fica no alto ao meio-dia.
+func _set_sky3d_place(tod: TimeOfDay) -> void:
+	tod.latitude = deg_to_rad(-23.5)
+	tod.longitude = deg_to_rad(-45.0)
+	tod.utc = -3.0
+	var today := Time.get_date_dict_from_system()
+	tod.year = today["year"]
+	tod.month = today["month"]
+	tod.day = today["day"]
 
 
 ## O fundo da cidade (vento e trânsito ao longe): um loop 2D, sem posição, no
@@ -749,8 +823,7 @@ func _build_home() -> void:
 	_home.name = "Home"
 	_home.position = HOME_ORIGIN
 	add_child(_home)
-	_sun.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
-	_sun.light_cull_mask &= ~AvatarBody.reflection_layers()  # o corpo do espelho também fica dentro de casa
+	# O sol da cidade não entra em casa: veja _setup_sky_light.
 
 	_home_door = TravelDoor.new()
 	_home_door.name = "HomeDoor"

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Foot
+Name[pt_BR]=Terminal Foot
+Comment=Terminal rápido
+Exec=foot
+Icon=foot
+Categories=System;TerminalEmulator;
+StartupWMClass=foot
+
+[Desktop Action new]
+Name=Nova janela
+Exec=foot --nova

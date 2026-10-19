@@ -14,6 +14,10 @@ extends Node
 ##   - 19:00 a 05:30: noite (luz fraca e azulada da "lua", neblina densa)
 ##
 ## F8 adianta o relógio da cidade em 3 horas (para testar sem esperar).
+##
+## Com o céu "sky3d" (opção Céu do menu), o sol, a lua, as estrelas e o céu
+## são do addon Sky3D: este relógio só repassa a hora a ele, e continua cuidando
+## da neblina, da exposição e do aviso night_changed.
 
 ## Quanto está de noite: 0.0 = dia claro, 1.0 = noite fechada.
 signal night_changed(night: float)
@@ -52,11 +56,17 @@ const NIGHT_FOG_DENSITY: float = 0.006
 const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
 const SUNSET_FOG_COLOR: Color = Color("E8A07A")
 const NIGHT_FOG_COLOR: Color = Color("080A12")
+## Luz ambiente à noite. No Sky3D o céu noturno é quase preto (ele não tem a
+## foto clara da noite), então a luz ambiente compensa.
+const NIGHT_AMBIENT: float = 0.2
+const SKY3D_NIGHT_AMBIENT: float = 0.9
 
 ## Quem este relógio controla (a cidade preenche antes de adicionar à cena).
 var environment: Environment
 var sky_material: ShaderMaterial
 var sun: DirectionalLight3D
+## O céu do addon Sky3D, quando é ele o céu (aí sky_material e sun ficam vazios).
+var sky3d: Sky3D
 
 ## Horas somadas ao relógio do PC com F8.
 var hour_offset: float = 0.0
@@ -129,10 +139,37 @@ func update_now() -> void:
 	# Céu: quanto de cada foto (dia, pôr do sol, noite) aparece agora.
 	# As estrelas só entram quando a noite já está pela metade (senão elas
 	# apareceriam no meio do pôr do sol); o resto fica com o pôr do sol.
+	# Os mesmos pesos misturam a neblina e a exposição, com qualquer céu.
 	var day_weight := maxf(daylight - sunset, 0.0)
 	var night_weight := smoothstep(0.5, 1.0, night)
 	var sunset_weight := maxf(1.0 - day_weight - night_weight, 0.0)
 	var weights := Vector3(day_weight, sunset_weight, night_weight)
+	if sky3d != null:
+		# O Sky3D calcula o sol, a lua e as estrelas pela hora e pela data.
+		sky3d.current_time = hour
+	else:
+		_apply_photo_sky(hour, daylight, sunset, elevation, sun_yaw, weights)
+
+	# Exposição, neblina, luz ambiente e brilho (glow).
+	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
+	environment.fog_density = _mix3(weights, DAY_FOG_DENSITY, SUNSET_FOG_DENSITY, NIGHT_FOG_DENSITY)
+	environment.fog_light_color = DAY_FOG_COLOR * weights.x + SUNSET_FOG_COLOR * weights.y \
+			+ NIGHT_FOG_COLOR * weights.z
+	var night_ambient := SKY3D_NIGHT_AMBIENT if sky3d != null else NIGHT_AMBIENT
+	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight)
+	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
+
+	if absf(night - _night) > 0.005:
+		_night = night
+		night_changed.emit(night)
+
+
+## O céu de fotos: mistura as três fotos e move o sol (ou a "lua") à mão.
+func _apply_photo_sky(hour: float, daylight: float, sunset: float, elevation: float,
+		sun_yaw: float, weights: Vector3) -> void:
+	var day_weight := weights.x
+	var sunset_weight := weights.y
+	var night_weight := weights.z
 	sky_material.set_shader_parameter("day_weight", day_weight)
 	sky_material.set_shader_parameter("sunset_weight", sunset_weight)
 	sky_material.set_shader_parameter("night_weight", night_weight)
@@ -148,18 +185,6 @@ func update_now() -> void:
 	sun.light_color = MOON_COLOR.lerp(DAY_SUN_COLOR.lerp(SUNSET_SUN_COLOR, sunset), daylight)
 	sun.light_energy = lerpf(MOON_ENERGY, lerpf(DAY_SUN_ENERGY, SUNSET_SUN_ENERGY, sunset), daylight)
 	sun.shadow_opacity = _mix3(weights, DAY_SHADOW_OPACITY, SUNSET_SHADOW_OPACITY, NIGHT_SHADOW_OPACITY)
-
-	# Exposição, neblina, luz ambiente e brilho (glow).
-	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
-	environment.fog_density = _mix3(weights, DAY_FOG_DENSITY, SUNSET_FOG_DENSITY, NIGHT_FOG_DENSITY)
-	environment.fog_light_color = DAY_FOG_COLOR * weights.x + SUNSET_FOG_COLOR * weights.y \
-			+ NIGHT_FOG_COLOR * weights.z
-	environment.ambient_light_energy = lerpf(0.2, 1.0, daylight)
-	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
-
-	if absf(night - _night) > 0.005:
-		_night = night
-		night_changed.emit(night)
 
 
 func get_night() -> float:

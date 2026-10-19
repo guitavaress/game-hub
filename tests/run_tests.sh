@@ -82,6 +82,31 @@ for t in $TESTS; do
 	fi
 done
 
+# 3. O compositor nativo (Fase 14, parte 2): os testes do Rust e as licenças
+#    dos crates. Só na bateria inteira, no Linux, com o Rust instalado e depois
+#    de compilar uma vez (o --offline garante que a bateria nunca baixa nada).
+if [ $# -eq 0 ]; then
+	if [ "$(uname -s)" != "Linux" ] || ! command -v cargo >/dev/null 2>&1; then
+		echo "cargo test: pulado (sem Rust ou fora do Linux)"
+	elif [ ! -d native/compositor/target ]; then
+		echo "cargo test: pulado (rode antes bash tools/linux/compilar_compositor.sh)"
+	else
+		if out=$(cargo test --offline --locked --manifest-path native/compositor/Cargo.toml 2>&1); then
+			echo "cargo test: ok ($(echo "$out" | grep -oE '[0-9]+ passed' | head -1))"
+		else
+			failed=$((failed + 1))
+			echo "cargo test: FALHOU"
+			echo "$out" | grep -E "FAILED|panicked|^error" | head -8 | sed 's/^/    /'
+		fi
+		if out=$(bash tools/linux/checar_licencas.sh 2>&1); then
+			echo "$out" | tail -1
+		else
+			failed=$((failed + 1))
+			echo "$out" | tail -9 | sed 's/^/    /'
+		fi
+	fi
+fi
+
 echo
 if [ $failed -eq 0 ]; then
 	echo "RESULTADO GERAL: TUDO OK"
