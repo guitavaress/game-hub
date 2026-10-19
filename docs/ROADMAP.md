@@ -38,7 +38,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - menu de pausa, busca com Tab e abertura pelo céu;
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
-- **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Falta só a conferência final no Windows antes de juntar na `main`.
+- **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Conferida no Windows (bateria completa e jogo de verdade) em 2026-10-19 e juntada na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
 
@@ -46,7 +46,7 @@ Os detalhes estão no [README](../README.md) e no histórico do git.
 
 A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano dela vai para `docs/plans/fase-N.md` e é aprovado.
 
-### Fase 7: World Profile ✅ feita (no Linux; falta conferir no Windows)
+### Fase 7: World Profile ✅ feita
 
 **Objetivo:** tudo o que muda de um bairro para outro passa a ser **dado num perfil**, e não mais decisão espalhada pelo código. É a base da V3 (biomas) e deixa a lógica do produto independente de engine.
 
@@ -81,7 +81,7 @@ A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano del
 
 **Pronto quando:** com 200 jogos, o hub continua leve, e qualquer jogo fica a menos de ~20 s de distância.
 
-### Fase 9: A casa ✅ feita (no Linux; falta a conferência no desktop)
+### Fase 9: A casa ✅ feita
 
 **Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2). Plano e registro: [plans/fase-9.md](plans/fase-9.md).
 

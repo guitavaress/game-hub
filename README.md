@@ -16,10 +16,10 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
 | Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
 | Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
-| Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta no Linux (falta a conferência final no Windows) |
-| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta no Linux (falta a conferência no Windows) |
+| Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta (conferida no Windows em 2026-10-19) |
+| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta (conferida no Windows) |
 | 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
-| 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta no Linux (falta a conferência no desktop) |
+| 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta (conferida no Windows) |
 | 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
 | 13 | Casa, parte 2: parede de estatísticas, temas (loft e cabana), cores das paredes e do néon, posições prontas dos móveis, e um avatar que você vê num espelho | ✅ pronta no Linux (falta a conferência no desktop) |
 | 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
