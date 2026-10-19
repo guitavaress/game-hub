@@ -1,7 +1,7 @@
 # Bioma montanha: direção de arte e manifesto (Fase 15.0)
 
 **Data:** 2026-10-17 · **Plano:** [fase-15.md](../plans/fase-15.md) · **Skill:** `create-game-assets`
-**Status:** brief escrito; amostra baixada e capturada, **aguardando a aprovação do dono**.
+**Status:** amostra **aprovada** pelo dono em 2026-10-19 (capturas refeitas no desktop); família completa no repositório.
 
 ## Moldura técnica
 - **Motor:** Godot 4.7.2, Forward+, primeira pessoa (olho a 1,7 m, FOV do `player.gd`).
@@ -91,12 +91,12 @@ Situação: `planejado` → `amostra` (baixado para testar) → `aprovado` (o do
 
 | Id | Papel | Origem (CC0) | Tamanho do download | Entra no repo | Situação |
 |---|---|---|---|---|---|
-| `Snow010A` | chão de neve e "neve por cima" | [ambientCG](https://ambientcg.com/view?id=Snow010A), 1K-JPG | 6,6 MB (zip) | 3,1 MB (3 mapas) | amostra |
-| `fir_sapling_medium` | pinheiro (fonte do impostor) | [Poly Haven](https://polyhaven.com/a/fir_sapling_medium), glTF 1K | 78 MB | **não** (em `~/git/game-hub-fontes/`) | amostra |
-| `pine_impostor.png/.json` | atlas do pinheiro (árvore "a", 8,8 m) | gerado pelo `make_tree_impostor.gd` | — | 1,8 MB | amostra |
-| `moon_rock_02` | rocha 3D (só a forma; 3,3 mil triângulos, 25 cm, escala ×5) | [Poly Haven](https://polyhaven.com/a/moon_rock_02), glTF 1K | 1,5 MB | 1,5 MB | amostra |
-| `Rock058` | rocha das encostas e da rocha 3D (triplanar) | [ambientCG](https://ambientcg.com/view?id=Rock058), 1K-JPG | 8,0 MB (zip) | 3,9 MB (3 mapas) | amostra |
-| `footstep_snow_000..004` | passos na neve | Kenney Impact Sounds (pacote já no projeto) | ~2 MB (pacote) | ~50 KB | planejado (resto) |
+| `Snow010A` | chão de neve e "neve por cima" | [ambientCG](https://ambientcg.com/view?id=Snow010A), 1K-JPG | 6,6 MB (zip) | 3,1 MB (3 mapas) | aprovado |
+| `fir_sapling_medium` | pinheiro (fonte do impostor) | [Poly Haven](https://polyhaven.com/a/fir_sapling_medium), glTF 1K | 78 MB | **não** (em `~/git/game-hub-fontes/`) | aprovado |
+| `pine_impostor.png/.json` | atlas do pinheiro (árvore "a", 8,8 m) | gerado pelo `make_tree_impostor.gd` | — | 1,8 MB | aprovado |
+| `moon_rock_02` | rocha 3D (só a forma; 3,3 mil triângulos, 25 cm, escala ×5) | [Poly Haven](https://polyhaven.com/a/moon_rock_02), glTF 1K | 1,5 MB | 1,5 MB | aprovado |
+| `Rock058` | rocha das encostas e da rocha 3D (triplanar) | [ambientCG](https://ambientcg.com/view?id=Rock058), 1K-JPG | 8,0 MB (zip) | 3,9 MB (3 mapas) | aprovado |
+| `footstep_snow_000..004` | passos na neve | [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) (o pacote do projeto não tinha os de neve) | 0,8 MB (zip) | 39 KB (5 `.ogg`) | aprovado (entra no jogo na 15.12) |
 | `wind_loop.wav` | vento | já no projeto (gerado) | — | — | no jogo |
 | `PavingStones070` | calçada de pedra | já no projeto | — | — | no jogo |
 
@@ -116,9 +116,11 @@ A amostra é montada **por cima do bairro RPG de verdade**, só durante a captur
 | Pinheiro | de 10 m para longe, lê bem como pinheiro escuro contra o céu e a neve. A menos de ~6 m mostra que é uma foto (achatado, com galhos ralos) | serve; os pinheiros ficam a **6 m ou mais** de onde se anda (portas, calçadas, trilha). Neve "assada" no atlas **não** é necessária |
 | Calçada | a calçada de placas bege de hoje fica quente demais ao lado da neve | na 15.6, a calçada do bioma usa a `PavingStones070` puxada para cinza (`path_tint`) |
 
+**Refeita no desktop (2026-10-19):** o script descartável foi escrito de novo (o do notebook não foi para o repositório) e rodou no Windows, na Alta, nos mesmos pontos e horas. Confirma a tabela: a neve tem relevo de dia, a rocha fica cinza-azulada com o topo branco, o pinheiro lê bem a 9 m e mostra que é foto a 5 m, e a calçada bege fica quente ao lado da neve. Às 22h a luz ficou de crepúsculo, e não de noite fechada (vem do `DayNight`, não dos assets).
+
 Os números da tabela viram dados do `montanha.tres` na 15.1 (tinta, relevo e metros da neve; tinta do pinheiro; quanto de neve por cima).
 
 ## Aprovação
-- **Brief:** —
-- **Amostra:** — (capturas na pasta temporária da sessão)
-- **Família completa:** —
+- **Brief:** aprovado junto com a amostra (2026-10-19).
+- **Amostra:** aprovada pelo dono em 2026-10-19, pelas capturas refeitas no desktop (pasta temporária da sessão, fora do repositório).
+- **Família completa:** 2026-10-19. A família era a amostra mais os `footstep_snow_000..004`, baixados com a permissão do dono.

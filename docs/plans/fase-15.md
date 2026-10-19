@@ -181,7 +181,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
 | `revisao-do-hub` | revisão visual com capturas antes de fechar a fase (15.13) |
 
 ## Subetapas
-- [ ] **15.0 Direção de arte, amostra e assets** (Opus · high na direção; Sonnet · low no download) · skill `create-game-assets`
+- [x] **15.0 Direção de arte, amostra e assets** (Opus · high na direção; Sonnet · low no download) · skill `create-game-assets`
   - **Faz, em três passos:**
     1. **Brief e manifesto** (`docs/design/bioma-montanha.md`):
        - paleta: neve fria, levemente azulada, com o néon roxo do RPG como única cor quente de luz;
@@ -265,7 +265,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - nada vai na frente das portas, nas calçadas, nos postes, no pórtico ou na estação.
   - Teste: `check_trees` sem mudança; `check_biome` com 1 a 2 desenhos por tipo e nada na faixa da porta; `check_metro`.
   - Commit: `Fase 15.7: pinheiros e rochas no bairro RPG`
-- [ ] **15.8 O núcleo do terreno** (Opus · high) **[paralela, janela 1]**
+- [x] **15.8 O núcleo do terreno** (Opus · high) **[paralela, janela 1]** — 729edf0, junta em b372efa
   - Arquivos novos: `heightfield.gd`, `terrain_mesh.gd`, `mountain_trail.gd`, `terrain.gdshader` e `tests/check_terrain.gd`.
   - O teste confere:
     - a mesma semente dá a mesma altura;
@@ -374,6 +374,7 @@ Testes afetados:
 ## Decisões tomadas durante a fase
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
 - 2026-10-17: 15.0 em andamento. Brief em `docs/design/bioma-montanha.md`; amostra baixada (Snow010A, Rock058, moon_rock_02 e o pinheiro fir_sapling_medium, cujo glTF fica em `~/git/game-hub-fontes/`) e capturada por cima do bairro RPG com o `tools/capturar_pontos.gd` (novo). Resultado: rocha = forma da moon_rock_02 com a Rock058 e neve por cima; neve com tinta `#BCC5D2`. **Falta:** o dono aprovar a amostra e permitir os `footstep_snow_*` do Kenney.
+- 2026-10-19: a fase passou para o desktop (Windows). A `fase-15` recebeu a `fase-linux` (Fase 14 e correções do Windows) e a 15.8 da `worktree/terreno` (só arquivos novos; bateria 75/75 antes). A amostra foi refeita no desktop e **aprovada pelo dono**; os `footstep_snow_000..004` vieram do Kenney Impact Sounds (0,8 MB o zip, 39 KB no projeto, com permissão). 15.0 concluída.
 
 ## Checklist de teste manual (fim da fase)
 1. **Abrir a cidade:** `~/.local/bin/godot --path . worlds/city/city.tscn`, com a biblioteca de verdade. Sair de casa (E na porta) e abrir o mapa (M).
