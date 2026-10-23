@@ -1,7 +1,7 @@
 #!/bin/bash
 # Confere a licença de todos os crates que o compositor usa (Fase 14.15).
 #
-# Regra do projeto (CLAUDE.md, seção Addons): só licenças permissivas, nenhum
+# Regra do projeto (AGENTS.md, seção Addons): só licenças permissivas, nenhum
 # crate GPL. A exceção é o godot-rust (MPL-2.0), aprovada pelo dono.
 # Quando um crate oferece escolha ("MIT OR Apache-2.0"), basta uma das
 # opções ser permitida.

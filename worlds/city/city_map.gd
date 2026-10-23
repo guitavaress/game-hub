@@ -3,7 +3,7 @@ extends Node
 ## A PLANTA da cidade como dado (Fase 8): quem ocupa cada quarteirão, onde
 ## ficam o pórtico de cada bairro e a praça. Quem desenha mapas (minimapa,
 ## mapa grande, bússola) não conhece a cidade: pergunta a quem estiver no
-## grupo "world_map" (regras 1 e 2 do CLAUDE.md). Cada mundo publica a sua
+## grupo "world_map" (regras 1 e 2 do AGENTS.md). Cada mundo publica a sua
 ## planta; um bioma futuro faz o mesmo.
 ##
 ## Tudo é em metros no plano do chão: Vector2(x, z), norte = -Z.

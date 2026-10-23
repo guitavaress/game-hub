@@ -1,7 +1,41 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** aprovado em 2026-10-17
-**Branch:** `fase-15`, criada a partir da `fase-linux` (em `bbbfa41`), no checkout principal (`~/git/game-hub`). A `fase-linux` ainda não foi para a `main`; quando for, `git rebase --onto main fase-linux fase-15`.
+**Status:** em andamento — 15.0 e 15.8 concluídas; próxima: **15.1**. Escopo aprovado em 2026-10-17; planejamento operacional atualizado em 2026-10-23.
+**Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
+**Execução:** OpenCode v2.1.3 + modelos OpenAI; comandos e política em [../OPENCODE.md](../OPENCODE.md). O trabalho concluído pelo Claude permanece registrado com seus commits.
+
+## Ponto de retomada (2026-10-23)
+
+| Entrega | Evidência | Situação |
+|---|---|---|
+| 15.0: brief, amostra e família de assets | `a386560`, `ed834cd`, [brief](../design/bioma-montanha.md) | Concluída; aprovação do dono registrada em 2026-10-19 |
+| 15.8: alturas, trilha, malha e shader | `729edf0`, integrado em `b372efa`; `tests/check_terrain.gd` | Concluída como núcleo isolado |
+| 15.1–15.7 e 15.9–15.15 | Checklists abaixo | Pendentes; não há `BiomeSpec`, `BiomeBuilder` nem ligação do terreno em `city.gd` |
+
+São **2 de 16 subetapas de primeiro nível**; isso não representa percentual de esforço ou de experiência jogável. A montanha ainda não aparece no hub normal. O próximo commit de implementação é a **15.1**, mantendo `rpg.tres` sem bioma até a 15.6.
+
+### Validação de retomada
+
+- **Histórico:** o commit `ed834cd` registra 76/76 testes no Windows em 2026-10-19.
+- **Teste específico reexecutado em 2026-10-23:** `check_terrain.gd` terminou com `RESULTADO: TUDO OK`. Exercita cinco geometrias e grades de 4/3/2 m. No caso de 200 falsos, a grade de 2 m levou ~171 ms no total e ~8,9 ms no chunk mais lento. São tempos headless do núcleo, não FPS nem aceitação da montagem completa.
+- **Bateria completa da retomada (2026-10-23, Windows, Godot 4.7.2):** **76/76 scripts aprovados**, `RESULTADO GERAL: TUDO OK`, saída 0, usando `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`. Inclui `check_terrain`, `check_textures`, perfis, mapas, metrô, portais e backends Windows. Rust/compositor nativo pulado por ser Windows; testes do backend Linux com fixtures não equivalem a uma execução real no Linux. Log local: `C:\Users\gui_t\AppData\Local\Temp\opencode\fase-15-bateria-2026-10-23.log`.
+- **Infra OpenCode:** JSON carregado pelo serviço v2.1.3 na localização `C:\Projetos\game-hub`; API confirmou modelos/variantes dos agentes, registro dos seis comandos e configuração de revisão em sessão filha. Referências de modelos conferidas no catálogo. Isso valida configuração/disponibilidade, não um benchmark ou execução de prompts em todos os modelos.
+- **Visual, colisão jogável, desempenho com janela e Linux:** não revalidados nesta retomada. Entram nos pontos de aceitação abaixo, depois da integração.
+
+### Execução e modelos por subetapa
+
+IDs e variantes conferidos no catálogo local em 2026-10-23. A distribuição é inicial; não há comparação medida de preço, velocidade ou qualidade entre os modelos. Use os resultados das primeiras subetapas para ajustar.
+
+| Etapas/papel | Modelo e esforço | Entrada pelo OpenCode |
+|---|---|---|
+| Planejamento de qualquer etapa | `openai/gpt-6-astra#high` | `/fase15-planejar <etapa>` |
+| 15.1, 15.2, 15.5, 15.6, 15.10, 15.11, 15.14 e medição da 15.15 | `openai/gpt-6-astra#medium` | `/fase15-passo <etapa>` |
+| 15.3, 15.4, 15.7, 15.9 e 15.12 | `openai/gpt-6-astra#high` | `/fase15-dificil <etapa>` |
+| Revisões de 15.3/15.4, 15.9/15.10 e 15.13 | `openai/gpt-6.1-sol#high` | `/fase15-revisar <escopo>`; principal fornece diff, logs e capturas |
+| Levantamento delimitado, se delegado | `openai/gpt-6-luna#low` | `explore`, com arquivos/pergunta explícitos |
+| Texto mecânico e execução/relato de testes | `openai/gpt-5.3-codex-spark#low` | `/fase15-docs <ajuste>` e `/fase15-testes [testes]` |
+
+Sol revisa; a principal coordena as capturas e faz os ajustes aprovados. Spark relata falhas, mas a investigação técnica volta ao Astra. Não usar vários implementadores sobre `city.gd`, `BiomeBuilder` ou o plano ao mesmo tempo. O modo Plan propõe; Build grava decisões aprovadas no plano versionado.
 
 ## Contexto
 A V3 diz que "a biblioteca decide o mundo" ([ROADMAP › Fase 15](../ROADMAP.md#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha)). Esta fase prova a ideia com um bioma só: o bairro RPG vira uma **montanha nevada**, no mesmo mapa da cidade.
@@ -11,7 +45,7 @@ Como fica no fim da fase:
 - **A montanha:** logo atrás do bairro, fora da borda da cidade, sobe uma montanha. Uma trilha caminhável leva a um **mirante** com a torre do RPG.
 - **A planta da cidade:** passa a ser em **setores**, uma fatia por bairro da praça até a borda, para que todo bairro tenha uma borda própria. Isso já serve aos biomas da Fase 16.
 
-### Levantamento (só leitura)
+### Levantamento original (2026-10-17, referências de linha daquela revisão)
 - **Tudo assume chão plano em y = 0:**
   - o `Ground` é um `CSGBox3D` só (city.gd:860);
   - o metrô usa `FLOOR_Y` 0,085;
@@ -20,7 +54,7 @@ Como fica no fim da fase:
   - as faixas ficam em y = 0,03;
   - o teleporte não procura o chão.
 
-  Nenhum código de produção usa terreno ou raio até o chão.
+  A cidade ainda não usa o núcleo isolado entregue na 15.8.
 - **Como os bairros recebem os quarteirões:** o `_build_districts` (city.gd:349) dá a cada bairro o próximo trecho da lista de anéis do `CityLayout.block_cells`. O RPG vem logo depois de Esportes, perto da praça. Com 200 jogos falsos, são 57 jogos, ou 15 quarteirões.
 - **O arco (`ArchShell`) não serve como está:**
   - **não mostra a capa** (nem tem o nó `Poster`);
@@ -43,7 +77,7 @@ Como fica no fim da fase:
 - **Nada quebra:** metrô, rota da busca, minimapa, mapa grande, bússola e título do bairro continuam funcionando, e nenhuma porta fica a mais de 180 m de uma estação.
 - **Bioma como dado:** o bioma é dado (`BiomeSpec` em `profiles/biomes/`), e nenhum id de bairro ou de bioma aparece no código de `worlds/`.
 - **Desempenho:**
-  - **meta no desktop (Alta):** pior quadro da montagem ≤ 50 ms e sem queda visível ao subir a trilha. **Fica pendente para a trilha do desktop**;
+  - **meta no desktop (Alta):** pior quadro da montagem ≤ 50 ms e sem queda visível ao subir a trilha. Como a execução agora está no desktop, medir na 15.15; se faltar a medida, registrar a pendência explicitamente na trilha do desktop;
   - **no notebook (Leve):** só antes e depois, com o mesmo código base, o mesmo dia e a mesma máquina, a 0 e a 200 jogos.
 - A bateria inteira passa, com os testes novos.
 
@@ -181,7 +215,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
 | `revisao-do-hub` | revisão visual com capturas antes de fechar a fase (15.13) |
 
 ## Subetapas
-- [x] **15.0 Direção de arte, amostra e assets** (Opus · high na direção; Sonnet · low no download) · skill `create-game-assets`
+- [x] **15.0 Direção de arte, amostra e assets** — Claude, concluída em `ed834cd` (amostra inicial em `a386560`) · skill `create-game-assets`
   - **Faz, em três passos:**
     1. **Brief e manifesto** (`docs/design/bioma-montanha.md`):
        - paleta: neve fria, levemente azulada, com o néon roxo do RPG como única cor quente de luz;
@@ -197,20 +231,22 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - pinheiro da Poly Haven: o glTF fica **fora do repositório** e vira atlas pelo `tools/make_tree_impostor.gd`, saindo em `assets/generated/pine_impostor.png` (~1 a 2 MB);
     - **rochas PBR da Poly Haven** (a versão mais leve), para combinar com a cidade. Plano B: `rock_large*` do Kenney Nature Kit, que tem cor chapada e pode destoar (a amostra decide);
     - `footstep_snow_000` a `004` do Kenney Impact Sounds.
-  - Teste: o `check_textures` passa a contar as novas texturas (sai dos 22) e confere VRAM e mipmaps no atlas.
+  - Teste: o `check_textures` já conta 32 texturas (27 ambientCG, 2 atlas e 3 da rocha) e confere compressão VRAM e mipmaps.
   - Commit: `Fase 15.0: direção de arte e assets do bioma montanha`
-- [ ] **15.1 O bioma como dado, sem efeito** (Sonnet · medium)
+- [ ] **15.1 O bioma como dado, sem efeito** (Astra · medium)
   - Faz: entram `BiomeSpec`, `TerrainSpec`, `ScatterSpec`, o `montanha.tres` (pelo `tools/gerar_bioma.gd`), o campo `biome` e os ajudantes no `DistrictProfile`. O `rpg.tres` **ainda não** liga o bioma.
   - Teste: o `check_profiles` ganha a seção de biomas (carrega, ids únicos, pastas e sons existem) e a varredura de ids de bioma em `worlds/`.
+  - Contrato: alinhar nomes e valores do `TerrainSpec` a `Heightfield.SPEC_FIELDS`; testar `apply_spec` com o Resource real. Preservar o comportamento de perfis com `biome == null`. A neve só é ativada no perfil ao integrar a 15.11.
   - Commit: `Fase 15.1: o bioma como dado (sem efeito)`
-- [ ] **15.2 Retrato da planta e o plano por bairro** (Sonnet · medium)
+- [ ] **15.2 Retrato da planta e o plano por bairro** (Astra · medium)
   - Faz:
     - o `tools/retrato_planta.gd` grava `tests/fixtures/planta_atual.json`, com 6, 40 e 200 jogos falsos. O retrato tem, por bairro, os quarteirões, o pórtico, o letreiro e as estações; tem o `half`; e, por `app_id`, a casca, os andares e a parede;
     - o `_build_districts` passa a usar `DistrictSector`, vindo de `CityLayout.ring_plan(counts)`. É o comportamento de hoje, embrulhado.
   - Arquivos: `district_sector.gd` (novo), `city_layout.gd`, `city.gd`, o tool.
   - Teste: `check_planta.gd`, com tudo idêntico ao retrato.
+  - Sequência: gravar o retrato **antes** de mudar `_build_districts`; não regenerá-lo para acomodar regressões. Base visual/de desempenho pré-integração: `ed834cd`.
   - Commit: `Fase 15.2: retrato da planta e o plano por bairro`
-- [ ] **15.3 SectorLayout, a função pura** (Opus · high)
+- [ ] **15.3 SectorLayout, a função pura** (Astra · high; revisão Sol · high)
   - Arquivos: `worlds/city/sector_layout.gd` e `tests/check_sector_layout.gd`.
   - O teste roda os casos fixos ([1], [1,1,1,1], [1,2], 10 × [1], [30,1,…] e os 200 falsos) e 300 listas sorteadas com semente fixa.
   - O teste confere:
@@ -224,7 +260,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - quantas vezes R cresceu.
   - O teste imprime o mapa ASCII dos 200 falsos.
   - Commit: `Fase 15.3: layout em setores (função pura)`
-- [ ] **15.4 A cidade em setores** (Opus · high)
+- [ ] **15.4 A cidade em setores** (Astra · high; revisão Sol · high)
   - Faz:
     - liga o `SectorLayout` (`focus` ainda −1);
     - põe chão nas vagas;
@@ -239,13 +275,13 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - `check_metro` (180 m) e `check_gates`.
   - Manual: captura de cima com 200 falsos, na pasta temporária, nunca no repositório.
   - Commit: `Fase 15.4: bairros em setores da praça até a borda`
-- [ ] **15.5 O arco mostra a capa** (Sonnet · medium)
+- [ ] **15.5 O arco mostra a capa** (Astra · medium)
   - Faz: o `ArchShell` ganha uma placa `Poster` com o hero do jogo (`GameArt`), e o filete acende na carga da porta.
   - Teste:
     - o `check_portal_shell` confere o arco com `Poster` e textura;
     - `check_variants`, `check_phase6_step1` e `check_phase3_cache` passam a filtrar `is CityBuilding`.
   - Commit: `Fase 15.5: o arco mostra a capa do jogo`
-- [ ] **15.6 O bioma no chão** (Sonnet · medium)
+- [ ] **15.6 O bioma no chão** (Astra · medium)
   - Faz:
     - o `rpg.tres` liga o `montanha.tres`;
     - entra o `biome_builder.gd`: arcos, neve no miolo, calçada de pedra, setor coberto com colisão e `footstep = "snow"`, sem parques;
@@ -253,19 +289,21 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - "snow" no `player.gd`;
     - `focus` = o bairro com terreno de fundo.
   - Teste:
-    - `check_biome.gd` (novo): só o bairro com bioma muda, há "snow" debaixo do jogador e não há faixa nem poça na zona;
-    - o `check_footsteps` ganha a neve.
+     - `check_biome.gd` (novo): só o bairro com bioma muda, há "snow" debaixo do jogador e não há faixa nem poça na zona;
+     - o `check_footsteps` ganha a neve.
+  - Integração gradual: ligar chão, casca e passos nesta etapa; clima de neve e atmosfera só depois de juntar 15.11/15.12. Não referenciar classes ainda ausentes da trilha principal.
   - Commit: `Fase 15.6: chão de neve e arcos no bairro RPG`
-- [ ] **15.7 Pinheiros e rochas** (Sonnet · medium) · skill `godot-shaders`
+- [ ] **15.7 Pinheiros e rochas** (Astra · high) · skill `godot-shaders`
   - Faz:
     - o `TreeImpostor` e o shader passam a aceitar outro atlas e a escala da instância. Com escala 1, as árvores de hoje ficam iguais;
     - **pinheiro ao vento:** um balanço leve no vértice do impostor, mais forte na ponta e com fase por instância. Fica desligado nas árvores de hoje;
     - **neve por cima:** um material das rochas e dos arcos do bioma que mistura a textura de neve onde a normal do mundo aponta para cima (sem acúmulo dinâmico). O quanto vem do `BiomeSpec` (`snow_cover`);
     - entra o `biome/biome_scatter.gd`: pinheiros e rochas em MultiMesh, cilindros de colisão nos pinheiros da cidade;
-    - nada vai na frente das portas, nas calçadas, nos postes, no pórtico ou na estação.
+     - nada vai na frente das portas, nas calçadas, nos postes, no pórtico ou na estação.
+     - respeitar a amostra aprovada: pinheiros a pelo menos **6 m das áreas caminháveis**, incluindo a trilha; densidade e exclusões são dados/contratos do scatter.
   - Teste: `check_trees` sem mudança; `check_biome` com 1 a 2 desenhos por tipo e nada na faixa da porta; `check_metro`.
   - Commit: `Fase 15.7: pinheiros e rochas no bairro RPG`
-- [x] **15.8 O núcleo do terreno** (Opus · high) **[paralela, janela 1]** — 729edf0, junta em b372efa
+- [x] **15.8 O núcleo do terreno** (Claude Opus, trilha paralela já integrada) — `729edf0`, junta em `b372efa`
   - Arquivos novos: `heightfield.gd`, `terrain_mesh.gd`, `mountain_trail.gd`, `terrain.gdshader` e `tests/check_terrain.gd`.
   - O teste confere:
     - a mesma semente dá a mesma altura;
@@ -275,7 +313,8 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - não há quadrados mascarados;
     - o tempo de geração é impresso.
   - Commit: `Fase 15.8: núcleo do terreno (alturas, malha, trilha)`
-- [ ] **15.9 A montanha atrás do bairro** (Opus · high) · skill `level-design`
+- [ ] **15.9 A montanha atrás do bairro** (Astra · high; revisão Sol · high) · skill `level-design`
+  - Pré-requisitos: 15.1–15.8 e integração da janela 2. Dividir a execução em sessões/commits menores: **15.9.1** prova de colisão Jolt e greybox; **15.9.2** `BackdropTerrain`, vão e zonas; **15.9.3** percurso simulado, limites, sinalização e material. Marcar a 15.9 só quando todos os critérios abaixo passarem.
   - Faz:
     - **primeiro**, um teste mínimo do `HeightMapShape3D` no Jolt (tamanho, escala e centro); se falhar, vai o plano B;
     - **greybox antes do visual:**
@@ -289,23 +328,24 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - os pilares e o marco no mapa;
     - as zonas da montanha.
   - Teste: `check_mountain_trail.gd`:
-    - raio para baixo em 50 pontos bate com o visual (±5 cm);
+     - raio para baixo em 50 pontos bate com o visual (±5 cm);
+     - comparar a colisão com a **interpolação dos triângulos efetivamente desenhados** nas grades de 4, 3 e 2 m, não apenas com `height_at`: a trilha de 3 m pode ser mais estreita que uma célula;
     - teste de forma dos dois lados mostra parede;
     - existe só um vão;
     - o jogador sobe com entrada simulada até 10 m acima do chão;
     - com 600 falsos, a montanha some sem erro.
   - Commit: `Fase 15.9: montanha e trilha caminhável`
-- [ ] **15.10 O mirante e a torre** (Sonnet · medium) · skill `level-design`
+- [ ] **15.10 O mirante e a torre** (Astra · medium; revisão Sol · high) · skill `level-design`
   - Faz:
     - plataforma de madeira (`footstep = "wood"`), cerca e banco;
     - `anchor` no `DistrictLandmark`; sem terreno, a torre fica no centro do 1º quarteirão;
     - **a vista é o prêmio:** o banco e a abertura da cerca ficam virados para a praça e a torre do relógio, e a captura do brief é feita dali.
   - Teste: o `check_landmarks` passa a aceitar o marco ancorado.
   - Commit: `Fase 15.10: o mirante com a torre do RPG`
-- [ ] **15.11 Neve** (Sonnet · medium) **[paralela, janela 2]**
+- [ ] **15.11 Neve** (Astra · medium) **[paralela, janela 2]**
   - Arquivos: `weather_spec.gd`, `district_weather.gd` e `check_weather`. A paralela não mexe em `.tres`: a principal liga a neve no `montanha.tres` ao juntar.
   - Commit: `Fase 15.11: neve no clima dos bairros`
-- [ ] **15.12 Névoa e vento do bioma** (Sonnet · medium) **[paralela, janela 2]** · skills `godot-3d-essentials` e `audio-design`
+- [ ] **15.12 Névoa e vento do bioma** (Astra · high) **[paralela, janela 2]** · skills `godot-3d-essentials` e `audio-design`
   - Faz:
     - a mistura da névoa inclui a **névoa com altura** do Environment (`fog_height`, `fog_height_density`): o pé do morro fica na bruma e o pico aparece. Funciona na Leve;
     - o vento fica em duas camadas: a de baixo, no bairro, e uma mais forte que cresce com a altura na trilha;
@@ -314,34 +354,51 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - O teste confere: peso 0 deixa tudo igual a hoje; dentro da zona o peso é 1; a transição é suave; o F8 não apaga a mistura.
   - A ligação ao `BiomeBuilder` entra ao juntar.
   - Commit: `Fase 15.12: névoa e vento do bioma`
-- [ ] **15.13 Revisão visual** (Opus · high) · skill `revisao-do-hub`
+- [ ] **15.13 Revisão visual** (Sol · high; capturas e coordenação pela principal) · skill `revisao-do-hub`
+  - Executar **depois da 15.14**, para revisar a versão final nas qualidades Leve e Alta. A numeração foi preservada para manter as referências existentes.
   - Faz:
     - roda a revisão com as lentes `level-design`, `godot-3d-essentials`, `create-game-assets` e `audio-design`;
     - capturas nos 3 pontos do brief, de dia, no pôr do sol e à noite, com o céu de fotos e com o Sky3D, todas na pasta temporária;
     - entrega um relatório com impacto × esforço.
   - **O dono escolhe** o que entra. Os ajustes aprovados viram 15.13.1, 15.13.2… (cada um com commit); o resto vai para a Fase 16 ou para a trilha do desktop.
   - Commit: só os das 15.13.x.
-- [ ] **15.14 Qualidade** (Sonnet · medium)
+- [ ] **15.14 Qualidade** (Astra · medium)
   - Faz: `GraphicsQuality.terrain_cell_meters` e `scatter_amount`; o terreno se refaz ao trocar a qualidade; sem sombra do terreno na Leve.
   - Teste: `check_graphics_quality`.
   - Commit: `Fase 15.14: terreno e enfeites por qualidade`
-- [ ] **15.15 Medida e documentação** (Sonnet · medium)
+- [ ] **15.15 Medida e documentação** (Astra · medium nas medidas; Spark · low no texto mecânico)
   - Faz:
     - o `medir_desempenho` ganha `MEDIDA_MONTANHA` (sobe a trilha e gira no mirante);
-    - no notebook (Leve), antes e depois lado a lado no mesmo dia, com um worktree da base da fase contra a ponta, a 0 e a 200 jogos;
-    - a meta do desktop fica anotada como pendente na trilha do desktop;
-    - README, ROADMAP e o mapa do CLAUDE.md (`worlds/city/biome/`, `profiles/biomes/`; trocar "addons/ (ainda vazio)").
+     - no desktop (Alta), medir com janela a base pré-integração `ed834cd` e a ponta, no mesmo dia/máquina, a 0 e 200 jogos; registrar montagem (pior quadro ≤ 50 ms), caminhada, subida e giro no mirante, resolução, qualidade, hora e hardware;
+     - medir `MEDIDA_MONTANHA` na ponta; na base, sem montanha integrada, comparar só trajetos e métricas comuns. Não atribuir à base uma subida inexistente;
+     - no notebook (Leve), repetir antes/depois a 0 e 200 jogos quando disponível; registrar separadamente se não for possível, sem transformar o notebook em meta;
+     - verificar com 600 falsos o fallback sem terreno e com biblioteca real o percurso/launcher;
+     - README, ROADMAP e o mapa do AGENTS.md (`worlds/city/biome/`, `profiles/biomes/`; conferir o conteúdo real de `addons/`). Registrar explicitamente qualquer pendência de desktop ou Linux.
   - Teste: `check_perf_tool`.
   - Commit: `Fase 15.15: medida e documentação`
 
-### Trilhas (principal no checkout, paralela num git worktree)
+### Trilhas no OpenCode (principal no checkout, paralela em worktree e sessão próprios)
 | Janela | Principal | Paralela | Por que não brigam |
 |---|---|---|---|
-| 1 | 15.0 → 15.4 | 15.8 | a 15.8 só cria arquivos novos em `biome/` e `tests/` |
-| 2 (15.4 e 15.8 juntas) | 15.5 → 15.7 | 15.11, depois 15.12 | a principal não mexe em `district_weather`, `weather_spec`, `day_night` nem nos `.tres` de clima |
-| 3 | 15.9 → 15.10 → 15.13 (revisão) → 15.14 → 15.15 | nenhuma | tudo passa pelo `biome_builder` e pelo `city.gd` |
+| 1 (retomada) | 15.1 → 15.2 → 15.3 → 15.4 | 15.8 já integrada | não recriar o trabalho concluído |
+| 2 (15.4 e 15.8 juntas) | 15.5 → 15.6 → 15.7 | 15.11, depois 15.12 | principal fica com `city.gd`, `BiomeBuilder` e `.tres`; paralela com clima/atmosfera |
+| 3 (janela 2 integrada) | 15.9 → 15.10 → **15.14 → 15.13** → 15.15 | revisão somente leitura nos pontos indicados | integrações e qualidade prontas antes da revisão visual final |
 
-A paralela é criada com `git worktree add -b worktree/<nome> ~/git/game-hub_worktrees/<nome> fase-15`. Ela não marca o plano. A principal junta com `git merge --no-ff`, roda a bateria e marca `[x]`. O commit é feito com o e-mail noreply (`-c user.email=...`).
+A paralela nasce do **commit de conclusão da 15.4**, com contrato de `BiomeSpec`, `CityMap.zone_rects` e `DistrictWeather.areas` já estabilizado. Pode usar a criação de worktree do OpenCode (confirmar base e mover/abrir a sessão nele) ou, explicitamente, `git worktree add -b worktree/f15-clima ../game-hub_worktrees/f15-clima fase-15`. Subagente sozinho usa a pasta da sessão: não equivale a worktree.
+
+**Posse de arquivos da janela 2:**
+- Principal: `city.gd`, `biome_builder.gd`, cascas, scatter, árvores, passos, perfis `.tres`, plano e documentação de status.
+- Paralela: `weather_spec.gd`, `district_weather.gd`, `day_night.gd`, `biome_atmosphere.gd`, `check_weather.gd`, `check_daynight.gd` e `check_biome_atmosphere.gd`. Não edita `city.gd`, `BiomeBuilder` nem `.tres`.
+- Handoff: hash-base, arquivos alterados, API esperada, comando/resultado dos testes e pendências visuais. Se um contrato precisar mudar, combinar com a principal antes de editar arquivo compartilhado.
+
+A paralela não marca o plano. A principal confere o diff, junta com `git merge --no-ff`, liga clima/atmosfera nos perfis e no builder, roda a bateria e marca `[x]`. **Uma bateria por vez**, mesmo entre worktrees. Commits com e-mail noreply (`-c user.email=32810557+guitavaress@users.noreply.github.com`). Revisão Sol somente leitura pode ocorrer em sessão filha recebendo diff/logs/capturas da principal.
+
+### Validação em cada entrega
+
+1. Rodar os testes da subetapa durante o trabalho; antes do commit ou após integração, bateria completa. No PowerShell: `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`. No Linux: `bash tests/run_tests.sh`. Detalhes em [../OPENCODE.md](../OPENCODE.md#testes-no-windows-e-no-linux).
+2. Guardar logs e capturas na pasta temporária da sessão. Registrar comando, ambiente, resultado e commit-base no plano; aprovação histórica não substitui teste atual.
+3. Aceites intermediários: **15.4** planta/mapas/metrô; **15.7** portas livres e assets; **15.9/15.10** colisão/percurso/mirante; **15.14/15.13** qualidade e capturas; **15.15** desempenho e documentação. Sol revisa os pontos estruturais indicados; o dono aprova o visual.
+4. `[x]` só com critérios da etapa satisfeitos. Um teste headless do núcleo não encerra a integração, uma imagem não prova colisão e tempo de geração não prova FPS.
 
 ## Riscos
 | Risco | Como perceber cedo | O que fazer |
@@ -354,6 +411,9 @@ A paralela é criada com `git worktree add -b worktree/<nome> ~/git/game-hub_wor
 | Névoa piscando com o relógio | `check_biome_atmosphere` com F8 | mistura dentro do `DayNight` |
 | Tempo de montagem do terreno em GDScript | tempo impresso no `check_terrain` | um pedaço por quadro |
 | Escala no impostor mudando as árvores de hoje | `check_trees` | escala 1 tem de dar o mesmo resultado |
+| Colisão analítica diferente dos triângulos da trilha | raios na 15.9, em 4/3/2 m por célula | alinhar malha/colisão; replanejar se precisar de faixa refinada |
+| Trabalho paralelo sobrescrever API/perfil | diff e contrato da janela 2 | um dono por arquivo; integração pela principal |
+| Testar Windows pelo bash do WSL | runner procura `~/.local/bin/godot` | usar Git Bash explícito; registrar SO de cada execução |
 
 Testes afetados:
 - `check_weather`, `check_scale`, `check_metro`, `check_landmarks`, `check_variants`, `check_phase6_step1`, `check_phase3_cache`, `check_profiles`, `check_textures`, `check_footsteps`, `check_daynight` e `check_trees`;
@@ -375,9 +435,11 @@ Testes afetados:
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
 - 2026-10-17: 15.0 em andamento. Brief em `docs/design/bioma-montanha.md`; amostra baixada (Snow010A, Rock058, moon_rock_02 e o pinheiro fir_sapling_medium, cujo glTF fica em `~/git/game-hub-fontes/`) e capturada por cima do bairro RPG com o `tools/capturar_pontos.gd` (novo). Resultado: rocha = forma da moon_rock_02 com a Rock058 e neve por cima; neve com tinta `#BCC5D2`. **Falta:** o dono aprovar a amostra e permitir os `footstep_snow_*` do Kenney.
 - 2026-10-19: a fase passou para o desktop (Windows). A `fase-15` recebeu a `fase-linux` (Fase 14 e correções do Windows) e a 15.8 da `worktree/terreno` (só arquivos novos; bateria 75/75 antes). A amostra foi refeita no desktop e **aprovada pelo dono**; os `footstep_snow_000..004` vieram do Kenney Impact Sounds (0,8 MB o zip, 39 KB no projeto, com permissão). 15.0 concluída.
+- 2026-10-23: a pedido do dono, retomada com OpenCode/OpenAI: estado e dependências conferidos; 15.0/15.8 preservadas; próxima 15.1. Configuração de agentes/comandos em `opencode.json`; política em `docs/OPENCODE.md`. Qualidade (15.14) passa antes da revisão visual final (15.13); 15.9 dividida em entregas menores. Meta de desktop será medida na 15.15, pois o desktop já está disponível. Atualização de planejamento/infra, sem implementar as próximas subetapas.
+- 2026-10-23: bateria completa no desktop Windows aprovada (76/76; Rust pulado). A tentativa anterior com `bash` do PATH abria o WSL; documentado o comando explícito do Git Bash. Configuração OpenCode validada pela API na localização do projeto.
 
 ## Checklist de teste manual (fim da fase)
-1. **Abrir a cidade:** `~/.local/bin/godot --path . worlds/city/city.tscn`, com a biblioteca de verdade. Sair de casa (E na porta) e abrir o mapa (M).
+1. **Abrir o hub no editor:** abrir `project.godot`, apertar **F6** com `worlds/city/city.tscn` aberta, com a biblioteca de verdade. Sair de casa (E na porta) e abrir o mapa (M).
    - **Deve acontecer:** cada bairro é uma fatia da praça até a borda, e o RPG fica ao norte.
 2. **Entrar no bairro RPG.**
    - **Deve acontecer:** neve no chão e caindo, névoa mais densa, vento e passos de neve; arcos de pedra com a capa do jogo; pinheiros e rochas.
@@ -389,5 +451,5 @@ Testes afetados:
    - **Deve acontecer:** a viagem e a rota funcionam, e a rota segue pelas ruas.
 6. **Trocar a qualidade** (Esc > Opções > Leve/Alta).
    - **Deve acontecer:** a montanha se refaz e não some.
-7. **Repetir com 200 jogos falsos:** `godot --path . -s tools/medir_desempenho.gd -- 200 leve 22`.
-   - **Deve acontecer:** comparar os números com os de antes (só no notebook). A meta absoluta fica para a trilha do desktop.
+7. **Repetir com 200 jogos falsos, com janela:** no PowerShell, `& 'C:\Godot\Godot_v4.7.2-stable_win64_console.exe' --path . -s tools/medir_desempenho.gd -- 200 alta 22`.
+   - **Deve acontecer:** medir a meta de desktop e comparar com a base conforme 15.15. No notebook, usar `godot --path . -s tools/medir_desempenho.gd -- 200 leve 22` só para antes/depois.

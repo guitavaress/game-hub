@@ -11,6 +11,13 @@ bash tests/run_tests.sh check_gates check_trees  # só estes
 
 Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada teste e termina com `RESULTADO GERAL: TUDO OK` ou com a lista do que falhou. O script acha a Godot em `C:\Godot` (Windows) ou no `PATH`/`~/.local/bin/godot` (Linux); para outra, rode `GODOT=/caminho/godot bash tests/run_tests.sh`.
 
+**PowerShell no Windows:** chame explicitamente o Git Bash, pois o `bash` do PATH pode ser o WSL e procurar a Godot do Linux:
+
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh
+& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh check_terrain check_textures
+```
+
 **O compositor (Rust, só Linux):** na bateria inteira, depois dos testes da Godot, roda o `cargo test` de `native/compositor/` e a checagem de licenças dos crates (`tools/linux/checar_licencas.sh`). Sem Rust, fora do Linux ou antes da primeira `bash tools/linux/compilar_compositor.sh`, aparece "cargo test: pulado". O `check_compositor` passa com e sem a extensão compilada (sem ela, pula a parte que liga um compositor de verdade).
 
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.

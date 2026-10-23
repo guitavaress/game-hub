@@ -1,0 +1,62 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-6-astra",
+  "default_agent": "build",
+  "agents": {
+    "build": { "model": "openai/gpt-6-astra#medium" },
+    "plan": { "model": "openai/gpt-6-astra#high" },
+    "general": { "model": "openai/gpt-6-astra#medium" },
+    "explore": { "model": "openai/gpt-6-luna#low" },
+    "hub-review": {
+      "description": "Revisão independente do Game Hub: arquitetura, regressões, testes e evidências visuais fornecidas",
+      "mode": "subagent",
+      "model": "openai/gpt-6.1-sol#high",
+      "system": "Leia AGENTS.md e o plano da fase indicada. Revise apenas o escopo recebido, comparando critérios do plano, diff e testes. Responda em português simples, com gravidade, arquivo/linha, evidência e próximo passo. Diferencie defeito comprovado, risco e validação pendente. Não edite arquivos, não execute testes, não faça commit ou merge. Capturas, quando fornecidas, ficam na pasta temporária; não aprove visual sem imagens. Não invente execução, medidas ou superioridade de modelos.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" },
+        { "action": "subagent", "resource": "*", "effect": "deny" }
+      ]
+    }
+  },
+  "commands": {
+    "fase15-planejar": {
+      "description": "Planejar uma subetapa da Fase 15 (Astra high)",
+      "agent": "plan",
+      "model": "openai/gpt-6-astra#high",
+      "template": "Leia AGENTS.md e docs/plans/fase-15.md. Planeje a subetapa $ARGUMENTS; sem argumento, a próxima pendente cujas dependências estejam concluídas. Confira o código atual, arquivos envolvidos, contratos, testes e checklist manual. Não implemente. Proponha a atualização do plano; a gravação em docs/plans/fase-15.md é feita em Build depois da aprovação."
+    },
+    "fase15-passo": {
+      "description": "Executar uma subetapa aprovada (Astra medium)",
+      "agent": "build",
+      "model": "openai/gpt-6-astra#medium",
+      "template": "Leia AGENTS.md e docs/plans/fase-15.md. Execute somente a subetapa aprovada $ARGUMENTS; sem argumento, a próxima elegível. Confira as dependências e a tabela de modelos: se a etapa exigir high, indique /fase15-dificil com o número antes de implementar. Carregue as skills pertinentes, preserve trabalho existente, rode os testes associados e a bateria completa antes do commit. Registre evidências e pendências no plano. Não marque como concluído o que ainda exige validação. Não avance automaticamente para outra subetapa."
+    },
+    "fase15-dificil": {
+      "description": "Geometria, shaders ou integração complexa (Astra high)",
+      "agent": "build",
+      "model": "openai/gpt-6-astra#high",
+      "template": "Leia AGENTS.md e docs/plans/fase-15.md. Execute somente a subetapa aprovada $ARGUMENTS, respeitando dependências e escopo. Se não houver número, peça qual subetapa executar. Carregue as skills pertinentes e comece pelos testes de maior risco do plano. Ao surgir decisão de arquitetura não prevista ou o mesmo erro duas vezes, volte ao planejamento. Rode os testes associados e a bateria completa antes do commit; registre evidências e checklist manual."
+    },
+    "fase15-revisar": {
+      "description": "Revisão independente em sessão filha (Sol high)",
+      "agent": "hub-review",
+      "model": "openai/gpt-6.1-sol#high",
+      "subagent": true,
+      "template": "Revise a Fase 15 no escopo $ARGUMENTS. Leia AGENTS.md, docs/plans/fase-15.md e os arquivos pertinentes. Sem escopo, revise o plano atual e as evidências registradas. Para revisão de implementação, use o diff e os logs fornecidos pelo chamador; aponte quando faltarem. Priorize correção, arquitetura, dependências, cobertura de testes e critérios ainda não comprovados. Entregue achados com arquivo/linha e impacto; não altere arquivos nem rode comandos."
+    },
+    "fase15-docs": {
+      "description": "Ajuste mecânico e delimitado de documentação (Spark low)",
+      "agent": "build",
+      "model": "openai/gpt-5.3-codex-spark#low",
+      "template": "Leia AGENTS.md e docs/plans/fase-15.md. Faça apenas este ajuste mecânico de documentação: $ARGUMENTS. Sem argumento, peça o ajuste desejado. Preserve decisões, critérios e estados de conclusão; não invente aprovação ou resultado de teste. Se exigir decisão técnica ou mudança de escopo, encaminhe para /fase15-planejar. Confira git diff --check e os links locais alterados."
+    },
+    "fase15-testes": {
+      "description": "Rodar e relatar a bateria, sem corrigir código (Spark low)",
+      "agent": "build",
+      "model": "openai/gpt-5.3-codex-spark#low",
+      "template": "Leia AGENTS.md, tests/README.md e a seção de testes de docs/OPENCODE.md. Rode a bateria inteira, ou somente os testes solicitados em $ARGUMENTS, uma execução por vez. No PowerShell use explicitamente C:\\Program Files\\Git\\bin\\bash.exe; não use o bash do WSL para testar Windows. Salve o log na pasta temporária da sessão. Relate quantidade, falhas e itens pulados. Não corrija código, altere os critérios ou faça commit."
+    }
+  },
+  "worktree": { "directory": "../game-hub_worktrees" }
+}

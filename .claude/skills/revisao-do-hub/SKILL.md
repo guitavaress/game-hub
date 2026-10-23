@@ -15,11 +15,11 @@ Esta skill **não implementa nada**. Ela olha o hub com as lentes certas e entre
 
 ## 1. Contexto primeiro
 Leia, nesta ordem:
-1. `CLAUDE.md`: visão, mapa do projeto e as **6 regras de arquitetura**.
+1. `AGENTS.md`: visão, mapa do projeto e as **6 regras de arquitetura**.
 2. `docs/ROADMAP.md`: o que já está feito e o que já está planejado (não sugira o que já está na fila; aponte para a fase).
 3. O plano da fase atual em `docs/plans/` (o de número mais alto, ou o que o dono indicar).
 
-Depois abra só os arquivos que a lente escolhida precisa (use o mapa do CLAUDE.md).
+Depois abra só os arquivos que a lente escolhida precisa (use o mapa do AGENTS.md).
 
 ## 2. Escolha as lentes
 Pegue só as que o pedido toca. Para cada lente, carregue a skill ligada a ela e use os critérios dela.

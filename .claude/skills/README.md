@@ -5,7 +5,7 @@ Skills são instruções que o Claude Code carrega sozinho quando o pedido combi
 ## O que tem aqui
 
 **Própria do projeto (em português):**
-- `revisao-do-hub`: roteiro de revisão do hub (visual, sensação, orientação, UI, som, desempenho). Liga as skills abaixo às regras do CLAUDE.md e entrega um relatório; não implementa nada.
+- `revisao-do-hub`: roteiro de revisão do hub (visual, sensação, orientação, UI, som, desempenho). Liga as skills abaixo às regras do AGENTS.md e entrega um relatório; não implementa nada.
 
 **De jogos e design** (20, copiadas de [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)):
 

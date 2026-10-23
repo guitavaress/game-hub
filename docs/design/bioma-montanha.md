@@ -96,7 +96,7 @@ Situação: `planejado` → `amostra` (baixado para testar) → `aprovado` (o do
 | `pine_impostor.png/.json` | atlas do pinheiro (árvore "a", 8,8 m) | gerado pelo `make_tree_impostor.gd` | — | 1,8 MB | aprovado |
 | `moon_rock_02` | rocha 3D (só a forma; 3,3 mil triângulos, 25 cm, escala ×5) | [Poly Haven](https://polyhaven.com/a/moon_rock_02), glTF 1K | 1,5 MB | 1,5 MB | aprovado |
 | `Rock058` | rocha das encostas e da rocha 3D (triplanar) | [ambientCG](https://ambientcg.com/view?id=Rock058), 1K-JPG | 8,0 MB (zip) | 3,9 MB (3 mapas) | aprovado |
-| `footstep_snow_000..004` | passos na neve | [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) (o pacote do projeto não tinha os de neve) | 0,8 MB (zip) | 39 KB (5 `.ogg`) | aprovado (entra no jogo na 15.12) |
+| `footstep_snow_000..004` | passos na neve | [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) (o pacote do projeto não tinha os de neve) | 0,8 MB (zip) | 39 KB (5 `.ogg`) | aprovado (entra no jogo na 15.6) |
 | `wind_loop.wav` | vento | já no projeto (gerado) | — | — | no jogo |
 | `PavingStones070` | calçada de pedra | já no projeto | — | — | no jogo |
 

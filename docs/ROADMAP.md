@@ -145,12 +145,12 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 | [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
 | [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy (reaberta: janelas no mundo) | V5 | notebook ✅ (é o lugar ideal) |
 | [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
-| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha (plano aprovado) | V3 | notebook (Leve) + desktop (Alta) |
+| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha (em andamento: 15.0 e 15.8) | V3 | desktop Windows (Alta); notebook para comparação |
 | [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
 | [17](#fase-17-visitar-a-cidade-de-um-amigo) | Visitar a cidade de um amigo | V4 (sem servidor) | notebook ✅ |
 | [18](#fase-18-mundos-abertos) | Mundos abertos | V6 (local) | notebook ✅ |
 
-Cada fase ganha o seu `docs/plans/fase-N.md` (Opus, modo plan, aprovado) só quando começar.
+Cada fase ganha o seu `docs/plans/fase-N.md` aprovado quando começar; fluxo e modelos em [OPENCODE.md](OPENCODE.md).
 
 ### Fase 13: Casa, parte 2 ✅ feita (no Linux; falta a conferência no desktop)
 
@@ -225,9 +225,11 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 - **Terreno por malha feita por código**, e não pelo Terrain3D (binários pesados no histórico e a primeira importação que derruba a Godot; veja a [avaliação](design/addons-2026-10-13.md)). Fica atrás de um ponto único, para a troca futura.
 - **Visual guiado pelas skills do projeto:** direção de arte e uma amostra aprovada antes de baixar o resto, a trilha em greybox antes de enfeitar e uma revisão visual com capturas no fim.
 
+**Andamento (2026-10-23):** 15.0 concluída (assets e amostra aprovada) e 15.8 integrada (núcleo isolado do terreno). Próxima: **15.1**, bioma como dado. Montanha, setores, clima e trilha caminhável ainda não estão integrados à cidade. Retomada no desktop Windows com OpenCode/OpenAI; divisão de modelos, dependências e validação no plano.
+
 **Assets:** pinheiro, rocha, neve e passos na neve, todos CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
 
-**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG é uma montanha nevada com os portais nela e uma trilha até o mirante, e o visual foi aprovado nas capturas. Desempenho: a meta é no desktop (Alta), pendente para a trilha do desktop; no notebook (Leve), só a comparação antes e depois.
+**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG tem portais no chão plano nevado e a montanha atrás, com trilha até o mirante, e o visual foi aprovado nas capturas. Desempenho: medir a meta no desktop (Alta) na 15.15; se não for possível, registrar a pendência na trilha do desktop. No notebook (Leve), só comparação antes e depois.
 
 ### Fase 16: Biomas pela biblioteca
 

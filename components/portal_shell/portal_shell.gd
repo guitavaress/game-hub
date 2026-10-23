@@ -5,7 +5,7 @@ extends Node3D
 ## de pedra (ArchShell) e, no futuro, um boxe de corrida ou uma caverna.
 ##
 ## A casca cuida só da aparência. Toda a lógica de abrir o jogo continua no
-## GamePortal, que não sabe em que casca está (regra 3 do CLAUDE.md).
+## GamePortal, que não sabe em que casca está (regra 3 do AGENTS.md).
 ##
 ## Convenção: a casca ocupa "size" (largura, altura, profundidade) centrada na
 ## origem, e a FRENTE fica na face +Z (em z = size.z / 2). É ali que fica a
