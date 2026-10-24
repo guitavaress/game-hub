@@ -82,3 +82,77 @@ jobs:
           "$GODOT" --headless --path . -s res://tests/check_steam_windows.gd 2>&1 | grep -v -E 'friends_service|push_warning|backtrace' || true
           echo "--- chave de teste que pode ter sobrado (deve dizer que não achou):"
           reg query 'HKCU\Software\GameHubTest' 2>&1 | head -5 || true
+
+  # Exporta o jogo (sem assinatura de código e sem segredos) para provar que o
+  # projeto exporta nos dois sistemas. O compositor nativo (native/) fica de fora:
+  # ele é compilado à parte, só no Linux.
+  exportar:
+    name: exportar ${{ matrix.os }}
+    needs: plataforma
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baixar a Godot e os modelos de exportação (conferir o SHA512)
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/$GODOT_VERSION"
+          tmp="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            tmp="$(cygpath -u "$RUNNER_TEMP")"
+            zip="Godot_v${GODOT_VERSION}_win64.exe.zip"
+            exe="Godot_v${GODOT_VERSION}_win64_console.exe"
+            tpl_dir="$(cygpath -u "$APPDATA")/Godot/export_templates/${GODOT_VERSION/-/.}"
+          else
+            zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+            exe="Godot_v${GODOT_VERSION}_linux.x86_64"
+            tpl_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION/-/.}"
+          fi
+          tpz="Godot_v${GODOT_VERSION}_export_templates.tpz"
+          sums="$(curl -fsSL "$base/SHA512-SUMS.txt")"
+          for f in "$zip" "$tpz"; do
+            curl -fsSL -o "$tmp/$f" "$base/$f"
+            want="$(echo "$sums" | awk -v name="$f" '$2 == name { print $1 }')"
+            got="$(sha512sum "$tmp/$f" | awk '{ print $1 }')"
+            if [ -z "$want" ] || [ "$want" != "$got" ]; then
+              echo "SHA512 diferente do publicado em $f"
+              exit 1
+            fi
+          done
+          mkdir -p "$tmp/godot" "$tmp/tpl" "$tpl_dir"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z x -y -o"$tmp/godot" "$tmp/$zip" > /dev/null
+            7z x -y -o"$tmp/tpl" "$tmp/$tpz" > /dev/null
+          else
+            unzip -q -o "$tmp/$zip" -d "$tmp/godot"
+            unzip -q -o "$tmp/$tpz" -d "$tmp/tpl"
+            chmod +x "$tmp/godot/$exe"
+          fi
+          cp -r "$tmp/tpl/templates/." "$tpl_dir/"
+          echo "GODOT=$tmp/godot/$exe" >> "$GITHUB_ENV"
+
+      - name: Importar o projeto
+        run: timeout 300 "$GODOT" --headless --path . --import || true
+
+      - name: Exportar
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then preset=Windows; out=build/windows/GameHub.exe
+          else preset=Linux; out=build/linux/GameHub.x86_64; fi
+          mkdir -p "$(dirname "$out")"
+          "$GODOT" --headless --path . --export-release "$preset" "$out"
+          ls -la "$(dirname "$out")"
+          test -s "$out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamehub-${{ runner.os }}
+          path: build/
+          retention-days: 7
