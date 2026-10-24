@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 e 15.8 concluídas; próxima: **15.1**. Escopo aprovado em 2026-10-17; planejamento operacional atualizado em 2026-10-23.
+**Status:** em andamento — 15.0 e 15.8 concluídas; **15.1 implementada e testada, aguardando checklist manual**. Próxima implementação após esse aceite: 15.2. Escopo aprovado em 2026-10-17; última execução em 2026-10-24.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução:** OpenCode v2.1.3 + modelos OpenAI; comandos e política em [../OPENCODE.md](../OPENCODE.md). O trabalho concluído pelo Claude permanece registrado com seus commits.
 
@@ -234,9 +234,15 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Teste: o `check_textures` já conta 32 texturas (27 ambientCG, 2 atlas e 3 da rocha) e confere compressão VRAM e mipmaps.
   - Commit: `Fase 15.0: direção de arte e assets do bioma montanha`
 - [ ] **15.1 O bioma como dado, sem efeito** (Astra · medium)
+  - **Implementada em 2026-10-24:** testes direcionados e bateria Windows aprovados (76/76). Checkbox aguarda a conferência manual abaixo. Log: `C:\Users\gui_t\AppData\Local\Temp\opencode\fase-15-1-2026-10-24.log`. Rust pulado no Windows.
   - Faz: entram `BiomeSpec`, `TerrainSpec`, `ScatterSpec`, o `montanha.tres` (pelo `tools/gerar_bioma.gd`), o campo `biome` e os ajudantes no `DistrictProfile`. O `rpg.tres` **ainda não** liga o bioma.
   - Teste: o `check_profiles` ganha a seção de biomas (carrega, ids únicos, pastas e sons existem) e a varredura de ids de bioma em `worlds/`.
   - Contrato: alinhar nomes e valores do `TerrainSpec` a `Heightfield.SPEC_FIELDS`; testar `apply_spec` com o Resource real. Preservar o comportamento de perfis com `biome == null`. A neve só é ativada no perfil ao integrar a 15.11.
+  - Detalhamento aprovado em 2026-10-24: `ground_normal_strength` registra o relevo 1,6 aprovado e `walkable_clearance` registra os 6 m de afastamento dos pinheiros. Scatter separado para bairro e montanha, com faixas de altura próprias. Pastas de materiais relativas a `assets/ambientcg/`; origens do scatter são caminhos `res://`.
+  - Contratos dos ajudantes: casca vazia e clima null herdam o bairro; passos vazios usam `concrete`. Consultas não modificam os Resources compartilhados. `weather` da montanha permanece null até 15.11; todos os bairros permanecem com `biome == null` até 15.6.
+  - Arquivos: três Resources em `profiles/`, `profiles/biomes/montanha.tres`, `tools/gerar_bioma.gd`, `profiles/district_profile.gd`, `tests/check_profiles.gd` e `tests/check_terrain.gd`.
+  - Testes: carregar assets com os tipos corretos, IDs únicos, intervalos de scatter, herança/precedência dos ajudantes e todos os dez campos de terreno com valores reais e diferentes dos padrões (cópia isolada). Manter o retrato histórico dos bairros e varrer IDs de bioma em `worlds/`.
+  - Manual: abrir `montanha.tres` no Inspector e conferir sub-recursos; conferir Biome vazio no RPG; F6 em `worlds/city/city.tscn`, E para sair e M para abrir o mapa, com o comportamento atual preservado.
   - Commit: `Fase 15.1: o bioma como dado (sem efeito)`
 - [ ] **15.2 Retrato da planta e o plano por bairro** (Astra · medium)
   - Faz:
@@ -432,6 +438,7 @@ Testes afetados:
 - IK dos pés.
 
 ## Decisões tomadas durante a fase
+- 2026-10-24: detalhamento da 15.1 aprovado e implementado. Gerador salvou o `.tres` pela Godot, usando assets existentes; névoa, densidade e cobertura são valores iniciais a afinar nas etapas visuais. Testes direcionados `check_profiles`, `check_terrain` e `check_textures` aprovados. Bateria completa Windows: 76/76, `RESULTADO GERAL: TUDO OK`; Rust pulado. Conferência manual no editor pendente, por isso a 15.1 ainda não recebeu `[x]`.
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
 - 2026-10-17: 15.0 em andamento. Brief em `docs/design/bioma-montanha.md`; amostra baixada (Snow010A, Rock058, moon_rock_02 e o pinheiro fir_sapling_medium, cujo glTF fica em `~/git/game-hub-fontes/`) e capturada por cima do bairro RPG com o `tools/capturar_pontos.gd` (novo). Resultado: rocha = forma da moon_rock_02 com a Rock058 e neve por cima; neve com tinta `#BCC5D2`. **Falta:** o dono aprovar a amostra e permitir os `footstep_snow_*` do Kenney.
 - 2026-10-19: a fase passou para o desktop (Windows). A `fase-15` recebeu a `fase-linux` (Fase 14 e correções do Windows) e a 15.8 da `worktree/terreno` (só arquivos novos; bateria 75/75 antes). A amostra foi refeita no desktop e **aprovada pelo dono**; os `footstep_snow_000..004` vieram do Kenney Impact Sounds (0,8 MB o zip, 39 KB no projeto, com permissão). 15.0 concluída.

@@ -62,6 +62,22 @@ extends Resource
 ## Quantos jogos por quarteirão. Reservado: a cidade ainda usa 4 para todos.
 @export var density: int = 4
 
+@export_group("Bioma")
+## Vazio mantém a cidade atual. A ligação do RPG entra na Fase 15.6.
+@export var biome: BiomeSpec
+
+
+func effective_shell() -> String:
+	return biome.shell if biome != null and not biome.shell.is_empty() else shell
+
+
+func effective_weather() -> WeatherSpec:
+	return biome.weather if biome != null and biome.weather != null else weather
+
+
+func footstep() -> String:
+	return biome.footstep if biome != null and not biome.footstep.is_empty() else "concrete"
+
 
 ## A cor de luz do bairro (calculada, se "neon" estiver transparente).
 func neon_color() -> Color:

@@ -179,6 +179,7 @@ func _run() -> void:
 	_check("o texto do config.cfg lista todos os bairros (faltando: %s)" % str(missing),
 			missing.is_empty() and config_text.contains("outros"))
 
+	_check_biomes()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
@@ -249,3 +250,48 @@ func _check_landmark(profile) -> void:
 	_check("%-14s o marco carrega e é um DistrictLandmark" % profile.id,
 			script != null and script.get_base_script() != null
 			and script.get_base_script().get_global_name() == "DistrictLandmark")
+
+
+func _check_biomes() -> void:
+	var ids: Array[String] = []
+	for file in DirAccess.get_files_at("res://profiles/biomes"):
+		if not file.ends_with(".tres"):
+			continue
+		var biome := load("res://profiles/biomes/" + file) as BiomeSpec
+		_check("bioma carrega: " + file, biome != null)
+		if biome == null:
+			continue
+		var regex := RegEx.create_from_string("^[a-z][a-z0-9_]*$")
+		_check("id válido e único: " + biome.id, regex.search(biome.id) != null and not ids.has(biome.id))
+		ids.append(biome.id)
+		_check("chão válido", biome.ground_meters > 0 and biome.ground_normal_strength >= 0)
+		_check("casca válida", biome.shell in ["", "building", "arch"])
+		_check("terreno configurado", biome.backdrop != null)
+		if biome.backdrop != null:
+			for folder in [biome.ground_folder, biome.path_folder, biome.backdrop.snow_folder, biome.backdrop.rock_folder]:
+				for suffix in ["Color", "NormalGL", "Roughness"]:
+					_check("textura: %s %s" % [folder, suffix], ResourceLoader.exists("res://assets/ambientcg/%s/%s_1K-JPG_%s.jpg" % [folder, folder, suffix]))
+		for scatter in biome.scatter:
+			_check("scatter válido", scatter != null)
+			if scatter == null:
+				continue
+			var source := load(scatter.source)
+			_check("tipo de asset", (scatter.kind == "impostor" and source is Texture2D) or (scatter.kind == "mesh" and source is PackedScene))
+			_check("intervalos do scatter", scatter.height_range.x > 0 and scatter.height_range.y >= scatter.height_range.x and scatter.density >= 0 and scatter.walkable_clearance >= 0 and scatter.collision_radius >= 0)
+		if biome.ambience_bed != null:
+			for sound in biome.ambience_bed.files:
+				_check("som carrega", load(sound) is AudioStream)
+	_check("existe bioma", not ids.is_empty())
+	var offenders: Array[String] = []
+	_scan_ids("res://worlds", ids, offenders)
+	_check("mundos não fixam ids de bioma", offenders.is_empty())
+	for district in Profiles.districts():
+		_check("bairro ainda sem bioma: " + district.id, district.biome == null and district.effective_shell() == district.shell and district.effective_weather() == district.weather and district.footstep() == "concrete")
+	var sample := DistrictProfile.new()
+	sample.weather = WeatherSpec.new()
+	sample.biome = BiomeSpec.new()
+	_check("campos vazios herdam bairro", sample.effective_shell() == sample.shell and sample.effective_weather() == sample.weather and sample.footstep() == "concrete")
+	sample.biome.shell = "arch"
+	sample.biome.footstep = "snow"
+	sample.biome.weather = WeatherSpec.new()
+	_check("bioma tem precedência sem modificar bairro", sample.effective_shell() == "arch" and sample.footstep() == "snow" and sample.effective_weather() == sample.biome.weather and sample.shell == "building" and sample.weather != sample.biome.weather)

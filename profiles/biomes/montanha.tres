@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="BiomeSpec" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_menx0"]
+[ext_resource type="Script" path="res://profiles/terrain_spec.gd" id="2_o0bsu"]
+[ext_resource type="Script" path="res://profiles/scatter_spec.gd" id="3_0o8nm"]
+[ext_resource type="Script" path="res://profiles/biome_spec.gd" id="4_vs8nu"]
+
+[sub_resource type="Resource" id="Resource_or3wn"]
+script = ExtResource("1_menx0")
+kind = "loop"
+files = PackedStringArray("res://assets/generated/wind_loop.wav")
+volume_db = -22.0
+
+[sub_resource type="Resource" id="Resource_wc7ny"]
+script = ExtResource("2_o0bsu")
+snow_folder = "Snow010A"
+rock_folder = "Rock058"
+
+[sub_resource type="Resource" id="Resource_otsok"]
+script = ExtResource("3_0o8nm")
+source = "res://assets/generated/pine_impostor.png"
+kind = "impostor"
+height_range = Vector2(8, 14)
+tint = Color(0.45, 0.55, 0.55, 1)
+collision_radius = 0.4
+walkable_clearance = 6.0
+
+[sub_resource type="Resource" id="Resource_k7ndc"]
+script = ExtResource("3_0o8nm")
+source = "res://assets/polyhaven/models/moon_rock_02/moon_rock_02_1k.gltf"
+height_range = Vector2(0.6, 1.5)
+
+[sub_resource type="Resource" id="Resource_xj38d"]
+script = ExtResource("3_0o8nm")
+source = "res://assets/generated/pine_impostor.png"
+kind = "impostor"
+height_range = Vector2(10, 18)
+tint = Color(0.45, 0.55, 0.55, 1)
+collision_radius = 0.4
+walkable_clearance = 6.0
+in_town = false
+on_backdrop = true
+
+[sub_resource type="Resource" id="Resource_s3u4k"]
+script = ExtResource("3_0o8nm")
+source = "res://assets/polyhaven/models/moon_rock_02/moon_rock_02_1k.gltf"
+height_range = Vector2(1.5, 4)
+in_town = false
+on_backdrop = true
+
+[resource]
+script = ExtResource("4_vs8nu")
+id = "montanha"
+display_name = "Montanha nevada"
+ground_folder = "Snow010A"
+ground_meters = 3.0
+ground_tint = Color(0.7372549, 0.77254903, 0.8235294, 1)
+ground_normal_strength = 1.6
+path_folder = "PavingStones070"
+path_tint = Color(0.7, 0.73, 0.78, 1)
+footstep = "snow"
+cover_streets = true
+shell = "arch"
+scatter = Array[ExtResource("3_0o8nm")]([SubResource("Resource_otsok"), SubResource("Resource_k7ndc"), SubResource("Resource_xj38d"), SubResource("Resource_s3u4k")])
+snow_cover = 0.7
+backdrop = SubResource("Resource_wc7ny")
+ambience_bed = SubResource("Resource_or3wn")
+fog_density_scale = 1.4
+fog_tint = Color(0.65, 0.72, 0.82, 1)
+fog_tint_amount = 0.3
+fog_height_density = 0.01

@@ -13,6 +13,19 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
+	var spec := load("res://profiles/biomes/montanha.tres") as BiomeSpec
+	_check("perfil real tem terreno", spec != null and spec.backdrop != null)
+	if spec != null and spec.backdrop != null:
+		var configured := Heightfield.new()
+		configured.apply_spec(spec.backdrop)
+		for field in Heightfield.SPEC_FIELDS:
+			_check("contrato TerrainSpec: " + field, field in spec.backdrop and configured.get(field) == spec.backdrop.get(field))
+		var changed := spec.backdrop.duplicate(true) as TerrainSpec
+		for field in Heightfield.SPEC_FIELDS:
+			changed.set(field, changed.get(field) * 2)
+		configured.apply_spec(changed)
+		for field in Heightfield.SPEC_FIELDS:
+			_check("aplica valor não padrão: " + field, configured.get(field) == changed.get(field) and configured.get(field) != spec.backdrop.get(field))
 	# Cunhas de exemplo (ângulos a partir do norte, sentido horário). O "half"
 	# de 176 m é o da cidade com 200 jogos falsos (anel 4).
 	_check_case("200 falsos, cunha de ~98° ao norte", 176.0, -49.0, 49.0, true)
