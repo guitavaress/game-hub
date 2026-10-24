@@ -225,7 +225,7 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 - **Terreno por malha feita por código**, e não pelo Terrain3D (binários pesados no histórico e a primeira importação que derruba a Godot; veja a [avaliação](design/addons-2026-10-13.md)). Fica atrás de um ponto único, para a troca futura.
 - **Visual guiado pelas skills do projeto:** direção de arte e uma amostra aprovada antes de baixar o resto, a trilha em greybox antes de enfeitar e uma revisão visual com capturas no fim.
 
-**Andamento (2026-10-23):** 15.0 concluída (assets e amostra aprovada) e 15.8 integrada (núcleo isolado do terreno). Próxima: **15.1**, bioma como dado. Montanha, setores, clima e trilha caminhável ainda não estão integrados à cidade. Retomada no desktop Windows com OpenCode/OpenAI; divisão de modelos, dependências e validação no plano.
+**Andamento (2026-10-23):** 15.0 concluída (assets e amostra aprovada) e 15.8 integrada (núcleo isolado do terreno). Próxima: **15.1**, bioma como dado. Montanha, setores, clima e trilha caminhável ainda não estão integrados à cidade. Desde 2026-10-24 o trabalho segue com Claude Code + Codex (ver AGENTS.md); 15.1 e 15.2 já feitas, próxima 15.3.
 
 **Assets:** pinheiro, rocha, neve e passos na neve, todos CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
 

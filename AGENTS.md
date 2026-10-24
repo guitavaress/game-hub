@@ -111,21 +111,22 @@ Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-
 ## Como trabalhar
 
 ### Modelos e esforço
-Política OpenAI/OpenCode e comandos em [docs/OPENCODE.md](docs/OPENCODE.md); configuração em `opencode.json`. Consulte o catálogo disponível antes de trocar modelos.
+Desde 2026-10-24 o projeto usa **Claude Code (assinatura Claude Pro) e Codex CLI (assinatura ChatGPT Plus)**, cada um no próprio binário oficial, com este `AGENTS.md` compartilhado e o MCP da Godot nos dois. O Claude Code chama o Codex pelo plugin `codex-plugin-cc` (`/codex:review`, `/codex:adversarial-review`, `/codex:rescue`). O OpenCode saiu do fluxo (histórico em [docs/OPENCODE.md](docs/OPENCODE.md)).
 
-| Momento | Modelo | Esforço |
+| Momento | Quem | Esforço |
 |---|---|---|
-| Planejar, geometria, arquitetura e integração difícil | GPT-6 Astra | high |
-| Executar uma subetapa delimitada | GPT-6 Astra | medium |
-| Revisão independente nos pontos de maior risco | GPT-6.1 Sol | high |
-| Explorar arquivos e referências, só leitura | GPT-6 Luna | low |
-| Tarefa mecânica ou execução/relato de testes | GPT-5.3 Codex Spark | low |
+| Planejar, geometria, arquitetura e integração difícil | Claude Code (modo plano) | high |
+| Executar uma subetapa delimitada | Claude Code | medium |
+| Revisão independente nos pontos de maior risco | Codex: `/codex:review` ou `/codex:adversarial-review` | high |
+| Explorar arquivos e referências, só leitura | subagente Explore do Claude Code | low |
+| Tarefa mecânica, texto, ou execução/relato de testes | Codex: `/codex:rescue` (ou o próprio Claude) | low |
 
-- Use os comandos do projeto para selecionar modelo e variante juntos. O modelo já escolhido numa sessão pode prevalecer sobre o padrão do agente.
-- Dois erros iguais pedem replanejamento. `xhigh`/`max` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão. A distribuição é inicial, sem benchmark ou preços comparativos disponíveis.
+- Os rótulos "Astra", "Sol", "Luna" e "Spark" nos planos antigos valem assim: **Astra = Claude**, **Sol = Codex (revisão)**, **Luna = Explore**, **Spark = tarefa mecânica no Codex**.
+- Cota: Claude Pro e ChatGPT Plus têm janelas de 5 h. Se um agente esgotar, continue no outro (`/codex:transfer` leva a sessão ao Codex). Mantenha a *review gate* do Codex **desligada** (gasta cota).
+- Dois erros iguais pedem replanejamento. `xhigh`/`max` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão.
 
 ### Fluxo de uma fase
-1. **Plano primeiro.** Planeje seguindo [docs/plans/README.md](docs/plans/README.md) e espere aprovação. No OpenCode, Plan propõe; Build registra a decisão aprovada em `docs/plans/fase-N.md`, pois Plan não edita arquivos comuns do repositório.
+1. **Plano primeiro.** Planeje (modo plano do Claude Code) seguindo [docs/plans/README.md](docs/plans/README.md), espere aprovação e registre a decisão aprovada em `docs/plans/fase-N.md`.
 2. **Uma branch por fase** (`fase-7`) e **subetapas numeradas** (7.1, 7.2...). Cada subetapa tem teste, commit e o seu `[x]` marcado no plano.
 3. **Volte ao modo plan quando:** surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas. Atualize o plano.
 4. **Ao fim de cada subetapa:** resumo curto, checklist de teste manual e a mensagem do commit.
@@ -134,7 +135,7 @@ Política OpenAI/OpenCode e comandos em [docs/OPENCODE.md](docs/OPENCODE.md); co
 ### Sessões e contexto
 - **Uma sessão por subetapa grande.** O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
 - Leia o mapa acima antes de explorar o código. Abra só os arquivos que o passo precisa.
-- **OpenCode:** a trilha principal usa o checkout na branch da fase (`C:\Projetos\game-hub` no desktop; `~/git/game-hub` no notebook). Implementação paralela usa worktree e sessão próprios; subagente sozinho não isola arquivos. Confira a base antes de editar. O plano define arquivos, contratos e ordem de integração; instruções em [docs/OPENCODE.md](docs/OPENCODE.md).
+- **Trilhas (Claude Code e Codex):** a trilha principal usa o checkout na branch da fase (`C:\Projetos\game-hub` no desktop; `~/git/game-hub` no notebook). Implementação paralela usa worktree e sessão próprios; subagente sozinho não isola arquivos. Confira a base antes de editar. O plano define arquivos, contratos e ordem de integração;
 - **Nimbalyst (se usado):** a trilha paralela usa **New Worktree**, que nasce da branch atual em `~/git/game-hub_worktrees/<nome>` (branch `worktree/<nome>`).
 - **Botões Commit e Merge do Nimbalyst não são usados:** o Commit usa o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply.
 - **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava, mas um `godot -s` rodado à mão não espera.

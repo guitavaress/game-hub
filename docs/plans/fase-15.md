@@ -1,8 +1,8 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.2 e 15.8 concluídas; **15.1 implementada e testada, aguardando checklist manual**. 15.2 executada a pedido do dono em 2026-10-24; próxima implementação: 15.3. Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2 e 15.8 concluídas (15.1 no commit `158aec0`). 15.2 executada a pedido do dono em 2026-10-24; próxima implementação: 15.3. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
-**Execução:** OpenCode v2.1.3 + modelos OpenAI; comandos e política em [../OPENCODE.md](../OPENCODE.md). O trabalho concluído pelo Claude permanece registrado com seus commits.
+**Execução (desde 2026-10-24):** Claude Code (Pro) implementa e Codex (Plus) revisa; política em [AGENTS.md](../../AGENTS.md#modelos-e-esforço). Os rótulos Astra/Sol/Luna/Spark abaixo são do período OpenCode: Astra = Claude, Sol = Codex (revisão), Luna = Explore, Spark = tarefa mecânica. O trabalho concluído pelo Claude permanece registrado com seus commits.
 
 ## Ponto de retomada histórico (2026-10-23, anterior à 15.1/15.2)
 
@@ -26,14 +26,14 @@ São **2 de 16 subetapas de primeiro nível**; isso não representa percentual d
 
 IDs e variantes conferidos no catálogo local em 2026-10-23. A distribuição é inicial; não há comparação medida de preço, velocidade ou qualidade entre os modelos. Use os resultados das primeiras subetapas para ajustar.
 
-| Etapas/papel | Modelo e esforço | Entrada pelo OpenCode |
+| Etapas/papel | Rótulo antigo | Agora (Claude Code + Codex) |
 |---|---|---|
-| Planejamento de qualquer etapa | `openai/gpt-6-astra#high` | `/fase15-planejar <etapa>` |
-| 15.1, 15.2, 15.5, 15.6, 15.10, 15.11, 15.14 e medição da 15.15 | `openai/gpt-6-astra#medium` | `/fase15-passo <etapa>` |
-| 15.3, 15.4, 15.7, 15.9 e 15.12 | `openai/gpt-6-astra#high` | `/fase15-dificil <etapa>` |
-| Revisões de 15.3/15.4, 15.9/15.10 e 15.13 | `openai/gpt-6.1-sol#high` | `/fase15-revisar <escopo>`; principal fornece diff, logs e capturas |
-| Levantamento delimitado, se delegado | `openai/gpt-6-luna#low` | `explore`, com arquivos/pergunta explícitos |
-| Texto mecânico e execução/relato de testes | `openai/gpt-5.3-codex-spark#low` | `/fase15-docs <ajuste>` e `/fase15-testes [testes]` |
+| Planejamento de qualquer etapa | Astra high | Claude Code em modo plano |
+| 15.5, 15.6, 15.10, 15.11, 15.14 e medição da 15.15 | Astra medium | Claude Code |
+| 15.3, 15.4, 15.7, 15.9 e 15.12 | Astra high | Claude Code |
+| Revisões de 15.3/15.4, 15.9/15.10 e 15.13 | Sol high | Codex: `/codex:review --base <ref>` ou `/codex:adversarial-review`; o Claude fornece diff, logs e capturas |
+| Levantamento delimitado, se delegado | Luna low | subagente Explore |
+| Texto mecânico e execução/relato de testes | Spark low | Codex `/codex:rescue` ou o próprio Claude |
 
 Sol revisa; a principal coordena as capturas e faz os ajustes aprovados. Spark relata falhas, mas a investigação técnica volta ao Astra. Não usar vários implementadores sobre `city.gd`, `BiomeBuilder` ou o plano ao mesmo tempo. O modo Plan propõe; Build grava decisões aprovadas no plano versionado.
 
@@ -233,7 +233,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - `footstep_snow_000` a `004` do Kenney Impact Sounds.
   - Teste: o `check_textures` já conta 32 texturas (27 ambientCG, 2 atlas e 3 da rocha) e confere compressão VRAM e mipmaps.
   - Commit: `Fase 15.0: direção de arte e assets do bioma montanha`
-- [ ] **15.1 O bioma como dado, sem efeito** (Astra · medium)
+- [x] **15.1 O bioma como dado, sem efeito** (Astra · medium)
   - **Implementada em 2026-10-24:** testes direcionados e bateria Windows aprovados (76/76). Checkbox aguarda a conferência manual abaixo. Log: `C:\Users\gui_t\AppData\Local\Temp\opencode\fase-15-1-2026-10-24.log`. Rust pulado no Windows.
   - Faz: entram `BiomeSpec`, `TerrainSpec`, `ScatterSpec`, o `montanha.tres` (pelo `tools/gerar_bioma.gd`), o campo `biome` e os ajudantes no `DistrictProfile`. O `rpg.tres` **ainda não** liga o bioma.
   - Teste: o `check_profiles` ganha a seção de biomas (carrega, ids únicos, pastas e sons existem) e a varredura de ids de bioma em `worlds/`.
@@ -388,7 +388,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Teste: `check_perf_tool`.
   - Commit: `Fase 15.15: medida e documentação`
 
-### Trilhas no OpenCode (principal no checkout, paralela em worktree e sessão próprios)
+### Trilhas (principal no checkout, paralela em worktree e sessão próprios)
 | Janela | Principal | Paralela | Por que não brigam |
 |---|---|---|---|
 | 1 (retomada) | 15.1 → 15.2 → 15.3 → 15.4 | 15.8 já integrada | não recriar o trabalho concluído |
@@ -443,6 +443,7 @@ Testes afetados:
 - IK dos pés.
 
 ## Decisões tomadas durante a fase
+- 2026-10-24: o fluxo passou do OpenCode para Claude Code (Pro) + Codex CLI (Plus) com o plugin `codex-plugin-cc`, a pedido do dono; CI ganhou o export Windows/Linux (`7c67f70`). 15.1 marcada como concluída (commit `158aec0`); próxima: 15.3.
 - 2026-10-24: detalhamento da 15.1 aprovado e implementado. Gerador salvou o `.tres` pela Godot, usando assets existentes; névoa, densidade e cobertura são valores iniciais a afinar nas etapas visuais. Testes direcionados `check_profiles`, `check_terrain` e `check_textures` aprovados. Bateria completa Windows: 76/76, `RESULTADO GERAL: TUDO OK`; Rust pulado. Conferência manual no editor pendente, por isso a 15.1 ainda não recebeu `[x]`.
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
 - 2026-10-17: 15.0 em andamento. Brief em `docs/design/bioma-montanha.md`; amostra baixada (Snow010A, Rock058, moon_rock_02 e o pinheiro fir_sapling_medium, cujo glTF fica em `~/git/game-hub-fontes/`) e capturada por cima do bairro RPG com o `tools/capturar_pontos.gd` (novo). Resultado: rocha = forma da moon_rock_02 com a Rock058 e neve por cima; neve com tinta `#BCC5D2`. **Falta:** o dono aprovar a amostra e permitir os `footstep_snow_*` do Kenney.

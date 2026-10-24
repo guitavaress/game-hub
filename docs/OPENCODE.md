@@ -1,5 +1,7 @@
 # Game Hub no OpenCode
 
+> **Histórico.** Desde 2026-10-24 o projeto usa Claude Code + Codex CLI (ver [AGENTS.md](../AGENTS.md#modelos-e-esforço)). Este arquivo descreve o período OpenCode/OpenAI e não é mais o fluxo atual.
+
 Configuração local: [`opencode.json`](../opencode.json). Regras: [`AGENTS.md`](../AGENTS.md). Plano em execução: [Fase 15](plans/fase-15.md).
 
 **Validação (2026-10-23):** serviço OpenCode v2.1.3 confirmou agentes/modelos/variantes, seis comandos e configuração da revisão em sessão filha na localização do projeto. Bateria Godot no Windows: 76/76, com Rust pulado. Não foi feito benchmark nem rodada de prompts em todos os modelos.
