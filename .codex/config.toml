@@ -1,0 +1,4 @@
+[mcp_servers.godot]
+command = "npx"
+args = ["@coding-solo/godot-mcp"]
+env = { GODOT_PATH = 'C:\Godot\Godot_v4.7.2-stable_win64.exe' }
