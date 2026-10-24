@@ -85,9 +85,11 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
 4. **Dados de mundo moram em perfis** (a partir da Fase 7). Cores, som, enfeite, clima e arquitetura de um bairro são dados, e não um `match` de categoria espalhado pelo código.
 5. **Plataforma isolada.** Os sistemas perguntam "qual jogo está rodando?" ao `SteamClient`. Só `autoload/platform/` sabe se a resposta vem do registro do Windows ou dos processos do Linux (o `tests/check_platform.gd` confere).
 6. Prefira criar nós por código a escrever `.tscn` complexos à mão. Quando `.tscn` for necessário, mantenha simples.
+7. **Convenção de `.tres` e `.tscn`.** `.tres` é só dado (perfis, catálogos, biomas), sempre com um `Resource` tipado (`class_name`) por trás; o código lê, não escreve nele. `.tscn` é só casca simples; a lógica fica em `.gd`. Não edite `.tres`/`.tscn` à mão se der para gerar pelo editor ou por script em `tools/`, e nunca mexa nos `uid://` sem necessidade.
 
 ## Segurança e privacidade (sempre)
 - A chave da Steam Web API fica só em `user://config.cfg`, fora do repositório. **Nunca** peça que ela seja colada no chat, nunca a imprima e nunca a ponha em log ou aviso.
+- **Nunca commitar** o `config.cfg` (nem cópia dele) nem a chave da Steam Web API, em nenhum arquivo, doc, teste ou mensagem de commit. Antes de cada commit, confira o `git status` e o diff por isso.
 - Commits com o e-mail noreply do GitHub (`32810557+guitavaress@users.noreply.github.com`). Nenhum e-mail pessoal no repositório.
 - **Prints com capas de jogos nunca vão para o repositório** (é público). Capturas ficam na pasta temporária da sessão.
 - **Não enviar para o GitHub (push) sem o dono pedir.** Commits locais, em branch, podem ser feitos.
@@ -141,3 +143,12 @@ Política OpenAI/OpenCode e comandos em [docs/OPENCODE.md](docs/OPENCODE.md); co
 - **Antes de cada commit:** `bash tests/run_tests.sh` precisa terminar com `RESULTADO GERAL: TUDO OK`. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).
 - Recurso novo ganha um `tests/check_<nome>.gd`. Formato e armadilhas: [tests/README.md](tests/README.md).
 - Mudança visual: confira com captura de tela (com janela, fora do repositório) antes de entregar.
+
+### Definição de pronto
+Uma subetapa só está pronta quando:
+1. `bash tests/run_tests.sh` termina com `RESULTADO GERAL: TUDO OK` e o recurso novo tem seu `tests/check_<nome>.gd`.
+2. As regras de arquitetura continuam valendo (sistemas não conhecem mundos; código de SO só em `autoload/platform/`).
+3. Mudança visual foi conferida com captura de tela (fora do repositório).
+4. O dono recebeu o resumo curto e o checklist de teste manual.
+5. O commit foi feito (e-mail noreply, sem `config.cfg` nem chave) e o `[x]` da subetapa marcado em `docs/plans/fase-N.md`.
+6. Ao fim da fase: README e ROADMAP atualizados.
