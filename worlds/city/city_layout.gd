@@ -50,18 +50,29 @@ static func block_cells(count: int) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var ring := 1
 	while cells.size() < count:
-		var ring_cells: Array[Vector2i] = []
-		for x in range(-ring, ring + 1):
-			for z in range(-ring, ring + 1):
-				if maxi(absi(x), absi(z)) == ring:
-					ring_cells.append(Vector2i(x, z))
-		ring_cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-			return _clockwise_angle(a) < _clockwise_angle(b))
-		for cell in ring_cells:
+		for cell in ring_cells(ring):
 			if cells.size() < count:
 				cells.append(cell)
 		ring += 1
 	return cells
+
+
+## As 8 x "ring" células de um anel, a partir do norte, no sentido horário.
+## O primeiro é sempre (0, -ring), bem ao norte da praça.
+static func ring_cells(ring: int) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for x in range(-ring, ring + 1):
+		for z in range(-ring, ring + 1):
+			if maxi(absi(x), absi(z)) == ring:
+				cells.append(Vector2i(x, z))
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return clockwise_angle(Vector2(a)) < clockwise_angle(Vector2(b)))
+	return cells
+
+
+## Em que anel fica um quarteirão (a praça é o anel 0).
+static func ring_of(cell: Vector2i) -> int:
+	return maxi(absi(cell.x), absi(cell.y))
 
 
 ## Centro de um quarteirão, no chão.
@@ -93,13 +104,14 @@ static func lots_facing_center_first(cell: Vector2i) -> Array[int]:
 static func half_extent(cells: Array[Vector2i]) -> float:
 	var ring := 0
 	for cell in cells:
-		ring = maxi(ring, maxi(absi(cell.x), absi(cell.y)))
+		ring = maxi(ring, ring_of(cell))
 	return ring * BLOCK_PITCH + BLOCK_SIZE / 2.0 + STREET_WIDTH
 
 
-## Ângulo a partir do norte, no sentido horário (de 0 a 2π).
-static func _clockwise_angle(cell: Vector2i) -> float:
-	return fposmod(atan2(float(cell.x), float(-cell.y)), TAU)
+## Ângulo a partir do norte, no sentido horário (de 0 a 2π), de um ponto da
+## grade (aceita meio-termos, como o ponto entre duas células).
+static func clockwise_angle(p: Vector2) -> float:
+	return fposmod(atan2(p.x, -p.y), TAU)
 
 
 static func _door_distance(cell: Vector2i, lot_index: int) -> float:

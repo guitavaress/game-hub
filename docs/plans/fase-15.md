@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2 e 15.8 concluídas (15.1 no commit `158aec0`). 15.2 executada a pedido do dono em 2026-10-24; próxima implementação: 15.3. Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3 e 15.8 concluídas (15.1 no commit `158aec0`). 15.3 feita em 2026-10-24 (revisão Codex pendente); próxima implementação: 15.4. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-24):** Claude Code (Pro) implementa e Codex (Plus) revisa; política em [AGENTS.md](../../AGENTS.md#modelos-e-esforço). Os rótulos Astra/Sol/Luna/Spark abaixo são do período OpenCode: Astra = Claude, Sol = Codex (revisão), Luna = Explore, Spark = tarefa mecânica. O trabalho concluído pelo Claude permanece registrado com seus commits.
 
@@ -257,7 +257,11 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Teste: `check_planta.gd`, com tudo idêntico ao retrato.
   - Sequência: gravar o retrato **antes** de mudar `_build_districts`; não regenerá-lo para acomodar regressões. Base visual/de desempenho pré-integração: `ed834cd`.
   - Commit: `Fase 15.2: retrato da planta e o plano por bairro`
-- [ ] **15.3 SectorLayout, a função pura** (Astra · high; revisão Sol · high)
+- [x] **15.3 SectorLayout, a função pura** (Claude Opus 5.5 · high; revisão Codex · high, pendente)
+  - Implementada em 2026-10-24, base `c4819bb`. API: `SectorLayout.plan(counts, focus = -1)` e `base_ring(counts)`; `CityLayout` expõe `ring_cells`, `ring_of` e `clockwise_angle` (o `block_cells` não mudou: `check_planta` ok); `DistrictSector.bisector()`. `wedge` em radianos, do norte no sentido horário, como o `Heightfield.configure`.
+  - Algoritmo final: R mínimo (também ≥ ⌈bairros/8⌉); borda pelo maior resto com mínimo 1; com `focus`, o meio do trecho cai no norte; a cunha angular é só **preferência**: o território nasce no trecho de borda e cresce por vizinhança (primeiro quem não tem lugar, preferindo a própria cunha); as sobras vão em ondas para o dono da cunha. Quarteirões de dentro para fora (anel menor, depois encostar de lado, bissetriz, x, z). Cercado → R += 1.
+  - Resultado: casos fixos e 200 falsos sem crescer; 300 sorteadas: 287 sem crescer e 13 com +1. Mapa ASCII impresso pelo teste.
+  - Validação em 2026-10-24: `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`, Windows / Godot 4.7.2, **78/78 aprovados**, `RESULTADO GERAL: TUDO OK`; Rust pulado no Windows. Revisão Codex pendente: `/codex:review --base c4819bb`.
   - Arquivos: `worlds/city/sector_layout.gd` e `tests/check_sector_layout.gd`.
   - O teste roda os casos fixos ([1], [1,1,1,1], [1,2], 10 × [1], [30,1,…] e os 200 falsos) e 300 listas sorteadas com semente fixa.
   - O teste confere:
@@ -443,6 +447,7 @@ Testes afetados:
 - IK dos pés.
 
 ## Decisões tomadas durante a fase
+- 2026-10-24 (15.3): a cunha só pelo ângulo do centro das células falhou. Bairros pequenos (1 a 2 células de borda) ficavam com células soltas, e R crescia até +4 em 6 de 300 listas. O território passou a crescer por vizinhança a partir da borda, usando a cunha como preferência: é sempre contínuo, e R cresce no máximo +1. "O maior bairro chega à borda" virou só informação: com quarteirões de dentro para fora e vagas perto da borda, o RPG dos 200 falsos para no anel 3 e o anel 4 fica de vagas (na 15.6, vagas do bioma com neve entre os arcos e o pé da montanha).
 - 2026-10-24: o fluxo passou do OpenCode para Claude Code (Pro) + Codex CLI (Plus) com o plugin `codex-plugin-cc`, a pedido do dono; CI ganhou o export Windows/Linux (`7c67f70`). 15.1 marcada como concluída (commit `158aec0`); próxima: 15.3.
 - 2026-10-24: detalhamento da 15.1 aprovado e implementado. Gerador salvou o `.tres` pela Godot, usando assets existentes; névoa, densidade e cobertura são valores iniciais a afinar nas etapas visuais. Testes direcionados `check_profiles`, `check_terrain` e `check_textures` aprovados. Bateria completa Windows: 76/76, `RESULTADO GERAL: TUDO OK`; Rust pulado. Conferência manual no editor pendente, por isso a 15.1 ainda não recebeu `[x]`.
 - 2026-10-17: portais no chão plano com a montanha atrás; setores para todos os bairros; terreno por malha feita por código (dono, no planejamento).
