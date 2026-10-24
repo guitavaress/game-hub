@@ -1,10 +1,10 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 e 15.8 concluídas; **15.1 implementada e testada, aguardando checklist manual**. Próxima implementação após esse aceite: 15.2. Escopo aprovado em 2026-10-17; última execução em 2026-10-24.
+**Status:** em andamento — 15.0, 15.2 e 15.8 concluídas; **15.1 implementada e testada, aguardando checklist manual**. 15.2 executada a pedido do dono em 2026-10-24; próxima implementação: 15.3. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução:** OpenCode v2.1.3 + modelos OpenAI; comandos e política em [../OPENCODE.md](../OPENCODE.md). O trabalho concluído pelo Claude permanece registrado com seus commits.
 
-## Ponto de retomada (2026-10-23)
+## Ponto de retomada histórico (2026-10-23, anterior à 15.1/15.2)
 
 | Entrega | Evidência | Situação |
 |---|---|---|
@@ -244,7 +244,12 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Testes: carregar assets com os tipos corretos, IDs únicos, intervalos de scatter, herança/precedência dos ajudantes e todos os dez campos de terreno com valores reais e diferentes dos padrões (cópia isolada). Manter o retrato histórico dos bairros e varrer IDs de bioma em `worlds/`.
   - Manual: abrir `montanha.tres` no Inspector e conferir sub-recursos; conferir Biome vazio no RPG; F6 em `worlds/city/city.tscn`, E para sair e M para abrir o mapa, com o comportamento atual preservado.
   - Commit: `Fase 15.1: o bioma como dado (sem efeito)`
-- [ ] **15.2 Retrato da planta e o plano por bairro** (Astra · medium)
+- [x] **15.2 Retrato da planta e o plano por bairro** (Astra · medium)
+  - Implementação em 2026-10-24, base `158aec0`: retrato gravado **antes** de alterar `_build_districts`; compara 6, 40 e 200 jogos, inclusive transformações dos prédios. IDs inventados fixos pelo argumento opcional `fixed_ids` de `FakeLibrary`, sem depender das capas da máquina. Captura compartilhada em `tests/planta_snapshot.gd`; gerador recusa sobrescrever o JSON.
+  - `DistrictSector` guarda blocos, território e limites da cunha (ainda zerados nos anéis). `ring_plan` recebe contagens de quarteirões, preserva entradas vazias e a ordem original; território é uma cópia independente dos blocos. `border_cells` permite informar o anel externo; sem argumento usa o maior anel do próprio território.
+  - Evidência inicial: `check_planta` aprovado. A execução restrita não encontrou jogos reais e `check_city_map` falhou; bateria interrompida antes de iniciar novamente no ambiente normal do Windows. Logs temporários: `fase15-2-retrato.log`, `fase15-2-direcionados.log` e `fase15-2-bateria.log`.
+  - Validação final em 2026-10-24: `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`, Windows / Godot 4.7.2, **77/77 aprovados**, `RESULTADO GERAL: TUDO OK`, saída 0. Inclui planta, mapa, metrô, variantes e escala. Rust/compositor nativo pulado no Windows. Log: `C:\Users\gui_t\AppData\Local\Temp\fase15-2-bateria.log`. Retrato preservado com SHA-256 `D830E8245FBEBA58EA015F61AED5F69E14CCA7D955244E3208747F4F4CF29178`.
+  - Manual sugerido: F6 em `worlds/city/city.tscn`, E para sair de casa, M para conferir o mapa e uma viagem de metrô. Esperado: bairros, prédios, letreiros e estações nas posições anteriores. Não há mudança visual intencional nesta etapa; a validação manual da 15.1 permanece pendente.
   - Faz:
     - o `tools/retrato_planta.gd` grava `tests/fixtures/planta_atual.json`, com 6, 40 e 200 jogos falsos. O retrato tem, por bairro, os quarteirões, o pórtico, o letreiro e as estações; tem o `half`; e, por `app_id`, a casca, os andares e a parede;
     - o `_build_districts` passa a usar `DistrictSector`, vindo de `CityLayout.ring_plan(counts)`. É o comportamento de hoje, embrulhado.

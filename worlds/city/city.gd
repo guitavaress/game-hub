@@ -347,10 +347,11 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 ## Monta todos os bairros. Devolve os quarteirões usados (para medir o mapa).
 ## Na abertura, monta um quarteirão por quadro, para a barra de progresso andar.
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
-	var block_count := 0
+	var counts: Array[int] = []
 	for district in districts:
-		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
-	var cells := CityLayout.block_cells(block_count)
+		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
+	var sectors: Array[DistrictSector] = CityLayout.ring_plan(counts)
+	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
 	var app_ids: Array[int] = []
@@ -363,30 +364,33 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	_map.name = "CityMap"
 	add_child(_map)
 
-	var next_cell := 0
 	var built := 0
-	for district in districts:
+	for district_index in districts.size():
+		var district: Dictionary = districts[district_index]
+		var sector: DistrictSector = sectors[district_index]
+		cells.append_array(sector.blocks)
 		var district_games: Array = district["games"]
-		var first_cell := next_cell
+		var block_index: int = 0
 		# Cada quarteirão recebe até 4 jogos do bairro.
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
+			var cell: Vector2i = sector.blocks[block_index]
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
-			await _build_block(cells[next_cell], district["id"], block_games)
-			_map.add_block(district["id"], cells[next_cell], block_games.size())
+			await _build_block(cell, district["id"], block_games)
+			_map.add_block(district["id"], cell, block_games.size())
 			if not _district_cells.has(district["id"]):
 				_district_cells[district["id"]] = [] as Array[Vector2i]
-			_district_cells[district["id"]].append(cells[next_cell])
+			_district_cells[district["id"]].append(cell)
 			if first == 0:
 				# O pórtico fica no primeiro quarteirão do bairro (o mais perto da praça).
-				_build_gate(cells[next_cell], district["id"])
-			next_cell += 1
+				_build_gate(cell, district["id"])
+			block_index += 1
 			built += block_games.size()
 			_report_progress("Construindo bairros… %d de %d jogos" % [built, total_games],
 					lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
-		_build_weather(cells.slice(first_cell, next_cell), district["id"])
+		_build_weather(sector.blocks, district["id"])
 		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
 		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
-		_build_district_sign(cells.slice(first_cell, next_cell), district["id"])
+		_build_district_sign(sector.blocks, district["id"])
 	return cells
 
 

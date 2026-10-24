@@ -26,6 +26,24 @@ const BLOCK_PITCH: float = BLOCK_SIZE + STREET_WIDTH
 const LOTS_PER_BLOCK: int = 4
 
 
+## Distribui as contagens de QUARTEIRÕES por bairro, preservando os anéis.
+## Uma entrada vazia mantém seu lugar no plano, mas não consome células.
+static func ring_plan(counts: Array[int]) -> Array[DistrictSector]:
+	var total: int = 0
+	for count: int in counts:
+		total += maxi(count, 0)
+	var cells: Array[Vector2i] = block_cells(total)
+	var result: Array[DistrictSector] = []
+	var offset: int = 0
+	for count: int in counts:
+		var sector: DistrictSector = DistrictSector.new()
+		sector.blocks = cells.slice(offset, offset + maxi(count, 0))
+		sector.territory = sector.blocks.duplicate()
+		result.append(sector)
+		offset += maxi(count, 0)
+	return result
+
+
 ## Posições na grade dos primeiros "count" quarteirões, do centro para fora.
 ## (A praça, (0, 0), nunca entra na lista.)
 static func block_cells(count: int) -> Array[Vector2i]:
