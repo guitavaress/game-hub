@@ -113,17 +113,29 @@ Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-
 ### Modelos e esforço
 Desde 2026-10-24 o projeto usa **Claude Code (assinatura Claude Pro) e Codex CLI (assinatura ChatGPT Plus)**, cada um no próprio binário oficial, com este `AGENTS.md` compartilhado e o MCP da Godot nos dois. O Claude Code chama o Codex pelo plugin `codex-plugin-cc` (`/codex:review`, `/codex:adversarial-review`, `/codex:rescue`). O OpenCode saiu do fluxo (histórico em [docs/OPENCODE.md](docs/OPENCODE.md)).
 
+Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orquestradas pelo **Orca** (veja "Sessões e contexto"), para usar as duas assinaturas ao mesmo tempo. Os nomes são os modelos de verdade:
+
+| Nome | Modelo | Lado | Papel |
+|---|---|---|---|
+| **Opus** | Claude Opus 5.5 | Claude Pro | planejar; integração difícil, geometria, shaders; coordenar a trilha principal; revisar o que o GPT fez |
+| **Sonnet** | Claude Sonnet 5.5 | Claude Pro | subetapas delimitadas; rodar e relatar a bateria |
+| **Astra** | GPT-6-Astra | ChatGPT Plus | partes difíceis da trilha paralela; revisões de maior risco do que o Claude fez |
+| **Sol** | GPT-6.1-Sol | ChatGPT Plus | subetapas delimitadas da trilha paralela; revisões comuns |
+| **Terra** | GPT-5.6-Terra | ChatGPT Plus | texto mecânico, docs, rodar e relatar a bateria |
+
 | Momento | Quem | Esforço |
 |---|---|---|
-| Planejar, geometria, arquitetura e integração difícil | Claude Code (modo plano) | high |
-| Executar uma subetapa delimitada | Claude Code | medium |
-| Revisão independente nos pontos de maior risco | Codex: `/codex:review` ou `/codex:adversarial-review` | high |
+| Planejar, arquitetura | Opus (modo plano do Claude Code) | high |
+| Integração difícil, geometria, shaders | Opus ou Astra (o dono da trilha) | high |
+| Subetapa delimitada | Sonnet ou Sol (o dono da trilha) | medium |
+| Revisão | **cruzada**: o GPT revisa o Claude (`/codex:review` ou `/codex:adversarial-review`) e o Opus revisa o GPT (diff da branch, só leitura, antes do merge) | igual ao da subetapa; high nos pontos de risco |
 | Explorar arquivos e referências, só leitura | subagente Explore do Claude Code | low |
-| Tarefa mecânica, texto, ou execução/relato de testes | Codex: `/codex:rescue` (ou o próprio Claude) | low |
+| Tarefa mecânica, texto, execução/relato de testes | Terra (ou Sonnet) | low |
 
-- Os rótulos "Astra", "Sol", "Luna" e "Spark" nos planos antigos valem assim: **Astra = Claude**, **Sol = Codex (revisão)**, **Luna = Explore**, **Spark = tarefa mecânica no Codex**.
-- Cota: Claude Pro e ChatGPT Plus têm janelas de 5 h. Se um agente esgotar, continue no outro (`/codex:transfer` leva a sessão ao Codex). Mantenha a *review gate* do Codex **desligada** (gasta cota).
-- Dois erros iguais pedem replanejamento. `xhigh`/`max` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão.
+- O plano de cada fase diz, por subetapa, o modelo, o esforço, a trilha e quem revisa.
+- Os rótulos dos planos do período OpenCode (Astra, Sol, Luna, Spark) já eram modelos GPT: Luna (GPT-6-Luna) e Spark (GPT-5.3-Codex-Spark) saíram do fluxo.
+- Cota: Claude Pro e ChatGPT Plus têm janelas de 5 h. O ideal é sempre uma sessão de cada lado trabalhando; a revisão cruzada roda enquanto a outra trilha implementa. Se um lado esgotar, a trilha dele pausa (ou `/codex:transfer` leva a sessão ao Codex). Mantenha a *review gate* do Codex **desligada** (gasta cota).
+- Dois erros iguais pedem replanejamento. `xhigh`/`max`/`ultra` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão.
 
 ### Fluxo de uma fase
 1. **Plano primeiro.** Planeje (modo plano do Claude Code) seguindo [docs/plans/README.md](docs/plans/README.md), espere aprovação e registre a decisão aprovada em `docs/plans/fase-N.md`.
@@ -135,10 +147,12 @@ Desde 2026-10-24 o projeto usa **Claude Code (assinatura Claude Pro) e Codex CLI
 ### Sessões e contexto
 - **Uma sessão por subetapa grande.** O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
 - Leia o mapa acima antes de explorar o código. Abra só os arquivos que o passo precisa.
-- **Trilhas (Claude Code e Codex):** a trilha principal usa o checkout na branch da fase (`C:\Projetos\game-hub` no desktop; `~/git/game-hub` no notebook). Implementação paralela usa worktree e sessão próprios; subagente sozinho não isola arquivos. Confira a base antes de editar. O plano define arquivos, contratos e ordem de integração;
-- **Nimbalyst (se usado):** a trilha paralela usa **New Worktree**, que nasce da branch atual em `~/git/game-hub_worktrees/<nome>` (branch `worktree/<nome>`).
-- **Botões Commit e Merge do Nimbalyst não são usados:** o Commit usa o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply.
-- **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava, mas um `godot -s` rodado à mão não espera.
+- **Duas trilhas (Orca):**
+  - **A, a principal**, usa o checkout na branch da fase (`C:\Projetos\game-hub` no desktop; `~/git/game-hub` no notebook). É dona do mundo (`city.gd`, builders, `.tres`), do plano e do status, e faz os merges;
+  - **B, a paralela**, usa um worktree e uma sessão próprios (branch `worktree/<nome>`, criada pelo orquestrador ou com `git worktree add`) e só mexe nos arquivos que o plano dá a ela. Ela não marca o plano nem edita `.tres`. Entrega à A o hash-base, os arquivos, a API, o comando e o resultado dos testes, e as pendências;
+  - subagente sozinho não isola arquivos. Confira a base antes de editar. O plano define arquivos, contratos e ordem de integração, e um contrato compartilhado só muda combinado com a A.
+- **Orquestrador (Orca, Nimbalyst):** os botões de Commit e Merge **não são usados**. O Commit pode usar o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply, e o merge é feito pela trilha A, depois da revisão e com a bateria.
+- **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava, mas um `godot -s` rodado à mão (inclusive as capturas) não espera: só uma trilha roda Godot assim de cada vez.
 
 ### Testes
 - **Antes de cada commit:** `bash tests/run_tests.sh` precisa terminar com `RESULTADO GERAL: TUDO OK`. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).

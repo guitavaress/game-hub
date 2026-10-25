@@ -1,8 +1,8 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2 (15.5 na principal; 15.11 na paralela, a partir do commit da 15.4). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
-**Execução (desde 2026-10-24):** Claude Code (Pro) implementa e Codex (Plus) revisa; política em [AGENTS.md](../../AGENTS.md#modelos-e-esforço). Os rótulos Astra/Sol/Luna/Spark abaixo são do período OpenCode: Astra = Claude, Sol = Codex (revisão), Luna = Explore, Spark = tarefa mecânica. O trabalho concluído pelo Claude permanece registrado com seus commits.
+**Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
 ## Ponto de retomada histórico (2026-10-23, anterior à 15.1/15.2)
 
@@ -24,18 +24,23 @@ São **2 de 16 subetapas de primeiro nível**; isso não representa percentual d
 
 ### Execução e modelos por subetapa
 
-IDs e variantes conferidos no catálogo local em 2026-10-23. A distribuição é inicial; não há comparação medida de preço, velocidade ou qualidade entre os modelos. Use os resultados das primeiras subetapas para ajustar.
+Reorganizada em 2026-10-25. Os modelos foram conferidos no cache do Codex e no Claude Code. A distribuição é inicial: não houve comparação medida entre os modelos. Ajuste com o que as primeiras subetapas mostrarem (retrabalho, defeitos achados na revisão, cota gasta).
 
-| Etapas/papel | Rótulo antigo | Agora (Claude Code + Codex) |
-|---|---|---|
-| Planejamento de qualquer etapa | Astra high | Claude Code em modo plano |
-| 15.5, 15.6, 15.10, 15.11, 15.14 e medição da 15.15 | Astra medium | Claude Code |
-| 15.3, 15.4, 15.7, 15.9 e 15.12 | Astra high | Claude Code |
-| Revisões de 15.3/15.4, 15.9/15.10 e 15.13 | Sol high | Codex: `/codex:review --base <ref>` ou `/codex:adversarial-review`; o Claude fornece diff, logs e capturas |
-| Levantamento delimitado, se delegado | Luna low | subagente Explore |
-| Texto mecânico e execução/relato de testes | Spark low | Codex `/codex:rescue` ou o próprio Claude |
+| Nome | Modelo | Lado | Papel nesta fase |
+|---|---|---|---|
+| **Opus** | Claude Opus 5.5 | Claude Pro | planejar; 15.6, 15.7, 15.9.1b–15.9.3, 15.10, medição; revisa o que o GPT fez e faz os merges |
+| **Sonnet** | Claude Sonnet 5.5 | Claude Pro | 15.5, 15.14, ajustes 15.13.x; revisão leve de texto |
+| **Astra** | GPT-6-Astra | ChatGPT Plus | 15.12, 15.9.1a; revisões de maior risco (15.7, 15.9.2/3) e o relatório da 15.13 |
+| **Sol** | GPT-6.1-Sol | ChatGPT Plus | 15.11, 15.15a; revisões comuns (15.6, 15.10, 15.14) |
+| **Terra** | GPT-5.6-Terra | ChatGPT Plus | 15.15b e texto mecânico; rodar e relatar a bateria |
 
-Sol revisa; a principal coordena as capturas e faz os ajustes aprovados. Spark relata falhas, mas a investigação técnica volta ao Astra. Não usar vários implementadores sobre `city.gd`, `BiomeBuilder` ou o plano ao mesmo tempo. O modo Plan propõe; Build grava decisões aprovadas no plano versionado.
+**Revisão cruzada:**
+- o que o Claude fez, o GPT revisa, com `/codex:review --base <ref>` ou `/codex:adversarial-review`, recebendo diff, logs e capturas;
+- o que o GPT fez, o **Opus** revisa (o diff da branch da trilha B, só leitura) antes do merge.
+
+A revisão não substitui a bateria nem a aprovação visual do dono. Os rótulos antigos deste plano (Astra, Sol, Luna, Spark) já eram modelos GPT do período OpenCode; Luna e Spark saíram do fluxo.
+
+Não usar dois implementadores sobre `city.gd`, `BiomeBuilder` ou o plano ao mesmo tempo. O modo plano propõe, e a trilha A grava no plano as decisões aprovadas.
 
 ## Contexto
 A V3 diz que "a biblioteca decide o mundo" ([ROADMAP › Fase 15](../ROADMAP.md#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha)). Esta fase prova a ideia com um bioma só: o bairro RPG vira uma **montanha nevada**, no mesmo mapa da cidade.
@@ -309,13 +314,14 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - `check_metro` (180 m) e `check_gates`.
   - Manual: captura de cima com 200 falsos, na pasta temporária, nunca no repositório.
   - Commit: `Fase 15.4: bairros em setores da praça até a borda`
-- [ ] **15.5 O arco mostra a capa** (Astra · medium)
+- [ ] **15.5 O arco mostra a capa** (Sonnet · medium; revisão: só os testes) [trilha A, janela 2]
   - Faz: o `ArchShell` ganha uma placa `Poster` com o hero do jogo (`GameArt`), e o filete acende na carga da porta.
   - Teste:
     - o `check_portal_shell` confere o arco com `Poster` e textura;
     - `check_variants`, `check_phase6_step1` e `check_phase3_cache` passam a filtrar `is CityBuilding`.
   - Commit: `Fase 15.5: o arco mostra a capa do jogo`
-- [ ] **15.6 O bioma no chão** (Astra · medium)
+- [ ] **15.6 O bioma no chão** (Opus · high; revisão Sol · high) [trilha A, janela 2]
+  - Esforço subiu para high em 2026-10-25: o `focus` gira a cidade inteira. O `check_planta` passa a comparar com `SectorLayout.plan(counts, focus)` (o bairro com terreno de fundo), e o retrato da 15.2 continua sem ser regravado.
   - Faz:
     - o `rpg.tres` liga o `montanha.tres`;
     - entra o `biome_builder.gd`: arcos, neve no miolo, calçada de pedra, setor coberto com colisão e `footstep = "snow"`, sem parques;
@@ -327,7 +333,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
      - o `check_footsteps` ganha a neve.
   - Integração gradual: ligar chão, casca e passos nesta etapa; clima de neve e atmosfera só depois de juntar 15.11/15.12. Não referenciar classes ainda ausentes da trilha principal.
   - Commit: `Fase 15.6: chão de neve e arcos no bairro RPG`
-- [ ] **15.7 Pinheiros e rochas** (Astra · high) · skill `godot-shaders`
+- [ ] **15.7 Pinheiros e rochas** (Opus · high; revisão Astra · high, `/codex:adversarial-review` com foco em portas, calçadas e estação livres) [trilha A, janela 2] · skill `godot-shaders`
   - Faz:
     - o `TreeImpostor` e o shader passam a aceitar outro atlas e a escala da instância. Com escala 1, as árvores de hoje ficam iguais;
     - **pinheiro ao vento:** um balanço leve no vértice do impostor, mais forte na ponta e com fase por instância. Fica desligado nas árvores de hoje;
@@ -347,10 +353,15 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - não há quadrados mascarados;
     - o tempo de geração é impresso.
   - Commit: `Fase 15.8: núcleo do terreno (alturas, malha, trilha)`
-- [ ] **15.9 A montanha atrás do bairro** (Astra · high; revisão Sol · high) · skill `level-design`
-  - Pré-requisitos: 15.1–15.8 e integração da janela 2. Dividir a execução em sessões/commits menores: **15.9.1** prova de colisão Jolt e greybox; **15.9.2** `BackdropTerrain`, vão e zonas; **15.9.3** percurso simulado, limites, sinalização e material. Marcar a 15.9 só quando todos os critérios abaixo passarem.
+- [ ] **15.9 A montanha atrás do bairro** (Opus · high; revisão Astra · high) [trilha A, janela 3; a 15.9.1a na trilha B, janela 2] · skill `level-design`
+  - Pré-requisitos: 15.1–15.8 e integração da janela 2. A execução é dividida em sessões e commits menores:
+    - **15.9.1a** (Astra · high; revisão Opus · high) [trilha B, janela 2]: prova isolada do `HeightMapShape3D` no Jolt (tamanho, escala e centro). Só arquivos novos: `tests/check_heightmap_jolt.gd` e, se precisar, um ajudante em `worlds/city/biome/`. Se falhar, a mesma prova cobre o plano B (fita de `ConcavePolygonShape3D`) e o resultado volta à A antes da 15.9.2. Commit: `Fase 15.9.1a: prova da colisão do terreno no Jolt`;
+    - **15.9.1b** (Opus · high; revisão: o dono, pelas capturas) [trilha A, janela 3]: greybox da trilha e do mirante, e as capturas dos 3 pontos;
+    - **15.9.2** (Opus · high; revisão Astra · high, `adversarial`): `BackdropTerrain`, vão e zonas;
+    - **15.9.3** (Opus · high; revisão Astra · high): percurso simulado, limites, sinalização e material.
+  - Marcar a 15.9 só quando todos os critérios abaixo passarem.
   - Faz:
-    - **primeiro**, um teste mínimo do `HeightMapShape3D` no Jolt (tamanho, escala e centro); se falhar, vai o plano B;
+    - **primeiro**, um teste mínimo do `HeightMapShape3D` no Jolt (tamanho, escala e centro), que é a 15.9.1a; se falhar, vai o plano B;
     - **greybox antes do visual:**
       - a trilha e o mirante com material cinza;
       - as medidas vêm do `player.gd` (velocidade, pulo de 4,8 m/s ≈ 1,2 m de altura): largura, rampa e altura das paredes;
@@ -369,17 +380,17 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - o jogador sobe com entrada simulada até 10 m acima do chão;
     - com 600 falsos, a montanha some sem erro.
   - Commit: `Fase 15.9: montanha e trilha caminhável`
-- [ ] **15.10 O mirante e a torre** (Astra · medium; revisão Sol · high) · skill `level-design`
+- [ ] **15.10 O mirante e a torre** (Opus · medium; revisão Sol · high) [trilha A, janela 3] · skill `level-design`
   - Faz:
     - plataforma de madeira (`footstep = "wood"`), cerca e banco;
     - `anchor` no `DistrictLandmark`; sem terreno, a torre fica no centro do 1º quarteirão;
     - **a vista é o prêmio:** o banco e a abertura da cerca ficam virados para a praça e a torre do relógio, e a captura do brief é feita dali.
   - Teste: o `check_landmarks` passa a aceitar o marco ancorado.
   - Commit: `Fase 15.10: o mirante com a torre do RPG`
-- [ ] **15.11 Neve** (Astra · medium) **[paralela, janela 2]**
+- [ ] **15.11 Neve** (Sol · medium; revisão Opus · medium) [trilha B, janela 2]
   - Arquivos: `weather_spec.gd`, `district_weather.gd` e `check_weather`. A paralela não mexe em `.tres`: a principal liga a neve no `montanha.tres` ao juntar.
   - Commit: `Fase 15.11: neve no clima dos bairros`
-- [ ] **15.12 Névoa e vento do bioma** (Astra · high) **[paralela, janela 2]** · skills `godot-3d-essentials` e `audio-design`
+- [ ] **15.12 Névoa e vento do bioma** (Astra · high; revisão Opus · high) [trilha B, janela 2] · skills `godot-3d-essentials` e `audio-design`
   - Faz:
     - a mistura da névoa inclui a **névoa com altura** do Environment (`fog_height`, `fog_height_density`): o pé do morro fica na bruma e o pico aparece. Funciona na Leve;
     - o vento fica em duas camadas: a de baixo, no bairro, e uma mais forte que cresce com a altura na trilha;
@@ -388,7 +399,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - O teste confere: peso 0 deixa tudo igual a hoje; dentro da zona o peso é 1; a transição é suave; o F8 não apaga a mistura.
   - A ligação ao `BiomeBuilder` entra ao juntar.
   - Commit: `Fase 15.12: névoa e vento do bioma`
-- [ ] **15.13 Revisão visual** (Sol · high; capturas e coordenação pela principal) · skill `revisao-do-hub`
+- [ ] **15.13 Revisão visual** (Astra · high no relatório; capturas e coordenação pela trilha A; ajustes 15.13.x com Sonnet · medium) [janela 4] · skill `revisao-do-hub`
   - Executar **depois da 15.14**, para revisar a versão final nas qualidades Leve e Alta. A numeração foi preservada para manter as referências existentes.
   - Faz:
     - roda a revisão com as lentes `level-design`, `godot-3d-essentials`, `create-game-assets` e `audio-design`;
@@ -396,11 +407,15 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - entrega um relatório com impacto × esforço.
   - **O dono escolhe** o que entra. Os ajustes aprovados viram 15.13.1, 15.13.2… (cada um com commit); o resto vai para a Fase 16 ou para a trilha do desktop.
   - Commit: só os das 15.13.x.
-- [ ] **15.14 Qualidade** (Astra · medium)
+- [ ] **15.14 Qualidade** (Sonnet · medium; revisão Sol · medium) [trilha A, janela 4]
   - Faz: `GraphicsQuality.terrain_cell_meters` e `scatter_amount`; o terreno se refaz ao trocar a qualidade; sem sombra do terreno na Leve.
   - Teste: `check_graphics_quality`.
   - Commit: `Fase 15.14: terreno e enfeites por qualidade`
-- [ ] **15.15 Medida e documentação** (Astra · medium nas medidas; Spark · low no texto mecânico)
+- [ ] **15.15 Medida e documentação** [janelas 3 e 4]
+  - Divisão:
+    - **15.15a** (Sol · medium; revisão Opus · medium) [trilha B, janela 3]: o `MEDIDA_MONTANHA` no `tools/medir_desempenho.gd` e o ponto "mirante" no `tools/capturar_pontos.gd`. Só `tools/` e o `check_perf_tool`. Commit: `Fase 15.15a: medida e captura do mirante`;
+    - **15.15b** (Terra · low; revisão Sonnet · low) [trilha B, janela 3]: rascunho do texto do README e do ROADMAP, entregue à A sem marcar status;
+    - **15.15c** (Opus · medium nas medidas; Terra · low no texto) [trilha A, janela 4]: medida no desktop (Alta), documentação final e o commit abaixo.
   - Faz:
     - o `medir_desempenho` ganha `MEDIDA_MONTANHA` (sobe a trilha e gira no mirante);
      - no desktop (Alta), medir com janela a base pré-integração `ed834cd` e a ponta, no mesmo dia/máquina, a 0 e 200 jogos; registrar montagem (pior quadro ≤ 50 ms), caminhada, subida e giro no mirante, resolução, qualidade, hora e hardware;
@@ -411,27 +426,38 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Teste: `check_perf_tool`.
   - Commit: `Fase 15.15: medida e documentação`
 
-### Trilhas (principal no checkout, paralela em worktree e sessão próprios)
-| Janela | Principal | Paralela | Por que não brigam |
+### Trilhas (Orca: A no checkout, B em worktree e sessão próprios)
+| Janela | Trilha A, Claude (checkout, `fase-15`) | Trilha B, Codex (worktree) | Por que não brigam |
 |---|---|---|---|
-| 1 (retomada) | 15.1 → 15.2 → 15.3 → 15.4 | 15.8 já integrada | não recriar o trabalho concluído |
-| 2 (15.4 e 15.8 juntas) | 15.5 → 15.6 → 15.7 | 15.11, depois 15.12 | principal fica com `city.gd`, `BiomeBuilder` e `.tres`; paralela com clima/atmosfera |
-| 3 (janela 2 integrada) | 15.9 → 15.10 → **15.14 → 15.13** → 15.15 | revisão somente leitura nos pontos indicados | integrações e qualidade prontas antes da revisão visual final |
+| 1 (retomada, feita) | 15.1 → 15.2 → 15.3 → 15.4 | 15.8 já integrada | — |
+| 2 (agora) | 15.5 Sonnet → 15.6 Opus → 15.7 Opus | 15.11 Sol → 15.12 Astra → 15.9.1a Astra | A com `city.gd`, `BiomeBuilder`, cascas, scatter e `.tres`; B com clima, atmosfera e a prova de colisão (só arquivos novos) |
+| 3 (janela 2 juntada) | 15.9.1b → 15.9.2 → 15.9.3 → 15.10, todas Opus | 15.15a Sol → 15.15b Terra | A com terreno e mirante; B só em `tools/`, `check_perf_tool` e rascunho de texto |
+| 4 (fechamento) | 15.14 Sonnet → capturas da 15.13 → ajustes 15.13.x Sonnet → 15.15c Opus | relatório da 15.13 (Astra, só leitura) e revisões | sem código em paralelo: a revisão visual pede a versão final |
 
-A paralela nasce do **commit de conclusão da 15.4**, com contrato de `BiomeSpec`, `CityMap.zone_rects` e `DistrictWeather.areas` já estabilizado. Pode usar a criação de worktree do OpenCode (confirmar base e mover/abrir a sessão nele) ou, explicitamente, `git worktree add -b worktree/f15-clima ../game-hub_worktrees/f15-clima fase-15`. Subagente sozinho usa a pasta da sessão: não equivale a worktree.
+**Como criar a trilha B:**
+- o worktree nasce do commit de conclusão da 15.4 (`456e3e6`, que já tem o contrato de `BiomeSpec`, `CityMap.zone_rects` e `DistrictWeather.areas`) ou de um commit seguinte da `fase-15`. Branch: `worktree/f15-clima` na janela 2 e uma nova a partir do merge na janela 3;
+- pelo Orca, confira a base e abra a sessão do Codex nele. Plano B: `git worktree add -b worktree/f15-clima ../game-hub_worktrees/f15-clima fase-15`;
+- subagente sozinho usa a pasta da sessão e não equivale a worktree.
 
 **Posse de arquivos da janela 2:**
-- Principal: `city.gd`, `biome_builder.gd`, cascas, scatter, árvores, passos, perfis `.tres`, plano e documentação de status.
-- Paralela: `weather_spec.gd`, `district_weather.gd`, `day_night.gd`, `biome_atmosphere.gd`, `check_weather.gd`, `check_daynight.gd` e `check_biome_atmosphere.gd`. Não edita `city.gd`, `BiomeBuilder` nem `.tres`.
-- Handoff: hash-base, arquivos alterados, API esperada, comando/resultado dos testes e pendências visuais. Se um contrato precisar mudar, combinar com a principal antes de editar arquivo compartilhado.
+- **A:** `city.gd`, `biome_builder.gd`, cascas, scatter, árvores, passos, perfis `.tres`, plano e documentação de status.
+- **B:**
+  - 15.11/15.12: `weather_spec.gd`, `district_weather.gd`, `day_night.gd`, `biome_atmosphere.gd`, `check_weather.gd`, `check_daynight.gd` e `check_biome_atmosphere.gd`;
+  - 15.9.1a: só arquivos novos;
+  - não edita `city.gd`, `BiomeBuilder` nem `.tres`.
+- **Entrega (handoff) da B:** hash-base, arquivos alterados, API esperada, comando e resultado dos testes, e pendências visuais. Se um contrato precisar mudar, combinar com a A antes de editar um arquivo compartilhado.
 
-A paralela não marca o plano. A principal confere o diff, junta com `git merge --no-ff`, liga clima/atmosfera nos perfis e no builder, roda a bateria e marca `[x]`. **Uma bateria por vez**, mesmo entre worktrees. Commits com e-mail noreply (`-c user.email=32810557+guitavaress@users.noreply.github.com`). Revisão Sol somente leitura pode ocorrer em sessão filha recebendo diff/logs/capturas da principal.
+**Regras de convivência:**
+1. **A B não marca o plano.** A A pede a revisão do Opus sobre o diff da B, junta com `git merge --no-ff`, liga clima e atmosfera nos perfis e no builder, roda a bateria e marca os `[x]`.
+2. **Uma bateria por vez**, mesmo entre worktrees: o `run_tests.sh` tem trava. Capturas e `godot -s` à mão não têm: só uma trilha roda a Godot assim de cada vez.
+3. Commits com o e-mail noreply nas duas trilhas (`-c user.email=32810557+guitavaress@users.noreply.github.com`). Sem push, a não ser que o dono peça. Os botões de Commit e Merge do orquestrador não são usados.
+4. **Cota:** o ideal é sempre uma sessão Claude e uma Codex trabalhando ao mesmo tempo. A revisão cruzada roda enquanto a outra trilha implementa. Se um lado esgotar, a trilha dele pausa. A *review gate* do Codex fica desligada.
 
 ### Validação em cada entrega
 
 1. Rodar os testes da subetapa durante o trabalho; antes do commit ou após integração, bateria completa. No PowerShell: `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`. No Linux: `bash tests/run_tests.sh`. Detalhes em [../OPENCODE.md](../OPENCODE.md#testes-no-windows-e-no-linux).
 2. Guardar logs e capturas na pasta temporária da sessão. Registrar comando, ambiente, resultado e commit-base no plano; aprovação histórica não substitui teste atual.
-3. Aceites intermediários: **15.4** planta/mapas/metrô; **15.7** portas livres e assets; **15.9/15.10** colisão/percurso/mirante; **15.14/15.13** qualidade e capturas; **15.15** desempenho e documentação. Sol revisa os pontos estruturais indicados; o dono aprova o visual.
+3. Aceites intermediários: **15.4** planta/mapas/metrô; **15.7** portas livres e assets; **15.9/15.10** colisão/percurso/mirante; **15.14/15.13** qualidade e capturas; **15.15** desempenho e documentação. A revisão cruzada cobre os pontos indicados em cada subetapa; o dono aprova o visual.
 4. `[x]` só com critérios da etapa satisfeitos. Um teste headless do núcleo não encerra a integração, uma imagem não prova colisão e tempo de geração não prova FPS.
 
 ## Riscos
@@ -466,6 +492,15 @@ Testes afetados:
 - IK dos pés.
 
 ## Decisões tomadas durante a fase
+- 2026-10-25 (reorganização, dono): o resto da fase roda em **duas trilhas paralelas no Orca**, para usar 100% do Claude Pro e do ChatGPT Plus.
+  - **Trilha A:** Claude (Opus e Sonnet), no checkout. É a dona do mundo e do plano.
+  - **Trilha B:** Codex (Astra, Sol e Terra), num worktree.
+  - **Revisão cruzada** entre os dois lados.
+  - **Mudanças de distribuição:**
+    - a prova do Jolt (15.9.1a) foi puxada para a janela 2, na trilha B;
+    - a 15.15 foi dividida em a/b/c;
+    - a 15.6 subiu para high por causa do `focus`.
+  - O AGENTS.md foi atualizado com a tabela de modelos.
 - 2026-10-25 (15.4, planejamento): as vagas ganham só o chão do quarteirão, e o mapa as mostra num tom mais fraco. O título do bairro continua só nos quarteirões. Implementação com Claude Code (Opus 5.5) em esforço high; antes dela, a revisão Codex da 15.3.
 - 2026-10-24 (15.3): a cunha só pelo ângulo do centro das células falhou. Bairros pequenos (1 a 2 células de borda) ficavam com células soltas, e R crescia até +4 em 6 de 300 listas. O território passou a crescer por vizinhança a partir da borda, usando a cunha como preferência: é sempre contínuo, e R cresce no máximo +1. "O maior bairro chega à borda" virou só informação: com quarteirões de dentro para fora e vagas perto da borda, o RPG dos 200 falsos para no anel 3 e o anel 4 fica de vagas (na 15.6, vagas do bioma com neve entre os arcos e o pé da montanha).
 - 2026-10-24: o fluxo passou do OpenCode para Claude Code (Pro) + Codex CLI (Plus) com o plugin `codex-plugin-cc`, a pedido do dono; CI ganhou o export Windows/Linux (`7c67f70`). 15.1 marcada como concluída (commit `158aec0`); próxima: 15.3.
