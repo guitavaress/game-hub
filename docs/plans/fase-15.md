@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.8 e 15.11 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.8 e 15.11 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2 continua (A: 15.6 com Opus; B: 15.12 com Astra, num worktree novo a partir de `592b1a0`). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
