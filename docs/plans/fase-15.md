@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (revisão Codex pendente: `/codex:review --base d15050c`); próxima: janela 2 (15.5 na principal; 15.11 na paralela, a partir do commit da 15.4). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2 (15.5 na principal; 15.11 na paralela, a partir do commit da 15.4). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-24):** Claude Code (Pro) implementa e Codex (Plus) revisa; política em [AGENTS.md](../../AGENTS.md#modelos-e-esforço). Os rótulos Astra/Sol/Luna/Spark abaixo são do período OpenCode: Astra = Claude, Sol = Codex (revisão), Luna = Explore, Spark = tarefa mecânica. O trabalho concluído pelo Claude permanece registrado com seus commits.
 
@@ -275,13 +275,13 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - quantas vezes R cresceu.
   - O teste imprime o mapa ASCII dos 200 falsos.
   - Commit: `Fase 15.3: layout em setores (função pura)`
-- [x] **15.4 A cidade em setores** (Claude Code Opus 5.5 · high; revisão Codex · high, pendente)
+- [x] **15.4 A cidade em setores** (Claude Code Opus 5.5 · high; revisão Codex · high, feita em 2026-10-25 sem defeitos) — `6a3561f`
   - **Implementada em 2026-10-25**, base `d15050c`:
     - **Bateria:** `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh`, Windows / Godot 4.7.2, **78/78 aprovados**, `RESULTADO GERAL: TUDO OK`, saída 0; Rust pulado no Windows. Log: `bateria-15-4.log`, na pasta temporária da sessão.
     - **`check_planta` com 6, 40 e 200 jogos:** mesmo `half`, bairros, contagens, cascas, andares e paredes. São 3, 10 e 26 vagas, todas com chão.
     - **`check_city_map`:** com a biblioteca real (18 jogos) e com 200 falsos, as zonas cobrem os anéis 1..R sem sobra, e cada bairro é contíguo e chega à borda.
     - **Captura** de cima e oblíqua, com 200 falsos, às 13 h e às 22 h, na pasta temporária: fatias corretas, e as vagas formam a faixa sem prédio perto da borda. À noite as vagas ficam escuras, porque não têm postes (decisão do dono); a 15.13 reavalia.
-    - **Pendente:** a revisão Codex.
+    - **Revisão Codex** (`/codex:review --base d15050c`, 2026-10-25): nenhum defeito acionável, em análise estática.
   - **Detalhamento aprovado em 2026-10-25** (base `d15050c`):
     - **Antes:** a revisão pendente da 15.3, com `/codex:review --base c4819bb`. **Depois:** `/codex:review --base d15050c` (ou `/codex:adversarial-review`), com o diff, o log da bateria e a captura.
     - **Vagas** (decisão do dono): só o chão do quarteirão, com calçada e miolo na cor do bairro, sem postes e sem pracinhas. Cada vaga é um nó `Vacant_<id>_<x>_<z>`, que a 15.6 usa.
