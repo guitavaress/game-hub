@@ -70,6 +70,36 @@ func _run() -> void:
 	var outward: Vector3 = arch_portal.get_return_transform().origin - arch_portal.global_position
 	_check("o jogador volta do lado de fora do arco", outward.dot(arch_portal.global_basis.z) > 1.0)
 
+	# A placa com a arte (15.5): existe, sem colisão, e recebe o hero do GameArt.
+	var poster: MeshInstance3D = arch.get_node_or_null("Poster")
+	_check("o arco tem a placa Poster", poster != null)
+	_check("a placa não tem colisão própria", poster.get_children().is_empty())
+	var hero := ImageTexture.create_from_image(Image.create_empty(1920, 620, false, Image.FORMAT_RGB8))
+	root.get_node("GameArt").hero_ready.emit(BALATRO, hero)
+	_check("o hero do jogo vira a textura da placa", poster.visible and arch.get_art_texture() == hero)
+	var poster_size: Vector2 = (poster.mesh as QuadMesh).size
+	_check("a placa cabe na largura do arco e fica acima da passagem",
+			poster_size.x <= arch_script.OPENING.x + 2.0 * arch_script.PILLAR_WIDTH + 0.01
+			and poster.position.y - poster_size.y / 2.0 >= arch_script.OPENING.y + arch_script.LINTEL_HEIGHT - 0.01)
+	_check("o nome fica acima da placa", arch.get_node("Name").position.y > poster.position.y + poster_size.y / 2.0)
+	var other_tex := ImageTexture.create_from_image(Image.create_empty(64, 64, false, Image.FORMAT_RGB8))
+	root.get_node("GameArt").hero_ready.emit(BALATRO + 1, other_tex)
+	_check("hero de outro jogo é ignorado", arch.get_art_texture() == hero)
+
+	# O filete acende na carga (15.5) e combina com o dia/noite.
+	var neon: StandardMaterial3D = arch._neon_material
+	arch.set_night(0.0)
+	var base_energy := neon.emission_energy_multiplier
+	arch._on_portal_charge(1.0)
+	var charged := neon.emission_energy_multiplier
+	_check("a carga aumenta o brilho do filete", charged > base_energy * 1.5)
+	arch.set_night(1.0)
+	_check("carga e noite se somam", neon.emission_energy_multiplier > charged)
+	arch._on_portal_charge(0.0)
+	arch.set_night(0.0)
+	_check("carga 0 volta ao brilho normal", is_equal_approx(neon.emission_energy_multiplier, base_energy)
+			and is_equal_approx(base_energy, arch_script.NEON_DAY))
+
 	var player = city.get_node("Player")
 	player.global_position = arch_portal.global_transform * Vector3(0, 0.1, -0.8)
 	await create_timer(1.8).timeout

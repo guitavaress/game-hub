@@ -19,7 +19,7 @@ func _run() -> void:
 	var profiles: GDScript = load("res://profiles/profiles.gd")
 	var buildings: Array = []
 	for child in city.get_children():
-		if child.name.begins_with("Building_"):
+		if child.has_method("get_poster_rect") and child.name.begins_with("Building_"):
 			buildings.append(child)
 	var floors := {}
 	var styles := {}

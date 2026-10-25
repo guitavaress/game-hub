@@ -40,7 +40,7 @@ func _run() -> void:
 	var hd := 0
 	var total := 0
 	for child in city.get_children():
-		if child.name.begins_with("Building_"):
+		if child.has_method("get_poster_rect") and child.name.begins_with("Building_"):
 			total += 1
 			var tex: Texture2D = child.get_node("Poster").material_override.albedo_texture
 			if tex != null and tex.get_width() >= 600:

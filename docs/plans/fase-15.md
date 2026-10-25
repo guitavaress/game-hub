@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -314,7 +314,8 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - `check_metro` (180 m) e `check_gates`.
   - Manual: captura de cima com 200 falsos, na pasta temporária, nunca no repositório.
   - Commit: `Fase 15.4: bairros em setores da praça até a borda`
-- [ ] **15.5 O arco mostra a capa** (Sonnet · medium; revisão: só os testes) [trilha A, janela 2]
+- [x] **15.5 O arco mostra a capa** (Sonnet · medium; revisão: só os testes) [trilha A, janela 2]
+  - Feita em 2026-10-25 (bateria TUDO OK). A placa fica em cima da viga, o hero ocupa a largura do arco (4,2 m) e a capa em pé tem 2 m de altura; o nome sobe para cima da placa. O filete multiplica o brilho por até 3 na carga, como no prédio. Os três checks antigos filtram com `has_method("get_poster_rect")`, porque o `is CityBuilding` não resolve em `-s` (o `class_name` puxa os autoloads). **A captura do arco fica para a 15.6**, a primeira etapa em que um bairro usa arco. O `check_mirror` falhou uma vez e passou depois: vigiar se é intermitente.
   - Faz: o `ArchShell` ganha uma placa `Poster` com o hero do jogo (`GameArt`), e o filete acende na carga da porta.
   - Teste:
     - o `check_portal_shell` confere o arco com `Poster` e textura;
