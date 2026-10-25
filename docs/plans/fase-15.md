@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5 e 15.8 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.8 e 15.11 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2, em duas trilhas no Orca (A: 15.5 com Sonnet; B: 15.11 com Sol, num worktree a partir de `456e3e6` ou de um commit seguinte). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -388,7 +388,8 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - **a vista é o prêmio:** o banco e a abertura da cerca ficam virados para a praça e a torre do relógio, e a captura do brief é feita dali.
   - Teste: o `check_landmarks` passa a aceitar o marco ancorado.
   - Commit: `Fase 15.10: o mirante com a torre do RPG`
-- [ ] **15.11 Neve** (Sol · medium; revisão Opus · medium) [trilha B, janela 2]
+- [x] **15.11 Neve** (Sol · medium; revisão Opus · medium) [trilha B, janela 2]
+  - Feita em 2026-10-25 pela trilha B (commit `cfa44cc`, base `06a8190`), revisada pelo Opus sem defeitos e juntada em `f8a349e` (bateria TUDO OK depois do merge). API: `WEATHER_TYPES` por tipo (garoa igual a antes; neve com flocos macios em billboard, 1,5 a 2,5 m/s, 500 na Alta), `current_kind()` e `is_raining()` para os dois. **Falta, na integração (15.6 ou depois):** ligar no `montanha.tres` um `WeatherSpec` com `kind = "neve"`, `night_only = false` e `intensity = 1.0`, e conferir por captura, de dia e à noite, que o floco unshaded não brilha demais (se precisar, trocar para `BILLBOARD_PARTICLES`).
   - Arquivos: `weather_spec.gd`, `district_weather.gd` e `check_weather`. A paralela não mexe em `.tres`: a principal liga a neve no `montanha.tres` ao juntar.
   - Commit: `Fase 15.11: neve no clima dos bairros`
 - [ ] **15.12 Névoa e vento do bioma** (Astra · high; revisão Opus · high) [trilha B, janela 2] · skills `godot-3d-essentials` e `audio-design`
