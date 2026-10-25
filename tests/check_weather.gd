@@ -35,8 +35,11 @@ func _run() -> void:
 		return
 	var weather = weathers[0]
 	var player: Node3D = city.get_node("Player")
-	var inside := Vector3(weather.area.get_center().x, 1.0, weather.area.get_center().y)
-	var outside := Vector3(weather.area.end.x + 200.0, 1.0, weather.area.end.y + 200.0)
+	var zones: Array[Rect2] = get_first_node_in_group("world_map").zone_rects("sobrevivencia")
+	_check("a área do clima = as zonas do bairro (%d)" % zones.size(), not zones.is_empty() and weather.areas == zones)
+	var inside := Vector3(weather.areas[0].get_center().x, 1.0, weather.areas[0].get_center().y)
+	var bounds: Rect2 = get_first_node_in_group("world_map").get_map_data()["bounds"]
+	var outside := Vector3(bounds.end.x + 200.0, 1.0, bounds.end.y + 200.0)
 
 	print("== a hora chega pelo relógio da cidade ==")
 	city._on_night_changed(1.0)
@@ -50,6 +53,23 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_check("noite + dentro do bairro: chove", weather.is_raining())
+	var rains_in_every_zone := true
+	for zone: Rect2 in weather.areas:
+		player.global_position = Vector3(zone.get_center().x, 1.0, zone.get_center().y)
+		await process_frame
+		await process_frame
+		rains_in_every_zone = rains_in_every_zone and weather.is_raining()
+	_check("chove em todas as zonas do bairro (quarteirões e vagas)", rains_in_every_zone)
+	# Uma zona de outro bairro: lá não chove.
+	var neighbor := Vector3.INF
+	for area: Dictionary in get_first_node_in_group("world_map").get_map_data()["areas"]:
+		if area["id"] != "sobrevivencia" and neighbor == Vector3.INF:
+			var rect: Rect2 = area["zones"][0]
+			neighbor = Vector3(rect.get_center().x, 1.0, rect.get_center().y)
+	player.global_position = neighbor
+	await process_frame
+	await process_frame
+	_check("noutro bairro: não chove", not weather.is_raining())
 	player.global_position = outside
 	await process_frame
 	await process_frame

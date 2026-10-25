@@ -5,6 +5,7 @@ extends SceneTree
 ##   - cada quarteirão pertence a um bairro só, sem sobrepor ninguém;
 ##   - os limites batem com o tamanho do mapa;
 ##   - area_name_at acerta a porta de cada jogo;
+##   - (15.4) as zonas cobrem a cidade; cada bairro é contíguo e chega à borda;
 ##   - a faixa de luz conta o destino e avisa quando muda (route_changed).
 
 var failures := 0
@@ -87,6 +88,7 @@ func _check_map(city: Node, with_route: bool) -> void:
 		var gate: Vector2 = area["gate"]
 		gates_ok = gates_ok and gate != Vector2.INF and bounds.has_point(gate)
 	_check("todo bairro tem o pórtico no mapa", gates_ok)
+	_check_zones(city, map, areas, bounds, games)
 
 	var guide: Node = city.get_node("RouteGuide")
 	var player: Node3D = city.get_node("Player")
@@ -99,6 +101,78 @@ func _check_map(city: Node, with_route: bool) -> void:
 	var before := _route_signals
 	guide.clear_route()
 	_check("route_changed avisou ao apagar", _route_signals > before and not guide.has_route())
+
+
+## Fase 15.4, setores: as zonas (quarteirões e vagas) cobrem a cidade inteira
+## sem sobra; cada bairro é uma área contígua, com borda e com o pórtico no
+## anel mais perto da praça.
+func _check_zones(city: Node, map: Node, areas: Array, bounds: Rect2, games: Array) -> void:
+	var owner: Dictionary[Vector2i, String] = {}
+	var repeated := 0
+	var rects_in_zones := true
+	for area: Dictionary in areas:
+		for rect: Rect2 in area["zones"]:
+			var cell := _cell_of(rect.get_center())
+			if owner.has(cell):
+				repeated += 1
+			owner[cell] = area["id"]
+		for rect: Rect2 in area["rects"]:
+			rects_in_zones = rects_in_zones and (area["zones"] as Array).has(rect)
+	var ring := 0
+	for cell: Vector2i in owner:
+		ring = maxi(ring, CityLayout.ring_of(cell))
+	var expected_cells := 4 * ring * ring + 4 * ring
+	_check("as zonas cobrem os anéis 1..%d sem sobra (%d de %d, repetidas: %d)" % [ring, owner.size(), expected_cells, repeated],
+			repeated == 0 and owner.size() == expected_cells and not owner.has(Vector2i.ZERO))
+	_check("todo quarteirão é zona do seu bairro", rects_in_zones)
+	var half: float = bounds.size.x / 2.0
+	_check("o mapa vai até a borda das zonas", is_equal_approx(half, ring * CityLayout.BLOCK_PITCH + CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH))
+
+	var contiguous := true
+	var with_border := true
+	var gate_inside := true
+	for area: Dictionary in areas:
+		var id: String = area["id"]
+		var cells: Array[Vector2i] = []
+		for rect: Rect2 in area["zones"]:
+			cells.append(_cell_of(rect.get_center()))
+		contiguous = contiguous and _is_connected(cells)
+		with_border = with_border and cells.any(func(c: Vector2i) -> bool: return CityLayout.ring_of(c) == ring)
+		var gate_ring := CityLayout.ring_of(city._district_cells[id][0])
+		for cell in cells:
+			gate_inside = gate_inside and CityLayout.ring_of(cell) >= gate_ring
+	_check("cada bairro é uma área contígua", contiguous)
+	_check("cada bairro chega à borda da cidade", with_border)
+	_check("o pórtico fica no anel do bairro mais perto da praça", gate_inside)
+
+	var wrong := 0
+	for game in games:
+		var portal: Node3D = city.get_node("Building_%d/GamePortal" % game.app_id)
+		if map.zone_id_at(portal.global_position) != root.get_node("GameCategories").get_category_id(game.app_id):
+			wrong += 1
+	_check("zone_id_at acerta a porta de cada jogo (erros: %d)" % wrong, wrong == 0)
+	_check("na praça não há zona", map.zone_id_at(Vector3.ZERO).is_empty())
+
+
+## Todas as células ligadas por lado ou canto (8 vizinhos)?
+func _is_connected(cells: Array[Vector2i]) -> bool:
+	if cells.is_empty():
+		return false
+	var seen: Dictionary[Vector2i, bool] = {cells[0]: true}
+	var queue: Array[Vector2i] = [cells[0]]
+	while not queue.is_empty():
+		var cell: Vector2i = queue.pop_back()
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				var next := cell + Vector2i(dx, dz)
+				if cells.has(next) and not seen.has(next):
+					seen[next] = true
+					queue.append(next)
+	return seen.size() == cells.size()
+
+
+static func _cell_of(point: Vector2) -> Vector2i:
+	return Vector2i(roundi(point.x / CityLayout.BLOCK_PITCH), roundi(point.y / CityLayout.BLOCK_PITCH))
 
 
 func _new_city() -> Node:

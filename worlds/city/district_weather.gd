@@ -18,8 +18,9 @@ const RAIN_HEIGHT: float = 10.0
 const FALL_SPEED: float = 14.0
 const DROP_COLOR: Color = Color(0.8, 0.88, 1.0, 0.45)
 
-## Onde o bairro fica (x, z em metros, no mundo).
-var area: Rect2 = Rect2()
+## Onde o bairro fica (x, z em metros, no mundo): as zonas dele no CityMap
+## (quarteirões e vagas, cada uma com meia rua em volta).
+var areas: Array[Rect2] = []
 var spec: WeatherSpec
 
 var _night: float = 0.0
@@ -84,9 +85,16 @@ func _process(_delta: float) -> void:
 func _refresh() -> void:
 	if _rain == null:
 		return
-	var inside := _player != null and area.has_point(Vector2(_player.global_position.x, _player.global_position.z))
+	var inside := _player != null and _is_inside(Vector2(_player.global_position.x, _player.global_position.z))
 	var dark := _night > 0.5 or spec == null or not spec.night_only
 	_rain.emitting = inside and dark and spec != null
+
+
+func _is_inside(point: Vector2) -> bool:
+	for rect in areas:
+		if rect.has_point(point):
+			return true
+	return false
 
 
 func _on_settings_changed(section: String, key: String) -> void:

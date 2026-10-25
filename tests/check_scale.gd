@@ -69,8 +69,8 @@ func _run() -> void:
 			full != null and (full as ImageTexture).get_format() < Image.FORMAT_DXT1 and full.get_width() >= art.get_hero(sample).get_width())
 	_check("o original fica guardado: pedir de novo devolve o mesmo", art.get_hero_full(sample) == full)
 
-	var half: float = CityLayout.half_extent(CityLayout.block_cells(int(ceil(COUNT / 4.0)) + 9))
-	print("   mapa de cerca de %d m de lado" % int(half * 2.0))
+	var bounds: Rect2 = get_first_node_in_group("world_map").get_map_data()["bounds"]
+	print("   mapa de %d m de lado" % int(bounds.size.x))
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()

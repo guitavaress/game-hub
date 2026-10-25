@@ -344,13 +344,15 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 
 # --- Bairros e prédios -------------------------------------------------------
 
-## Monta todos os bairros. Devolve os quarteirões usados (para medir o mapa).
+## Monta todos os bairros. Cada um ganha uma fatia da cidade, da praça até a
+## borda (SectorLayout): os quarteirões com prédios e, perto da borda, as vagas.
+## Devolve as células de todos os territórios (para medir o mapa).
 ## Na abertura, monta um quarteirão por quadro, para a barra de progresso andar.
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
 	var counts: Array[int] = []
 	for district in districts:
 		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
-	var sectors: Array[DistrictSector] = CityLayout.ring_plan(counts)
+	var sectors: Array[DistrictSector] = SectorLayout.plan(counts)
 	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
@@ -368,7 +370,10 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	for district_index in districts.size():
 		var district: Dictionary = districts[district_index]
 		var sector: DistrictSector = sectors[district_index]
-		cells.append_array(sector.blocks)
+		cells.append_array(sector.territory)
+		# O território todo (quarteirões e vagas) vira zona do bairro no mapa.
+		for cell in sector.territory:
+			_map.add_zone(district["id"], cell)
 		var district_games: Array = district["games"]
 		var block_index: int = 0
 		# Cada quarteirão recebe até 4 jogos do bairro.
@@ -387,29 +392,42 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 			built += block_games.size()
 			_report_progress("Construindo bairros… %d de %d jogos" % [built, total_games],
 					lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
-		_build_weather(sector.blocks, district["id"])
+		# As vagas (o resto da fatia, perto da borda) ganham só o chão.
+		for cell in sector.territory:
+			if not sector.blocks.has(cell):
+				_build_vacant(cell, district["id"])
+		await _keep_frame_light()
 		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
 		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
 		_build_district_sign(sector.blocks, district["id"])
+	# O clima vem com todos os bairros prontos: ele cobre as zonas do bairro
+	# (na Fase 15.9, a montanha também vira zona antes dele).
+	for district in districts:
+		_build_weather(district["id"])
 	return cells
 
 
-## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; a área
-## cobre todos os quarteirões dele e metade da rua em volta.
-func _build_weather(district_cells: Array, category_id: String) -> void:
+## Uma vaga: um quarteirão do bairro sem jogo, perto da borda. Fica só o chão
+## (calçada e miolo na cor do bairro), sem postes nem enfeites. O nó se chama
+## Vacant_<bairro>_<x>_<z>.
+func _build_vacant(cell: Vector2i, category_id: String) -> void:
+	var vacant := Node3D.new()
+	vacant.name = "Vacant_%s_%d_%d" % [category_id, cell.x, cell.y]
+	add_child(vacant)
+	CityDecor.add_block_ground(vacant, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
+
+
+## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
+## todas as zonas dele (quarteirões e vagas, cada uma com meia rua em volta).
+func _build_weather(category_id: String) -> void:
 	var profile := Profiles.district(category_id)
-	if profile == null or profile.weather == null or district_cells.is_empty():
+	var zones := _map.zone_rects(category_id)
+	if profile == null or profile.weather == null or zones.is_empty():
 		return
-	var reach := CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0
-	var area := Rect2()
-	for i in district_cells.size():
-		var center := CityLayout.block_center(district_cells[i])
-		var block := Rect2(center.x - reach, center.z - reach, reach * 2.0, reach * 2.0)
-		area = block if i == 0 else area.merge(block)
 	var weather := DistrictWeather.new()
 	weather.name = "DistrictWeather_%s" % category_id
 	weather.spec = profile.weather
-	weather.area = area
+	weather.areas = zones.duplicate()
 	add_child(weather)
 
 
