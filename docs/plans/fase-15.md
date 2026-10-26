@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26 (falta a revisão do Astra). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B segue com a 15.15b (Terra) no worktree `f15-medida`. Próxima da A: 15.9.2 (Opus), depois de o dono ver as capturas. Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26 (falta a revisão do Astra). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). Próxima da A: 15.9.2 (Opus), depois de o dono ver as capturas. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -440,7 +440,8 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Divisão:
     - [x] **15.15a** (Sol · medium; revisão Opus · medium) [trilha B, janela 3]: o `MEDIDA_MONTANHA` no `tools/medir_desempenho.gd` e o ponto "mirante" no `tools/capturar_pontos.gd`. Só `tools/` e o `check_perf_tool`. Commit: `Fase 15.15a: medida e captura do mirante`;
       - **Feita em 2026-10-26** pela trilha B (worker do Orca, Sol, `82d9d67`, base `3fc7afc`, bateria 83/83), revisada pelo Opus sem defeitos e juntada em `f21e3fc`. Contrato: grupo `mountain_trail` com `trail_world_points()` e `lookout_world()`; sem montanha, sai `MEDIDA_MONTANHA … | sem montanha`. A captura com várias horas foi corrigida (`_set_hour` zera o deslocamento). Testes novos com montanha falsa: `check_capture_points` e `check_mountain_measure`;
-    - **15.15b** (Terra · low; revisão Sonnet · low) [trilha B, janela 3]: rascunho do texto do README e do ROADMAP, entregue à A sem marcar status;
+    - [x] **15.15b** (Terra · low; revisão Sonnet · low) [trilha B, janela 3]: rascunho do texto do README e do ROADMAP, entregue à A sem marcar status;
+      - **Feita em 2026-10-26** pela trilha B (Terra, `d8f8254`, base `184cebc`), revisada pelo Opus e juntada. O rascunho fica em `docs/plans/fase-15-rascunho-docs.md`, com as lacunas `[A PREENCHER]` e `[confirmar na 15.15c]`. Na 15.15c: creditar no README os passos na neve (`footstep_snow_000` a `004`, Kenney Impact Sounds) e apagar o rascunho depois de aplicado;
     - **15.15c** (Opus · medium nas medidas; Terra · low no texto) [trilha A, janela 4]: medida no desktop (Alta), documentação final e o commit abaixo.
   - Faz:
     - o `medir_desempenho` ganha `MEDIDA_MONTANHA` (sobe a trilha e gira no mirante);
