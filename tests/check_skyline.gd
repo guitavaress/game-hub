@@ -47,7 +47,10 @@ func _run() -> void:
 		elif child.name.begins_with("Wall") and child is CSGBox3D:
 			if child.size.y > 1.01:
 				walls_low = false
-	_check("mureta de 1 m + 4 barreiras de 3 m", barriers == 4 and walls_low)
+	# Desde a 15.9, a trilha da montanha abre um vão no meio de um lado: aquele
+	# lado vira dois trechos de mureta e de barreira.
+	var gaps := get_nodes_in_group("mountain_trail").size()
+	_check("mureta de 1 m + barreiras de 3 m (4 lados, %d vão)" % gaps, barriers == 4 + gaps and walls_low)
 	_check("grade (MultiMesh)", city.has_node("Railing") and city.get_node("Railing").multimesh.instance_count > 1000)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))

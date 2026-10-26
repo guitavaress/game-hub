@@ -115,6 +115,23 @@ static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, 
 	return atmosphere
 
 
+## A montanha de fundo do bairro (15.9), na fatia dele, atrás da mureta. Só
+## faz as contas: quem chama monta os pedaços com build_next(), um por vez.
+## null se o bioma não tem terreno ou se a montanha não cabe.
+static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, sector: DistrictSector,
+		half: float) -> BackdropTerrain:
+	if biome.backdrop == null:
+		return null
+	var terrain := BackdropTerrain.new()
+	terrain.name = "BackdropTerrain_%s" % category_id
+	terrain.footstep = biome.footstep
+	if not terrain.setup(biome.backdrop, sector, half):
+		terrain.free()
+		return null
+	parent.add_child(terrain)
+	return terrain
+
+
 ## Pinheiros e rochas do bairro (15.7), no miolo de neve de cada zona, longe
 ## das portas e das estações. Chamar com as portas e o metrô já montados.
 ## null se o bioma não tem nada para o bairro.

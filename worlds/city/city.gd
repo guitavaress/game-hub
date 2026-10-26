@@ -133,6 +133,8 @@ var _asphalt: StandardMaterial3D
 var _map: CityMap
 ## Quarteirões de cada bairro, na ordem em que foram montados.
 var _district_cells: Dictionary[String, Array] = {}
+## O setor (fatia) de cada bairro, do SectorLayout.
+var _sectors: Dictionary[String, DistrictSector] = {}
 
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
@@ -165,7 +167,9 @@ func _ready() -> void:
 	# A porta "Casa" vira um marco nos mapas (depois das estações: fica por cima).
 	_map.add_landmark("home", "Casa", Vector2(HOME_DOOR_SPOT.x, HOME_DOOR_SPOT.z), HomeDoorFacade.NEON_COLOR)
 	await _keep_frame_light()
-	_build_ground_and_walls(half)
+	# A montanha vem antes da mureta: a trilha abre um vão nela.
+	var openings := await _build_backdrop(districts, half)
+	_build_ground_and_walls(half, openings)
 	await _keep_frame_light()
 	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
 	var covered := _build_biome_covers(districts, half, player)
@@ -375,6 +379,7 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	for district_index in districts.size():
 		var district: Dictionary = districts[district_index]
 		var sector: DistrictSector = sectors[district_index]
+		_sectors[district["id"]] = sector
 		cells.append_array(sector.territory)
 		# O território todo (quarteirões e vagas) vira zona do bairro no mapa.
 		for cell in sector.territory:
@@ -451,6 +456,23 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 		if biome.cover_streets:
 			covered.append_array(rects)
 	return covered
+
+
+## A montanha atrás do primeiro bairro com terreno de fundo (o da fatia no
+## norte), um pedaço da malha por vez. Devolve os vãos que a trilha abre na
+## mureta (nenhum se não houver montanha ou ela não couber).
+func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
+	for district in districts:
+		var biome := BiomeBuilder.biome_of(district["id"])
+		if biome == null or biome.backdrop == null:
+			continue
+		var terrain := BiomeBuilder.add_backdrop(self, district["id"], biome, _sectors[district["id"]], half)
+		if terrain == null:
+			return []
+		while terrain.build_next():
+			await _keep_frame_light()
+		return terrain.get_openings()
+	return []
 
 
 ## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
@@ -921,7 +943,7 @@ func get_home_door() -> TravelDoor:
 	return _home_door
 
 
-func _build_ground_and_walls(half: float) -> void:
+func _build_ground_and_walls(half: float, openings: Array[Rect2] = []) -> void:
 	# Chão com colisão (cor de asfalto: o que não é quarteirão vira rua).
 	var ground := CSGBox3D.new()
 	ground.name = "Ground"
@@ -934,22 +956,18 @@ func _build_ground_and_walls(half: float) -> void:
 	add_child(ground)
 
 	# Mureta com grade nas bordas (baixa: deixa ver o horizonte) e uma barreira
-	# invisível para ninguém pular para fora do mapa.
+	# invisível para ninguém pular para fora do mapa. Os vãos (a trilha da
+	# montanha) ficam sem mureta, sem barreira e sem grade.
 	var y := BORDER_WALL_HEIGHT / 2.0
-	var length := half * 2.0
-	var sides: Array[Array] = [
-		[Vector3(0.0, 0.0, -half), Vector3(length, 0.0, 0.0)],
-		[Vector3(0.0, 0.0, half), Vector3(length, 0.0, 0.0)],
-		[Vector3(-half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
-		[Vector3(half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
-	]
-	for side in sides:
-		var center: Vector3 = side[0]
-		var along: Vector3 = side[1]
-		var wall_size := Vector3(maxf(along.x, 0.6), BORDER_WALL_HEIGHT, maxf(along.z, 0.6))
-		_add_wall(center + Vector3(0.0, y, 0.0), wall_size)
-		_add_barrier(center, Vector3(wall_size.x, BORDER_BARRIER_HEIGHT, wall_size.z))
-	_add_railing(half)
+	for side in _border_sides(half):
+		for span in _wall_spans(half, side, openings):
+			var center := _border_point(side, (span.x + span.y) / 2.0)
+			var length := span.y - span.x
+			var along_x := is_zero_approx(side.x)
+			var wall_size := Vector3(length if along_x else 0.6, BORDER_WALL_HEIGHT, 0.6 if along_x else length)
+			_add_wall(center + Vector3(0.0, y, 0.0), wall_size)
+			_add_barrier(center, Vector3(wall_size.x, BORDER_BARRIER_HEIGHT, wall_size.z))
+	_add_railing(half, openings)
 
 	# O horizonte: anel de silhuetas a 400 m e o chão escuro até lá.
 	var skyline := CitySkyline.new()
@@ -1089,7 +1107,8 @@ func _add_barrier(base: Vector3, barrier_size: Vector3) -> void:
 
 ## Grade de metal em cima da mureta: barras finas a cada 25 cm e um corrimão.
 ## Todas as barras são UMA MultiMesh (milhares de cópias, um só desenho).
-func _add_railing(half: float) -> void:
+## Nos vãos não há barra nem corrimão.
+func _add_railing(half: float, openings: Array[Rect2] = []) -> void:
 	var metal := StandardMaterial3D.new()
 	metal.albedo_color = Color("1A1D22")
 	metal.metallic = 0.8
@@ -1099,34 +1118,71 @@ func _add_railing(half: float) -> void:
 	bar.material = metal
 
 	var per_side := int(half * 2.0 / BORDER_RAILING_SPACING)
+	var y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT / 2.0
+	var spots: Array[Vector3] = []
+	for side in _border_sides(half):
+		var spans := _wall_spans(half, side, openings)
+		for i in per_side:
+			var t := -half + (i + 0.5) * BORDER_RAILING_SPACING
+			for span in spans:
+				if t >= span.x and t <= span.y:
+					spots.append(_border_point(side, t) + Vector3(0.0, y, 0.0))
+					break
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = bar
-	multimesh.instance_count = per_side * 4
-	var y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT / 2.0
-	var index := 0
-	for i in per_side:
-		var t := -half + (i + 0.5) * BORDER_RAILING_SPACING
-		for spot in [Vector3(t, y, -half), Vector3(t, y, half), Vector3(-half, y, t), Vector3(half, y, t)]:
-			multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, spot))
-			index += 1
+	multimesh.instance_count = spots.size()
+	for index in spots.size():
+		multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, spots[index]))
 	var bars := MultiMeshInstance3D.new()
 	bars.name = "Railing"
 	bars.multimesh = multimesh
 	add_child(bars)
 
-	# Corrimão em cima das barras.
+	# Corrimão em cima das barras: um por trecho de mureta.
 	var top_y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT
-	for rail_size_center in [
-		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, -half)],
-		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, half)],
-		[Vector3(0.08, 0.06, half * 2.0), Vector3(-half, top_y, 0.0)],
-		[Vector3(0.08, 0.06, half * 2.0), Vector3(half, top_y, 0.0)],
-	]:
-		var rail := MeshInstance3D.new()
-		var rail_mesh := BoxMesh.new()
-		rail_mesh.size = rail_size_center[0]
-		rail.mesh = rail_mesh
-		rail.material_override = metal
-		rail.position = rail_size_center[1]
-		add_child(rail)
+	for side in _border_sides(half):
+		var along_x := is_zero_approx(side.x)
+		for span in _wall_spans(half, side, openings):
+			var length := span.y - span.x
+			var rail := MeshInstance3D.new()
+			var rail_mesh := BoxMesh.new()
+			rail_mesh.size = Vector3(length, 0.06, 0.08) if along_x else Vector3(0.08, 0.06, length)
+			rail.mesh = rail_mesh
+			rail.material_override = metal
+			rail.position = _border_point(side, (span.x + span.y) / 2.0) + Vector3(0.0, top_y, 0.0)
+			add_child(rail)
+
+
+## O meio de cada lado da borda (norte, sul, oeste, leste), no chão.
+static func _border_sides(half: float) -> Array[Vector2]:
+	return [Vector2(0.0, -half), Vector2(0.0, half), Vector2(-half, 0.0), Vector2(half, 0.0)]
+
+
+## Um ponto do lado "side" da borda, "t" metros ao longo dele (de -half a half).
+static func _border_point(side: Vector2, t: float) -> Vector3:
+	if is_zero_approx(side.x):
+		return Vector3(t, 0.0, side.y)
+	return Vector3(side.x, 0.0, t)
+
+
+## Os trechos de mureta de um lado, de -half a half, sem os vãos que o cortam.
+## Cada trecho é Vector2(de, até), ao longo do lado.
+static func _wall_spans(half: float, side: Vector2, openings: Array[Rect2]) -> Array[Vector2]:
+	var along_x := is_zero_approx(side.x)
+	var cuts: Array[Vector2] = []
+	for rect in openings:
+		if along_x and rect.position.y <= side.y and side.y <= rect.end.y:
+			cuts.append(Vector2(rect.position.x, rect.end.x))
+		elif not along_x and rect.position.x <= side.x and side.x <= rect.end.x:
+			cuts.append(Vector2(rect.position.y, rect.end.y))
+	cuts.sort()
+	var spans: Array[Vector2] = []
+	var from := -half
+	for cut in cuts:
+		if cut.x > from:
+			spans.append(Vector2(from, minf(cut.x, half)))
+		from = maxf(from, cut.y)
+	if from < half:
+		spans.append(Vector2(from, half))
+	return spans

@@ -33,18 +33,26 @@ static func build(field: Heightfield, area: Rect2, cell_meters: float) -> Concav
 	for z: int in range(first.y, last.y):
 		for x: int in range(first.x, last.x):
 			var mesh: ArrayMesh = TerrainMesh.build_chunk(field, Vector2i(x, z), cell_meters)
-			if mesh == null:
-				continue
-			var triangles: PackedVector3Array = mesh.get_faces()
-			for i: int in range(0, triangles.size(), 3):
-				var center: Vector3 = (triangles[i] + triangles[i + 1] + triangles[i + 2]) / 3.0
-				# A borda já está na grade: o centro decide sem cortar uma face.
-				if rect.has_point(Vector2(center.x, center.z)):
-					faces.append(triangles[i])
-					faces.append(triangles[i + 1])
-					faces.append(triangles[i + 2])
+			if mesh != null:
+				faces.append_array(faces_in(mesh, rect))
 	if faces.is_empty():
 		return null
 	var shape: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
 	shape.set_faces(faces)
 	return shape
+
+
+## Os triângulos de um pedaço já montado (TerrainMesh) que caem dentro de
+## "rect", que deve vir de aligned_rect. Serve para montar a colisão com as
+## malhas que já estão desenhadas, sem remontá-las.
+static func faces_in(mesh: ArrayMesh, rect: Rect2) -> PackedVector3Array:
+	var faces: PackedVector3Array = PackedVector3Array()
+	var triangles: PackedVector3Array = mesh.get_faces()
+	for i: int in range(0, triangles.size(), 3):
+		var center: Vector3 = (triangles[i] + triangles[i + 1] + triangles[i + 2]) / 3.0
+		# A borda já está na grade: o centro decide sem cortar uma face.
+		if rect.has_point(Vector2(center.x, center.z)):
+			faces.append(triangles[i])
+			faces.append(triangles[i + 1])
+			faces.append(triangles[i + 2])
+	return faces

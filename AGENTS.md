@@ -49,8 +49,8 @@ profiles/      perfis de dados (Fase 7): um .tres por bairro em districts/,
                Casa (Fase 13): um .tres por tema em homes/, o catálogo (temas, disposições,
                cores) em home_catalog.tres; avatar: AvatarSpec e avatar_catalog.tres.
                Clima: worlds/city/district_weather.gd
-               Biomas (15.1): BiomeSpec, TerrainSpec e ScatterSpec; biomes/montanha.tres
-               ainda sem ligação aos bairros. Gerador manual: tools/gerar_bioma.gd.
+               Biomas (15.1): BiomeSpec, TerrainSpec e ScatterSpec; biomes/montanha.tres,
+               ligado ao RPG (15.6). Gerador manual: tools/gerar_bioma.gd.
 components/    peças reutilizáveis em qualquer mundo
   game_portal/      a "porta" de um jogo (app_id, área de entrada, marcadores)
   friend_npc/       holograma de amigo
@@ -67,7 +67,7 @@ worlds/home/   a casa: a casca (sala, janela, néon, enfeite do tema) lida do pe
   themes/         o enfeite de cada tema (loft, cabana), que estende HomeDecor
 worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, planta (CityMap), metrô
   district_props/  o elemento de identidade de cada bairro (um script por bairro)
-  biome/           núcleo isolado do terreno (15.8), ainda sem integração à cidade
+  biome/           o bioma na cidade (BiomeBuilder: chão, enfeites, névoa) e a montanha (BackdropTerrain, sobre o núcleo da 15.8)
 tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual
 assets/        só CC0, com LICENSE em cada pasta de origem
