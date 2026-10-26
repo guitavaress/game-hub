@@ -168,7 +168,7 @@ func _ready() -> void:
 	_build_ground_and_walls(half)
 	await _keep_frame_light()
 	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
-	var covered := _build_biome_covers(districts, half)
+	var covered := _build_biome_covers(districts, half, player)
 	CityDecor.add_street_markings(self, cells, half, covered)
 	CityDecor.add_puddles(self, half, covered)
 	await _keep_frame_light()
@@ -432,15 +432,20 @@ func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> v
 
 
 ## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
-## passos). Devolve as áreas cobertas de todos eles.
-func _build_biome_covers(districts: Array[Dictionary], half: float) -> Array[Rect2]:
+## passos) e a névoa e o vento do primeiro deles. Devolve as áreas cobertas
+## de todos.
+func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
 	var covered: Array[Rect2] = []
+	var has_atmosphere := false
 	for district in districts:
 		var biome := BiomeBuilder.biome_of(district["id"])
 		if biome == null:
 			continue
 		var rects := BiomeBuilder.covered_rects(_map.zone_rects(district["id"]), half, biome.cover_streets)
 		BiomeBuilder.add_cover(self, district["id"], biome, rects)
+		if not has_atmosphere:
+			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects, player, _day_night)
+			has_atmosphere = true
 		if biome.cover_streets:
 			covered.append_array(rects)
 	return covered

@@ -61,7 +61,9 @@ func _run() -> void:
 			others += 1
 	_check("nenhum outro bairro tem setor coberto", others == 0)
 	var half: float = (city.get_node("CityMap").get_map_data()["bounds"] as Rect2).size.x / 2.0
-	var rects := BiomeBuilder.covered_rects(city.get_node("CityMap").zone_rects("rpg"), half, true)
+	# (BiomeBuilder e BiomeAtmosphere usam autoloads: no teste vão por load(), sem o nome da classe.)
+	var builder: GDScript = load("res://worlds/city/biome/biome_builder.gd")
+	var rects: Array[Rect2] = builder.covered_rects(city.get_node("CityMap").zone_rects("rpg"), half, true)
 	var shapes := 0
 	if cover != null:
 		for child: Node in cover.get_children():
@@ -84,11 +86,28 @@ func _run() -> void:
 		await physics_frame
 	print("   superfície em ", spot, ": ", player.get_surface())
 	_check("na rua do RPG a superfície é \"snow\"", player.get_surface() == "snow")
+
+	print("\n== névoa e vento (15.12, ligados ao juntar) ==")
+	var atmosphere: Node = city.get_node_or_null("BiomeAtmosphere_rpg")
+	_check("o RPG tem a atmosfera do bioma", atmosphere != null)
+	var bed: AudioStreamPlayer = city.get_ambience_bed()
+	_check("o fundo da cidade está no grupo city_ambience_bed", bed != null and bed.is_in_group(&"city_ambience_bed"))
+	if atmosphere != null:
+		atmosphere.update_now()
+		_check("dentro do RPG o peso da névoa é 1 (%.2f)" % atmosphere.get_weight(), is_equal_approx(atmosphere.get_weight(), 1.0))
+	var albedo_max: float = load("res://worlds/city/biome/biome_atmosphere.gd").SNOW_ALBEDO_MAX
+	var snow_color: Color = builder.ground_material(builder.biome_of("rpg")).albedo_color
+	_check("a neve não passa do albedo %.2f" % albedo_max,
+			maxf(snow_color.r, maxf(snow_color.g, snow_color.b)) <= albedo_max)
+
 	player.global_position = Vector3(0.0, 0.5, 40.0)
 	player.velocity = Vector3.ZERO
 	for i in 30:
 		await physics_frame
 	_check("ao sul da praça (fora do RPG) continua \"concrete\"", player.get_surface() == "concrete")
+	if atmosphere != null:
+		atmosphere.update_now()
+		_check("longe do RPG o peso da névoa é 0", atmosphere.get_weight() == 0.0)
 
 	print("\n== faixas e poças ==")
 	var dashes_in := 0

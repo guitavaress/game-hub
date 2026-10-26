@@ -88,7 +88,9 @@ func _check_sectors(count: int, city: Node) -> void:
 		counts.append((city._district_cells[area["id"]] as Array).size())
 		ids.append(area["id"])
 	# Desde a 15.6, o bairro com terreno de fundo fica com a fatia no norte.
-	var plan: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
+	# (O BiomeBuilder usa autoloads: no teste vai por load(), sem o nome da classe.)
+	var builder: GDScript = load("res://worlds/city/biome/biome_builder.gd")
+	var plan: Array[DistrictSector] = SectorLayout.plan(counts, builder.focus_index(ids))
 	var rings: Array[DistrictSector] = CityLayout.ring_plan(counts)
 	var same_blocks: bool = plan.size() == areas.size()
 	var zones_ok: bool = same_blocks

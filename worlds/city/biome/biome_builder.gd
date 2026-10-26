@@ -92,15 +92,34 @@ static func add_cover(parent: Node3D, category_id: String, biome: BiomeSpec, rec
 	return body
 
 
+## A névoa e o vento do bioma (15.12) sobre as áreas cobertas. Só um por
+## cidade, por enquanto: o DayNight tem uma só mistura de névoa.
+static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, rects: Array[Rect2],
+		player: Node3D, day_night: DayNight) -> BiomeAtmosphere:
+	var atmosphere := BiomeAtmosphere.new()
+	atmosphere.name = "BiomeAtmosphere_%s" % category_id
+	atmosphere.setup(biome, rects, player, day_night)
+	parent.add_child(atmosphere)
+	return atmosphere
+
+
 ## A neve do miolo dos quarteirões.
 static func ground_material(biome: BiomeSpec) -> StandardMaterial3D:
-	return _material(biome.ground_folder, biome.ground_meters, biome.ground_tint, biome.ground_normal_strength)
+	return _material(biome.ground_folder, biome.ground_meters, snow_tint(biome.ground_tint),
+			biome.ground_normal_strength)
 
 
 ## A neve das ruas cobertas: a mesma, um pouco mais escura.
 static func street_material(biome: BiomeSpec) -> StandardMaterial3D:
 	return _material(biome.ground_folder, biome.ground_meters,
-			biome.ground_tint.darkened(STREET_DARKEN), biome.ground_normal_strength)
+			snow_tint(biome.ground_tint).darkened(STREET_DARKEN), biome.ground_normal_strength)
+
+
+## A cor da neve sem estourar o branco: nenhum canal passa de
+## BiomeAtmosphere.SNOW_ALBEDO_MAX (a textura vai até 1, então a cor final também fica abaixo).
+static func snow_tint(tint: Color) -> Color:
+	var top := BiomeAtmosphere.SNOW_ALBEDO_MAX
+	return Color(minf(tint.r, top), minf(tint.g, top), minf(tint.b, top), tint.a)
 
 
 ## Um material PBR da ambientCG com a força do relevo do bioma. É uma cópia do
