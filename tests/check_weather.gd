@@ -28,12 +28,19 @@ func _run() -> void:
 	var weather_script: GDScript = load("res://worlds/city/district_weather.gd")
 	var weathers: Array[Node] = city.get_children().filter(func(n: Node) -> bool: return n.get_script() == weather_script)
 	var names := weathers.map(func(n: Node) -> String: return String(n.name))
-	_check("só o Terror tem DistrictWeather %s" % str(names), names == ["DistrictWeather_sobrevivencia"])
-	if weathers.is_empty():
+	names.sort()
+	# O Terror tem garoa; desde a 15.6, o RPG (bioma da montanha) tem neve, se existir na biblioteca.
+	var expected_names: Array = ["DistrictWeather_sobrevivencia"]
+	if city._district_cells.has("rpg"):
+		expected_names = ["DistrictWeather_rpg", "DistrictWeather_sobrevivencia"]
+	_check("só o Terror (garoa) e o RPG (neve) têm DistrictWeather %s" % str(names), names == expected_names)
+	var snow: Node = city.get_node_or_null("DistrictWeather_rpg")
+	_check("o clima do RPG é neve", snow == null or snow.spec.kind == "neve")
+	var weather: Node = city.get_node_or_null("DistrictWeather_sobrevivencia")
+	if weather == null:
 		print("\nRESULTADO: 1 FALHA(S)")
 		quit()
 		return
-	var weather: Node = weathers[0]
 	var player: Node3D = city.get_node("Player")
 	var zones: Array[Rect2] = get_first_node_in_group("world_map").zone_rects("sobrevivencia")
 	_check("a área do clima = as zonas do bairro (%d)" % zones.size(), not zones.is_empty() and weather.areas == zones)

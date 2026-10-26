@@ -167,8 +167,10 @@ func _ready() -> void:
 	await _keep_frame_light()
 	_build_ground_and_walls(half)
 	await _keep_frame_light()
-	CityDecor.add_street_markings(self, cells, half)
-	CityDecor.add_puddles(self, half)
+	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
+	var covered := _build_biome_covers(districts, half)
+	CityDecor.add_street_markings(self, cells, half, covered)
+	CityDecor.add_puddles(self, half, covered)
 	await _keep_frame_light()
 	CityDecor.add_plaza(self)
 	_build_clock_tower()
@@ -350,9 +352,12 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 ## Na abertura, monta um quarteirão por quadro, para a barra de progresso andar.
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
 	var counts: Array[int] = []
+	var ids: Array[String] = []
 	for district in districts:
 		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
-	var sectors: Array[DistrictSector] = SectorLayout.plan(counts)
+		ids.append(district["id"])
+	# O bairro com terreno de fundo (a montanha) fica com a fatia no norte.
+	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
 	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
@@ -408,13 +413,37 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 
 
 ## Uma vaga: um quarteirão do bairro sem jogo, perto da borda. Fica só o chão
-## (calçada e miolo na cor do bairro), sem postes nem enfeites. O nó se chama
-## Vacant_<bairro>_<x>_<z>.
+## (calçada e miolo na cor do bairro, ou o do bioma), sem postes nem enfeites.
+## O nó se chama Vacant_<bairro>_<x>_<z>.
 func _build_vacant(cell: Vector2i, category_id: String) -> void:
 	var vacant := Node3D.new()
 	vacant.name = "Vacant_%s_%d_%d" % [category_id, cell.x, cell.y]
 	add_child(vacant)
-	CityDecor.add_block_ground(vacant, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
+	_add_block_ground(vacant, cell, category_id)
+
+
+## O chão de um quarteirão: o do bioma do bairro, se houver; senão, o da cidade.
+func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> void:
+	var biome := BiomeBuilder.biome_of(category_id)
+	if biome != null:
+		BiomeBuilder.add_block_ground(parent, CityLayout.block_center(cell), biome)
+	else:
+		CityDecor.add_block_ground(parent, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
+
+
+## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
+## passos). Devolve as áreas cobertas de todos eles.
+func _build_biome_covers(districts: Array[Dictionary], half: float) -> Array[Rect2]:
+	var covered: Array[Rect2] = []
+	for district in districts:
+		var biome := BiomeBuilder.biome_of(district["id"])
+		if biome == null:
+			continue
+		var rects := BiomeBuilder.covered_rects(_map.zone_rects(district["id"]), half, biome.cover_streets)
+		BiomeBuilder.add_cover(self, district["id"], biome, rects)
+		if biome.cover_streets:
+			covered.append_array(rects)
+	return covered
 
 
 ## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
@@ -422,11 +451,11 @@ func _build_vacant(cell: Vector2i, category_id: String) -> void:
 func _build_weather(category_id: String) -> void:
 	var profile := Profiles.district(category_id)
 	var zones := _map.zone_rects(category_id)
-	if profile == null or profile.weather == null or zones.is_empty():
+	if profile == null or profile.effective_weather() == null or zones.is_empty():
 		return
 	var weather := DistrictWeather.new()
 	weather.name = "DistrictWeather_%s" % category_id
-	weather.spec = profile.weather
+	weather.spec = profile.effective_weather()
 	weather.areas = zones.duplicate()
 	add_child(weather)
 
@@ -637,17 +666,18 @@ static func _toward_center(value: int) -> float:
 
 
 func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> void:
-	var category_color := GameCategories.get_category_color(category_id)
 	var center := CityLayout.block_center(cell)
+	var biome := BiomeBuilder.biome_of(category_id)
 
-	# Calçada em volta e o miolo do quarteirão na cor do bairro; postes nos cantos.
-	CityDecor.add_block_ground(self, center, category_color)
+	# Calçada em volta e o miolo do quarteirão (na cor do bairro, ou o chão do
+	# bioma); postes nos cantos.
+	_add_block_ground(self, cell, category_id)
 	CityDecor.add_block_lights(self, center)
 	await _keep_frame_light()
 
 	_build_street_sign(cell, category_id)
 
-	# Prédios nos terrenos; o que sobrar vira pracinha.
+	# Prédios nos terrenos; o que sobrar vira pracinha (no bioma, fica o chão dele).
 	var lots := CityLayout.lots_facing_center_first(cell)
 	# Os enfeites só recebem as cascas que são prédios (eles usam a fachada,
 	# o cartaz e o néon do prédio).
@@ -660,7 +690,7 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 			if shell is CityBuilding:
 				buildings.append(shell)
 			await _keep_frame_light()  # um prédio (com as capas) pesa: divide os quadros
-		else:
+		elif biome == null:
 			CityDecor.add_park(self, lot)
 	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
 	DistrictProps.decorate(self, category_id, cell, buildings)
@@ -678,7 +708,7 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
 	var profile := Profiles.district(category_id)
 	var variant := BuildingVariant.from_app_id(game.app_id, profile.floor_weights if profile != null else PackedFloat32Array())
-	var kind := profile.shell if profile != null else "building"
+	var kind := profile.effective_shell() if profile != null else "building"
 	var shell_script: GDScript = _shells.get(kind, CityBuilding)
 
 	var shell := shell_script.new() as PortalShell
@@ -826,6 +856,8 @@ func _build_ambience_bed() -> void:
 	player.stream = AmbientEmitter.looping(load(spec.files[0]))
 	player.bus = &"Ambiente"
 	player.volume_db = spec.volume_db
+	# A atmosfera do bioma (BiomeAtmosphere) acha o fundo por este grupo para abaixá-lo.
+	player.add_to_group(&"city_ambience_bed")
 	add_child(player)
 	player.play()
 	_ambience_bed = player

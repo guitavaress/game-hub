@@ -102,6 +102,13 @@ func _check_district_landmarks() -> void:
 		if id == "simulacao":
 			_check("simulacao não tem marco (a grua é o marco)", landmark == null and profile.landmark_script.is_empty())
 			continue
+		if profile.effective_shell() != "building":
+			# Com arcos (o bioma do RPG, desde a 15.6), o marco não tem prédio
+			# onde ficar; na 15.10 ele ganha a âncora no mirante.
+			_check("%s (arcos) fica sem marco até ganhar âncora" % id, landmark == null)
+			expected += 1
+			found += 1
+			continue
 		_check("%s tem landmark_script no perfil" % id, profile != null and not profile.landmark_script.is_empty())
 		expected += 1
 		if landmark == null:

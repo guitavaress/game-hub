@@ -63,6 +63,13 @@ const FOOTSTEP_SURFACES: Dictionary[String, Array] = {
 		preload("res://assets/kenney/impact-sounds/footstep_wood_003.ogg"),
 		preload("res://assets/kenney/impact-sounds/footstep_wood_004.ogg"),
 	],
+	"snow": [
+		preload("res://assets/kenney/impact-sounds/footstep_snow_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_004.ogg"),
+	],
 }
 const DEFAULT_SURFACE: String = "concrete"
 ## Eco dos passos em casa (canal "Passos"): sala pequena, pouco eco.

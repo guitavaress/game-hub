@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://profiles/terrain_spec.gd" id="2_o0bsu"]
 [ext_resource type="Script" path="res://profiles/scatter_spec.gd" id="3_0o8nm"]
 [ext_resource type="Script" path="res://profiles/biome_spec.gd" id="4_vs8nu"]
+[ext_resource type="Script" path="res://profiles/weather_spec.gd" id="5_o0bsu"]
 
 [sub_resource type="Resource" id="Resource_or3wn"]
 script = ExtResource("1_menx0")
@@ -48,6 +49,11 @@ height_range = Vector2(1.5, 4)
 in_town = false
 on_backdrop = true
 
+[sub_resource type="Resource" id="Resource_0o8nm"]
+script = ExtResource("5_o0bsu")
+kind = "neve"
+night_only = false
+
 [resource]
 script = ExtResource("4_vs8nu")
 id = "montanha"
@@ -64,6 +70,7 @@ shell = "arch"
 scatter = Array[ExtResource("3_0o8nm")]([SubResource("Resource_otsok"), SubResource("Resource_k7ndc"), SubResource("Resource_xj38d"), SubResource("Resource_s3u4k")])
 snow_cover = 0.7
 backdrop = SubResource("Resource_wc7ny")
+weather = SubResource("Resource_0o8nm")
 ambience_bed = SubResource("Resource_or3wn")
 fog_density_scale = 1.4
 fog_tint = Color(0.65, 0.72, 0.82, 1)

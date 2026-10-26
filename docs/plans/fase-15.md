@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.8 e 15.11 concluídas (15.1 no commit `158aec0`). 15.4 feita em 2026-10-25 (commit `6a3561f`; revisão Codex sem defeitos); próxima: janela 2 continua (A: 15.6 com Opus; B: 15.12 com Astra, num worktree novo a partir de `592b1a0`). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.8 e 15.11 concluídas (15.1 no commit `158aec0`). 15.6 feita em 2026-10-25. A trilha B (worktree `f15-atmosfera`, branch `guitavaress/f15-atmosfera`, Astra · high) entregou a 15.12 (`c8dad95`, a juntar) e está fechando a 15.9.1a; próxima da A: juntar a 15.12, ligar o `BiomeAtmosphere` e seguir para a 15.7. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -321,7 +321,14 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - o `check_portal_shell` confere o arco com `Poster` e textura;
     - `check_variants`, `check_phase6_step1` e `check_phase3_cache` passam a filtrar `is CityBuilding`.
   - Commit: `Fase 15.5: o arco mostra a capa do jogo`
-- [ ] **15.6 O bioma no chão** (Opus · high; revisão Sol · high) [trilha A, janela 2]
+- [x] **15.6 O bioma no chão** (Opus · high; revisão Sol · high) [trilha A, janela 2]
+  - **Feita em 2026-10-25** (base `429cae5`):
+    - **Bateria:** Windows / Godot 4.7.2, 79 testes. Na 1ª rodada, 77 ok e 2 com expectativa antiga: `check_weather` (só o Terror tinha clima) e `check_portal_shell` (usava o Skyrim, do RPG, como "outro bairro com prédio"). Os dois foram ajustados e passaram (`RESULTADO GERAL: TUDO OK`); os outros 77 não mudaram.
+    - **`BiomeBuilder`** (`worlds/city/biome/biome_builder.gd`, só funções estáticas): `focus_index(ids)`, `add_block_ground` (calçada `path_folder` e miolo de neve com `ground_normal_strength`), `covered_rects(zones, half, cover_streets)` (as zonas da borda vão até a mureta) e `add_cover` (um `StaticBody3D` `BiomeCover_<id>`, topo em y 0,02, com `footstep` do bioma). O `city.gd` só pergunta `BiomeBuilder.biome_of(id)`.
+    - O RPG liga o `montanha.tres` (gravado pela Godot), e a montanha ganha a neve da 15.11 (`kind = "neve"`, `night_only = false`); o `tools/gerar_bioma.gd` também. Cascas e clima vêm de `effective_shell()`/`effective_weather()`. Sem pracinhas no bioma. O `AmbienceBed` entra no grupo `city_ambience_bed` (contrato com a 15.12).
+    - **Torre do RPG:** com arcos, o marco fica sem prédio e some até a âncora da 15.10; o `check_landmarks` aceita isso só para bairro com arcos.
+    - **Testes:** `check_biome` (novo), `check_footsteps` (neve), `check_planta` (com `focus` e casca do bioma; o `planta_snapshot` aceita arcos), `check_profiles`, `check_landmarks`, `check_weather` e `check_portal_shell`.
+    - **Capturas** (200 falsos, Alta, 13 h e 22 h, na pasta temporária): neve sem estourar de dia, arcos com capa, néon aceso à noite. Para a 15.13: a divisa reta neve/asfalto no meio da rua e a neve clara sob os postes à noite. **Defeito do `tools/capturar_pontos.gd`:** com várias horas (`13,22`), a segunda soma o deslocamento da primeira e sai de dia; rodar uma hora por vez até a 15.15a corrigir.
   - Esforço subiu para high em 2026-10-25: o `focus` gira a cidade inteira. O `check_planta` passa a comparar com `SectorLayout.plan(counts, focus)` (o bairro com terreno de fundo), e o retrato da 15.2 continua sem ser regravado.
   - Faz:
     - o `rpg.tres` liga o `montanha.tres`;

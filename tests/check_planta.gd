@@ -60,7 +60,14 @@ func _compare_games(count: int, city: Node, actual: Dictionary, expected: Dictio
 	for app_id: String in actual["games"]:
 		var mine: Dictionary = actual["games"][app_id]
 		var before: Dictionary = expected["games"].get(app_id, {})
-		for key: String in ["district", "shell", "floors", "wall"]:
+		# Desde a 15.6, o bairro com bioma troca a casca (ex.: o RPG vira arcos);
+		# o retrato é de antes e não se regrava. Os outros continuam iguais.
+		var keys: Array[String] = ["district", "shell", "floors", "wall"]
+		var biome: BiomeSpec = Profiles.district(mine["district"]).biome
+		if biome != null and not biome.shell.is_empty() and not before.is_empty():
+			keys = ["district"]
+			same_look = same_look and mine["shell"] == _shell_path(biome.shell)
+		for key: String in keys:
 			same_look = same_look and not before.is_empty() and mine[key] == before[key]
 		var building: Node3D = city.get_node("Building_" + app_id)
 		var cell := Vector2i(roundi(building.global_position.x / CityLayout.BLOCK_PITCH),
@@ -76,9 +83,12 @@ func _check_sectors(count: int, city: Node) -> void:
 	var map: Node = city.get_node("CityMap")
 	var areas: Array = map.get_map_data()["areas"]
 	var counts: Array[int] = []
+	var ids: Array[String] = []
 	for area: Dictionary in areas:
 		counts.append((city._district_cells[area["id"]] as Array).size())
-	var plan: Array[DistrictSector] = SectorLayout.plan(counts)
+		ids.append(area["id"])
+	# Desde a 15.6, o bairro com terreno de fundo fica com a fatia no norte.
+	var plan: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
 	var rings: Array[DistrictSector] = CityLayout.ring_plan(counts)
 	var same_blocks: bool = plan.size() == areas.size()
 	var zones_ok: bool = same_blocks
@@ -121,6 +131,11 @@ func _check_plan() -> void:
 	sector.territory = [Vector2i(0, -1), Vector2i(2, 0), Vector2i(-2, 1)]
 	_check("borda no anel externo", sector.border_cells() == [Vector2i(2, 0), Vector2i(-2, 1)])
 	_check("território sem borda da cidade", sector.border_cells(3).is_empty())
+
+
+## O script da casca pelo nome do perfil (o mesmo mapa do city.gd).
+static func _shell_path(kind: String) -> String:
+	return "res://components/portal_shell/arch_shell.gd" if kind == "arch" else "res://worlds/city/city_building.gd"
 
 
 func _check(label: String, ok: bool) -> void:

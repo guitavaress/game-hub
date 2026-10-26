@@ -59,6 +59,32 @@ func _run() -> void:
 	print("   superfície: ", player.get_surface())
 	_check("na rua a superfície é \"concrete\"", player.get_surface() == "concrete")
 
+	print("\n== chão de neve (15.6) ==")
+	_check("a neve tem passos próprios", player.FOOTSTEP_SURFACES.has("snow")
+			and player.FOOTSTEP_SURFACES["snow"].size() == player.FOOTSTEP_SURFACES["concrete"].size())
+	# Um chão com a marca "snow", longe da cidade (como o setor coberto do bioma).
+	var snow := StaticBody3D.new()
+	snow.set_meta("footstep", "snow")
+	var shape := CollisionShape3D.new()
+	shape.shape = BoxShape3D.new()
+	(shape.shape as BoxShape3D).size = Vector3(40.0, 0.02, 40.0)
+	snow.add_child(shape)
+	snow.position = Vector3(3000.0, 0.01, 0.0)
+	city.add_child(snow)
+	player.global_position = Vector3(3000.0, 0.5, 0.0)
+	player.velocity = Vector3.ZERO
+	for i in 30:
+		await physics_frame
+	_check("na neve a superfície é \"snow\"", player.get_surface() == "snow")
+	Input.action_press("move_forward")
+	var snow_ok := false
+	for i in 90:
+		await physics_frame
+		if player.FOOTSTEP_SURFACES["snow"].has(player._steps_player.stream):
+			snow_ok = true
+	Input.action_release("move_forward")
+	_check("o passo sai da lista de neve", snow_ok)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 

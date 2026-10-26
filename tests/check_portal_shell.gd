@@ -116,8 +116,18 @@ func _run() -> void:
 	var chosen: Node3D = city.get_node_or_null("Building_%d" % BALATRO)
 	_check("com shell = \"arch\", o Balatro ganha um arco", chosen != null and chosen.get_script() == arch_script)
 	_check("e o portal continua em Building_<id>/GamePortal", city.get_node_or_null("Building_%d/GamePortal" % BALATRO) != null)
-	var other: Node3D = city.get_node_or_null("Building_489830")  # Skyrim, outro bairro
-	_check("os outros bairros continuam com prédio", other != null and other.get_script().resource_path.ends_with("city_building.gd"))
+	# Os outros bairros sem bioma continuam com prédio (o RPG, com o bioma da
+	# montanha, tem arcos desde a 15.6).
+	var others := 0
+	var others_ok := true
+	for child: Node in city.get_children():
+		if not String(child.name).begins_with("Building_") or child.category_id == "cartas":
+			continue
+		if load("res://profiles/profiles.gd").district(child.category_id).biome != null:
+			continue
+		others += 1
+		others_ok = others_ok and child.get_script().resource_path.ends_with("city_building.gd")
+	_check("os outros bairros continuam com prédio (%d)" % others, others > 0 and others_ok)
 	profile.shell = "building"
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))

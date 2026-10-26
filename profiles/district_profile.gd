@@ -63,7 +63,7 @@ extends Resource
 @export var density: int = 4
 
 @export_group("Bioma")
-## Vazio mantém a cidade atual. A ligação do RPG entra na Fase 15.6.
+## Vazio mantém a cidade atual. O RPG usa a montanha desde a Fase 15.6.
 @export var biome: BiomeSpec
 
 

@@ -23,10 +23,16 @@ static func capture(city: Node) -> Dictionary:
 	for child: Node in city.get_children():
 		if not String(child.name).begins_with("Building_"):
 			continue
-		var wall: Texture2D = child._walls_material.get_shader_parameter("wall_albedo")
+		# Andares e parede só existem no prédio (o arco do bioma não tem).
+		var floors: Variant = null
+		var wall_path: String = ""
+		if child.has_method("get_poster_rect"):
+			var wall: Texture2D = child._walls_material.get_shader_parameter("wall_albedo")
+			floors = child.variant.floors
+			wall_path = wall.resource_path
 		games[str(child.game.app_id)] = {"district": child.category_id,
-			"shell": child.get_script().resource_path, "floors": child.variant.floors,
-			"wall": wall.resource_path, "transform": pose(child)}
+			"shell": child.get_script().resource_path, "floors": floors,
+			"wall": wall_path, "transform": pose(child)}
 	return {"half": (data["bounds"] as Rect2).size.x / 2.0, "districts": districts, "games": games}
 
 

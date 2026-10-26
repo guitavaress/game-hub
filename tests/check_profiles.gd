@@ -285,8 +285,14 @@ func _check_biomes() -> void:
 	var offenders: Array[String] = []
 	_scan_ids("res://worlds", ids, offenders)
 	_check("mundos não fixam ids de bioma", offenders.is_empty())
+	# Desde a 15.6, só o RPG tem bioma (a montanha, com neve, arcos e passos na neve).
 	for district in Profiles.districts():
-		_check("bairro ainda sem bioma: " + district.id, district.biome == null and district.effective_shell() == district.shell and district.effective_weather() == district.weather and district.footstep() == "concrete")
+		if district.id == "rpg":
+			_check("o RPG usa a montanha", district.biome != null and district.biome.id == "montanha"
+					and district.effective_shell() == "arch" and district.footstep() == "snow"
+					and district.effective_weather() != null and district.effective_weather().kind == "neve")
+		else:
+			_check("bairro sem bioma: " + district.id, district.biome == null and district.effective_shell() == district.shell and district.effective_weather() == district.weather and district.footstep() == "concrete")
 	var sample := DistrictProfile.new()
 	sample.weather = WeatherSpec.new()
 	sample.biome = BiomeSpec.new()

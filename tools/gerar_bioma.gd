@@ -25,6 +25,10 @@ func _initialize() -> void:
 	biome.fog_tint = Color(0.65, 0.72, 0.82)
 	biome.fog_tint_amount = 0.3
 	biome.fog_height_density = 0.01
+	# Neve o dia todo (15.11; ligada na 15.6).
+	biome.weather = WeatherSpec.new()
+	biome.weather.kind = "neve"
+	biome.weather.night_only = false
 	biome.ambience_bed = AmbienceSpec.new()
 	biome.ambience_bed.kind = "loop"
 	biome.ambience_bed.files = PackedStringArray(["res://assets/generated/wind_loop.wav"])
