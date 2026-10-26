@@ -7,6 +7,9 @@ extends RefCounted
 ## vagas, e o "setor coberto", uma placa fina sobre as ruas do bairro, com
 ## colisão e a marca dos passos (ex.: "snow"). As faixas e as poças da cidade
 ## pulam as zonas cobertas (o CityDecor recebe as zonas de covered_rects).
+##
+## Fase 15.7: pinheiros e rochas (BiomeScatter) no miolo de neve, e a pedra com
+## neve por cima nos arcos (dress_shell) e nas rochas (snow_cover_material).
 
 ## Topo do setor coberto: acima do asfalto (y 0) e abaixo das calçadas (0,04).
 const COVER_TOP: float = 0.02
@@ -17,6 +20,15 @@ const INNER_TOP: float = 0.05
 const PATH_METERS: float = 2.0
 ## A neve das ruas é um pouco mais escura (pisada) que a do miolo.
 const STREET_DARKEN: float = 0.12
+## Pedra com neve por cima (15.7): o shader e o tamanho da textura nos arcos.
+const SNOW_COVER_SHADER: Shader = preload("res://worlds/city/biome/snow_cover.gdshader")
+const ARCH_METERS: float = 2.0
+## Raio livre de pinheiros e rochas em volta de cada porta (cobre o arco, a
+## frente dele e a passagem) e do meio de cada escada do metrô, em metros.
+const DOOR_CLEARANCE: float = 4.5
+const STATION_CLEARANCE: float = 4.0
+## Quanto o meio da escada do metrô fica para dentro da boca (metade dela).
+const STATION_DEPTH: float = 1.3
 
 ## Materiais já feitos (a chave inclui pasta, escala, cor e relevo).
 static var _materials: Dictionary = {}
@@ -101,6 +113,84 @@ static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, 
 	atmosphere.setup(biome, rects, player, day_night)
 	parent.add_child(atmosphere)
 	return atmosphere
+
+
+## Pinheiros e rochas do bairro (15.7), no miolo de neve de cada zona, longe
+## das portas e das estações. Chamar com as portas e o metrô já montados.
+## null se o bioma não tem nada para o bairro.
+static func add_scatter(parent: Node3D, category_id: String, biome: BiomeSpec, zones: Array[Rect2]) -> BiomeScatter:
+	var has_town := false
+	for spec in biome.scatter:
+		has_town = has_town or spec.in_town
+	if not has_town:
+		return null
+	var scatter := BiomeScatter.new()
+	scatter.setup(category_id, biome, scatter_regions(zones), keep_out_points(parent))
+	parent.add_child(scatter)
+	return scatter
+
+
+## O miolo de neve de cada zona (quarteirão ou vaga): o quadrado dentro da
+## calçada, onde não se anda por caminho nenhum.
+static func scatter_regions(zones: Array[Rect2]) -> Array[Rect2]:
+	var inner := CityLayout.BLOCK_SIZE - CityDecor.SIDEWALK_WIDTH * 2.0
+	var result: Array[Rect2] = []
+	for zone in zones:
+		result.append(Rect2(zone.get_center() - Vector2(inner, inner) / 2.0, Vector2(inner, inner)))
+	return result
+
+
+## Os pontos que ficam livres (x, z, raio): as portas dos jogos e o meio da
+## escada de cada estação do metrô, achados pelos grupos.
+static func keep_out_points(parent: Node) -> Array[Vector3]:
+	var points: Array[Vector3] = []
+	var tree := parent.get_tree()
+	for node in tree.get_nodes_in_group("game_portal"):
+		var portal := node as Node3D
+		if portal != null and parent.is_ancestor_of(portal):
+			points.append(Vector3(portal.global_position.x, portal.global_position.z, DOOR_CLEARANCE))
+	for node in tree.get_nodes_in_group("transit_stop"):
+		var stop := node as Node3D
+		if stop != null and parent.is_ancestor_of(stop):
+			# A frente (+Z) da estação aponta para a rua; a escada desce para trás.
+			var middle := stop.global_transform * Vector3(0.0, 0.0, -STATION_DEPTH)
+			points.append(Vector3(middle.x, middle.z, STATION_CLEARANCE))
+	return points
+
+
+## Veste a casca da porta com a pedra do bioma (15.7): nos arcos, a pedra da
+## calçada com neve por cima. Cascas sem "stone_material" ficam como estão.
+static func dress_shell(shell: Node, biome: BiomeSpec) -> void:
+	if "stone_material" in shell and not biome.path_folder.is_empty():
+		shell.set("stone_material", snow_cover_material(biome, biome.path_folder, biome.path_tint, ARCH_METERS))
+
+
+## Pedra com neve por cima (15.7): a textura da pasta "folder" (ambientCG) na
+## cor "tint", e a neve do chão do bioma onde a superfície aponta para cima,
+## no quanto do snow_cover. Um material por combinação (todas as cópias usam o mesmo).
+static func snow_cover_material(biome: BiomeSpec, folder: String, tint: Color, meters: float) -> ShaderMaterial:
+	var key := "cover|%s|%s|%.2f|%s|%s|%.2f|%.2f" % [biome.id, folder, meters, tint.to_html(),
+			biome.ground_folder, biome.ground_meters, biome.snow_cover]
+	if _materials.has(key):
+		return _materials[key]
+	var stone := CityDecor.pbr_textures(folder)
+	var snow := CityDecor.pbr_textures(biome.ground_folder)
+	var snow_color := snow_tint(biome.ground_tint)
+	var material := ShaderMaterial.new()
+	material.shader = SNOW_COVER_SHADER
+	material.set_shader_parameter("stone_albedo", stone["albedo"])
+	material.set_shader_parameter("stone_normal", stone["normal"])
+	material.set_shader_parameter("stone_roughness", stone["roughness"])
+	material.set_shader_parameter("stone_tint", tint)  # Color: a Godot converte de sRGB (source_color)
+	material.set_shader_parameter("stone_meters", meters)
+	material.set_shader_parameter("snow_albedo", snow["albedo"])
+	material.set_shader_parameter("snow_normal", snow["normal"])
+	material.set_shader_parameter("snow_roughness", snow["roughness"])
+	material.set_shader_parameter("snow_tint", snow_color)
+	material.set_shader_parameter("snow_meters", biome.ground_meters)
+	material.set_shader_parameter("snow_cover", biome.snow_cover)
+	_materials[key] = material
+	return material
 
 
 ## A neve do miolo dos quarteirões.

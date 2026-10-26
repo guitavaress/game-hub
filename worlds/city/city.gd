@@ -432,8 +432,9 @@ func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> v
 
 
 ## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
-## passos) e a névoa e o vento do primeiro deles. Devolve as áreas cobertas
-## de todos.
+## passos), os pinheiros e as rochas, e a névoa e o vento do primeiro deles.
+## Roda depois do metrô: as estações e as portas ficam livres dos enfeites.
+## Devolve as áreas cobertas de todos.
 func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
 	var covered: Array[Rect2] = []
 	var has_atmosphere := false
@@ -443,6 +444,7 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 			continue
 		var rects := BiomeBuilder.covered_rects(_map.zone_rects(district["id"]), half, biome.cover_streets)
 		BiomeBuilder.add_cover(self, district["id"], biome, rects)
+		BiomeBuilder.add_scatter(self, district["id"], biome, _map.zone_rects(district["id"]))
 		if not has_atmosphere:
 			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects, player, _day_night)
 			has_atmosphere = true
@@ -724,6 +726,9 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	shell.accent_color = GameCategories.get_category_color(category_id)
 	if shell is CityBuilding:
 		shell.variant = variant
+	var biome := BiomeBuilder.biome_of(category_id)
+	if biome != null:
+		BiomeBuilder.dress_shell(shell, biome)  # a pedra do bioma (arcos com neve por cima)
 	shell.transform = lot
 	add_child(shell)
 	return shell

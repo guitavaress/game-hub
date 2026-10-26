@@ -131,8 +131,131 @@ func _run() -> void:
 	_check("o clima do RPG é neve", city.get_node_or_null("DistrictWeather_rpg") != null
 			and city.get_node("DistrictWeather_rpg").spec.kind == "neve")
 
+	_check_scatter(city, builder)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(0 if failures == 0 else 1)
+
+
+## Pinheiros e rochas (15.7): uma MultiMesh por família do bairro, nada nas
+## calçadas, nas portas, nas passagens dos arcos nem nas estações; pinheiros a
+## 6 m de onde se anda; colisão por cópia; sorteio sempre igual; arcos com a
+## pedra de neve por cima.
+func _check_scatter(city: Node, builder: GDScript) -> void:
+	print("\n== pinheiros e rochas (15.7) ==")
+	var biome = builder.biome_of("rpg")
+	var scatter = city.get_node_or_null("BiomeScatter_rpg")  # sem tipo: BiomeScatter usa autoloads
+	_check("o RPG tem o BiomeScatter", scatter != null)
+	var others := 0
+	for child: Node in city.get_children():
+		if String(child.name).begins_with("BiomeScatter_") and child != scatter:
+			others += 1
+	_check("nenhum outro bairro tem pinheiros e rochas", others == 0)
+	if scatter == null:
+		return
+
+	var regions: Array[Rect2] = builder.scatter_regions(city.get_node("CityMap").zone_rects("rpg"))
+	var keep_out: Array[Vector3] = builder.keep_out_points(city)
+	# As portas do RPG, com a frente (para a rua), para conferir a faixa da porta.
+	var doors: Array[Transform3D] = []
+	for node in city.get_tree().get_nodes_in_group("game_portal"):
+		if node.get_parent() != null and node.get_parent().get("category_id") == "rpg":
+			doors.append(node.global_transform)
+	print("   regiões de neve: %d | pontos livres: %d | portas do RPG: %d" % [regions.size(), keep_out.size(), doors.size()])
+
+	var town_specs := 0
+	for i in biome.scatter.size():
+		var spec = biome.scatter[i]
+		var family: MultiMeshInstance3D = scatter.get_node_or_null("Scatter_%d" % i)
+		if not spec.in_town:
+			_check("família %d (só da montanha) fica fora do bairro" % i, family == null)
+			continue
+		town_specs += 1
+		var label := "pinheiros" if spec.kind == "impostor" else "rochas"
+		_check("%s: uma MultiMesh com cópias" % label, family != null and family.multimesh.instance_count > 0)
+		if family == null:
+			continue
+		var transforms: Array[Transform3D] = scatter.get_transforms(i)
+		var count := transforms.size()
+		_check("%s: a MultiMesh tem todas as cópias (%d)" % [label, count], family.multimesh.instance_count == count)
+		var outside_snow := 0
+		var near_walk := 0
+		var in_door := 0
+		var near_keep := 0
+		var body: StaticBody3D = scatter.get_node_or_null("ScatterCollision_%d" % i)
+		for k in count:
+			var origin := transforms[k].origin
+			var spot := Vector2(origin.x, origin.z)
+			# O raio da cópia (o do cilindro de colisão): a rocha inteira fica na neve.
+			var radius := 0.0
+			if body != null and k < body.get_child_count():
+				radius = (body.get_child(k).shape as CylinderShape3D).radius
+			var region_ok := false
+			for region in regions:
+				if region.has_point(spot):
+					region_ok = true
+					# A beira da região é a calçada: o pinheiro fica a 6 m dela.
+					var gap := minf(minf(spot.x - region.position.x, region.end.x - spot.x),
+							minf(spot.y - region.position.y, region.end.y - spot.y))
+					if gap < maxf(spec.walkable_clearance, radius) - 0.01:
+						near_walk += 1
+			if not region_ok:
+				outside_snow += 1
+			for point in keep_out:
+				if spot.distance_to(Vector2(point.x, point.y)) < maxf(point.z, spec.walkable_clearance) - 0.01:
+					near_keep += 1
+			# A faixa da porta: da rua (6 m à frente) até 3 m atrás da passagem do arco.
+			for door in doors:
+				var local := door.affine_inverse() * origin
+				if absf(local.x) < 2.5 and local.z > -3.0 and local.z < 6.0:
+					in_door += 1
+		print("   %s: %d cópias; fora da neve %d, perto da calçada %d, na faixa da porta %d, perto de porta/estação %d"
+				% [label, count, outside_snow, near_walk, in_door, near_keep])
+		_check("%s: todos no miolo de neve (nada na calçada nem na rua)" % label, outside_snow == 0)
+		_check("%s: a %.0f m ou mais da calçada (e a cópia inteira na neve)" % [label, spec.walkable_clearance], near_walk == 0)
+		_check("%s: nada na faixa da porta nem na passagem do arco" % label, in_door == 0)
+		_check("%s: longe das portas e das estações" % label, near_keep == 0)
+		if spec.collision_radius > 0.0:
+			_check("%s: um cilindro de colisão por cópia" % label, body != null and body.get_child_count() == count)
+		if spec.kind == "impostor":
+			var material: ShaderMaterial = family.material_override
+			var tint: Color = material.get_shader_parameter("tint")
+			_check("pinheiros: atlas do pinheiro, tinta do perfil e vento ligado",
+					material.get_shader_parameter("atlas").resource_path == spec.source
+					and tint.is_equal_approx(spec.tint)
+					and float(material.get_shader_parameter("sway_amount")) > 0.0)
+			var heights_ok := true
+			for k in count:
+				var height: float = transforms[k].basis.get_scale().y \
+						* float(load("res://assets/generated/pine_impostor.json").data["tree_height"])
+				heights_ok = heights_ok and height >= spec.height_range.x - 0.01 and height <= spec.height_range.y + 0.01
+			_check("pinheiros: altura entre %.0f e %.0f m" % [spec.height_range.x, spec.height_range.y], heights_ok)
+		else:
+			var material: ShaderMaterial = family.material_override
+			_check("rochas: pedra com neve por cima",
+					material != null and material.shader.resource_path.ends_with("snow_cover.gdshader")
+					and is_equal_approx(float(material.get_shader_parameter("snow_cover")), biome.snow_cover))
+	_check("uma MultiMesh por família do bairro (%d)" % town_specs,
+			scatter.find_children("*", "MultiMeshInstance3D", false, false).size() == town_specs)
+
+	# O sorteio é sempre igual (mesma entrada, mesmo resultado).
+	var scatter_script: GDScript = load("res://worlds/city/biome/biome_scatter.gd")
+	var first: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44)
+	var second: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44)
+	_check("o sorteio é determinístico (%d cópias)" % first.size(), not first.is_empty() and first == second)
+
+	# Os arcos do bioma usam a pedra com neve por cima.
+	var dressed := 0
+	var arches := 0
+	for child: Node in city.get_children():
+		if String(child.name).begins_with("Building_") and child.get("category_id") == "rpg":
+			arches += 1
+			var stone: Node = child.get_node_or_null("Stone")
+			var mesh: MeshInstance3D = stone.get_child(0) if stone != null else null
+			if mesh != null and mesh.material_override is ShaderMaterial \
+					and mesh.material_override.shader.resource_path.ends_with("snow_cover.gdshader"):
+				dressed += 1
+	_check("os arcos do RPG têm neve por cima (%d de %d)" % [dressed, arches], arches > 0 and dressed == arches)
 
 
 static func _inside(point: Vector2, rects: Array[Rect2]) -> bool:

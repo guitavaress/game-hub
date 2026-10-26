@@ -29,6 +29,11 @@ const POSTER_GAP: float = 0.1
 const POSTER_MAX_HEIGHT: float = 2.0
 const POSTER_NAME_GAP: float = 0.3
 
+## A pedra dos pilares e da viga. Vazio = a pedra lisa de sempre (STONE_COLOR).
+## Quem cria a casca pode trocar antes de pôr na cena (ex.: o bioma põe a pedra
+## com neve por cima, Fase 15.7).
+var stone_material: Material = null
+
 var _neon_material: StandardMaterial3D
 var _poster: MeshInstance3D
 var _poster_material: StandardMaterial3D
@@ -41,9 +46,12 @@ var _charge: float = 0.0
 
 func _ready() -> void:
 	add_to_group("city_night")
-	var stone := StandardMaterial3D.new()
-	stone.albedo_color = STONE_COLOR
-	stone.roughness = 0.95
+	var stone: Material = stone_material
+	if stone == null:
+		var plain := StandardMaterial3D.new()
+		plain.albedo_color = STONE_COLOR
+		plain.roughness = 0.95
+		stone = plain
 	var front := size.z / 2.0
 	var middle_z := front - DEPTH / 2.0
 	var outer_width := OPENING.x + 2.0 * PILLAR_WIDTH

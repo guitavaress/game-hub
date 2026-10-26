@@ -49,6 +49,12 @@ func _initialize() -> void:
 		rock.height_range = Vector2(1.5, 4.0) if outside else Vector2(0.6, 1.5)
 		rock.in_town = not outside
 		rock.on_backdrop = outside
+		if not outside:
+			# No bairro (15.7): 2 a 3 pinheiros atrás dos arcos e ~3 rochas por
+			# quarteirão; a rocha tem colisão (o jogador anda no miolo de neve).
+			pine.density = 1.5
+			rock.density = 0.6
+			rock.collision_radius = 0.35
 		biome.scatter.append(rock)
 	var error := DirAccess.make_dir_recursive_absolute("res://profiles/biomes")
 	if error == OK:
