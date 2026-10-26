@@ -15,7 +15,8 @@ extends SceneTree
 ##   praca    no meio da praça, olhando para o bairro
 ##   portico  na rua, antes do pórtico do bairro, olhando para dentro
 ##   cima     do alto (60 m), olhando o bairro inteiro
-## O mirante entra quando existir (Fase 15.9).
+##   mirante  acima do piso do mirante, olhando para a praça e a torre do relógio
+## O mirante entra quando existir um nó no grupo mountain_trail (Fase 15.9).
 ##
 ## Para testar uma amostra de assets sem mexer no jogo, escreva um script que
 ## estende este (extends "res://tools/capturar_pontos.gd"), monte a amostra em
@@ -100,14 +101,18 @@ func _run() -> void:
 
 	_prepare(city, area)
 	var day_night = city._day_night
+	# Calcula uma vez: o aviso de mirante ausente também sai só uma vez.
+	var points: Array[Dictionary] = _points(area)
 	for hour in hours:
-		day_night.hour_offset = hour - day_night.current_hour()
-		day_night.update_now()
-		for point in _points(area):
+		_set_hour(day_night, hour)
+		for point in points:
 			var eye: Vector3 = point["eye"]
 			var target: Vector3 = point["target"]
 			# O jogador vai junto (som, LOD e o que depende de onde ele está).
-			player.teleport_to(Transform3D(Basis.IDENTITY, Vector3(eye.x, 0.1, eye.z)))
+			var feet := Vector3(eye.x, 0.1, eye.z)
+			if point["name"] == "mirante":
+				feet = eye - Vector3.UP * (EYE_HEIGHT - 0.1)
+			player.teleport_to(Transform3D(Basis.IDENTITY, feet))
 			camera.global_transform = Transform3D(Basis.IDENTITY, eye).looking_at(target)
 			twin.global_transform = camera.global_transform
 			for i in SETTLE_FRAMES:
@@ -167,5 +172,19 @@ func _points(area: Dictionary) -> Array[Dictionary]:
 	var above := middle - toward * 50.0
 	points.append({"name": "cima", "eye": Vector3(above.x, 60.0, above.y),
 			"target": Vector3(middle.x, 0.0, middle.y)})
+	for trail: Node in get_nodes_in_group(&"mountain_trail"):
+		if trail.has_method("trail_world_points") and trail.has_method("lookout_world"):
+			var floor_position: Vector3 = trail.call("lookout_world")
+			points.append({"name": "mirante", "eye": floor_position + Vector3.UP * EYE_HEIGHT,
+					"target": Vector3(0.0, EYE_HEIGHT, 0.0)})
+			return points
+	print("Capturas: sem montanha; ponto mirante omitido.")
 	return points
+
+
+## current_hour já inclui o deslocamento: zera antes de calcular a próxima hora.
+func _set_hour(day_night: Node, hour: float) -> void:
+	day_night.set("hour_offset", 0.0)
+	day_night.set("hour_offset", hour - float(day_night.call("current_hour")))
+	day_night.call("update_now")
 
