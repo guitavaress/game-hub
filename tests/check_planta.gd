@@ -82,6 +82,7 @@ func _compare_games(count: int, city: Node, actual: Dictionary, expected: Dictio
 func _check_sectors(count: int, city: Node) -> void:
 	var map: Node = city.get_node("CityMap")
 	var areas: Array = map.get_map_data()["areas"]
+	var bounds: Rect2 = map.get_map_data()["bounds"]
 	var counts: Array[int] = []
 	var ids: Array[String] = []
 	for area: Dictionary in areas:
@@ -101,7 +102,9 @@ func _check_sectors(count: int, city: Node) -> void:
 		var id: String = areas[i]["id"]
 		var blocks: Array = city._district_cells[id]
 		same_blocks = same_blocks and blocks == plan[i].blocks
-		zones_ok = zones_ok and map.zone_rects(id).size() == plan[i].territory.size()
+		# A montanha (15.9) também é zona, mas fica fora da mureta: aqui só a cidade.
+		var town: Array = map.zone_rects(id).filter(func(r: Rect2) -> bool: return bounds.encloses(r))
+		zones_ok = zones_ok and town.size() == plan[i].territory.size()
 		for cell: Vector2i in plan[i].territory:
 			zones_ok = zones_ok and map.zone_rects(id).has(map.block_rect(cell))
 			if blocks.has(cell):

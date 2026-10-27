@@ -106,6 +106,62 @@ func _run() -> void:
 			and Vector2(tower.position.x - lookout.x, tower.position.z - lookout.z).length() <= field.lookout_radius
 			and tower.position.y > lookout.y)
 
+	print("\n== fora da linha praça–obelisco (15.9.2) ==")
+	var script: GDScript = load("res://worlds/city/biome/backdrop_terrain.gd")
+	var off: float = terrain.lookout_angle()
+	print("   o mirante fica a %.1f° da bissetriz da cunha" % rad_to_deg(off))
+	_check("o mirante sai da linha praça–obelisco (≥ %.0f°)" % rad_to_deg(script.LOOKOUT_MIN_ANGLE),
+			absf(off) >= script.LOOKOUT_MIN_ANGLE - 0.0001)
+	# Da praça, ao sul do obelisco (o ponto da captura), a linha até a torre passa longe dele.
+	var eye := Vector2(0.0, 12.0)
+	var to_tower := Vector2(tower.position.x, tower.position.z) - eye
+	var clearance := absf(eye.cross(to_tower.normalized()))
+	print("   da praça, a linha até a torre passa a %.1f m do obelisco" % clearance)
+	_check("a linha da praça até a torre passa a mais de 3 m do obelisco", clearance > 3.0)
+	_check("o bloco da torre tem ~6 m de largura", is_equal_approx((tower.mesh as BoxMesh).size.x, 6.0))
+
+	print("\n== a montanha é zona do bairro (15.9.2) ==")
+	var map = city._map
+	var inside := Rect2(-half, -half, half * 2.0, half * 2.0)
+	var mountain_zones: Array[Rect2] = []
+	for zone: Rect2 in map.zone_rects("rpg"):
+		if not inside.encloses(zone):
+			mountain_zones.append(zone)
+	_check("uma zona fora da mureta, a da montanha", mountain_zones.size() == 1)
+	if mountain_zones.size() == 1:
+		var outside_points := 0
+		var covered_points := 0
+		for p in points:
+			if absf(p.z) > half + 0.01:
+				outside_points += 1
+				if mountain_zones[0].has_point(Vector2(p.x, p.z)):
+					covered_points += 1
+		_check("a zona cobre a trilha toda depois da mureta (%d de %d pontos)" % [covered_points, outside_points],
+				outside_points > 0 and covered_points == outside_points)
+		_check("e não entra na cidade", not mountain_zones[0].intersects(inside))
+	_check("no mirante, zone_id_at diz \"rpg\"", map.zone_id_at(lookout) == "rpg")
+	var weather: Node = city.get_node_or_null("DistrictWeather_rpg")
+	_check("o clima do RPG vale na montanha", weather != null
+			and (weather.areas as Array).any(func(r: Rect2) -> bool: return r.has_point(Vector2(lookout.x, lookout.z))))
+	var atmosphere: Node = city.get_node_or_null("BiomeAtmosphere_rpg")
+	_check("a névoa e o vento valem inteiros no mirante", atmosphere != null
+			and is_equal_approx(atmosphere.wind_weights(lookout).x, 1.0))
+	var cover: Node3D = city.get_node_or_null("BiomeCover_rpg")
+	var cover_outside := 0
+	if cover != null:
+		for shape: Node in cover.get_children():
+			if shape is CollisionShape3D and maxf(absf(shape.position.x), absf(shape.position.z)) > half:
+				cover_outside += 1
+	_check("o chão de neve da cidade não vai para a montanha", cover != null and cover_outside == 0)
+	var scatter_outside := 0
+	for child: Node in city.get_children():
+		if child.has_method("get_transforms"):
+			for index in 8:
+				for item: Transform3D in child.get_transforms(index):
+					if maxf(absf(item.origin.x), absf(item.origin.z)) > half:
+						scatter_outside += 1
+	_check("os pinheiros e as rochas da cidade ficam dentro da mureta", scatter_outside == 0)
+
 	print("\n== sem espaço, sem montanha ==")
 	var sector: DistrictSector = city._sectors["rpg"]
 	var spec: TerrainSpec = Profiles.district("rpg").biome.backdrop

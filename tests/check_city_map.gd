@@ -112,6 +112,9 @@ func _check_zones(city: Node, map: Node, areas: Array, bounds: Rect2, games: Arr
 	var rects_in_zones := true
 	for area: Dictionary in areas:
 		for rect: Rect2 in area["zones"]:
+			# A montanha (15.9) também é zona, mas fica fora da mureta: aqui só a cidade.
+			if not bounds.encloses(rect):
+				continue
 			var cell := _cell_of(rect.get_center())
 			if owner.has(cell):
 				repeated += 1
@@ -135,7 +138,8 @@ func _check_zones(city: Node, map: Node, areas: Array, bounds: Rect2, games: Arr
 		var id: String = area["id"]
 		var cells: Array[Vector2i] = []
 		for rect: Rect2 in area["zones"]:
-			cells.append(_cell_of(rect.get_center()))
+			if bounds.encloses(rect):
+				cells.append(_cell_of(rect.get_center()))
 		contiguous = contiguous and _is_connected(cells)
 		with_border = with_border and cells.any(func(c: Vector2i) -> bool: return CityLayout.ring_of(c) == ring)
 		var gate_ring := CityLayout.ring_of(city._district_cells[id][0])

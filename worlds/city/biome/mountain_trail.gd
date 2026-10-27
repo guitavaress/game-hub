@@ -84,8 +84,10 @@ static func border_cell_nearest(cells: Array[Vector2i], bisector: float) -> Vect
 
 ## Traça a trilha saindo do meio do lado de fora da célula de borda "cell".
 ## Numa célula de canto (dois lados para fora), usa o lado mais virado para a bissetriz.
-static func plan_from_cell(field: Heightfield, cell: Vector2i) -> MountainTrail:
-	var bisector_dir := Heightfield.direction_of(field.wedge_center)
+## "aim" é o ângulo da linha em volta da qual o zigue-zague sobe (NAN = a
+## bissetriz). Fora da bissetriz, o mirante sai da linha praça–obelisco.
+static func plan_from_cell(field: Heightfield, cell: Vector2i, aim: float = NAN) -> MountainTrail:
+	var bisector_dir := Heightfield.direction_of(field.wedge_center if is_nan(aim) else aim)
 	var sides: Array[Vector2] = []
 	var ring := maxi(absi(cell.x), absi(cell.y))
 	if absi(cell.x) == ring:
@@ -102,12 +104,14 @@ static func plan_from_cell(field: Heightfield, cell: Vector2i) -> MountainTrail:
 		from.x = out_dir.x * field.half
 	else:
 		from.y = out_dir.y * field.half
-	return plan(field, from, out_dir)
+	return plan(field, from, out_dir, aim)
 
 
 ## Traça a trilha a partir de "from" (na borda da cidade), saindo na direção
 ## "out_dir". Devolve uma trilha com valid = false se ela não couber na cunha.
-static func plan(field: Heightfield, from: Vector2, out_dir: Vector2) -> MountainTrail:
+static func plan(field: Heightfield, from: Vector2, out_dir: Vector2, aim: float = NAN) -> MountainTrail:
+	if is_nan(aim):
+		aim = field.wedge_center
 	var trail := MountainTrail.new()
 	trail.start = from
 	trail.outward = out_dir.normalized()
@@ -125,8 +129,8 @@ static func plan(field: Heightfield, from: Vector2, out_dir: Vector2) -> Mountai
 	var room := -to_edge + sqrt(maxf(to_edge * to_edge - from.length_squared() + max_radius * max_radius, 0.0))
 	var budget := room * RUN_SHARE - STRAIGHT_METERS - 2.0 * field.lookout_radius
 	var middle := STRAIGHT_METERS + budget / 2.0
-	var leg_half := minf(_room_to_side(field, from, forward, lateral, middle, 1.0, margin),
-			_room_to_side(field, from, forward, lateral, middle, -1.0, margin))
+	var leg_half := minf(_room_to_side(field, aim, from, forward, lateral, middle, 1.0, margin),
+			_room_to_side(field, aim, from, forward, lateral, middle, -1.0, margin))
 	leg_half = clampf(leg_half, 1.0, LEG_HALF_MAX)
 	var needed := field.lookout_height / target_grade + FLAT_METERS
 	var legs_guess := maxi(1, ceili((needed * 1.15 - STRAIGHT_METERS) / (2.0 * leg_half)))
@@ -135,10 +139,10 @@ static func plan(field: Heightfield, from: Vector2, out_dir: Vector2) -> Mountai
 	# Os pontos-chave: o começo, a reta e a ponta de cada trecho do zigue-zague.
 	var keys := PackedVector2Array([from, from + forward * 4.0, from + forward * STRAIGHT_METERS])
 	var along := STRAIGHT_METERS
-	var side := 1.0 if _bisector_lateral(field, from, forward, lateral, along) >= 0.0 else -1.0
+	var side := 1.0 if _bisector_lateral(aim, from, forward, lateral, along) >= 0.0 else -1.0
 	for leg in MAX_LEGS:
 		along += spacing
-		var end := _leg_end(field, from, forward, lateral, along, side, leg_half, margin)
+		var end := _leg_end(field, aim, from, forward, lateral, along, side, leg_half, margin)
 		if end.length() > max_radius or field.edge_distance(end) < margin:
 			# Não cabe mais um trecho: aceita a trilha até aqui, se a rampa
 			# ficar dentro do máximo.
@@ -284,19 +288,19 @@ func _build_buckets(reach: float) -> void:
 
 
 ## A ponta de um trecho: a "along" metros da borda, indo para o lado "side" até
-## "leg_half" da bissetriz ou até a beirada da cunha (menos a margem).
-static func _leg_end(field: Heightfield, from: Vector2, forward: Vector2, lateral: Vector2,
+## "leg_half" da linha "aim" ou até a beirada da cunha (menos a margem).
+static func _leg_end(field: Heightfield, aim: float, from: Vector2, forward: Vector2, lateral: Vector2,
 		along: float, side: float, leg_half: float, margin: float) -> Vector2:
-	var center := _bisector_lateral(field, from, forward, lateral, along)
-	var reach := minf(leg_half, _room_to_side(field, from, forward, lateral, along, side, margin))
+	var center := _bisector_lateral(aim, from, forward, lateral, along)
+	var reach := minf(leg_half, _room_to_side(field, aim, from, forward, lateral, along, side, margin))
 	return from + forward * along + lateral * (center + side * reach)
 
 
-## Quantos metros cabem para o lado "side", a partir da bissetriz, antes da
+## Quantos metros cabem para o lado "side", a partir da linha "aim", antes da
 ## beirada da cunha (menos a margem).
-static func _room_to_side(field: Heightfield, from: Vector2, forward: Vector2, lateral: Vector2,
+static func _room_to_side(field: Heightfield, aim: float, from: Vector2, forward: Vector2, lateral: Vector2,
 		along: float, side: float, margin: float) -> float:
-	var center := _bisector_lateral(field, from, forward, lateral, along)
+	var center := _bisector_lateral(aim, from, forward, lateral, along)
 	var reach := 0.0
 	while reach < LEG_HALF_MAX:
 		var p := from + forward * along + lateral * (center + side * (reach + 1.0))
@@ -306,11 +310,11 @@ static func _room_to_side(field: Heightfield, from: Vector2, forward: Vector2, l
 	return reach
 
 
-## Onde a bissetriz da cunha cruza a linha a "along" metros da borda, medido
-## de lado a partir da reta do começo.
-static func _bisector_lateral(field: Heightfield, from: Vector2, forward: Vector2, lateral: Vector2,
+## Onde a linha "aim" (a bissetriz da cunha, ou um desvio dela) cruza a linha
+## a "along" metros da borda, medido de lado a partir da reta do começo.
+static func _bisector_lateral(aim: float, from: Vector2, forward: Vector2, lateral: Vector2,
 		along: float) -> float:
-	var bisector := Heightfield.direction_of(field.wedge_center)
+	var bisector := Heightfield.direction_of(aim)
 	var facing := bisector.dot(forward)
 	if facing < 0.2:
 		return 0.0

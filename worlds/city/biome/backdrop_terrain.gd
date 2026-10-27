@@ -10,8 +10,10 @@ extends Node3D
 ##
 ## 15.9.1b (greybox): a malha sai cinza (o terrain.gdshader sem texturas), um
 ## bloco cinza marca o lugar da torre no mirante, e a colisão cobre a trilha,
-## o mirante e um pouco de encosta em volta. As paredes da trilha, as zonas e
-## o material de neve e rocha vêm nas próximas subetapas.
+## o mirante e um pouco de encosta em volta.
+## 15.9.2: o mirante sai da linha praça–obelisco (_plan_off_axis), e a
+## montanha vira zona do bairro (get_zone_rects). As paredes da trilha e o
+## material de neve e rocha vêm na 15.9.3.
 ##
 ## Uso: setup(); se der true, chamar build_next() até devolver false (um pedaço
 ## por chamada, para a montagem não travar o quadro).
@@ -33,9 +35,14 @@ const OPENING_DEPTH: float = 2.0
 ## para aqui, abaixo do chão, em vez de cair para sempre (os limites da
 ## trilha vêm na 15.9.3).
 const SAFETY_FLOOR_Y: float = -1.0
-## O bloco cinza no lugar da torre (a forma de verdade vem na 15.10): a
-## largura do fuste da torre do RPG e uma altura de referência.
-const TOWER_SIZE: Vector3 = Vector3(2.6, 16.0, 2.6)
+## O bloco cinza no lugar da torre (a forma de verdade, com néon, vem na
+## 15.10): a torre mais grossa decidida pelo dono (~6 m) e uma altura de referência.
+const TOWER_SIZE: Vector3 = Vector3(6.0, 16.0, 6.0)
+## Da praça, o mirante (e a torre) fica pelo menos este ângulo fora da
+## bissetriz da cunha, para o obelisco do relógio não tapar a torre.
+const LOOKOUT_MIN_ANGLE: float = deg_to_rad(18.0)
+## Os desvios tentados para a linha da subida, do menor ao maior.
+const AIM_SHIFTS: Array[float] = [deg_to_rad(12.0), deg_to_rad(18.0), deg_to_rad(24.0), deg_to_rad(30.0)]
 ## A torre fica atrás do meio do mirante (a frente fica livre para a vista).
 const TOWER_BACK_SHARE: float = 0.5
 const GREYBOX_COLOR: Color = Color(0.5, 0.5, 0.52)
@@ -63,8 +70,8 @@ func setup(spec: TerrainSpec, sector: DistrictSector, half: float) -> bool:
 	var border := sector.border_cells()
 	if not field.fits() or border.is_empty():
 		return false
-	trail = MountainTrail.plan_from_cell(field, MountainTrail.border_cell_nearest(border, field.wedge_center))
-	if not trail.valid:
+	trail = _plan_off_axis(border)
+	if trail == null:
 		return false
 	field.set_trail(trail)
 	_coords = TerrainMesh.chunk_coords(field, CELL_METERS)
@@ -123,6 +130,54 @@ func get_openings() -> Array[Rect2]:
 ## A altura do chão (montanha, rampa e trilha) num ponto do mundo.
 func height_at(point: Vector2) -> float:
 	return field.surface_at(point)
+
+
+## As zonas da montanha no chão (para o clima, a névoa e o vento do bairro):
+## a trilha, o mirante e a encosta pisável em volta, só do lado de fora da
+## mureta (dentro dela, as zonas são os quarteirões e as vagas).
+func get_zone_rects() -> Array[Rect2]:
+	var rect := trail.bounds().grow(COLLISION_MARGIN)
+	var from := rect.position
+	var to := rect.end
+	if trail.outward.x > 0.5:
+		from.x = maxf(from.x, field.half)
+	elif trail.outward.x < -0.5:
+		to.x = minf(to.x, -field.half)
+	elif trail.outward.y > 0.5:
+		from.y = maxf(from.y, field.half)
+	else:
+		to.y = minf(to.y, -field.half)
+	return [Rect2(from, to - from)]
+
+
+## O ângulo do mirante visto do centro da praça, medido a partir da bissetriz
+## da cunha (com sinal).
+func lookout_angle() -> float:
+	return wrapf(Heightfield.angle_of(trail.lookout_center) - field.wedge_center, -PI, PI)
+
+
+## A trilha com o mirante fora da linha praça–obelisco: o zigue-zague sobe em
+## volta de uma linha desviada da bissetriz, até o mirante ficar a pelo menos
+## LOOKOUT_MIN_ANGLE dela (da praça, o obelisco não tapa a torre). Tenta
+## primeiro o lado para onde a trilha já tende; sem lugar, fica a trilha na
+## bissetriz. null se nem ela couber.
+func _plan_off_axis(border: Array[Vector2i]) -> MountainTrail:
+	var center := field.wedge_center
+	var straight := MountainTrail.plan_from_cell(field, MountainTrail.border_cell_nearest(border, center))
+	if not straight.valid:
+		return null
+	trail = straight
+	var natural := lookout_angle()
+	if absf(natural) >= LOOKOUT_MIN_ANGLE:
+		return straight
+	var first_side := 1.0 if natural >= 0.0 else -1.0
+	for side: float in [first_side, -first_side]:
+		for shift: float in AIM_SHIFTS:
+			var aim := center + side * shift
+			trail = MountainTrail.plan_from_cell(field, MountainTrail.border_cell_nearest(border, aim), aim)
+			if trail.valid and absf(lookout_angle()) >= LOOKOUT_MIN_ANGLE:
+				return trail
+	return straight
 
 
 func _add_collision() -> void:

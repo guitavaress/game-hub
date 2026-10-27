@@ -133,8 +133,10 @@ func _draw() -> void:
 		# Primeiro as vagas (a fatia inteira aparece, da praça até a borda).
 		var vacant_color := color
 		vacant_color.a = VACANT_ALPHA
+		var bounds: Rect2 = _data["bounds"]
 		for rect: Rect2 in area.get("zones", []):
-			if not (area["rects"] as Array).has(rect):
+			# Só o que fica dentro da mureta (a montanha da 15.9 fica de fora).
+			if not (area["rects"] as Array).has(rect) and bounds.encloses(rect):
 				draw_rect(_pixel_rect(rect.grow(-gap / 2.0)), vacant_color)
 		color.a = AREA_ALPHA
 		var mean := Vector2.ZERO

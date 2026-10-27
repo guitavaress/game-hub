@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26 (a revisão do Astra roda na trilha B, janela 3). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próxima da A: 15.9.2 (Opus). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26; a revisão do Astra pediu cinco correções (15.7.1). 15.9.2 feita em 2026-10-26. Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próximas da A: 15.7.1 e 15.9.3 (Opus). Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -351,7 +351,14 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - **Achado:** sem tela (testes), a `MultiMesh` devolve as cópias zeradas; o `BiomeScatter` guarda as suas (`get_transforms`). A conferência das faixas (`LaneMarkings`) no `check_biome` tem o mesmo problema e passa sem conferir nada; fica para a 15.13.
     - **Teste:** `check_biome` ganhou a seção 15.7 (com 200 falsos: 62 pinheiros e 90 rochas, 2 a 3 e 3 a 4 por zona; nada fora da neve, na faixa da porta ou perto de porta/estação; pinheiros a 6 m da calçada; colisão por cópia; sorteio igual; arcos com neve). `check_trees` sem mudança.
     - **Capturas** (200 falsos, Alta, 13 h e 22 h, pasta temporária): pinheiro quase preto, rochas cinza com o topo branco no tom da neve do chão, topo dos arcos branco, à noite nada brilha além do néon. A tinta tem de ir como `Color` (com `Vector3` a Godot não converte de sRGB e o pinheiro ficava verde-claro). De cima (60 m), o impostor achata: limite conhecido do impostor.
-    - **Pendente:** a revisão do Astra (`/codex:adversarial-review --base 3db6186`) e a aprovação visual do dono.
+    - **Revisão do Astra** (trilha B, worker do Orca, só leitura, 2026-10-26): cinco achados "deve corrigir", que viram a **15.7.1** (Opus · high):
+      1. o raio das rochas sai da metade da AABB, mas um vértice vai além dele (0,140 contra 0,126 m na base): a pedra invade a calçada até ~15 cm, e o cilindro fica menor que o desenho;
+      2. os 6 m valem para o tronco, não para a copa (raio de ~4,5 m num pinheiro de 14 m); e a estação vira um ponto, sem a área da escada;
+      3. `snow_cover.gdshader`: com escala não uniforme na MultiMesh, a normal sai errada (precisa da inversa transposta de `mat3(MODEL_MATRIX)`);
+      4. a colisão da rocha vai de 0 à altura original, mas o desenho é enterrado 8%, então sobram ~12 cm de colisão no ar;
+      5. o `check_biome` testa `max(folga, raio)` em vez de `folga + raio`, olha só o centro na faixa da porta e conta os cilindros sem conferir onde estão.
+      - Sugestão, só depois de medir: 18 leituras de textura por pixel no `snow_cover`.
+    - **Pendente:** a 15.7.1 e a aprovação visual do dono.
   - Faz:
     - o `TreeImpostor` e o shader passam a aceitar outro atlas e a escala da instância. Com escala 1, as árvores de hoje ficam iguais;
     - **pinheiro ao vento:** um balanço leve no vértice do impostor, mais forte na ponta e com fase por instância. Fica desligado nas árvores de hoje;
@@ -382,7 +389,13 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
         - **mirante na beirada:** o banco, a abertura da cerca e a captura "mirante" ficam na beirada virada para a praça, e a plataforma de madeira avança além do disco (15.10);
         - **torre grossa, com néon e fora da linha:** a torre fica mais larga (~6 m) e ganha néon no topo (15.10), e o mirante sai da linha praça–obelisco, para o obelisco não tapar a torre (o desvio do traçado entra na 15.9.2);
         - ficam como no plano: pilares, placa e lampiões na entrada (15.9.3); o céu de fotos da noite (15.13).
-    - **15.9.2** (Opus · high; revisão Astra · high, `adversarial`): `BackdropTerrain`, vão e zonas;
+    - [x] **15.9.2** (Opus · high; revisão Astra · high, `adversarial`): `BackdropTerrain`, vão e zonas;
+      - **Feita em 2026-10-26** (o `BackdropTerrain` e o vão já tinham entrado na 15.9.1b). Bateria 84/84.
+        - **Mirante fora da linha praça–obelisco:** o `MountainTrail.plan_from_cell`/`plan` ganham `aim` (a linha em volta da qual o zigue-zague sobe; NAN = a bissetriz, como antes). O `BackdropTerrain._plan_off_axis` tenta desvios de 12° a 30°, primeiro para o lado aonde a trilha já tende, até o mirante ficar a ≥ 18° da bissetriz (`LOOKOUT_MIN_ANGLE`); sem lugar, fica a trilha na bissetriz. Medido: 18,5° a 20,8° com 7, 20, 60, 200, 400 e 600 falsos. Com 200 falsos, o mirante foi para (102; −279), e a linha da praça (0; 12) até a torre passa a 4 m do obelisco. O bloco da torre ficou com 6 m de largura.
+        - **Zonas:** `BackdropTerrain.get_zone_rects()` (a trilha, o mirante e 12 m de encosta, só do lado de fora da mureta) entra no `CityMap` por `add_zone_rect`. O `_build_weather` saiu do `_build_districts` e passou para depois da montanha: neve, névoa e vento valem na trilha. O chão de neve da cidade e o `BiomeScatter` usam só as zonas dentro da mureta, e o mapa grande só desenha essas.
+        - **Testes:** o `check_mountain_trail` ganhou o desvio (≥ 18°, a linha a mais de 3 m do obelisco) e as zonas (cobre a trilha toda depois da mureta, não entra na cidade, clima e atmosfera valem no mirante, nada da cidade fora da mureta); o `check_city_map`, o `check_planta` e o `check_biome` contam só as zonas da cidade.
+        - **Capturas** (200 falsos, Alta, pasta temporária): da beirada do mirante, a vista mostra o bairro, a cidade e o vão. **Da praça, o bloco cinza ainda não se destaca:** o obelisco não tapa mais, mas a 300 m o bloco some atrás da árvore do canteiro e dos nomes dos amigos. A torre de verdade, mais alta e com néon, vem na 15.10, e a revisão visual confere na 15.13.
+        - **Para a 15.9.3:** com 600 falsos a montanha ainda cabe (half 252); o teste "com 600 falsos, a montanha some" precisa de uma cidade maior ou de outro critério.
     - **15.9.3** (Opus · high; revisão Astra · high): percurso simulado, limites, sinalização e material.
   - Marcar a 15.9 só quando todos os critérios abaixo passarem.
   - Faz:

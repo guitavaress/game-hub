@@ -63,7 +63,11 @@ func _run() -> void:
 	var half: float = (city.get_node("CityMap").get_map_data()["bounds"] as Rect2).size.x / 2.0
 	# (BiomeBuilder e BiomeAtmosphere usam autoloads: no teste vão por load(), sem o nome da classe.)
 	var builder: GDScript = load("res://worlds/city/biome/biome_builder.gd")
-	var rects: Array[Rect2] = builder.covered_rects(city.get_node("CityMap").zone_rects("rpg"), half, true)
+	# Só as zonas dentro da mureta: a da montanha (15.9) não ganha chão de neve.
+	var bounds := Rect2(-half, -half, half * 2.0, half * 2.0)
+	var town: Array[Rect2] = []
+	town.assign(city.get_node("CityMap").zone_rects("rpg").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
+	var rects: Array[Rect2] = builder.covered_rects(town, half, true)
 	var shapes := 0
 	if cover != null:
 		for child: Node in cover.get_children():
@@ -154,7 +158,11 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 	if scatter == null:
 		return
 
-	var regions: Array[Rect2] = builder.scatter_regions(city.get_node("CityMap").zone_rects("rpg"))
+	# Só as zonas dentro da mureta (a da montanha, 15.9, não ganha os enfeites da cidade).
+	var bounds: Rect2 = city.get_node("CityMap").get_map_data()["bounds"]
+	var town: Array[Rect2] = []
+	town.assign(city.get_node("CityMap").zone_rects("rpg").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
+	var regions: Array[Rect2] = builder.scatter_regions(town)
 	var keep_out: Array[Vector3] = builder.keep_out_points(city)
 	# As portas do RPG, com a frente (para a rua), para conferir a faixa da porta.
 	var doors: Array[Transform3D] = []

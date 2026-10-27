@@ -170,6 +170,10 @@ func _ready() -> void:
 	# A montanha vem antes da mureta: a trilha abre um vão nela.
 	var openings := await _build_backdrop(districts, half)
 	_build_ground_and_walls(half, openings)
+	# O clima vem com todos os bairros e a montanha prontos: ele cobre as zonas
+	# do bairro (quarteirões, vagas e a montanha).
+	for district in districts:
+		_build_weather(district["id"])
 	await _keep_frame_light()
 	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
 	var covered := _build_biome_covers(districts, half, player)
@@ -410,10 +414,6 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
 		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
 		_build_district_sign(sector.blocks, district["id"])
-	# O clima vem com todos os bairros prontos: ele cobre as zonas do bairro
-	# (na Fase 15.9, a montanha também vira zona antes dele).
-	for district in districts:
-		_build_weather(district["id"])
 	return cells
 
 
@@ -443,15 +443,22 @@ func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> v
 func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
 	var covered: Array[Rect2] = []
 	var has_atmosphere := false
+	var inside := Rect2(-half, -half, half * 2.0, half * 2.0)
 	for district in districts:
 		var biome := BiomeBuilder.biome_of(district["id"])
 		if biome == null:
 			continue
-		var rects := BiomeBuilder.covered_rects(_map.zone_rects(district["id"]), half, biome.cover_streets)
+		# O chão e os enfeites só dentro da mureta; a montanha tem os dela.
+		var town: Array[Rect2] = []
+		var mountain: Array[Rect2] = []
+		for zone in _map.zone_rects(district["id"]):
+			(town if inside.encloses(zone) else mountain).append(zone)
+		var rects := BiomeBuilder.covered_rects(town, half, biome.cover_streets)
 		BiomeBuilder.add_cover(self, district["id"], biome, rects)
-		BiomeBuilder.add_scatter(self, district["id"], biome, _map.zone_rects(district["id"]))
+		BiomeBuilder.add_scatter(self, district["id"], biome, town)
 		if not has_atmosphere:
-			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects, player, _day_night)
+			# A névoa e o vento valem também na trilha e no mirante.
+			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
 			has_atmosphere = true
 		if biome.cover_streets:
 			covered.append_array(rects)
@@ -459,7 +466,8 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 
 
 ## A montanha atrás do primeiro bairro com terreno de fundo (o da fatia no
-## norte), um pedaço da malha por vez. Devolve os vãos que a trilha abre na
+## norte), um pedaço da malha por vez. A montanha vira zona do bairro (o
+## clima, a névoa e o vento valem nela). Devolve os vãos que a trilha abre na
 ## mureta (nenhum se não houver montanha ou ela não couber).
 func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 	for district in districts:
@@ -471,6 +479,8 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 			return []
 		while terrain.build_next():
 			await _keep_frame_light()
+		for zone in terrain.get_zone_rects():
+			_map.add_zone_rect(district["id"], zone)
 		return terrain.get_openings()
 	return []
 

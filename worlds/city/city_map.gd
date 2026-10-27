@@ -14,6 +14,7 @@ extends Node
 ##    "areas":  [{"id", "name", "color", "neon", "games": int,
 ##                "rects": Array[Rect2],    quarteirões (com meia rua em volta)
 ##                "zones": Array[Rect2],    o território todo: quarteirões e vagas (Fase 15.4)
+##                                          e a montanha atrás da mureta (15.9, fora de "bounds")
 ##                "gate": Vector2}],        pórtico (Vector2.INF = sem)
 ##    "gap": float,                         largura das ruas (quem desenha encolhe os retângulos)
 ##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   marcos: "metro" (estações), "home" (porta de casa), "marco" (torre do relógio)
@@ -58,7 +59,12 @@ func add_block(id: String, cell: Vector2i, games: int) -> void:
 ## na Fase 15.9, também a montanha). O clima e a névoa do bairro valem nas
 ## zonas. O título do bairro não: ele continua só nos quarteirões (area_id_at).
 func add_zone(id: String, cell: Vector2i) -> void:
-	(_area(id)["zones"] as Array[Rect2]).append(block_rect(cell))
+	add_zone_rect(id, block_rect(cell))
+
+
+## Uma zona com forma livre (a montanha da 15.9, atrás da mureta).
+func add_zone_rect(id: String, rect: Rect2) -> void:
+	(_area(id)["zones"] as Array[Rect2]).append(rect)
 
 
 ## As zonas do bairro (vazio = o bairro não existe).
