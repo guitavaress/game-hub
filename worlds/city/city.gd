@@ -467,8 +467,9 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 
 ## A montanha atrás do primeiro bairro com terreno de fundo (o da fatia no
 ## norte), um pedaço da malha por vez. A montanha vira zona do bairro (o
-## clima, a névoa e o vento valem nela). Devolve os vãos que a trilha abre na
-## mureta (nenhum se não houver montanha ou ela não couber).
+## clima, a névoa e o vento valem nela) e a entrada da trilha, um marco no
+## mapa. Devolve os vãos que a trilha abre na mureta (nenhum se não houver
+## montanha ou ela não couber).
 func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 	for district in districts:
 		var biome := BiomeBuilder.biome_of(district["id"])
@@ -481,6 +482,8 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 			await _keep_frame_light()
 		for zone in terrain.get_zone_rects():
 			_map.add_zone_rect(district["id"], zone)
+		_map.add_landmark("trilha", TrailDressing.SIGN_TEXT, terrain.trail.start,
+				GameCategories.get_neon_color(district["id"]))
 		return terrain.get_openings()
 	return []
 

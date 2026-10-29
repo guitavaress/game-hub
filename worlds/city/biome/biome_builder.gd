@@ -118,6 +118,8 @@ static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, 
 ## A montanha de fundo do bairro (15.9), na fatia dele, atrás da mureta. Só
 ## faz as contas: quem chama monta os pedaços com build_next(), um por vez.
 ## null se o bioma não tem terreno ou se a montanha não cabe.
+## 15.9.3: a montanha ganha a neve e a rocha do bioma, e os pilares da
+## entrada, a pedra dos arcos.
 static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, sector: DistrictSector,
 		half: float) -> BackdropTerrain:
 	if biome.backdrop == null:
@@ -128,8 +130,39 @@ static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, 
 	if not terrain.setup(biome.backdrop, sector, half):
 		terrain.free()
 		return null
+	terrain.use_material(terrain_material(biome))
+	if not biome.path_folder.is_empty():
+		terrain.stone_material = snow_cover_material(biome, biome.path_folder, biome.path_tint, ARCH_METERS)
 	parent.add_child(terrain)
 	return terrain
+
+
+## O material da montanha (terrain.gdshader): a neve do chão do bioma, na
+## mesma cor e escala da neve dos quarteirões, e a rocha do terreno. Sem as
+## pastas, fica só a cor (o greybox).
+static func terrain_material(biome: BiomeSpec) -> ShaderMaterial:
+	var terrain := biome.backdrop
+	var key := "terrain|%s|%s|%s|%s|%.2f|%.2f" % [biome.id, terrain.snow_folder, terrain.rock_folder,
+			biome.ground_tint.to_html(), biome.ground_meters, terrain.snow_slope]
+	if _materials.has(key):
+		return _materials[key]
+	var material := ShaderMaterial.new()
+	material.shader = BackdropTerrain.TERRAIN_SHADER
+	if not terrain.snow_folder.is_empty():
+		var snow := CityDecor.pbr_textures(terrain.snow_folder)
+		material.set_shader_parameter("snow_albedo", snow["albedo"])
+		material.set_shader_parameter("snow_normal", snow["normal"])
+		material.set_shader_parameter("snow_roughness", snow["roughness"])
+		material.set_shader_parameter("snow_tint", snow_tint(biome.ground_tint))  # Color: a Godot converte de sRGB
+		material.set_shader_parameter("snow_meters", biome.ground_meters)
+	if not terrain.rock_folder.is_empty():
+		var rock := CityDecor.pbr_textures(terrain.rock_folder)
+		material.set_shader_parameter("rock_albedo", rock["albedo"])
+		material.set_shader_parameter("rock_normal", rock["normal"])
+		material.set_shader_parameter("rock_roughness", rock["roughness"])
+	material.set_shader_parameter("snow_slope", terrain.snow_slope)
+	_materials[key] = material
+	return material
 
 
 ## Pinheiros e rochas do bairro (15.7), no miolo de neve de cada zona, longe

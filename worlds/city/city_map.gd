@@ -17,7 +17,8 @@ extends Node
 ##                                          e a montanha atrás da mureta (15.9, fora de "bounds")
 ##                "gate": Vector2}],        pórtico (Vector2.INF = sem)
 ##    "gap": float,                         largura das ruas (quem desenha encolhe os retângulos)
-##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   marcos: "metro" (estações), "home" (porta de casa), "marco" (torre do relógio)
+##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   marcos: "metro" (estações), "home" (porta de casa), "marco" (torre do relógio),
+##                                                                 "trilha" (a entrada da trilha da montanha, 15.9.3)
 
 const PLAZA_NAME: String = "Praça"
 
@@ -108,7 +109,8 @@ func set_gate(id: String, position: Vector2) -> void:
 
 
 ## Um ponto de interesse ("metro" para estação, "home" para a porta de casa,
-## "marco" para um ponto alto como a torre do relógio).
+## "marco" para um ponto alto como a torre do relógio, "trilha" para a
+## entrada da trilha da montanha).
 func add_landmark(kind: String, landmark_name: String, position: Vector2, color: Color) -> void:
 	_landmarks.append({"kind": kind, "name": landmark_name, "pos": position, "color": color})
 

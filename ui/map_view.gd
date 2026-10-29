@@ -163,6 +163,13 @@ func _draw() -> void:
 			draw_circle(at, 6.0, Color.BLACK)
 			draw_circle(at, 4.5, landmark["color"])
 			continue
+		if landmark["kind"] == "trilha":
+			# A entrada da trilha da montanha (na mureta): um triângulo, como um pico.
+			var peak := PackedVector2Array([at + Vector2(0, -7), at + Vector2(7, 5), at + Vector2(-7, 5)])
+			draw_colored_polygon(peak, landmark["color"])
+			peak.append(peak[0])
+			draw_polyline(peak, Color.BLACK, 1.5)
+			continue
 		draw_circle(at, 5.0, Color.BLACK)
 		draw_circle(at, 3.5, landmark["color"])
 

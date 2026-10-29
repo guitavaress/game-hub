@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26; a revisão do Astra pediu cinco correções (15.7.1). 15.9.2 feita em 2026-10-26. Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próximas da A: 15.7.1 e 15.9.3 (Opus). Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26; a revisão do Astra pediu cinco correções (15.7.1). 15.9 completa (15.9.2 em 2026-10-26, 15.9.3 em 2026-10-29). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próximas da A: 15.7.1 e 15.10 (Opus); a 15.9.3 espera a revisão do Astra. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -358,6 +358,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
       4. a colisão da rocha vai de 0 à altura original, mas o desenho é enterrado 8%, então sobram ~12 cm de colisão no ar;
       5. o `check_biome` testa `max(folga, raio)` em vez de `folga + raio`, olha só o centro na faixa da porta e conta os cilindros sem conferir onde estão.
       - Sugestão, só depois de medir: 18 leituras de textura por pixel no `snow_cover`.
+    - **Decidido pelo dono (2026-10-29), para o achado 2:** os 6 m contam **do tronco** (como hoje; os galhos podem chegar a ~2 m da calçada). Na 15.7.1 corrige-se só a estação, que passa a ser a área da escada.
     - **Pendente:** a 15.7.1 e a aprovação visual do dono.
   - Faz:
     - o `TreeImpostor` e o shader passam a aceitar outro atlas e a escala da instância. Com escala 1, as árvores de hoje ficam iguais;
@@ -378,7 +379,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - não há quadrados mascarados;
     - o tempo de geração é impresso.
   - Commit: `Fase 15.8: núcleo do terreno (alturas, malha, trilha)`
-- [ ] **15.9 A montanha atrás do bairro** (Opus · high; revisão Astra · high) [trilha A, janela 3; a 15.9.1a na trilha B, janela 2] · skill `level-design`
+- [x] **15.9 A montanha atrás do bairro** (Opus · high; revisão Astra · high) [trilha A, janela 3; a 15.9.1a na trilha B, janela 2] · skill `level-design`
   - Pré-requisitos: 15.1–15.8 e integração da janela 2. A execução é dividida em sessões e commits menores:
     - **15.9.1a** (Astra · high; revisão Opus · high) [trilha B, janela 2]: prova isolada do `HeightMapShape3D` no Jolt (tamanho, escala e centro). Só arquivos novos: `tests/check_heightmap_jolt.gd` e, se precisar, um ajudante em `worlds/city/biome/`. Se falhar, a mesma prova cobre o plano B (fita de `ConcavePolygonShape3D`) e o resultado volta à A antes da 15.9.2. Commit: `Fase 15.9.1a: prova da colisão do terreno no Jolt`;
       - **Feita em 2026-10-26** pela trilha B (`1da7fd3`, bateria 80/80), revisada pelo Opus e juntada. **O `HeightMapShape3D` foi reprovado:** acerta tamanho, escala, centro e pouso, mas usa a diagonal oposta à da `TerrainMesh` e colide em células descartadas (erro máximo de 0,78 / 0,70 / 0,49 m nas grades de 4 / 3 / 2 m). **Vale o plano B:** `TerrainCollision.build(field, area, cell_meters)` monta uma `ConcavePolygonShape3D` com os triângulos desenhados (erro < 0,1 mm, cápsula estável, norte e leste), em coordenadas do mundo (corpo na origem, escala 1); `aligned_rect` dá o limite efetivo. Na 15.9.2: `footstep = "snow"` no corpo e, se pesar, reaproveitar as malhas já montadas em vez de remontá-las.
@@ -396,7 +397,15 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
         - **Testes:** o `check_mountain_trail` ganhou o desvio (≥ 18°, a linha a mais de 3 m do obelisco) e as zonas (cobre a trilha toda depois da mureta, não entra na cidade, clima e atmosfera valem no mirante, nada da cidade fora da mureta); o `check_city_map`, o `check_planta` e o `check_biome` contam só as zonas da cidade.
         - **Capturas** (200 falsos, Alta, pasta temporária): da beirada do mirante, a vista mostra o bairro, a cidade e o vão. **Da praça, o bloco cinza ainda não se destaca:** o obelisco não tapa mais, mas a 300 m o bloco some atrás da árvore do canteiro e dos nomes dos amigos. A torre de verdade, mais alta e com néon, vem na 15.10, e a revisão visual confere na 15.13.
         - **Para a 15.9.3:** com 600 falsos a montanha ainda cabe (half 252); o teste "com 600 falsos, a montanha some" precisa de uma cidade maior ou de outro critério.
-    - **15.9.3** (Opus · high; revisão Astra · high): percurso simulado, limites, sinalização e material.
+    - [x] **15.9.3** (Opus · high; revisão Astra · high): percurso simulado, limites, sinalização e material.
+      - **Feita em 2026-10-29.** Bateria (Git Bash, Windows, Godot 4.7.2): **85/85**, `RESULTADO GERAL: TUDO OK`; log `bateria-15-9-3.log` na pasta temporária.
+        - **`TrailDressing`** (`biome/trail_dressing.gd`, novo, filho do `BackdropTerrain`): paredes invisíveis a 2 m do meio da trilha (a folga do vão da mureta), 3 m acima do chão, num `ConcavePolygonShape3D` só, dos dois lados e num anel em volta do mirante (raio + 0,5 m), aberto só onde a trilha chega; pontos que dobram na curva (a menos de 1,7 m da trilha) saem da linha. Estacas a cada 3 m com uma corda, na linha das paredes (duas MultiMesh). Lampiões baixos a cada 15 m, alternando os lados (haste e vidro em MultiMesh e uma `OmniLight3D` sem sombra, que some depois de 60–80 m), acesos pelo `city_night` com a regra do `StreetLight`. Na entrada, logo depois da mureta, dois pilares de pedra (a pedra com neve dos arcos, com colisão), uma viga e a placa "Trilha do Mirante" dos dois lados. As contas (`wall_lines`, `stake_lines`, `lamp_spots`) são estáticas e puras.
+        - **Material:** `BiomeBuilder.terrain_material(biome)` liga no `terrain.gdshader` a neve do chão do bioma (mesma cor e escala dos quarteirões) e a rocha `Rock058`; o `BackdropTerrain` ganhou `use_material` e `stone_material`. A rede de segurança em y −1 ficou.
+        - **Mapa:** o marco novo `"trilha"` (um triângulo, na cor do RPG) na entrada da trilha (`CityMap`, `map_view`).
+        - **600 falsos:** a montanha ainda cabe (borda a 252 m); com 800, a trilha já não cabe e, com 1000 (borda a 328 m), nem a montanha. O critério virou o `check_mountain_fallback` (novo): com 1000 falsos a cidade monta inteira em ~2 s, sem montanha, sem vão (4 barreiras), sem zona fora da mureta, sem marco da trilha e com o clima do RPG.
+        - **Testes:** o `check_mountain_trail` ganhou os limites (a cápsula do jogador empurrada de lado para na parede em 46 de 46 pontos, nenhuma parede ou pilar nos 60 pontos do caminho, o mirante fechado em 10 de 10 direções e aberto na entrada, 177 estacas em 3 cercas, na linha das paredes), os lampiões (19 em 281 m, no máximo 16 m um do outro, acesos à noite e apagados de dia), a placa virada para a cidade, o marco no mapa, a neve e a rocha, e a **subida simulada**: com física de verdade, correndo e mirando a trilha 3 m à frente, o jogador sobe da rua até 10 m em ~11 s, sem passar de 0,76 m do meio da trilha.
+        - **Capturas** (200 falsos, Alta, 13 h e 22 h, pasta temporária): da rua, os pilares e a placa marcam o vão, e a cerca sobe em zigue-zague até o alto; à noite, os lampiões desenham a trilha. Na trilha, a neve batida quase não se distingue da neve em volta (a cerca e os lampiões guiam); fica para a 15.13.
+        - **Fica para depois:** a conferência nas grades de 4 m e 2 m vai para a 15.14 (hoje só existe a de 3 m); pinheiros e rochas na encosta (as famílias `on_backdrop` do `montanha.tres`) não estavam no escopo da 15.9 e ficam para o dono decidir (15.13 ou Fase 16).
   - Marcar a 15.9 só quando todos os critérios abaixo passarem.
   - Faz:
     - **primeiro**, um teste mínimo do `HeightMapShape3D` no Jolt (tamanho, escala e centro), que é a 15.9.1a; se falhar, vai o plano B;
@@ -450,7 +459,7 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
   - Commit: só os das 15.13.x.
 - [ ] **15.14 Qualidade** (Sonnet · medium; revisão Sol · medium) [trilha A, janela 4]
   - Faz: `GraphicsQuality.terrain_cell_meters` e `scatter_amount`; o terreno se refaz ao trocar a qualidade; sem sombra do terreno na Leve.
-  - Teste: `check_graphics_quality`.
+  - Teste: `check_graphics_quality`; e o `check_mountain_trail` passa a comparar a colisão com os triângulos desenhados nas grades de 4, 3 e 2 m (critério da 15.9 que esperava esta etapa).
   - Commit: `Fase 15.14: terreno e enfeites por qualidade`
 - [ ] **15.15 Medida e documentação** [janelas 3 e 4]
   - Divisão:

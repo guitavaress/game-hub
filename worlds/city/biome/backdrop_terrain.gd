@@ -12,8 +12,10 @@ extends Node3D
 ## bloco cinza marca o lugar da torre no mirante, e a colisão cobre a trilha,
 ## o mirante e um pouco de encosta em volta.
 ## 15.9.2: o mirante sai da linha praça–obelisco (_plan_off_axis), e a
-## montanha vira zona do bairro (get_zone_rects). As paredes da trilha e o
-## material de neve e rocha vêm na 15.9.3.
+## montanha vira zona do bairro (get_zone_rects).
+## 15.9.3: os limites e a sinalização da trilha (TrailDressing: paredes,
+## estacas, lampiões, pilares e placa) e o material de neve e rocha (quem
+## monta passa com use_material; sem ele, fica o cinza do greybox).
 ##
 ## Uso: setup(); se der true, chamar build_next() até devolver false (um pedaço
 ## por chamada, para a montagem não travar o quadro).
@@ -31,9 +33,8 @@ const COLLISION_MARGIN: float = 12.0
 const OPENING_SIDE_GAP: float = 0.5
 ## Profundidade do retângulo do vão (atravessa a mureta, que tem 0,6 m).
 const OPENING_DEPTH: float = 2.0
-## Rede de segurança do greybox: quem cair da encosta para fora da colisão
-## para aqui, abaixo do chão, em vez de cair para sempre (os limites da
-## trilha vêm na 15.9.3).
+## Rede de segurança: as paredes da trilha seguram o jogador, mas, se algo
+## escapar, ele para aqui, abaixo do chão, em vez de cair para sempre.
 const SAFETY_FLOOR_Y: float = -1.0
 ## O bloco cinza no lugar da torre (a forma de verdade, com néon, vem na
 ## 15.10): a torre mais grossa decidida pelo dono (~6 m) e uma altura de referência.
@@ -52,6 +53,8 @@ var field: Heightfield
 var trail: MountainTrail
 ## A marca dos passos na colisão (ex.: "snow"). Vazio = sem marca.
 var footstep: String = ""
+## A pedra dos pilares da entrada (null = cinza).
+var stone_material: Material = null
 
 var _coords: Array[Vector2i] = []
 var _next: int = 0
@@ -82,8 +85,13 @@ func setup(spec: TerrainSpec, sector: DistrictSector, half: float) -> bool:
 	return true
 
 
+## O material da montanha (neve e rocha). Chamar antes do primeiro build_next().
+func use_material(material: ShaderMaterial) -> void:
+	_material = material
+
+
 ## Monta o próximo pedaço da malha. Falso quando acabou (aí entram a colisão,
-## a rede de segurança e o bloco da torre).
+## os limites e a sinalização, a rede de segurança e o bloco da torre).
 func build_next() -> bool:
 	if _next < _coords.size():
 		var mesh := TerrainMesh.build_chunk(field, _coords[_next], CELL_METERS, _material)
@@ -99,9 +107,17 @@ func build_next() -> bool:
 	if _next == _coords.size():
 		_next += 1
 		_add_collision()
+		var dressing := TrailDressing.new()
+		add_child(dressing)
+		dressing.setup(field, trail, stone_material)
 		_add_safety_floor()
 		_add_tower_marker()
 	return false
+
+
+## Os limites e a sinalização da trilha (null antes de a montagem acabar).
+func get_dressing() -> TrailDressing:
+	return get_node_or_null("TrailDressing") as TrailDressing
 
 
 ## Os pontos do chão da trilha (no mundo), do vão da mureta até o mirante, de 1 em 1 m.
