@@ -10,9 +10,16 @@ extends Node3D
 ##
 ## Onde pode: só nas "regiões", o miolo de neve de cada quarteirão e de cada
 ## vaga, onde não passa calçada nem rua. Cada família fica a
-## walkable_clearance metros da beira da região (a calçada) e dos pontos
-## "keep_out" (portas e estações, cada um com o seu raio livre). O sorteio é
-## sempre igual (semente fixa por bairro, família e quarteirão).
+## walkable_clearance metros da beira da região (a calçada), dos pontos
+## "keep_out" (as portas, cada uma com o seu raio livre) e das áreas
+## "keep_out_areas" (a boca de cada estação do metrô). As distâncias contam da
+## beira da cópia: do tronco no pinheiro (decisão do dono, 2026-10-29) e do
+## vértice mais longe na rocha. O sorteio é sempre igual (semente fixa por
+## bairro, família e quarteirão).
+##
+## 15.7.1 (revisão do Astra): o raio da rocha vem dos vértices (a caixa da
+## malha é menor que a pedra); o cilindro da rocha cobre o desenho e para na
+## altura dele (a rocha é enterrada um pouco); as estações viram áreas.
 ##
 ## A conta (plan) é pura e estática: a 15.9 reaproveita para a encosta.
 
@@ -32,6 +39,9 @@ const ROCK_METERS: float = 2.0
 const PINE_SWAY: float = 0.18
 ## Altura máxima do cilindro de colisão (no pinheiro, só o tronco importa).
 const COLLISION_HEIGHT_MAX: float = 4.0
+## Distância mínima entre uma cópia e a boca de uma estação (além da
+## walkable_clearance, se ela for maior): o lugar de quem desce a escada.
+const AREA_GAP: float = 1.5
 
 ## Malhas já lidas dos glTF (caminho -> {mesh, aabb}).
 static var _meshes: Dictionary = {}
@@ -50,8 +60,10 @@ func get_transforms(index: int) -> Array[Transform3D]:
 
 
 ## Monta as famílias do bioma que vão no bairro. "regions": o miolo de neve
-## dos quarteirões e vagas; "keep_out": pontos livres (x, z, raio).
-func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_out: Array[Vector3]) -> void:
+## dos quarteirões e vagas; "keep_out": pontos livres (x, z, raio);
+## "keep_out_areas": retângulos livres (no chão).
+func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_out: Array[Vector3],
+		keep_out_areas: Array[Rect2] = []) -> void:
 	name = "BiomeScatter_%s" % category_id
 	# O que já foi posto (x, z, raio), para as famílias não se atropelarem.
 	var occupied: Array[Vector3] = []
@@ -64,7 +76,7 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 			push_warning("O elemento %s do bioma %s não carregou." % [spec.source, biome.id])
 			continue
 		var items := plan(spec, regions, keep_out, occupied, hash([category_id, i]),
-				source["height"], source["radius"])
+				source["height"], source["radius"], keep_out_areas)
 		_add_family(i, spec, source, items)
 
 
@@ -72,7 +84,8 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 ## collision}]. Acrescenta cada uma em "occupied". "base_height" e
 ## "base_radius": altura e raio da malha (ou do tronco) sem escala.
 static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vector3],
-		occupied: Array[Vector3], seed_value: int, base_height: float, base_radius: float) -> Array[Dictionary]:
+		occupied: Array[Vector3], seed_value: int, base_height: float, base_radius: float,
+		keep_out_areas: Array[Rect2] = []) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	if spec.density <= 0.0 or base_height <= 0.0:
 		return items
@@ -97,6 +110,10 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 			var reach := maxf(point.z, clearance) + largest
 			if usable.grow(reach).has_point(Vector2(point.x, point.y)):
 				near_keep.append(point)
+		var near_areas: Array[Rect2] = []
+		for area in keep_out_areas:
+			if usable.grow(maxf(AREA_GAP, clearance) + largest).intersects(area):
+				near_areas.append(area)
 		var placed := 0
 		var tries := 0
 		while placed < wanted and tries < wanted * ATTEMPTS_PER_ITEM:
@@ -111,12 +128,15 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 			var scale_xz := scale_y * stretch
 			var radius := base_radius * scale_xz
 			var collision := spec.collision_radius * scale_xz / reference
+			if not impostor and collision > 0.0:
+				# O cilindro da rocha cobre a pedra inteira (nada dela fica "sem corpo").
+				collision = maxf(collision, radius)
 			var footprint := maxf(radius, collision) if not impostor else maxf(collision, 0.5)
 			var inner := usable.grow(-footprint)
 			if inner.size.x <= 0.0 or inner.size.y <= 0.0:
 				continue
 			var spot := inner.position + Vector2(u, v) * inner.size
-			if _blocked(spot, footprint, clearance, spacing, near_keep, occupied):
+			if _blocked(spot, footprint, clearance, spacing, near_keep, occupied, near_areas):
 				continue
 			occupied.append(Vector3(spot.x, spot.y, footprint))
 			items.append({
@@ -131,17 +151,26 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 	return items
 
 
-## Se o ponto (com raio "radius") cai perto demais de um ponto livre ou de
-## algo já posto.
+## Se o ponto (com raio "radius") cai perto demais de um ponto livre, de uma
+## área livre ou de algo já posto.
 static func _blocked(spot: Vector2, radius: float, clearance: float, spacing: float,
-		keep_out: Array[Vector3], occupied: Array[Vector3]) -> bool:
+		keep_out: Array[Vector3], occupied: Array[Vector3], areas: Array[Rect2] = []) -> bool:
 	for point in keep_out:
 		if spot.distance_to(Vector2(point.x, point.y)) < maxf(point.z, clearance) + radius:
+			return true
+	for area in areas:
+		if area_distance(area, spot) < maxf(AREA_GAP, clearance) + radius:
 			return true
 	for other in occupied:
 		if spot.distance_to(Vector2(other.x, other.y)) < other.z + radius + spacing:
 			return true
 	return false
+
+
+## A distância de um ponto até um retângulo (0 dentro dele).
+static func area_distance(area: Rect2, point: Vector2) -> float:
+	var nearest := point.clamp(area.position, area.end)
+	return point.distance_to(nearest)
 
 
 ## Malha, material e medidas de uma família. {} se a origem não carregar.
@@ -173,13 +202,20 @@ static func _source(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
 		"mesh": loaded["mesh"],
 		"material": material,
 		"height": aabb.size.y,
-		"radius": maxf(aabb.size.x, aabb.size.z) / 2.0,
+		# O vértice mais longe do eixo (a caixa da malha fica aquém: 0,126 contra 0,140 m na rocha).
+		"radius": loaded["reach"],
 		"bottom": aabb.position.y,
 		"cull": 0.0,
 	}
 
 
-## A primeira malha de um glTF (ou de outra cena), lida uma vez só.
+## A primeira malha de um glTF (ou de outra cena), lida uma vez só: {mesh,
+## aabb, reach}, com "reach" = a maior distância de um vértice até o eixo
+## vertical (o raio de verdade da peça, com qualquer giro).
+static func mesh_of(path: String) -> Dictionary:
+	return _mesh_of(path)
+
+
 static func _mesh_of(path: String) -> Dictionary:
 	if _meshes.has(path):
 		return _meshes[path]
@@ -190,7 +226,11 @@ static func _mesh_of(path: String) -> Dictionary:
 		var found := node.find_children("*", "MeshInstance3D", true, false)
 		if not found.is_empty():
 			var mesh: Mesh = (found[0] as MeshInstance3D).mesh
-			result = {"mesh": mesh, "aabb": mesh.get_aabb()}
+			var reach := 0.0
+			for surface in mesh.get_surface_count():
+				for vertex: Vector3 in mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+					reach = maxf(reach, Vector2(vertex.x, vertex.z).length())
+			result = {"mesh": mesh, "aabb": mesh.get_aabb(), "reach": reach}
 		node.free()
 	_meshes[path] = result
 	return result
@@ -234,7 +274,10 @@ func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array
 	add_child(body)
 	for item in items:
 		var shape := CylinderShape3D.new()
-		var height := minf(float(item["height"]), COLLISION_HEIGHT_MAX)
+		var height := float(item["height"])
+		if spec.kind == "mesh":
+			height *= 1.0 - MESH_SINK  # a rocha é enterrada: o corpo para no topo desenhado
+		height = minf(height, COLLISION_HEIGHT_MAX)
 		shape.radius = float(item["collision"])
 		shape.height = height
 		var collision := CollisionShape3D.new()

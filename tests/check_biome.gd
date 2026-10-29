@@ -144,7 +144,9 @@ func _run() -> void:
 ## Pinheiros e rochas (15.7): uma MultiMesh por família do bairro, nada nas
 ## calçadas, nas portas, nas passagens dos arcos nem nas estações; pinheiros a
 ## 6 m de onde se anda; colisão por cópia; sorteio sempre igual; arcos com a
-## pedra de neve por cima.
+## pedra de neve por cima. 15.7.1: as distâncias contam "folga + raio" (o tronco
+## no pinheiro, o vértice mais longe na rocha), a cópia inteira fica fora da
+## faixa da porta, a estação é a boca inteira e cada cilindro é conferido.
 func _check_scatter(city: Node, builder: GDScript) -> void:
 	print("\n== pinheiros e rochas (15.7) ==")
 	var biome = builder.biome_of("rpg")
@@ -164,12 +166,18 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 	town.assign(city.get_node("CityMap").zone_rects("rpg").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
 	var regions: Array[Rect2] = builder.scatter_regions(town)
 	var keep_out: Array[Vector3] = builder.keep_out_points(city)
+	var stations: Array[Rect2] = builder.keep_out_areas(city)
+	var scatter_script: GDScript = load("res://worlds/city/biome/biome_scatter.gd")
 	# As portas do RPG, com a frente (para a rua), para conferir a faixa da porta.
 	var doors: Array[Transform3D] = []
 	for node in city.get_tree().get_nodes_in_group("game_portal"):
 		if node.get_parent() != null and node.get_parent().get("category_id") == "rpg":
 			doors.append(node.global_transform)
-	print("   regiões de neve: %d | pontos livres: %d | portas do RPG: %d" % [regions.size(), keep_out.size(), doors.size()])
+	print("   regiões de neve: %d | portas: %d | estações: %d | portas do RPG: %d"
+			% [regions.size(), keep_out.size(), stations.size(), doors.size()])
+	_check("cada estação do metrô vira uma área livre (a boca inteira)",
+			stations.size() == city.get_tree().get_nodes_in_group("transit_stop").size()
+			and stations.all(func(r: Rect2) -> bool: return r.get_area() > 4.0))
 
 	var town_specs := 0
 	for i in biome.scatter.size():
@@ -190,32 +198,55 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 		var near_walk := 0
 		var in_door := 0
 		var near_keep := 0
+		var bad_body := 0
 		var body: StaticBody3D = scatter.get_node_or_null("ScatterCollision_%d" % i)
+		# A rocha medida aqui mesmo, pelos vértices (e não pela caixa da malha).
+		var rock: Dictionary = scatter_script.mesh_of(spec.source) if spec.kind == "mesh" else {}
 		for k in count:
 			var origin := transforms[k].origin
 			var spot := Vector2(origin.x, origin.z)
-			# O raio da cópia (o do cilindro de colisão): a rocha inteira fica na neve.
+			var item_scale := transforms[k].basis.get_scale()
+			var cylinder: CollisionShape3D = body.get_child(k) if body != null and k < body.get_child_count() else null
+			# O raio da cópia: no pinheiro, o tronco (o cilindro; os 6 m contam
+			# dele, decisão do dono); na rocha, o vértice mais longe, na escala dela.
 			var radius := 0.0
-			if body != null and k < body.get_child_count():
-				radius = (body.get_child(k).shape as CylinderShape3D).radius
+			if spec.kind == "mesh":
+				radius = float(rock["reach"]) * item_scale.x
+			elif cylinder != null:
+				radius = (cylinder.shape as CylinderShape3D).radius
+			if cylinder != null:
+				var shape := cylinder.shape as CylinderShape3D
+				var same_spot := Vector2(cylinder.position.x, cylinder.position.z).distance_to(spot) < 0.01
+				var top := cylinder.position.y + shape.height / 2.0
+				var body_ok := same_spot and absf(cylinder.position.y - shape.height / 2.0) < 0.01
+				if spec.kind == "mesh":
+					# Cobre a pedra e para no topo desenhado (ela é enterrada um pouco).
+					var drawn_top: float = origin.y + ((rock["aabb"] as AABB).end.y) * item_scale.y
+					body_ok = body_ok and shape.radius >= radius - 0.001 and absf(top - drawn_top) < 0.01
+				if not body_ok:
+					bad_body += 1
 			var region_ok := false
 			for region in regions:
 				if region.has_point(spot):
 					region_ok = true
-					# A beira da região é a calçada: o pinheiro fica a 6 m dela.
+					# A beira da região é a calçada: a cópia fica a "folga + raio" dela.
 					var gap := minf(minf(spot.x - region.position.x, region.end.x - spot.x),
 							minf(spot.y - region.position.y, region.end.y - spot.y))
-					if gap < maxf(spec.walkable_clearance, radius) - 0.01:
+					if gap < spec.walkable_clearance + radius - 0.01:
 						near_walk += 1
 			if not region_ok:
 				outside_snow += 1
 			for point in keep_out:
-				if spot.distance_to(Vector2(point.x, point.y)) < maxf(point.z, spec.walkable_clearance) - 0.01:
+				if spot.distance_to(Vector2(point.x, point.y)) < maxf(point.z, spec.walkable_clearance) + radius - 0.01:
 					near_keep += 1
-			# A faixa da porta: da rua (6 m à frente) até 3 m atrás da passagem do arco.
+			for area in stations:
+				if scatter_script.area_distance(area, spot) < maxf(scatter_script.AREA_GAP, spec.walkable_clearance) + radius - 0.01:
+					near_keep += 1
+			# A faixa da porta: da rua (6 m à frente) até 3 m atrás da passagem do
+			# arco, e nenhum pedaço da cópia dentro dela.
 			for door in doors:
 				var local := door.affine_inverse() * origin
-				if absf(local.x) < 2.5 and local.z > -3.0 and local.z < 6.0:
+				if absf(local.x) < 2.5 + radius and local.z > -3.0 - radius and local.z < 6.0 + radius:
 					in_door += 1
 		print("   %s: %d cópias; fora da neve %d, perto da calçada %d, na faixa da porta %d, perto de porta/estação %d"
 				% [label, count, outside_snow, near_walk, in_door, near_keep])
@@ -225,6 +256,8 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 		_check("%s: longe das portas e das estações" % label, near_keep == 0)
 		if spec.collision_radius > 0.0:
 			_check("%s: um cilindro de colisão por cópia" % label, body != null and body.get_child_count() == count)
+			_check("%s: cada cilindro no lugar da cópia, do chão para cima%s (%d errados)"
+					% [label, ", cobrindo a pedra até o topo desenhado" if spec.kind == "mesh" else "", bad_body], bad_body == 0)
 		if spec.kind == "impostor":
 			var material: ShaderMaterial = family.material_override
 			var tint: Color = material.get_shader_parameter("tint")
@@ -247,9 +280,8 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			scatter.find_children("*", "MultiMeshInstance3D", false, false).size() == town_specs)
 
 	# O sorteio é sempre igual (mesma entrada, mesmo resultado).
-	var scatter_script: GDScript = load("res://worlds/city/biome/biome_scatter.gd")
-	var first: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44)
-	var second: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44)
+	var first: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations)
+	var second: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations)
 	_check("o sorteio é determinístico (%d cópias)" % first.size(), not first.is_empty() and first == second)
 
 	# Os arcos do bioma usam a pedra com neve por cima.

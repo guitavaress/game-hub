@@ -27,9 +27,11 @@ varying vec3 world_normal;
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	// MODEL_NORMAL_MATRIX: a normal certa mesmo com escala diferente por eixo
-	// (as rochas são esticadas para os lados).
-	world_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
+	// A normal com a inversa transposta do MODEL_MATRIX: certa mesmo com escala
+	// diferente por eixo (as rochas são esticadas para os lados). Numa MultiMesh,
+	// o MODEL_NORMAL_MATRIX da Godot junta a cópia sem a inversa e entorta a
+	// normal (revisão do Astra, 15.7.1).
+	world_normal = normalize(transpose(inverse(mat3(MODEL_MATRIX))) * NORMAL);
 }
 
 // Quanto cada um dos três planos (X, Y e Z) pesa, pela normal: a face que olha

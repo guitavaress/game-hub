@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26; a revisão do Astra pediu cinco correções (15.7.1). 15.9 completa (15.9.2 em 2026-10-26, 15.9.3 em 2026-10-29). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próximas da A: 15.7.1 e 15.10 (Opus); a 15.9.3 espera a revisão do Astra. Escopo aprovado em 2026-10-17.
+**Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26 e as cinco correções da revisão do Astra (15.7.1) em 2026-10-29. 15.9 completa (15.9.2 em 2026-10-26, 15.9.3 em 2026-10-29). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próxima da A: 15.10 (Opus); a 15.7.1 e a 15.9.3 esperam a revisão do Astra. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
 **Execução (desde 2026-10-25):** duas trilhas paralelas no Orca. A trilha **A** (principal) é o Claude Code, com **Opus** e **Sonnet**; a trilha **B** (paralela) é o Codex, com **Astra**, **Sol** e **Terra**. A revisão é cruzada entre os dois lados. A política está em [AGENTS.md](../../AGENTS.md#modelos-e-esforço), e a distribuição por subetapa, em "Execução e modelos por subetapa" e em "Trilhas".
 
@@ -359,7 +359,14 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
       5. o `check_biome` testa `max(folga, raio)` em vez de `folga + raio`, olha só o centro na faixa da porta e conta os cilindros sem conferir onde estão.
       - Sugestão, só depois de medir: 18 leituras de textura por pixel no `snow_cover`.
     - **Decidido pelo dono (2026-10-29), para o achado 2:** os 6 m contam **do tronco** (como hoje; os galhos podem chegar a ~2 m da calçada). Na 15.7.1 corrige-se só a estação, que passa a ser a área da escada.
-    - **Pendente:** a 15.7.1 e a aprovação visual do dono.
+    - [x] **15.7.1** (Opus · high; revisão Astra · high) — **feita em 2026-10-29.** Bateria (Git Bash, Windows, Godot 4.7.2): **85/85**, `RESULTADO GERAL: TUDO OK`; log `bateria-15-7-1.log` na pasta temporária.
+      1. **Raio da rocha:** o `BiomeScatter` mede o vértice mais longe do eixo (`mesh_of(...)["reach"]`: 0,140 m, contra 0,126 m da caixa) e usa esse raio no sorteio.
+      2. **Estações:** viram áreas (`BiomeBuilder.keep_out_areas`: a caixa da `MetroEntrance.footprint()` no mundo, com a escada, o corrimão e o totem); nada fica a menos de `max(1,5 m, folga) + raio` delas (`BiomeScatter.AREA_GAP`, `area_distance`). As portas continuam pontos. Os 6 m dos pinheiros contam do tronco (decisão do dono).
+      3. **`snow_cover.gdshader`:** a normal usa `transpose(inverse(mat3(MODEL_MATRIX)))`; o `MODEL_NORMAL_MATRIX` da Godot junta a cópia da MultiMesh sem a inversa. Captura antes/depois (rocha esticada, 13 h, pasta temporária): a neve agora assenta nas faces de cima.
+      4. **Corpo da rocha:** o cilindro cobre a pedra inteira (`max(colisão do perfil, raio desenhado)`) e para no topo desenhado (`altura × (1 − MESH_SINK)`).
+      5. **`check_biome`:** "folga + raio" na calçada, nas portas e nas estações (o raio da rocha medido no próprio teste, pelos vértices); a cópia inteira fora da faixa da porta; cada cilindro conferido (lugar, base no chão, raio e topo da rocha). Conferido que o teste novo falha com o código antigo (90 cilindros errados e uma rocha perto de porta).
+      - A sugestão das 18 leituras de textura fica para a medida da 15.15c (só mexer se pesar).
+    - **Pendente:** a revisão do Astra da 15.7.1 e a aprovação visual do dono.
   - Faz:
     - o `TreeImpostor` e o shader passam a aceitar outro atlas e a escala da instância. Com escala 1, as árvores de hoje ficam iguais;
     - **pinheiro ao vento:** um balanço leve no vértice do impostor, mais forte na ponta e com fase por instância. Fica desligado nas árvores de hoje;

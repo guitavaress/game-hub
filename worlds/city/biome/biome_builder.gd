@@ -24,11 +24,11 @@ const STREET_DARKEN: float = 0.12
 const SNOW_COVER_SHADER: Shader = preload("res://worlds/city/biome/snow_cover.gdshader")
 const ARCH_METERS: float = 2.0
 ## Raio livre de pinheiros e rochas em volta de cada porta (cobre o arco, a
-## frente dele e a passagem) e do meio de cada escada do metrô, em metros.
+## frente dele e a passagem), em metros. As estações do metrô ficam livres
+## pela área da boca (keep_out_areas), e não por um ponto (15.7.1).
 const DOOR_CLEARANCE: float = 4.5
-const STATION_CLEARANCE: float = 4.0
-## Quanto o meio da escada do metrô fica para dentro da boca (metade dela).
-const STATION_DEPTH: float = 1.3
+## A boca de uma parada sem forma própria (x, z locais; a frente é +Z).
+const STATION_FALLBACK: Rect2 = Rect2(-1.5, -3.0, 3.0, 3.6)
 
 ## Materiais já feitos (a chave inclui pasta, escala, cor e relevo).
 static var _materials: Dictionary = {}
@@ -175,7 +175,7 @@ static func add_scatter(parent: Node3D, category_id: String, biome: BiomeSpec, z
 	if not has_town:
 		return null
 	var scatter := BiomeScatter.new()
-	scatter.setup(category_id, biome, scatter_regions(zones), keep_out_points(parent))
+	scatter.setup(category_id, biome, scatter_regions(zones), keep_out_points(parent), keep_out_areas(parent))
 	parent.add_child(scatter)
 	return scatter
 
@@ -190,22 +190,33 @@ static func scatter_regions(zones: Array[Rect2]) -> Array[Rect2]:
 	return result
 
 
-## Os pontos que ficam livres (x, z, raio): as portas dos jogos e o meio da
-## escada de cada estação do metrô, achados pelos grupos.
+## Os pontos que ficam livres (x, z, raio): as portas dos jogos, achadas pelo grupo.
 static func keep_out_points(parent: Node) -> Array[Vector3]:
 	var points: Array[Vector3] = []
-	var tree := parent.get_tree()
-	for node in tree.get_nodes_in_group("game_portal"):
+	for node in parent.get_tree().get_nodes_in_group("game_portal"):
 		var portal := node as Node3D
 		if portal != null and parent.is_ancestor_of(portal):
 			points.append(Vector3(portal.global_position.x, portal.global_position.z, DOOR_CLEARANCE))
-	for node in tree.get_nodes_in_group("transit_stop"):
-		var stop := node as Node3D
-		if stop != null and parent.is_ancestor_of(stop):
-			# A frente (+Z) da estação aponta para a rua; a escada desce para trás.
-			var middle := stop.global_transform * Vector3(0.0, 0.0, -STATION_DEPTH)
-			points.append(Vector3(middle.x, middle.z, STATION_CLEARANCE))
 	return points
+
+
+## As áreas que ficam livres (no chão): a boca de cada estação do metrô, com
+## a escada, o corrimão e o totem (a forma que a estação dá em footprint()).
+static func keep_out_areas(parent: Node) -> Array[Rect2]:
+	var areas: Array[Rect2] = []
+	for node in parent.get_tree().get_nodes_in_group("transit_stop"):
+		var stop := node as Node3D
+		if stop == null or not parent.is_ancestor_of(stop):
+			continue
+		var local: Rect2 = stop.call("footprint") if stop.has_method("footprint") else STATION_FALLBACK
+		# Os quatro cantos no mundo; a caixa deles cobre a boca com qualquer giro.
+		var area := Rect2()
+		for k in 4:
+			var corner := Vector2(local.end.x if k & 1 else local.position.x, local.end.y if k & 2 else local.position.y)
+			var world := stop.global_transform * Vector3(corner.x, 0.0, corner.y)
+			area = Rect2(Vector2(world.x, world.z), Vector2.ZERO) if k == 0 else area.expand(Vector2(world.x, world.z))
+		areas.append(area)
+	return areas
 
 
 ## Veste a casca da porta com a pedra do bioma (15.7): nos arcos, a pedra da
