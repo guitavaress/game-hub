@@ -32,8 +32,10 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
   - Teste: uma saída falsa de bateria com 2 falhas → 2 logs guardados; com `TUDO OK` → nada.
   - [x] **J.1.1** (revisão do Codex): lê a saída da bateria em UTF-8, UTF-8 com BOM (o `>` do PowerShell deste PC) e UTF-16 (o do Windows PowerShell 5.1 padrão).
   - [x] **J.1.2** (revisão do Codex): a importação rodada de novo só passa com saída 0 e sem erro de script; tempo esgotado ou outra saída vira "FALHOU" (a importação boa sai com 0, conferido na Godot 4.7.2).
-- [ ] **J.2 Gabarito** (Opus · medium; revisão `/codex:review`)
+- [x] **J.2 Gabarito** (Opus · medium; revisão `/codex:review`)
   - Faz: `tools/jev/provocar_falhas.py` cria ~60 falhas conhecidas numa cópia descartável (4 tipos × vários testes) e grava `falhas.jsonl` fora do repositório (só logs limpos). Uma parte fica guardada só para o portão.
+  - Feito em 2026-10-29: 61 casos em 30 min, nos 44 testes que não tocam o `user://` (regressão 24, erro de script 12, ambiente 12, tempo esgotado 8, instável 5; 20 no portão). Nenhum dado privado nos logs (conferido pelo script e à mão).
+  - **Achado:** das 12 falhas de ambiente, as 10 que rodam a Godot aparecem como `SCRIPT ERROR`. O jogo faltando vira "null instance" e o cache apagado vira "Identifier not declared". A regra "SCRIPT ERROR → erro de script" erra todas; a J.3 precisa tratar isso.
 - [ ] **J.3 Triagem e portão** (Opus · high; revisão `/codex:adversarial-review`)
   - Faz: `tools/jev/triar_falhas.py` (perguntas num lugar só) e `tools/jev/avaliar.py`.
   - Portão, na parte guardada:
