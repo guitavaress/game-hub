@@ -1,4 +1,4 @@
-# Ferramenta: triagem das falhas da bateria com o Jev
+# Ferramenta: triagem das falhas da bateria (medida com o Jev)
 
 **Status:** aprovado em 2026-10-29, com prioridade sobre a Fase 15 (pausada até aqui terminar). Sem trilhas: uma sessão só, do Claude.
 **Branch:** `ferramenta-jev`, criada da `fase-15` (`7c12530`) no checkout principal. Só arquivos novos; volta para a `fase-15` quando o dono pedir.
@@ -9,7 +9,7 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
 ## Pronto quando
 - `python tools/jev/triar_falhas.py <saída do run_tests>` devolve, por teste que falhou, a categoria, a frase do log que decidiu e se a falha tem ligação com os arquivos do diff.
 - Passa no portão (abaixo) num gabarito que **não** foi usado para ajustar as perguntas.
-- Sem a chave ou sem rede, a ferramenta avisa e para: um erro nunca vira resposta.
+- ~~Sem a chave ou sem rede, a ferramenta avisa e para~~ (a J.3 tirou o Jev da triagem: ela roda sem chave e sem rede).
 - A bateria passa (`RESULTADO GERAL: TUDO OK`) e nada mudou em `tests/run_tests.sh`.
 
 ## Decisões de arquitetura
@@ -36,8 +36,20 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
   - Faz: `tools/jev/provocar_falhas.py` cria ~60 falhas conhecidas numa cópia descartável (4 tipos × vários testes) e grava `falhas.jsonl` fora do repositório (só logs limpos). Uma parte fica guardada só para o portão.
   - Feito em 2026-10-29: 61 casos em 30 min, nos 44 testes que não tocam o `user://` (regressão 24, erro de script 12, ambiente 12, tempo esgotado 8, instável 5; 20 no portão). Nenhum dado privado nos logs (conferido pelo script e à mão).
   - **Achado:** das 12 falhas de ambiente, as 10 que rodam a Godot aparecem como `SCRIPT ERROR`. O jogo faltando vira "null instance" e o cache apagado vira "Identifier not declared". A regra "SCRIPT ERROR → erro de script" erra todas; a J.3 precisa tratar isso.
-- [ ] **J.3 Triagem e portão** (Opus · high; revisão `/codex:adversarial-review`)
-  - Faz: `tools/jev/triar_falhas.py` (perguntas num lugar só) e `tools/jev/avaliar.py`.
+- [x] **J.3 Triagem e portão** (Opus · high; revisão `/codex:adversarial-review`)
+  - Faz: `tools/jev/triar_falhas.py` (a triagem), `perguntas.py` e `jev.py` (o Jev, num lugar só) e `avaliar.py` (o portão).
+  - **Feito em 2026-10-30. Conclusão: a triagem usa só código; o Jev não é preciso nesta tarefa (decisão do dono).**
+    - O gabarito novo (semente 2911) foi gerado depois que as perguntas ficaram prontas. O portão dele (21 casos, 4 de ambiente) ninguém olhou antes da nota. O cache estragado saiu do gabarito: a bateria importa o projeto antes dos testes e refaz o cache.
+    - Portão (acerto balanceado): base do plano 80% (ambiente 0%); **com o Jev 95%** (ambiente 75%); **regras finais 95%** (ambiente 75%). Limiar medido no ajuste: 0,70. Ligação com o diff: regras 97%, Jev 100%.
+    - O Jev passou no portão contra a base do plano (+15 pontos, nada colapsou), mas a regra de uma linha `Node not found: "Building_<id>` (o prédio do jogo exigido que falta) faz o mesmo. Pelo critério acima, "não precisa do Jev".
+    - A tabela final: Godot ausente → ambiente; passou de novo → instável; `Parse Error`/`Compile Error` → erro de script; prédio faltando → ambiente; outro `SCRIPT ERROR` → erro de script; saída 124 → tempo esgotado; o resto → regressão.
+    - O único erro do portão: um jogo faltando que não deixa rastro no log (`check_session_summary` só mostra "[FALHOU] resumo do Skyrim"). Por isso a triagem também confere se os 4 jogos exigidos estão instalados e avisa no topo.
+    - Lições para o próximo uso do Jev:
+      - ler cada erro: o trecho do log cortava a causa, que fica no começo (agora junta linhas repetidas e guarda começo e fim);
+      - uma pergunta que mistura dois julgamentos confunde ("conferência falhou" com "arquivo faltando");
+      - comparar com uma regra simples escrita depois de ver os dados, e não só com a base do plano.
+    - Custo total do Jev na J.3: 137 chamadas, 176.603 tokens, ~US$ 0,0074 (média de US$ 0,00005 por triagem).
+  - Revisão: depois do commit, com `/codex:adversarial-review --base fase-15`.
   - Portão, na parte guardada:
     - acerto balanceado ≥ 90%;
     - vencer a base só com regras do código por ≥ 10 pontos;
@@ -46,16 +58,16 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
     - custo por triagem registrado.
   - Se o código sozinho já resolver quase tudo, a conclusão é "não precisa do Jev", e para aqui.
 - [ ] **J.4 Uso pelos agentes** (Opus · low; revisão `/codex:review`)
-  - Faz: `.claude/skills/triagem-falhas/SKILL.md` e uma seção curta no `AGENTS.md`: quando a bateria falha, rodar a triagem e ler o resumo.
+  - Faz: `.claude/skills/triagem-falhas/SKILL.md` e uma seção curta no `AGENTS.md`: quando a bateria falha, rodar a triagem (só código) e ler o resumo.
   - **Auditoria em cada uso:** o agente confere 1 log inteiro por triagem. Se errar 2 vezes seguidas, a ferramenta é suspensa.
 
 ## Fora do escopo
 - Qualquer IA dentro do hub ou dentro do `run_tests.sh`.
-- Triagem de assets, de achados de revisão e escolha de modelo (próximas candidatas, cada uma com seu portão).
+- Triagem de assets, de achados de revisão e escolha de modelo (próximas candidatas para o Jev, cada uma com seu portão; a próxima tarefa do Jev sai daqui).
 
 ## Checklist de teste manual (fim)
 1. Quebre de propósito uma conferência num teste (numa cópia descartável) e rode `bash tests/run_tests.sh`.
 2. Rode `python tools/jev/triar_falhas.py` com a saída.
    - **Deve acontecer:** a falha vem como "regressão", com a frase do log que decidiu e o arquivo do diff.
-3. Renomeie o arquivo da chave e rode de novo.
-   - **Deve acontecer:** um aviso claro de "sem chave", e nenhuma triagem inventada.
+   - Feito em 2026-10-30 com o `check_gates`: "REGRESSÃO", frase "[FALHOU] um pórtico por bairro", ligada a `tests/check_gates.gd`.
+3. ~~Sem a chave~~: não se aplica mais (a triagem não usa o Jev).

@@ -113,8 +113,8 @@ def _pastas_da_steam() -> list:
     return [p for p in pastas if os.path.isdir(p)]
 
 
-def jogos_instalados() -> list:
-    """Os nomes dos jogos instalados (lidos dos appmanifest_*.acf de cada biblioteca)."""
+def _manifestos() -> list:
+    """Os appmanifest_<id>.acf de todas as bibliotecas da Steam deste PC."""
     bibliotecas = set()
     for steam in _pastas_da_steam():
         bibliotecas.add(os.path.normpath(steam))
@@ -123,18 +123,41 @@ def jogos_instalados() -> list:
             with open(vdf, encoding="utf-8", errors="replace") as f:
                 for caminho in re.findall(r'"path"\s+"([^"]+)"', f.read()):
                     bibliotecas.add(os.path.normpath(caminho.replace("\\\\", "\\")))
-    nomes = set()
+    saida = []
     for bib in bibliotecas:
         apps = os.path.join(bib, "steamapps")
-        if not os.path.isdir(apps):
-            continue
-        for arq in os.listdir(apps):
-            if arq.startswith("appmanifest_") and arq.endswith(".acf"):
-                with open(os.path.join(apps, arq), encoding="utf-8", errors="replace") as f:
-                    m = re.search(r'"name"\s+"([^"]+)"', f.read())
-                if m:
-                    nomes.add(m.group(1))
+        if os.path.isdir(apps):
+            saida += [os.path.join(apps, a) for a in os.listdir(apps)
+                      if a.startswith("appmanifest_") and a.endswith(".acf")]
+    return saida
+
+
+def jogos_instalados() -> list:
+    """Os nomes dos jogos instalados (lidos dos appmanifest_*.acf de cada biblioteca)."""
+    nomes = set()
+    for arq in _manifestos():
+        with open(arq, encoding="utf-8", errors="replace") as f:
+            m = re.search(r'"name"\s+"([^"]+)"', f.read())
+        if m:
+            nomes.add(m.group(1))
     return sorted(nomes)
+
+
+# Os jogos que vários testes exigem instalados (tests/README.md, "A biblioteca de verdade importa").
+JOGOS_EXIGIDOS = {2379780: "Balatro", 489830: "Skyrim", 892970: "Valheim", 413150: "Stardew Valley"}
+
+
+def exigidos_faltando() -> dict:
+    """Os jogos exigidos que não estão instalados neste PC ({app id: nome}).
+
+    Se não achar a Steam, devolve todos: sem biblioteca, os testes falham do mesmo jeito.
+    """
+    ids = set()
+    for arq in _manifestos():
+        m = re.search(r"appmanifest_(\d+)\.acf$", arq)
+        if m:
+            ids.add(int(m.group(1)))
+    return {i: nome for i, nome in JOGOS_EXIGIDOS.items() if i not in ids}
 
 
 def palavras_privadas() -> list:

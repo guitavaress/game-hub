@@ -48,12 +48,14 @@ FORA_POR_PRIVACIDADE = {"check_desktop_apps_windows", "check_system_status", "ch
 
 # Quantos casos de cada tipo (o total fica perto de 60).
 METAS = {"regressao_teste": 14, "regressao_codigo": 10, "erro_teste": 6, "erro_codigo": 4,
-         "erro_importacao": 2, "laco_sem_fim": 5, "tempo_curto": 3, "ambiente_cache": 6,
-         "ambiente_sem_jogo": 6,
+         "erro_importacao": 2, "laco_sem_fim": 5, "tempo_curto": 3,
+         # O cache estragado (.godot/) fica de fora: a bateria importa o projeto antes dos
+         # testes e a importação refaz o cache, então essa falha não acontece nela.
+         "ambiente_cache": 0, "ambiente_sem_jogo": 10,
          "sem_godot": 2, "instavel": 5}
 
 # Os jogos que vários testes exigem instalados (tests/README.md).
-JOGOS_EXIGIDOS = {2379780: "Balatro", 489830: "Skyrim", 892970: "Valheim", 413150: "Stardew"}
+JOGOS_EXIGIDOS = comum.JOGOS_EXIGIDOS
 
 TEMPO_ERRO = 25       # um SCRIPT ERROR deixa o teste parado até o tempo acabar; 25 s bastam
 TEMPO_LACO = 25
@@ -220,9 +222,9 @@ class Copia:
 
 # ---- O gerador ------------------------------------------------------------------------------
 class Gerador:
-    def __init__(self, godot: str, copia: Copia, limpar):
+    def __init__(self, godot: str, copia: Copia, limpar, semente: int = SEMENTE):
         self.godot, self.copia, self.limpar = godot, copia, limpar
-        self.rnd = random.Random(SEMENTE)
+        self.rnd = random.Random(semente)
         self.casos = []
         self.tempos = {}            # teste → segundos da rodada limpa
         self.arquivos_gd = []       # todos os .gd do projeto (para o diff de "isca")
@@ -417,6 +419,8 @@ class Gerador:
             ("sem_importados", ["imported"]),
             ("sem_uids", ["uid_cache.bin"]),
         ]
+        if meta <= 0:
+            return
         por_estrago = max(1, meta // len(estragos))
         for nome, apagar in estragos:
             achados = 0
@@ -449,7 +453,7 @@ class Gerador:
                 return
             texto_teste = self.copia.ler("tests/%s.gd" % t)
             ids = [i for i, nome in JOGOS_EXIGIDOS.items()
-                   if str(i) in texto_teste or nome in texto_teste]
+                   if str(i) in texto_teste or nome.split()[0] in texto_teste]
             if not ids:
                 continue
             app_id = self.rnd.choice(ids)
@@ -516,6 +520,7 @@ def main() -> int:
     p.add_argument("--saida", default=pasta_padrao(), help="pasta do gabarito (fora do repositório)")
     p.add_argument("--base", default="HEAD", help="commit usado na cópia descartável")
     p.add_argument("--so-base", action="store_true", help="só roda a base e para")
+    p.add_argument("--semente", type=int, default=SEMENTE, help="outra semente = outro gabarito")
     a = p.parse_args()
 
     godot = comum.achar_godot()
@@ -531,7 +536,7 @@ def main() -> int:
     privados = comum.palavras_privadas()
     limpar = lambda log: comum.limpar_log(log, [copia.pasta], privados)  # noqa: E731
     try:
-        g = Gerador(godot, copia, limpar)
+        g = Gerador(godot, copia, limpar, a.semente)
         g.mapear()
         testes = g.testes_seguros()
         print("== base: %d testes sem user:// ==" % len(testes), flush=True)
@@ -565,7 +570,7 @@ def main() -> int:
     finally:
         copia.apagar()
 
-    separar_portao(g.casos)
+    separar_portao(g.casos, a.semente)
     vazou = [c["id"] for c in g.casos if comum.tem_dado_privado(c["log_texto"], privados)]
     if vazou:
         print("PARADO: dado privado sobrou nos logs de %s; nada foi gravado." % vazou)
@@ -579,7 +584,7 @@ def main() -> int:
         chave = "%s/%s" % (c["categoria"], c["parte"])
         contagem[chave] = contagem.get(chave, 0) + 1
     with open(os.path.join(a.saida, "resumo.json"), "w", encoding="utf-8") as f:
-        json.dump({"semente": SEMENTE, "base": a.base, "testes_usados": len(g.tempos),
+        json.dump({"semente": a.semente, "base": a.base, "testes_usados": len(g.tempos),
                    "casos": len(g.casos), "contagem": contagem,
                    "minutos": round((time.time() - t0) / 60, 1)}, f, ensure_ascii=False, indent=1)
     print("== %d casos em %s (%.1f min) ==" % (len(g.casos), a.saida, (time.time() - t0) / 60))
