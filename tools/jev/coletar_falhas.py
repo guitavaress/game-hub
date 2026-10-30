@@ -30,6 +30,22 @@ LINHA_FALHA = re.compile(r"^(check_\w+): (FALHOU|ERRO DE SCRIPT)\s*$")
 LINHA_RESUMO = re.compile(r"^    (.*)$")
 
 
+def decodificar(dados: bytes) -> str:
+    """Lê a saída da bateria em qualquer codificação comum.
+
+    O `> saida.txt` do Windows PowerShell 5.1 grava em UTF-16 (com BOM); o Git Bash, em
+    UTF-8. Lida como UTF-8, a de UTF-16 vira letras com NUL no meio e nenhuma falha seria
+    achada.
+    """
+    if dados.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return dados.decode("utf-16", errors="replace")
+    # UTF-16 sem BOM: metade dos bytes é NUL (texto quase todo ASCII).
+    if dados and dados.count(b"\x00") > len(dados) // 4:
+        par = dados[1::2].count(b"\x00") > dados[0::2].count(b"\x00")
+        return dados.decode("utf-16-le" if par else "utf-16-be", errors="replace")
+    return dados.decode("utf-8-sig", errors="replace")
+
+
 def ler_falhas(texto: str) -> list:
     """Acha as falhas na saída da bateria. Devolve [{teste, status_bateria, resumo_bateria}]."""
     falhas = []
@@ -117,10 +133,10 @@ def main() -> int:
     a = p.parse_args()
 
     if a.saida_bateria == "-":
-        texto = sys.stdin.read()
+        texto = decodificar(sys.stdin.buffer.read())
     else:
-        with open(a.saida_bateria, encoding="utf-8", errors="replace") as f:
-            texto = f.read()
+        with open(a.saida_bateria, "rb") as f:
+            texto = decodificar(f.read())
     if "cargo test: FALHOU" in texto:
         print("aviso: o cargo test falhou; ele fica fora da triagem (veja a saída da bateria).")
 

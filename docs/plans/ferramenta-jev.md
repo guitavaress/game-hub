@@ -30,6 +30,7 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
 - [x] **J.1 Coleta** (Opus · medium; revisão `/codex:review`)
   - Faz: `tools/jev/coletar_falhas.py` lê a saída do `run_tests.sh`, roda de novo cada teste que falhou e guarda o log completo e o diff numa pasta temporária.
   - Teste: uma saída falsa de bateria com 2 falhas → 2 logs guardados; com `TUDO OK` → nada.
+  - [x] **J.1.1** (revisão do Codex): lê a saída da bateria em UTF-8, UTF-8 com BOM (o `>` do PowerShell deste PC) e UTF-16 (o do Windows PowerShell 5.1 padrão).
 - [ ] **J.2 Gabarito** (Opus · medium; revisão `/codex:review`)
   - Faz: `tools/jev/provocar_falhas.py` cria ~60 falhas conhecidas numa cópia descartável (4 tipos × vários testes) e grava `falhas.jsonl` fora do repositório (só logs limpos). Uma parte fica guardada só para o portão.
 - [ ] **J.3 Triagem e portão** (Opus · high; revisão `/codex:adversarial-review`)

@@ -91,6 +91,16 @@ class TesteColeta(unittest.TestCase):
         r = comum.rodar([sys.executable, "-c", "import time; time.sleep(5)"], tempo=1)
         self.assertEqual(r["saida"], comum.SAIDA_TEMPO_ESGOTADO)
 
+    def test_saida_do_powershell_em_utf16(self):
+        # O "> saida.txt" do Windows PowerShell 5.1 grava UTF-16 com BOM.
+        for dados in (SAIDA_COM_2_FALHAS.encode("utf-16"),          # com BOM
+                      SAIDA_COM_2_FALHAS.encode("utf-16-le"),       # sem BOM
+                      SAIDA_COM_2_FALHAS.encode("utf-8-sig"),
+                      SAIDA_COM_2_FALHAS.encode("utf-8")):
+            texto = coletar_falhas.decodificar(dados)
+            falhas = coletar_falhas.ler_falhas(texto)
+            self.assertEqual([f["teste"] for f in falhas], ["check_gates", "check_terrain"])
+
     def test_veredito_igual_ao_da_bateria(self):
         self.assertEqual(comum.veredito("check_x", "RESULTADO: TUDO OK"), "ok")
         self.assertEqual(comum.veredito("check_x", "SCRIPT ERROR\nRESULTADO: TUDO OK"),
