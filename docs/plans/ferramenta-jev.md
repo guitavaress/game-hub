@@ -57,9 +57,14 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
     - limiar de cada `noul` medido, não chutado;
     - custo por triagem registrado.
   - Se o código sozinho já resolver quase tudo, a conclusão é "não precisa do Jev", e para aqui.
-- [ ] **J.4 Uso pelos agentes** (Opus · low; revisão `/codex:review`)
+- [x] **J.4 Uso pelos agentes** (Opus · low; revisão `/codex:review`)
   - Faz: `.claude/skills/triagem-falhas/SKILL.md` e uma seção curta no `AGENTS.md`: quando a bateria falha, rodar a triagem (só código) e ler o resumo.
   - **Auditoria em cada uso:** o agente confere 1 log inteiro por triagem. Se errar 2 vezes seguidas, a ferramenta é suspensa.
+
+## Uso (auditoria)
+Cada erro da triagem achado na auditoria entra aqui: data, teste, categoria certa e categoria dada. Dois erros seguidos suspendem a ferramenta.
+
+- (nenhum ainda)
 
 ## Fora do escopo
 - Qualquer IA dentro do hub ou dentro do `run_tests.sh`.
