@@ -77,14 +77,24 @@ def ler_falhas(texto: str) -> list:
     return falhas
 
 
+def veredito_importacao(r: dict) -> str:
+    """A importação só passou se terminou sozinha (saída 0) e sem erro de script.
+
+    Tempo esgotado (124) ou outra saída ≠ 0 sem "script error" no log é "FALHOU": ela
+    não terminou, então não dá para dizer que passou.
+    """
+    if re.search(r"script error|parse error", r["log"], re.IGNORECASE):
+        return "ERRO DE SCRIPT"
+    return "ok" if r["saida"] == 0 else "FALHOU"
+
+
 def rodar_de_novo(falha: dict, godot: str, projeto: str = comum.PROJETO) -> dict:
     """Roda a falha de novo. Devolve {saida, status, log}; sem Godot, status "sem godot"."""
     if not godot or falha["teste"] == comum.FALHA_SEM_GODOT:
         return {"saida": None, "status": "sem godot", "log": ""}
     if falha["teste"] == comum.FALHA_IMPORTACAO:
         r = comum.rodar(comum.comando_importacao(godot, projeto), comum.TEMPO_IMPORTACAO, projeto)
-        tem_erro = re.search(r"script error|parse error", r["log"], re.IGNORECASE)
-        r["status"] = "ERRO DE SCRIPT" if tem_erro else "ok"
+        r["status"] = veredito_importacao(r)
         return r
     r = comum.rodar(comum.comando_teste(godot, falha["teste"], projeto), comum.TEMPO_TESTE, projeto)
     r["status"] = comum.veredito(falha["teste"], r["log"])

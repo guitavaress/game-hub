@@ -91,6 +91,19 @@ class TesteColeta(unittest.TestCase):
         r = comum.rodar([sys.executable, "-c", "import time; time.sleep(5)"], tempo=1)
         self.assertEqual(r["saida"], comum.SAIDA_TEMPO_ESGOTADO)
 
+    def test_importacao_interrompida_nao_passa(self):
+        v = coletar_falhas.veredito_importacao
+        self.assertEqual(v({"saida": 124, "log": ""}), "FALHOU")
+        self.assertEqual(v({"saida": 1, "log": "ERROR: algo"}), "FALHOU")
+        self.assertEqual(v({"saida": 1, "log": "SCRIPT ERROR: Parse Error"}), "ERRO DE SCRIPT")
+        self.assertEqual(v({"saida": 0, "log": "importado"}), "ok")
+        # Pela coleta inteira: tempo esgotado na importação não vira "passou".
+        rodada = lambda falha, godot: {"saida": 124, "log": "",  # noqa: E731
+                                       "status": v({"saida": 124, "log": ""})}
+        entradas = coletar_falhas.coletar(SAIDA_IMPORTACAO, self.pasta, "godot", [], rodar=rodada)
+        self.assertFalse(entradas[0]["rodada2"]["passou"])
+        self.assertTrue(entradas[0]["rodada2"]["tempo_esgotado"])
+
     def test_saida_do_powershell_em_utf16(self):
         # O "> saida.txt" do Windows PowerShell 5.1 grava UTF-16 com BOM.
         for dados in (SAIDA_COM_2_FALHAS.encode("utf-16"),          # com BOM
