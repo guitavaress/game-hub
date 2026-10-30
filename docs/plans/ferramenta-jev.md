@@ -27,7 +27,7 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
 - **Descartado:** o Laya (fraco sem treino, desinstalado) e mudar o `run_tests.sh` (é da trilha A e de todas as sessões).
 
 ## Subetapas
-- [ ] **J.1 Coleta** (Opus · medium; revisão `/codex:review`)
+- [x] **J.1 Coleta** (Opus · medium; revisão `/codex:review`)
   - Faz: `tools/jev/coletar_falhas.py` lê a saída do `run_tests.sh`, roda de novo cada teste que falhou e guarda o log completo e o diff numa pasta temporária.
   - Teste: uma saída falsa de bateria com 2 falhas → 2 logs guardados; com `TUDO OK` → nada.
 - [ ] **J.2 Gabarito** (Opus · medium; revisão `/codex:review`)
