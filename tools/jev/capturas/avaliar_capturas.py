@@ -10,7 +10,8 @@ O que faz:
    nenhuma classe (sim ou não) zera. No resto, a régua de código basta.
 
 Arquivos de cache, na pasta do gabarito:
-- medidas.jsonl       {"id", "arquivo", "tamanho", "medidas": {...}}  (medidas de pixels do PNG)
+- medidas.jsonl       {"id", "arquivo", "conteudo", "medidas": {...}}  (medidas de pixels do PNG;
+                      "conteudo" é o sha256 do PNG)
 - respostas_jev.jsonl {"id", "assinatura", "p": {conferencia: probabilidade_de_sim}}
   Rodar de novo não paga de novo: a assinatura é a do pedido inteiro (imagem e perguntas).
 
@@ -19,6 +20,7 @@ Uso:
                                                 [--descricao-torre TEXTO]
 """
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -59,8 +61,15 @@ def _medir_png(caminho: str) -> dict:
     return regua_pixels.medir(caminho)
 
 
+def conteudo_png(caminho: str) -> str:
+    """A assinatura do conteúdo do PNG. Duas capturas diferentes podem ter o mesmo tamanho em
+    bytes: o cache das medidas confere o conteúdo, como o cache do Jev (que assina o pedido)."""
+    with open(caminho, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
 def carregar_medidas(casos: list, pasta: str, medir=None) -> dict:
-    """{id: medidas}. Mede os PNG que ainda não estão em medidas.jsonl (ou que mudaram de tamanho)."""
+    """{id: medidas}. Mede os PNG que ainda não estão em medidas.jsonl (ou cujo conteúdo mudou)."""
     arq = os.path.join(pasta, "medidas.jsonl")
     cache = {}
     if os.path.isfile(arq):
@@ -73,14 +82,14 @@ def carregar_medidas(casos: list, pasta: str, medir=None) -> dict:
     resultado, novas = {}, []
     for c in casos:
         caminho = os.path.join(pasta, c["arquivo"])
-        tamanho = os.path.getsize(caminho)
+        conteudo = conteudo_png(caminho)
         r = cache.get(c["id"])
-        if r and r.get("arquivo") == c["arquivo"] and r.get("tamanho") == tamanho:
+        if r and r.get("arquivo") == c["arquivo"] and r.get("conteudo") == conteudo:
             resultado[c["id"]] = r["medidas"]
             continue
         m = medir(caminho)
         resultado[c["id"]] = m
-        novas.append({"id": c["id"], "arquivo": c["arquivo"], "tamanho": tamanho, "medidas": m})
+        novas.append({"id": c["id"], "arquivo": c["arquivo"], "conteudo": conteudo, "medidas": m})
     if novas:
         with open(arq, "a", encoding="utf-8") as f:
             for r in novas:

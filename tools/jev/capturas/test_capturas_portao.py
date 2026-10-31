@@ -424,6 +424,21 @@ class TestJevMockado(BaseComGabarito):
         self.assertEqual(self.medir_chamadas, primeira)   # nada medido de novo
         self.assertTrue(os.path.isfile(os.path.join(self.pasta, "medidas.jsonl")))
 
+    def test_png_trocado_com_o_mesmo_tamanho_e_medido_de_novo(self):
+        # C.2.1: o cache conferia só o tamanho em bytes; outra captura do mesmo tamanho
+        # reusava as medidas antigas, enquanto o cache do Jev via a imagem nova.
+        self.gabarito_bom()
+        self.rodar()
+        primeira = self.medir_chamadas
+        caminho = os.path.join(self.pasta, "p1.png")
+        with open(caminho, "rb") as f:
+            dados = f.read()
+        with open(caminho, "wb") as f:
+            f.write(dados[:-2] + b"p9")             # outro conteúdo, mesmo tamanho
+        self.respostas["p9"] = self.respostas["p1"]  # o Jev falso responde pelo id na imagem
+        self.rodar()
+        self.assertEqual(self.medir_chamadas, primeira + 1)
+
     def test_formato_do_cache_de_respostas(self):
         self.gabarito_bom()
         self.rodar()

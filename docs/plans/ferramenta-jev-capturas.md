@@ -69,11 +69,15 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
   - Feito em 2026-10-31:
     - **Limiares:** os do ajuste da C.3, fixos no código. A regra do dia (nenhum pixel quase preto) é frágil: a tabela avisa quando o Jev discorda dela. Neve e pinheiros usam o esperado (a hora pedida) para saber se é dia.
     - **Conferido no gabarito:** 7 de 80 capturas com aviso. São 3 erros da régua do dia (praça às 10 h), 1 noite que a exposição alta deixou com cara de dia e 3 "telas pretas" escuras. Custo: 0 chamadas, porque as respostas estavam guardadas.
-- [ ] **C.2.1 Os achados do `/codex:review` da C.2** (para o dono decidir):
-  - o gerador publica o `capturas.jsonl` mesmo quando uma rodada falha;
-  - uma `--saida` relativa vai para a pasta errada na Godot;
-  - o cache de medidas vale pelo tamanho do PNG, e não pelo conteúdo.
-  - Achado meu: sem `--saida`, o gerador sobrescreve o gabarito.
+- [x] **C.2.1 Os achados do `/codex:review` da C.2** (Opus · medium):
+  - **O gerador publicava o `capturas.jsonl` mesmo quando uma rodada falhava.** Agora:
+    - qualquer rodada com problema impede gravar o arquivo;
+    - um PNG velho de uma rodada anterior não passa por novo (a data é conferida, e as pastas brutas são limpas);
+    - o arquivo é gravado de uma vez.
+  - **Uma `--saida` relativa ia para a pasta errada na Godot:** agora vira caminho absoluto antes de tudo.
+  - **O cache de medidas valia pelo tamanho do PNG:** agora vale pelo sha256 do conteúdo.
+  - **Achado meu: sem `--saida`, o gerador sobrescrevia o gabarito.** Agora a `--saida` é obrigatória, e uma pasta que já tem `capturas.jsonl` só é sobrescrita com `--substituir`.
+  - Conferido de verdade: uma rodada curta com `--saida` relativa, a recusa ao rodar de novo e o `conferir_capturas.py --jev` nas 8 capturas (0 avisos; 8 chamadas, US$ 0,0010).
 
 ## Contrato da C.2 e da C.3 (combinado antes de dividir o trabalho)
 O dono pediu workers em paralelo (2026-10-31). **Só o gerador abre a Godot.** Os workers escrevem Python puro, sem Godot e sem rede, e não fazem commit.
