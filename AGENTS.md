@@ -69,7 +69,8 @@ worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, pla
   district_props/  o elemento de identidade de cada bairro (um script por bairro)
   biome/           o bioma na cidade (BiomeBuilder: chão, enfeites, névoa) e a montanha (BackdropTerrain, sobre o núcleo da 15.8)
 tests/         bateria automática (veja tests/README.md)
-tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual
+tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual;
+               jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev
 assets/        só CC0, com LICENSE em cada pasta de origem
 addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
@@ -156,6 +157,7 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 
 ### Testes
 - **Antes de cada commit:** `bash tests/run_tests.sh` precisa terminar com `RESULTADO GERAL: TUDO OK`. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).
+- **Quando a bateria falhar,** rode a triagem antes de ler os logs: salve a saída fora do repositório e rode `python tools/jev/triar_falhas.py <saída>`. Ela roda de novo só o que falhou e diz se é regressão, erro de script, tempo esgotado, ambiente ou instável. É só código: sem internet e sem custo. Confira sempre um log inteiro, e dois erros seguidos da triagem a suspendem. Detalhes: skill `triagem-falhas`.
 - Recurso novo ganha um `tests/check_<nome>.gd`. Formato e armadilhas: [tests/README.md](tests/README.md).
 - Mudança visual: confira com captura de tela (com janela, fora do repositório) antes de entregar.
 
