@@ -23,12 +23,18 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
 - **Teto de custo do Jev: US$ 0,50.** Cada passo com o Jev termina com o relatório de custo.
 
 ## Subetapas
-- [ ] **C.0 Plano e revisão adversarial antes de codar** (Opus · low; revisão `/codex:adversarial-review --base fase-15`)
+- [x] **C.0 Plano e revisão adversarial antes de codar** (Opus · low; revisão `/codex:adversarial-review --base fase-15`)
   - Este arquivo, com commit; o dono roda a revisão antes da C.1.
-- [ ] **C.1 Formato e custo da imagem** (Opus · medium)
+  - Revisão adversarial (2026-10-31): aprovada, sem achados.
+- [x] **C.1 Formato e custo da imagem** (Opus · medium)
   - Ler na documentação viva: `images.md`, `noul.md`, `box.md` e o OpenAPI (o mapa `assets`, o cabeçalho `TypeSafe-Danger-Zone-Images: true`, o limite de 1568 px).
   - O `tools/jev/jev.py` aprende a mandar imagem. Erro continua sendo erro.
   - **1 captura** de teste (1280×720, biblioteca falsa) com 1 pergunta: medir quantos tokens a imagem gasta e fixar o tamanho do gabarito dentro do teto.
+  - Feito em 2026-10-31:
+    - **Custo:** 2.844 tokens por pedido com uma captura de 1280×720 e 3 perguntas (~US$ 0,00012). O teto de US$ 0,50 dá ~4 mil capturas; o limite real é o tempo da Godot.
+    - **Respostas na captura da praça às 13 h:** dia 0,97, torre visível 0,05, pinheiro preto 0,20. As três batem com o que se vê. Uma captura não prova nada; ela só mostra que o formato funciona.
+    - **Achado: a biblioteca falsa usa capas DE VERDADE.** Ela usa a pasta de capas da Steam do dono (`appcache/librarycache`). Na cópia descartável, o `FakeLibrary.install` passa a usar `fixed_ids = true` (IDs inventados, nomes em texto, nenhuma capa). O repositório não muda. A skill `revisao-do-hub` sugere a biblioteca falsa para as capturas como se ela não tivesse capas: corrigir isso fica para o dono decidir.
+    - **A Godot com janela termina com `3221225477`** (erro de acesso à memória) depois de salvar as capturas, ao fechar. As capturas saem inteiras. Vigiar na C.2.
 - [ ] **C.2 Capturas com defeito conhecido + régua de código** (Opus · high; revisão `/codex:review`)
   - `tools/jev/capturas/gerar_capturas.gd` estende o `capturar_pontos.gd` e monta cada variante em `_prepare()`. Roda com janela, na cópia descartável.
   - **Variantes por construção:**
