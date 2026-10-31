@@ -35,7 +35,7 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
     - **Respostas na captura da praça às 13 h:** dia 0,97, torre visível 0,05, pinheiro preto 0,20. As três batem com o que se vê. Uma captura não prova nada; ela só mostra que o formato funciona.
     - **Achado: a biblioteca falsa usa capas DE VERDADE.** Ela usa a pasta de capas da Steam do dono (`appcache/librarycache`). Na cópia descartável, o `FakeLibrary.install` passa a usar `fixed_ids = true` (IDs inventados, nomes em texto, nenhuma capa). O repositório não muda. A skill `revisao-do-hub` sugere a biblioteca falsa para as capturas como se ela não tivesse capas: corrigir isso fica para o dono decidir.
     - **A Godot com janela termina com `3221225477`** (erro de acesso à memória) depois de salvar as capturas, ao fechar. As capturas saem inteiras. Vigiar na C.2.
-- [ ] **C.2 Capturas com defeito conhecido + régua de código** (Opus · high; revisão `/codex:review`)
+- [x] **C.2 Capturas com defeito conhecido + régua de código** (Opus · high; revisão `/codex:review`)
   - `tools/jev/capturas/gerar_capturas.gd` estende o `capturar_pontos.gd` e monta cada variante em `_prepare()`. Roda com janela, na cópia descartável.
   - **Variantes por construção:**
     - normal;
@@ -53,7 +53,7 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
   - **Ajuste:** `praca`, `portico` e `cima`, às 13 h e às 22 h.
   - **Portão** (condições que o ajuste não viu): `mirante`, câmera deslocada, 17 h.
   - O gabarito fica fora do repositório (`C:\Ferramentas\jev\capturas\`).
-- [ ] **C.3 Perguntas e portão** (Opus · high; revisão `/codex:adversarial-review`)
+- [x] **C.3 Perguntas e portão** (Opus · high; revisão `/codex:adversarial-review`)
   - `perguntas_capturas.py`: uma noul por conferência, sobre o que se vê (torre visível, pinheiro escuro mas verde, neve sem detalhe, dia).
   - `avaliar_capturas.py`:
     - o limiar é medido no ajuste;
@@ -66,6 +66,61 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
   - Doc `docs/design/jev-capturas-spike-2026-10-31.md`: os números, o custo e a decisão por conferência.
   - `tools/jev/capturas/conferir_capturas.py <pasta>`: uma tabela por captura (a régua, mais o Jev onde ele passou), para a 15.10 e a 15.13. Mais uma linha na skill `revisao-do-hub`.
   - **A aprovação visual continua sendo do dono.** A ferramenta só aponta o que olhar primeiro.
+
+## Contrato da C.2 e da C.3 (combinado antes de dividir o trabalho)
+O dono pediu workers em paralelo (2026-10-31). **Só o gerador abre a Godot.** Os workers escrevem Python puro, sem Godot e sem rede, e não fazem commit.
+
+**A régua de pixels sai em Python, não em GDScript** (desvio do plano):
+- ela lê o PNG pronto, então não disputa a Godot com o gerador;
+- vale para qualquer pasta de capturas, inclusive as antigas.
+
+A régua da torre (geometria) fica na Godot, no gerador.
+
+**O gabarito** (`C:\Ferramentas\jev\capturas\gabarito\`): os PNG de 1280×720 e um `capturas.jsonl` com uma linha por captura:
+```json
+{"id": "praca_13h_normal", "arquivo": "praca_13h_normal.png", "ponto": "praca", "hora": 13,
+ "variante": "normal", "parte": "ajuste", "sem_capas": true,
+ "rotulos": {"dia": true, "tela_preta": false, "neve_estourada": false,
+             "pinheiro_preto": false, "torre_visivel": true},
+ "geometria": {"torre_na_tela": true, "torre_altura_px": 41.5, "torre_desobstruida": true}}
+```
+- `parte` vale `ajuste` ou `portao`;
+- um rótulo `null` quer dizer "não dá para julgar nesta captura": ela fica fora daquela conferência;
+- as conferências são `dia`, `tela_preta`, `neve_estourada`, `pinheiro_preto` e `torre_visivel`.
+
+| Quem | Arquivos | Faz |
+|---|---|---|
+| Opus (esta sessão) | `tools/jev/capturas/gerar_capturas.py`, `gerar_capturas.gd` | as variantes na cópia descartável, os rótulos, a geometria da torre e a rodada |
+| Worker A (Sonnet) | `tools/jev/capturas/regua_pixels.py`, `test_regua_pixels.py` | lê o PNG (só biblioteca padrão) e mede brilho, branco, preto e céu |
+| Worker B (Sonnet) | `tools/jev/capturas/perguntas_capturas.py`, `avaliar_capturas.py`, `test_capturas_portao.py` | as perguntas, a régua de decisão, o limiar no ajuste, a nota no portão e o teto de custo |
+
+### Resultado da C.2 e da C.3 (2026-10-31)
+- **Gabarito:** 80 capturas em 3 min (`C:\Ferramentas\jev\capturas\gabarito\`), 30 de ajuste e 50 de portão. O portão tem outras horas (10 h e 20 h), câmera deslocada e o mirante. Nenhuma capa real (`fixed_ids` na cópia). O `config.cfg` do dono manteve a data.
+- **Portão** (acerto balanceado; o limiar do Jev sai do ajuste):
+
+| Conferência | Régua do contrato | Melhor regra simples* | Jev | Decisão |
+|---|---|---|---|---|
+| dia | 75% | 92% (algum pixel quase preto) | 100% | **régua** (o Jev vence por 8 pontos, menos que 10) |
+| neve estourada | 100% (brilho médio) | — | 75% | **régua** |
+| **sem pinheiros** | 43% | 47% | **100%** | **Jev** (+53 pontos) |
+| tela preta | — | — | — | fora: a variante não ficou preta |
+| torre visível | — | — | — | fora: a torre só existe depois da 15.10 |
+
+  \* Escolhida no ajuste entre 3 medidas e avaliada no portão: a lição da triagem (comparar com uma regra simples, não só com a régua do plano).
+- **Leitura:** o nicho do Jev nas capturas é **"algo sumiu da cena?"**, presença de objeto: pixels não separam um pinheiro escuro de uma rocha ou de uma sombra. Brilho, cor e dia/noite, o código resolve. A torre da 15.10 é o mesmo tipo de pergunta.
+- **Ressalvas:**
+  - poucos casos de "sim" (5 no portão para os pinheiros);
+  - o defeito é "todos os pinheiros sumiram"; "alguns sumiram" não foi medido;
+  - imagem no Jev ainda é protótipo na TypeSafe.
+- **Custo do Jev na C.2/C.3:** 110 chamadas, 629.390 tokens, ~US$ 0,026. Disso, US$ 0,016 foram desperdiçados pelo defeito da chave `screenshot`: a API troca toda ocorrência da chave pela imagem, inclusive dentro das perguntas. Corrigido, e há um teste que barra isso.
+- **Corrigido no caminho, só com dados do ajuste:** a régua da neve estourada usava a fração ≥ 0,98, que o tonemap nunca alcança (dava 0 em tudo); passou para o brilho médio. Os 16 rótulos da "tela preta" ficaram fora.
+
+### Mudanças durante a C.2 (2026-10-31)
+- **A torre fica para depois da 15.10.** Hoje o bairro RPG não tem torre: ele usa arcos em vez de prédios, e o `DistrictLandmark` só se monta em cima de um prédio. A régua geométrica já está no gerador e mede a torre quando a 15.10 a ancorar. A pergunta `torre_visivel` não vai ao Jev sem `--descricao-torre`.
+- **"Pinheiro preto" virou "sem pinheiros"** (decisão do dono). O pinheiro do hub já é quase preto (ajuste da 15.7), e a variante mudava só 1% a 3% dos pixels: nem uma pessoa separaria as duas. "Sem pinheiros" é um defeito real (o espalhamento falhar). A régua dele é a fração de pixels escuros no chão (`fracao_escura_baixo`, luma ≤ 0,25), em que valor baixo quer dizer "sim".
+- **As horas do portão viraram 10 h e 20 h, em vez de 17 h.** No `DayNight.night_amount`, as 17 h são pôr do sol, e o rótulo "dia" ficaria ambíguo.
+- **O contexto mandado ao Jev não cita pinheiros**, para não entregar a resposta de uma das conferências.
+- **Os dois workers** (Sonnet) entregaram a régua de pixels (0,63 s por imagem de 1280×720) e o portão, com os testes. Foram conferidos numa captura real da Godot. Dois defeitos meus apareceram e foram corrigidos no teste rápido: a lista de redução com `\r\n` do Windows e a régua da torre, que precisava deixar o corpo do jogador de fora do raio.
 
 ## Fora do escopo
 - O Jev no hub ou na bateria.
