@@ -12,7 +12,7 @@ linha diz `sem_capas: true` (o gerar_capturas.py grava isso: biblioteca falsa co
 numa cópia descartável). Pasta sem esse arquivo: só a régua de código.
 
 Uso:
-  python tools/jev/capturas/gerar_capturas.py --saida PASTA --variantes normal --rodadas ajuste
+  python tools/jev/capturas/gerar_capturas.py --saida PASTA_NOVA --variantes normal --rodadas ajuste
   python tools/jev/capturas/conferir_capturas.py PASTA [--jev]
 
 Saída: 0 = nada a olhar; 1 = alguma captura com aviso; 2 = erro.

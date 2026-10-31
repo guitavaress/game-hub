@@ -2,7 +2,6 @@
 import os
 import sys
 import tempfile
-import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -52,51 +51,41 @@ class TesteRotulos(unittest.TestCase):
 
 
 class TestePublicar(unittest.TestCase):
-    """C.2.1: o gabarito só é gravado com todas as rodadas boas, na pasta certa."""
+    """C.2.1 e C.2.2: só uma pasta nova, e o gabarito só sai com todas as rodadas boas."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.pasta = self._tmp.name
 
-    def png(self, nome, idade=0.0):
-        caminho = os.path.join(self.pasta, nome)
-        with open(caminho, "wb") as f:
+    def png(self, nome):
+        with open(os.path.join(self.pasta, nome), "wb") as f:
             f.write(b"x")
-        if idade:
-            os.utime(caminho, (time.time() - idade, time.time() - idade))
 
     def test_saida_relativa_vira_absoluta(self):
-        rel = os.path.relpath(self.pasta)
-        self.assertEqual(g.preparar_saida(rel, False), os.path.abspath(self.pasta))
+        nova = os.path.join(self.pasta, "nova")
+        self.assertEqual(g.preparar_saida(os.path.relpath(nova)), os.path.abspath(nova))
 
     def test_saida_dentro_do_repositorio_e_recusada(self):
         with self.assertRaises(ValueError):
-            g.preparar_saida(os.path.join(g.comum.PROJETO, "capturas"), False)
+            g.preparar_saida(os.path.join(g.comum.PROJETO, "capturas"))
 
-    def test_pasta_com_gabarito_pede_substituir(self):
-        with open(os.path.join(self.pasta, "capturas.jsonl"), "w") as f:
-            f.write("{}\n")
+    def test_pasta_com_qualquer_coisa_e_recusada(self):
+        # O gerador nunca mexe num gabarito que já existe: nem o manifesto, nem os PNG.
+        self.assertEqual(g.preparar_saida(self.pasta), os.path.abspath(self.pasta))  # vazia: ok
+        self.png("praca_13h_normal.png")
         with self.assertRaises(ValueError):
-            g.preparar_saida(self.pasta, False)
-        self.assertEqual(g.preparar_saida(self.pasta, True), os.path.abspath(self.pasta))
+            g.preparar_saida(self.pasta)
 
     def test_rodada_que_falhou_impede_publicar(self):
-        t0 = time.time() - 1
         self.png("a.png")
         casos = [{"id": "a", "arquivo": "a.png"}]
-        self.assertEqual(g.problemas_para_publicar([], casos, self.pasta, t0), [])
-        self.assertTrue(g.problemas_para_publicar(["portao/normal (saída 1)"], casos, self.pasta, t0))
+        self.assertEqual(g.problemas_para_publicar([], casos, self.pasta), [])
+        self.assertTrue(g.problemas_para_publicar(["portao/normal: x"], casos, self.pasta))
 
-    def test_nenhuma_captura_impede_publicar(self):
-        self.assertTrue(g.problemas_para_publicar([], [], self.pasta, time.time()))
-
-    def test_png_de_rodada_anterior_nao_conta(self):
-        self.png("velho.png", idade=3600)
-        casos = [{"id": "velho", "arquivo": "velho.png"}, {"id": "falta", "arquivo": "falta.png"}]
-        problemas = g.problemas_para_publicar([], casos, self.pasta, time.time() - 60)
-        self.assertEqual(len(problemas), 1)
-        self.assertIn("velho", problemas[0])
+    def test_nenhuma_captura_ou_png_faltando_impede_publicar(self):
+        self.assertTrue(g.problemas_para_publicar([], [], self.pasta))
+        problemas = g.problemas_para_publicar([], [{"id": "falta", "arquivo": "falta.png"}], self.pasta)
         self.assertIn("falta", problemas[0])
 
     def test_manifesto_gravado_inteiro(self):
@@ -104,6 +93,32 @@ class TestePublicar(unittest.TestCase):
         with open(os.path.join(self.pasta, "capturas.jsonl"), encoding="utf-8") as f:
             self.assertEqual(len(f.readlines()), 2)
         self.assertFalse(os.path.exists(os.path.join(self.pasta, "capturas.jsonl.tmp")))
+
+
+GEO = {"variante_aplicada": True, "pontos": {"praca": {}, "cima": {}}}
+TODAS = ["rpg_praca_13h.png", "rpg_praca_22h.png", "rpg_cima_13h.png", "rpg_cima_22h.png"]
+
+
+class TesteRodada(unittest.TestCase):
+    """C.2.2: a saída da Godot não basta; a rodada precisa da variante e de todas as capturas."""
+
+    def test_rodada_completa_vale(self):
+        self.assertEqual(g.checar_rodada(0, GEO, TODAS, "13,22"), "")
+        self.assertEqual(g.checar_rodada(3221225477, GEO, TODAS, "13,22"), "")
+
+    def test_queda_no_meio_com_captura_faltando(self):
+        # Caiu com 0xC0000005 depois de salvar só parte: a saída é "aceita", mas falta captura.
+        self.assertIn("faltando", g.checar_rodada(3221225477, GEO, TODAS[:3], "13,22"))
+
+    def test_variante_nao_aplicada_e_recusada(self):
+        geo = dict(GEO, variante_aplicada=False)
+        self.assertIn("variante", g.checar_rodada(0, geo, TODAS, "13,22"))
+        self.assertIn("variante", g.checar_rodada(0, {"pontos": GEO["pontos"]}, TODAS, "13,22"))
+
+    def test_saida_ruim_e_sem_geometria(self):
+        self.assertIn("saiu", g.checar_rodada(1, GEO, TODAS, "13,22"))
+        self.assertIn("geometria", g.checar_rodada(0, None, TODAS, "13,22"))
+        self.assertIn("ponto", g.checar_rodada(0, {"variante_aplicada": True, "pontos": {}}, [], "13"))
 
 
 if __name__ == "__main__":

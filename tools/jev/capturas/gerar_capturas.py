@@ -9,12 +9,12 @@ quase preta), roda o gerar_capturas.gd numa cópia descartável do projeto:
 Depois reduz cada PNG para 1280x720 (o limite do Jev é 1568 px por lado) e grava
 <saida>/capturas.jsonl no formato do contrato (docs/plans/ferramenta-jev-capturas.md).
 
-  python tools/jev/capturas/gerar_capturas.py --saida PASTA [--substituir]
+  python tools/jev/capturas/gerar_capturas.py --saida PASTA_NOVA
 Enquanto roda, não abra a Godot nem rode a bateria em outra janela.
 
-A pasta é obrigatória (o gabarito do spike fica em C:\\Ferramentas\\jev\\capturas\\gabarito) e
-uma pasta que já tem capturas.jsonl só é sobrescrita com --substituir. Se qualquer rodada
-falhar, o capturas.jsonl não é gravado: um gabarito incompleto nunca troca um bom.
+A pasta é obrigatória e precisa ser nova (ou vazia): o gerador nunca sobrescreve um gabarito
+(o do spike fica em C:\\Ferramentas\\jev\\capturas\\gabarito). Se qualquer rodada falhar (a
+variante não pegou, faltou captura), o capturas.jsonl não é gravado.
 """
 import argparse
 import json
@@ -38,12 +38,14 @@ TORRE_CLARA_PX = 20.0
 GDSCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gerar_capturas.gd")
 # 0xC0000005: a Godot com janela às vezes cai ao FECHAR, depois de salvar (visto na C.1).
 SAIDAS_ACEITAS = {0, 3221225477}
+BAIRRO = "rpg"  # o capturar_pontos.gd grava <bairro>_<ponto>_<hh>h.png
 
 
-def preparar_saida(saida: str, substituir: bool) -> str:
+def preparar_saida(saida: str) -> str:
     """A pasta de saída como caminho absoluto (a Godot roda em outra pasta, a da cópia: um
-    caminho relativo iria parar lá). Recusa a pasta dentro do repositório e, sem
-    `substituir`, uma pasta que já tem gabarito."""
+    caminho relativo iria parar lá). Recusa a pasta dentro do repositório e qualquer pasta
+    que já tenha algo dentro: o gerador nunca mexe num gabarito que já existe, então uma
+    rodada que falha não tem o que estragar (C.2.2)."""
     saida = os.path.abspath(saida)
     projeto = os.path.abspath(comum.PROJETO)
     try:
@@ -52,24 +54,41 @@ def preparar_saida(saida: str, substituir: bool) -> str:
         dentro = False  # outro disco (Windows): não está dentro
     if dentro:
         raise ValueError("o gabarito não pode ficar dentro do repositório.")
-    if os.path.isfile(os.path.join(saida, "capturas.jsonl")) and not substituir:
-        raise ValueError("%s já tem um capturas.jsonl: use outra pasta ou --substituir." % saida)
+    if os.path.exists(saida) and (not os.path.isdir(saida) or os.listdir(saida)):
+        raise ValueError("%s já existe e não está vazia: use uma pasta nova (o gerador nunca "
+                         "sobrescreve um gabarito)." % saida)
     return saida
 
 
-def problemas_para_publicar(falhas: list, casos: list, saida: str, t0: float) -> list:
-    """O que impede gravar o capturas.jsonl. Vazio = pode publicar.
+def checar_rodada(saida_godot: int, geo, pngs: list, horas: str) -> str:
+    """Por que a rodada não vale ("" = vale). A Godot às vezes cai ao fechar (0xC0000005),
+    então o código de saída não basta: confere a variante aplicada e TODAS as capturas
+    esperadas (cada ponto da geometria em cada hora pedida)."""
+    if saida_godot not in SAIDAS_ACEITAS:
+        return "a Godot saiu com %s" % saida_godot
+    if geo is None:
+        return "sem geometria.json"
+    if geo.get("variante_aplicada") is not True:
+        # Sem o defeito na cena, o rótulo (que vem do nome da variante) seria falso.
+        return "a variante não foi aplicada na cena"
+    esperadas = {"%s_%s_%02dh.png" % (BAIRRO, ponto, int(h))
+                 for ponto in geo.get("pontos", {}) for h in horas.split(",")}
+    if not esperadas:
+        return "nenhum ponto na geometria"
+    faltam = sorted(esperadas - set(pngs))
+    if faltam:
+        return "capturas faltando: %s" % faltam[:5]
+    return ""
 
-    Uma captura só conta se foi gravada NESTA rodada (data >= t0): um PNG velho com o mesmo
-    nome, de uma rodada anterior, não pode passar por novo."""
+
+def problemas_para_publicar(falhas: list, casos: list, saida: str) -> list:
+    """O que impede gravar o capturas.jsonl. Vazio = pode publicar."""
     problemas = ["rodada com problema: %s" % f for f in falhas]
     if not casos:
         problemas.append("nenhuma captura gerada")
-    velhas = [c["id"] for c in casos
-              if not os.path.isfile(os.path.join(saida, c["arquivo"]))
-              or os.path.getmtime(os.path.join(saida, c["arquivo"])) < t0]
-    if velhas:
-        problemas.append("capturas reduzidas faltando (ou de uma rodada anterior): %s" % velhas[:5])
+    faltam = [c["id"] for c in casos if not os.path.isfile(os.path.join(saida, c["arquivo"]))]
+    if faltam:
+        problemas.append("capturas reduzidas faltando: %s" % faltam[:5])
     return problemas
 
 
@@ -129,8 +148,7 @@ func _initialize() -> void:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(description="Gera o gabarito de capturas (spike do Jev, C.2).")
-    p.add_argument("--saida", required=True, help="pasta fora do repositório")
-    p.add_argument("--substituir", action="store_true", help="sobrescreve um capturas.jsonl que já existe")
+    p.add_argument("--saida", required=True, help="pasta nova (ou vazia), fora do repositório")
     p.add_argument("--base", default="HEAD")
     p.add_argument("--variantes", default=",".join(VARIANTES), help="só estas (teste rápido)")
     p.add_argument("--rodadas", default="ajuste,portao", help="só estas (teste rápido)")
@@ -138,7 +156,7 @@ def main() -> int:
     variantes = [v for v in a.variantes.split(",") if v in VARIANTES]
     rodadas = [r for r in RODADAS if r[0] in a.rodadas.split(",")]
     try:
-        a.saida = preparar_saida(a.saida, a.substituir)
+        a.saida = preparar_saida(a.saida)
     except ValueError as e:
         print(e)
         return 1
@@ -168,11 +186,9 @@ def main() -> int:
         for rodada, horas, deslocar in rodadas:
             for variante in variantes:
                 pasta = os.path.join(brutas, "%s_%s" % (rodada, variante))
-                # Limpa o que sobrou de uma rodada anterior que falhou: PNG velho não passa por novo.
-                shutil.rmtree(pasta, ignore_errors=True)
                 os.makedirs(pasta, exist_ok=True)
                 cmd = [godot, "--path", copia.pasta, "-s", "res://gerar_capturas.gd", "--",
-                       pasta.replace("\\", "/"), "200", "rpg", horas, "alta", variante]
+                       pasta.replace("\\", "/"), "200", BAIRRO, horas, "alta", variante]
                 if deslocar:
                     cmd.append("deslocar")
                 r = comum.rodar(cmd, 600, copia.pasta)
@@ -183,13 +199,16 @@ def main() -> int:
                 for linha in r["log"].splitlines():
                     if any(k in linha for k in ("pinheiros escondidos", "exposição", "ERROR", "Nenhum", "Sem ")):
                         print("    | " + linha.strip()[:160])
-                if r["saida"] not in SAIDAS_ACEITAS or not os.path.isfile(geo_arq) or not pngs:
-                    print("    PROBLEMA: veja o log abaixo (últimas linhas)")
+                geo = None
+                if os.path.isfile(geo_arq):
+                    with open(geo_arq, encoding="utf-8") as f:
+                        geo = json.load(f)
+                motivo = checar_rodada(r["saida"], geo, pngs, horas)
+                if motivo:
+                    print("    PROBLEMA: %s. Últimas linhas do log:" % motivo)
                     print("\n".join("    " + l for l in r["log"].splitlines()[-15:]))
-                    falhas.append("%s/%s (saída %s)" % (rodada, variante, r["saida"]))
+                    falhas.append("%s/%s: %s" % (rodada, variante, motivo))
                     continue
-                with open(geo_arq, encoding="utf-8") as f:
-                    geo = json.load(f)
                 for png in pngs:  # rpg_<ponto>_<hh>h.png
                     _, ponto, hh = png[:-4].split("_", 2)
                     hora = int(hh.rstrip("h"))
@@ -204,24 +223,25 @@ def main() -> int:
                                   "variante": variante, "parte": parte_de(rodada, ponto), "sem_capas": True,
                                   "rotulos": rotulos(variante, noite, g), "geometria": g})
 
-        # Reduz tudo de uma vez (sem janela).
-        lista = os.path.join(copia.pasta, "reduzir.txt")
-        # newline="": no Windows, o modo texto troca \n por \r\n, e o \r grudava no caminho.
-        with open(lista, "w", encoding="utf-8", newline="") as f:
-            f.write("\n".join(pares))
-        with open(os.path.join(copia.pasta, "reduzir.gd"), "w", encoding="utf-8") as f:
-            f.write(REDUZIR_GD)
-        r = comum.rodar([godot, "--headless", "--path", copia.pasta, "-s", "res://reduzir.gd", "--",
-                         lista.replace("\\", "/")], 600, copia.pasta)
-        print("  " + " ".join(l for l in r["log"].splitlines() if "REDUZIDAS" in l))
+        # Reduz tudo de uma vez (sem janela). Com rodada ruim, nem reduz: não vai publicar.
+        if not falhas:
+            lista = os.path.join(copia.pasta, "reduzir.txt")
+            # newline="": no Windows, o modo texto troca \n por \r\n, e o \r grudava no caminho.
+            with open(lista, "w", encoding="utf-8", newline="") as f:
+                f.write("\n".join(pares))
+            with open(os.path.join(copia.pasta, "reduzir.gd"), "w", encoding="utf-8") as f:
+                f.write(REDUZIR_GD)
+            r = comum.rodar([godot, "--headless", "--path", copia.pasta, "-s", "res://reduzir.gd", "--",
+                             lista.replace("\\", "/")], 600, copia.pasta)
+            print("  " + " ".join(l for l in r["log"].splitlines() if "REDUZIDAS" in l))
     finally:
         copia.apagar()
 
-    problemas = problemas_para_publicar(falhas, casos, a.saida, t0)
+    problemas = problemas_para_publicar(falhas, casos, a.saida)
     if problemas:
         for pr in problemas:
             print("PROBLEMA: %s" % pr)
-        print("o capturas.jsonl NÃO foi gravado (o que já existia na pasta fica como estava).")
+        print("o capturas.jsonl NÃO foi gravado (a pasta nova fica sem gabarito; apague-a).")
         return 1
     gravar_manifesto(a.saida, casos)
     shutil.rmtree(brutas, ignore_errors=True)

@@ -46,28 +46,33 @@ func _prepare(city: Node, area: Dictionary) -> void:
 	var variante := _variante()
 	var district := String(OS.get_cmdline_user_args()[2])
 	var torre := city.get_node_or_null("DistrictLandmark_%s" % district) as Node3D
+	# O defeito foi montado de verdade? Sem ele, o rótulo (que vem do nome da variante)
+	# seria falso: o gerar_capturas.py lê o "variante_aplicada" e recusa a rodada (C.2.2).
+	# Sem quit() aqui: o capturar_pontos.gd segue esperando quadros depois do _prepare, e
+	# fechar a Godot no meio disso a travava (10 min até o tempo esgotar).
+	var aplicada := true
 	match variante:
 		"normal":
 			pass
 		"torre_escondida":
+			# Sem torre no bairro, a captura já não mostra torre: o rótulo "não" continua certo.
 			if torre != null:
 				torre.visible = false
 		"sem_pinheiros":
-			_esconder_pinheiros(city)
+			aplicada = _esconder_pinheiros(city)
 		"neve_estourada":
-			_mudar_exposicao(city, EXPOSICAO_ESTOURADA)
+			aplicada = _mudar_exposicao(city, EXPOSICAO_ESTOURADA)
 		"tela_preta":
-			_mudar_exposicao(city, EXPOSICAO_ESCURA)
+			aplicada = _mudar_exposicao(city, EXPOSICAO_ESCURA)
 		_:
 			push_error("Variante desconhecida: %s" % variante)
-			quit(1)
-			return
-	_gravar_geometria(city, area, torre, variante)
+			aplicada = false
+	_gravar_geometria(city, area, torre, variante, aplicada)
 
 
 ## Os pinheiros do bioma são a família de impostores (TreeImpostor, com "atlas") do
 ## BiomeScatter: some só ela. As rochas e as árvores da cidade ficam.
-func _esconder_pinheiros(city: Node) -> void:
+func _esconder_pinheiros(city: Node) -> bool:
 	var escondidos := 0
 	# As famílias do BiomeScatter se chamam "Scatter_<n>" (biome_scatter.gd, _add_family).
 	for node in city.find_children("Scatter_*", "MultiMeshInstance3D", true, false):
@@ -82,24 +87,26 @@ func _esconder_pinheiros(city: Node) -> void:
 	print("pinheiros escondidos: ", escondidos)
 	if escondidos == 0:
 		push_error("Nenhum pinheiro achado: a variante sem_pinheiros não vale.")
+	return escondidos > 0
 
 
 ## A exposição pelo multiplicador da câmera do ambiente: o DayNight reescreve a
 ## tonemap_exposure a cada hora, mas não toca no camera_attributes.
-func _mudar_exposicao(city: Node, multiplicador: float) -> void:
+func _mudar_exposicao(city: Node, multiplicador: float) -> bool:
 	var ambiente := city.get("_world_env") as WorldEnvironment
 	if ambiente == null:
 		push_error("Sem WorldEnvironment: a variante de exposição não vale.")
-		return
+		return false
 	var atributos := CameraAttributesPractical.new()
 	atributos.exposure_multiplier = multiplicador
 	ambiente.camera_attributes = atributos
 	print("exposição x", multiplicador)
+	return true
 
 
 ## A régua geométrica: de cada ponto, a torre cai na tela? Quantos pixels de altura
 ## (numa imagem de 720 px)? Algum raio do olho até ela chega sem bater em nada antes?
-func _gravar_geometria(city: Node, area: Dictionary, torre: Node3D, variante: String) -> void:
+func _gravar_geometria(city: Node, area: Dictionary, torre: Node3D, variante: String, aplicada: bool) -> void:
 	var args := OS.get_cmdline_user_args()
 	var pasta := String(args[0])
 	var player_camera: Camera3D = city.get_node("Player/Head/Camera3D")
@@ -111,7 +118,8 @@ func _gravar_geometria(city: Node, area: Dictionary, torre: Node3D, variante: St
 	var noite := {}
 	for text in String(args[3]).split(","):
 		noite[text] = city.get("_day_night").night_amount(float(text))
-	var dados := {"variante": variante, "deslocar": _deslocar(), "noite": noite, "pontos": pontos}
+	var dados := {"variante": variante, "variante_aplicada": aplicada, "deslocar": _deslocar(),
+			"noite": noite, "pontos": pontos}
 	var arquivo := FileAccess.open(pasta + "/geometria.json", FileAccess.WRITE)
 	arquivo.store_string(JSON.stringify(dados, "  "))
 	arquivo.close()

@@ -78,6 +78,16 @@ A [ferramenta do Jev](ferramenta-jev.md) mostrou que, na triagem da bateria, uma
   - **O cache de medidas valia pelo tamanho do PNG:** agora vale pelo sha256 do conteúdo.
   - **Achado meu: sem `--saida`, o gerador sobrescrevia o gabarito.** Agora a `--saida` é obrigatória, e uma pasta que já tem `capturas.jsonl` só é sobrescrita com `--substituir`.
   - Conferido de verdade: uma rodada curta com `--saida` relativa, a recusa ao rodar de novo e o `conferir_capturas.py --jev` nas 8 capturas (0 avisos; 8 chamadas, US$ 0,0010).
+- [x] **C.2.2 Os achados do `/codex:review` e do `/codex:adversarial-review` depois da C.2.1** (Opus · medium):
+  - **[alto] Com `--substituir`, uma falha deixava PNG novos misturados aos antigos.** O defeito nasceu da própria C.2.1. A correção tira código em vez de pôr mais: o `--substituir` saiu, e o gerador só aceita uma pasta nova ou vazia. Com rodada ruim, ele nem reduz as capturas.
+  - **A Godot cair com `0xC0000005` no meio aprovava um conjunto incompleto.** Agora `checar_rodada` exige todas as capturas esperadas: cada ponto da geometria em cada hora pedida.
+  - **Um defeito que não pegou na cena virava rótulo falso.** O `gerar_capturas.gd` grava `variante_aplicada` (pinheiros achados, ambiente com exposição), e o Python recusa a rodada.
+  - **Tropeço meu, corrigido no caminho:** a primeira versão também chamava `quit(1)` no `_prepare`. O `capturar_pontos.gd` segue esperando quadros depois dele, e a Godot travou até o tempo esgotar (10 min). Sem o `quit`, a Godot termina normalmente, e quem recusa é o Python.
+  - **Conferido na Godot:**
+    - uma rodada boa (normal e sem pinheiros, 16 capturas);
+    - uma rodada com os pinheiros sabotados numa cópia do script: 22 s, recusada, sem gabarito gravado e sem Godot aberta;
+    - a recusa da pasta do gabarito do spike.
+  - **O gabarito do spike continua valendo:** todas as rodadas dele saíram com código 0, as 80 capturas foram geradas, e o log mostrou cada defeito aplicado.
 
 ## Contrato da C.2 e da C.3 (combinado antes de dividir o trabalho)
 O dono pediu workers em paralelo (2026-10-31). **Só o gerador abre a Godot.** Os workers escrevem Python puro, sem Godot e sem rede, e não fazem commit.
