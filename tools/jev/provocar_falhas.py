@@ -13,8 +13,10 @@ Categorias (a resposta certa):
   instavel        falhou uma vez e passou ao rodar de novo.
 
 Segurança:
-  - nunca toca o user:// nem o config.cfg: só usa testes que não mexem neles, e só muda
-    arquivos dentro da cópia descartável;
+  - a Godot da cópia usa uma pasta de dados própria (override.cfg), conferida antes do
+    primeiro teste e apagada no fim: o user:// do hub (config.cfg, chave, cache) não é aberto.
+    (Até a J.2.1 isso não existia: a cidade gravava sozinha no user:// do dono, por exemplo
+    a dica de controles marcando "já vista".) Só muda arquivos dentro da cópia descartável;
   - cada log passa por comum.limpar_log() (pasta pessoal, nome do usuário, jogos instalados);
   - o gabarito fica FORA do repositório (padrão: C:\\Ferramentas\\jev\\gabarito).
 
@@ -39,9 +41,12 @@ import comum  # noqa: E402
 
 SEMENTE = 1507
 
-# Testes que mexem no user:// (config.cfg, cache) ficam de fora: matar um deles no meio
-# pode deixar o config.cfg do dono sem a cópia devolvida. Testes que leem o sistema ou a
-# conta da Steam também ficam de fora, para os logs não levarem dado do dono.
+# A pasta de dados (user://) da cópia: %APPDATA%\<nome> no Windows, ~/.local/share/<nome> no Linux.
+PASTA_DE_DADOS_DESCARTAVEL = "game-hub-jev-provocar"
+
+# Testes que mexem no user:// de propósito ficam de fora (com a pasta isolada isso já não
+# arrisca o dono, mas mantém os gabaritos iguais aos de antes). Testes que leem o sistema
+# ou a conta da Steam também ficam de fora, para os logs não levarem dado do dono.
 TOCA_USER = re.compile(r"user://|config\.cfg|AppConfig|app_config")
 FORA_POR_PRIVACIDADE = {"check_desktop_apps_windows", "check_system_status", "check_system_panel",
                         "check_steam_windows", "check_steam_linux", "check_window_host"}
@@ -187,12 +192,41 @@ def separar_portao(casos: list, semente: int = SEMENTE) -> None:
 class Copia:
     """Um git worktree --detach numa pasta temporária, com o .godot/ do projeto copiado."""
 
-    def __init__(self, base: str):
+    def __init__(self, base: str, godot: str):
         self.pasta = os.path.join(tempfile.gettempdir(), "game-hub-jev", "provocar-%d" % os.getpid())
         assert os.path.normcase(os.path.abspath(self.pasta)) != os.path.normcase(comum.PROJETO)
+        self.pasta_de_dados = ""
         subprocess.run(["git", "worktree", "add", "--detach", "-q", self.pasta, base],
                        cwd=comum.PROJETO, check=True)
         self._copiar_godot()
+        self._isolar_dados()
+        self.pasta_de_dados = self._conferir_dados(godot)
+
+    def _isolar_dados(self) -> None:
+        """Dá à Godot da cópia uma pasta de dados própria (J.2.1, revisão do Codex).
+
+        O `user://` do hub (config.cfg, cache) é um só para todas as cópias do projeto, e a
+        cidade grava nele sozinha (ex.: a dica de controles marca "já vista" depois de 15 s).
+        O override.cfg na raiz da cópia troca a pasta só para ela. Ele não está no git, então
+        o `git clean` do restaurar() o apaga: por isso ele é regravado a cada restauração.
+        """
+        with open(os.path.join(self.pasta, "override.cfg"), "w", encoding="utf-8") as f:
+            f.write("[application]\n\nconfig/use_custom_user_dir=true\n"
+                    'config/custom_user_dir_name="%s"\n' % PASTA_DE_DADOS_DESCARTAVEL)
+
+    def _conferir_dados(self, godot: str) -> str:
+        """Pergunta à Godot da cópia qual é o user:// e para tudo se não for o descartável."""
+        script = os.path.join(tempfile.gettempdir(), "game-hub-jev", "onde_ficam_os_dados.gd")
+        with open(script, "w", encoding="utf-8") as f:
+            f.write("extends SceneTree\n\nfunc _initialize() -> void:\n"
+                    '\tprint("USER_DIR=" + OS.get_user_data_dir())\n\tquit()\n')
+        r = comum.rodar([godot, "--headless", "--path", self.pasta, "-s", script], 120, self.pasta)
+        m = re.search(r"USER_DIR=(.+)", r["log"])
+        pasta = m.group(1).strip() if m else ""
+        if PASTA_DE_DADOS_DESCARTAVEL not in pasta:
+            self.apagar()
+            raise RuntimeError("a cópia não isolou o user:// (deu %r); nada foi rodado" % pasta)
+        return pasta
 
     def _copiar_godot(self) -> None:
         destino = os.path.join(self.pasta, ".godot")
@@ -204,6 +238,7 @@ class Copia:
         """Desfaz tudo o que foi mudado na cópia (nunca no projeto de verdade)."""
         subprocess.run(["git", "checkout", "-q", "--", "."], cwd=self.pasta, check=True)
         subprocess.run(["git", "clean", "-fdq"], cwd=self.pasta, check=True)
+        self._isolar_dados()  # o git clean apagou o override.cfg
         if godot_tambem:
             self._copiar_godot()
 
@@ -218,6 +253,10 @@ class Copia:
     def apagar(self) -> None:
         subprocess.run(["git", "worktree", "remove", "--force", self.pasta], cwd=comum.PROJETO)
         shutil.rmtree(self.pasta, ignore_errors=True)
+        # Só apaga a pasta de dados se for mesmo a descartável (nunca o user:// do hub).
+        if self.pasta_de_dados and PASTA_DE_DADOS_DESCARTAVEL in os.path.basename(
+                os.path.normpath(self.pasta_de_dados)):
+            shutil.rmtree(self.pasta_de_dados, ignore_errors=True)
 
 
 # ---- O gerador ------------------------------------------------------------------------------
@@ -534,7 +573,7 @@ def main() -> int:
         return 1
 
     t0 = time.time()
-    copia = Copia(a.base)
+    copia = Copia(a.base, godot)
     privados = comum.palavras_privadas()
     limpar = lambda log: comum.limpar_log(log, [copia.pasta], privados)  # noqa: E731
     try:
