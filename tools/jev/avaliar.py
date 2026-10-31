@@ -21,6 +21,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
+import comum  # noqa: E402
 import jev  # noqa: E402
 import perguntas  # noqa: E402
 import provocar_falhas  # noqa: E402
@@ -34,6 +35,21 @@ META_VANTAGEM = 0.10
 # Casos do 1º gabarito que não acontecem na bateria (ela importa o projeto antes, e a
 # importação refaz o cache): ficam fora da conta.
 FORA_DO_ESCOPO = {"ambiente_sem_classes", "ambiente_sem_importados", "ambiente_sem_uids"}
+
+
+def instalados_do_caso(c: dict) -> set:
+    """A biblioteca como estava na cópia em que o caso foi gerado.
+
+    No PC do dono os 4 jogos exigidos estão instalados; o caso "ambiente_sem_jogo" escondeu
+    um deles só na cópia. Os gabaritos novos guardam qual ("jogo_escondido"); nos de antes
+    da J.3.1, é o do prédio que o log mostra faltando (um por caso, por construção).
+    """
+    instalados = set(comum.JOGOS_EXIGIDOS)
+    if "jogo_escondido" in c:
+        instalados.discard(c["jogo_escondido"])
+    elif c["provocacao"] == "ambiente_sem_jogo":
+        instalados -= {int(m.group(1)) for m in tf.PREDIO_FALTANDO.finditer(c["log_texto"])}
+    return instalados
 
 
 def ler_gabarito(pasta: str) -> list:
@@ -161,7 +177,8 @@ def main() -> int:
     indefinidos = sum(1 for _, _, j, _, _ in prev if j == "indefinido")
 
     nota_regras, cat_regras = acerto_balanceado(
-        [(c["categoria"], tf.categoria_regras(c, c["log_texto"])[0]) for c in portao], tf.CATEGORIAS)
+        [(c["categoria"], tf.categoria_regras(c, c["log_texto"], instalados_do_caso(c))[0])
+         for c in portao], tf.CATEGORIAS)
 
     print("\n== PORTÃO (%d casos que não ajustaram nada) ==" % len(portao))
     print("categoria, acerto balanceado: base do plano %.0f%%  |  com o Jev %.0f%%  |  regras finais %.0f%%"

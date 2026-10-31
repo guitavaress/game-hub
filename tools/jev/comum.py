@@ -147,16 +147,24 @@ def jogos_instalados() -> list:
 JOGOS_EXIGIDOS = {2379780: "Balatro", 489830: "Skyrim", 892970: "Valheim", 413150: "Stardew Valley"}
 
 
-def exigidos_faltando() -> dict:
-    """Os jogos exigidos que não estão instalados neste PC ({app id: nome}).
-
-    Se não achar a Steam, devolve todos: sem biblioteca, os testes falham do mesmo jeito.
-    """
+def apps_instalados():
+    """Os app ids instalados neste PC, ou None se a Steam não foi achada (não dá para saber)."""
+    if not _pastas_da_steam():
+        return None
     ids = set()
     for arq in _manifestos():
         m = re.search(r"appmanifest_(\d+)\.acf$", arq)
         if m:
             ids.add(int(m.group(1)))
+    return ids
+
+
+def exigidos_faltando() -> dict:
+    """Os jogos exigidos que não estão instalados neste PC ({app id: nome}).
+
+    Se não achar a Steam, devolve todos: sem biblioteca, os testes falham do mesmo jeito.
+    """
+    ids = apps_instalados() or set()
     return {i: nome for i, nome in JOGOS_EXIGIDOS.items() if i not in ids}
 
 

@@ -6,8 +6,9 @@ ligação com os arquivos do diff. A tabela (`categoria_regras`):
   Godot ausente                                   → ambiente
   passou ao rodar de novo                         → instavel
   Parse Error ou Compile Error no log             → erro_de_script
-  'Node not found: "Building_<id>' no log:
-    com SCRIPT ERROR ou [FALHOU]                  → ambiente (falta um jogo que o teste exige)
+  'Node not found: "Building_<id>' no log e o jogo <id> NÃO está instalado
+                                                  → ambiente (falta um jogo que o teste exige)
+  (com o jogo instalado, ou sem dar para saber, o prédio faltando é do código: segue abaixo)
   outro SCRIPT ERROR                              → erro_de_script
   saída 124 ao rodar de novo                      → tempo_esgotado
   o resto (conferências que falharam)             → regressao
@@ -38,7 +39,7 @@ CATEGORIAS = ["regressao", "erro_de_script", "tempo_esgotado", "ambiente", "inst
 ERRO_DE_COMPILACAO = re.compile(r"Parse Error|Compile Error")
 # Cada jogo instalado vira um nó "Building_<app id>" na cidade; se ele não existe, o teste
 # que precisa daquele jogo falha (tests/README.md: "A biblioteca de verdade importa").
-PREDIO_FALTANDO = re.compile(r'Node not found: "Building_\d+')
+PREDIO_FALTANDO = re.compile(r'Node not found: "Building_(\d+)')
 
 
 def frase_decisiva(log: str) -> str:
@@ -56,6 +57,20 @@ def frase_de_ambiente(log: str) -> str:
         if PREDIO_FALTANDO.search(l):
             return l.strip()[:200]
     return frase_decisiva(log)
+
+
+def jogos_ausentes_no_log(log: str, instalados) -> list:
+    """Os app ids de prédios que faltam no log E cujo jogo não está instalado.
+
+    `instalados` é o conjunto de app ids deste PC, ou None quando não dá para saber. Sem
+    essa prova, a lista vem vazia: um prédio pode faltar por causa do código (ex.: uma
+    mudança que tira o GamePortal), e a triagem não pode dizer "não é o seu código" sem
+    ter certeza (achado da revisão do Codex, J.3.1).
+    """
+    if instalados is None:
+        return []
+    ids = {int(m.group(1)) for m in PREDIO_FALTANDO.finditer(log)}
+    return sorted(i for i in ids if i not in instalados)
 
 
 def pela_regra(caso: dict, log: str):
@@ -76,15 +91,20 @@ def tempo_esgotado(caso: dict) -> bool:
     return caso["rodada2"].get("saida") == comum.SAIDA_TEMPO_ESGOTADO
 
 
-def categoria_regras(caso: dict, log: str) -> tuple:
-    """A tabela usada pela ferramenta (veja o topo do arquivo). Devolve (categoria, frase)."""
+def categoria_regras(caso: dict, log: str, instalados) -> tuple:
+    """A tabela usada pela ferramenta (veja o topo do arquivo). Devolve (categoria, frase).
+
+    `instalados`: os app ids instalados (comum.apps_instalados()), ou None se não dá para saber.
+    """
     regra = pela_regra(caso, log)
     if regra:
         return regra
     if ERRO_DE_COMPILACAO.search(log):
         return "erro_de_script", frase_decisiva(log)
-    if PREDIO_FALTANDO.search(log):
-        return "ambiente", frase_de_ambiente(log)
+    ausentes = jogos_ausentes_no_log(log, instalados)
+    if ausentes:
+        nomes = ", ".join("%s (%d)" % (comum.JOGOS_EXIGIDOS.get(i, "jogo"), i) for i in ausentes)
+        return "ambiente", "não instalado: %s; no log: %s" % (nomes, frase_de_ambiente(log))
     if tem_script_error(caso, log):
         return "erro_de_script", frase_decisiva(log)
     if tempo_esgotado(caso):
@@ -152,12 +172,16 @@ def main() -> int:
 
     # Um jogo exigido que falta pode derrubar um teste sem deixar rastro no log (no portão,
     # o check_session_summary só mostrou "[FALHOU] resumo do Skyrim"). Conferir é exato.
+    instalados = comum.apps_instalados()
+    if instalados is None:
+        print("AVISO: a Steam não foi achada; sem saber o que está instalado, nenhum prédio "
+              "faltando é tratado como ambiente.")
     for app_id, nome in comum.exigidos_faltando().items():
         print("AVISO DE AMBIENTE: %s (%d) não está instalado; os testes que dependem dele "
               "falham sem ser culpa do código (tests/README.md)." % (nome, app_id))
 
     for caso, log in ler_coleta(pasta):
-        cat, frase = categoria_regras(caso, log)
+        cat, frase = categoria_regras(caso, log, instalados)
         lig = ligados_ao_diff(caso, log)
         print("%s: %s" % (caso["teste"], NOMES[cat]))
         if frase:

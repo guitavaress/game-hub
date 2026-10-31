@@ -26,27 +26,45 @@ PREDIO = "\n".join(['ERROR: Node not found: "Building_2379780/GamePortal"',
                     "SCRIPT ERROR: Attempt to call function 'x' in base 'null instance'"])
 
 
+TODOS = set(comum.JOGOS_EXIGIDOS)            # a biblioteca com os 4 jogos exigidos
+SEM_BALATRO = TODOS - {2379780}
+
+
 class TesteRegras(unittest.TestCase):
     """A tabela que a ferramenta usa (só código)."""
 
     def test_cada_linha_da_tabela(self):
         r = tf.categoria_regras
-        self.assertEqual(r(caso(comum.FALHA_SEM_GODOT, None, "sem godot"), "")[0], "ambiente")
-        self.assertEqual(r(caso(saida=0, status="ok", passou=True), "")[0], "instavel")
-        self.assertEqual(r(caso(), 'SCRIPT ERROR: Parse Error: Function "_cehck()" not found')[0],
+        self.assertEqual(r(caso(comum.FALHA_SEM_GODOT, None, "sem godot"), "", TODOS)[0], "ambiente")
+        self.assertEqual(r(caso(saida=0, status="ok", passou=True), "", TODOS)[0], "instavel")
+        self.assertEqual(r(caso(), 'SCRIPT ERROR: Parse Error: Function "_cehck()" not found', TODOS)[0],
                          "erro_de_script")
-        self.assertEqual(r(caso(saida=124, status="ERRO DE SCRIPT"), PREDIO)[0], "ambiente")
-        self.assertEqual(r(caso(), "SCRIPT ERROR: Invalid call. Nonexistent function 'x'")[0], "erro_de_script")
-        self.assertEqual(r(caso(saida=124), "")[0], "tempo_esgotado")
-        self.assertEqual(r(caso(), "  [FALHOU] um pórtico por bairro")[0], "regressao")
+        self.assertEqual(r(caso(saida=124, status="ERRO DE SCRIPT"), PREDIO, SEM_BALATRO)[0], "ambiente")
+        self.assertEqual(r(caso(), "SCRIPT ERROR: Invalid call. Nonexistent function 'x'", TODOS)[0],
+                         "erro_de_script")
+        self.assertEqual(r(caso(saida=124), "", TODOS)[0], "tempo_esgotado")
+        self.assertEqual(r(caso(), "  [FALHOU] um pórtico por bairro", TODOS)[0], "regressao")
+
+    def test_predio_sem_portal_com_jogo_instalado_e_do_codigo(self):
+        # Achado da revisão do Codex (J.3.1): uma mudança que tira o GamePortal do prédio dá a
+        # mesma mensagem "Node not found". Com o jogo instalado, a culpa é do código.
+        r = tf.categoria_regras
+        self.assertEqual(r(caso(status="ERRO DE SCRIPT"), PREDIO, TODOS)[0], "erro_de_script")
+        sem_script = 'ERROR: Node not found: "Building_2379780/GamePortal"\n  [FALHOU] jogador na porta'
+        self.assertEqual(r(caso(), sem_script, TODOS)[0], "regressao")
+
+    def test_sem_saber_a_biblioteca_nao_culpa_o_ambiente(self):
+        self.assertEqual(tf.categoria_regras(caso(status="ERRO DE SCRIPT"), PREDIO, None)[0], "erro_de_script")
 
     def test_compilacao_vence_o_predio(self):
         # Um erro de compilação derruba a cidade e também some prédio: a causa é o código.
         log = PREDIO + '\nSCRIPT ERROR: Parse Error: Cannot find member "connectx"'
-        self.assertEqual(tf.categoria_regras(caso(), log)[0], "erro_de_script")
+        self.assertEqual(tf.categoria_regras(caso(), log, SEM_BALATRO)[0], "erro_de_script")
 
-    def test_frase_de_ambiente_mostra_o_predio(self):
-        self.assertIn("Building_2379780", tf.categoria_regras(caso(), PREDIO)[1])
+    def test_frase_de_ambiente_mostra_o_jogo_e_o_predio(self):
+        frase = tf.categoria_regras(caso(), PREDIO, SEM_BALATRO)[1]
+        self.assertIn("Balatro (2379780)", frase)
+        self.assertIn("Building_2379780", frase)
 
     def test_base_do_plano_erra_o_predio(self):
         self.assertEqual(tf.categoria_base(caso(status="ERRO DE SCRIPT"), PREDIO)[0], "erro_de_script")
@@ -61,11 +79,28 @@ class TesteRegras(unittest.TestCase):
 class TesteJogosExigidos(unittest.TestCase):
     def test_exigido_faltando(self):
         todos = ["/x/appmanifest_%d.acf" % i for i in comum.JOGOS_EXIGIDOS]
-        with mock.patch.object(comum, "_manifestos", return_value=todos):
-            self.assertEqual(comum.exigidos_faltando(), {})
-        sem_skyrim = [m for m in todos if "489830" not in m]
-        with mock.patch.object(comum, "_manifestos", return_value=sem_skyrim):
-            self.assertEqual(comum.exigidos_faltando(), {489830: "Skyrim"})
+        with mock.patch.object(comum, "_pastas_da_steam", return_value=["/x"]):
+            with mock.patch.object(comum, "_manifestos", return_value=todos):
+                self.assertEqual(comum.exigidos_faltando(), {})
+                self.assertEqual(comum.apps_instalados(), set(comum.JOGOS_EXIGIDOS))
+            sem_skyrim = [m for m in todos if "489830" not in m]
+            with mock.patch.object(comum, "_manifestos", return_value=sem_skyrim):
+                self.assertEqual(comum.exigidos_faltando(), {489830: "Skyrim"})
+
+    def test_sem_steam_nao_da_para_saber(self):
+        with mock.patch.object(comum, "_pastas_da_steam", return_value=[]):
+            self.assertIsNone(comum.apps_instalados())
+
+
+class TesteAvaliarBiblioteca(unittest.TestCase):
+    def test_biblioteca_do_caso(self):
+        log = 'ERROR: Node not found: "Building_892970/GamePortal"'
+        antigo = {"provocacao": "ambiente_sem_jogo", "log_texto": log}
+        novo = {"provocacao": "ambiente_sem_jogo", "log_texto": "", "jogo_escondido": 413150}
+        outro = {"provocacao": "regressao_teste", "log_texto": log}
+        self.assertEqual(avaliar.instalados_do_caso(antigo), TODOS - {892970})
+        self.assertEqual(avaliar.instalados_do_caso(novo), TODOS - {413150})
+        self.assertEqual(avaliar.instalados_do_caso(outro), TODOS)
 
 
 class TesteTabelaComJev(unittest.TestCase):

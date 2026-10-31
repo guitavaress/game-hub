@@ -468,6 +468,8 @@ class Gerador:
             if r["status"] != "ok":
                 self.guardar(t, r, "ambiente", False, "ambiente_sem_jogo", "", self.iscas([], 1),
                              status_bateria=r["status"])
+                # A triagem confere a biblioteca: o avaliar.py precisa saber o que "sumiu".
+                self.casos[-1]["jogo_escondido"] = app_id
                 meta -= 1
 
     def sem_godot(self, meta: int) -> None:
