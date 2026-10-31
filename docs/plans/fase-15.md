@@ -1,6 +1,6 @@
 # Fase 15: primeiro bioma, o bairro RPG na montanha
 
-> **Pausada em 2026-10-29** para a [ferramenta do Jev](ferramenta-jev.md) (decisão do dono). Volta na 15.10.
+> **Retomada em 2026-10-31.** Ficou pausada de 2026-10-29 a 2026-10-31 para a [ferramenta do Jev](ferramenta-jev.md), já juntada (`137dcaa`). Quando a bateria falhar, use a triagem (`tools/jev/triar_falhas.py`, skill `triagem-falhas`). Próxima: 15.10.
 
 **Status:** em andamento — 15.0 a 15.8, 15.9.1a, 15.9.1b, 15.11, 15.12 e 15.15a concluídas (15.1 no commit `158aec0`). 15.7 feita em 2026-10-26 e as cinco correções da revisão do Astra (15.7.1) em 2026-10-29. 15.9 completa (15.9.2 em 2026-10-26, 15.9.3 em 2026-10-29). Janela 3: a A fez a 15.9.1b (greybox; as capturas esperam o olhar do dono) e juntou a 15.15a da B; a B terminou a janela 3 (15.15a e 15.15b juntadas). O dono decidiu o mirante e a torre (nota da 15.9.1b). Próxima da A: 15.10 (Opus); a 15.7.1 e a 15.9.3 esperam a revisão do Astra. Escopo aprovado em 2026-10-17.
 **Branch:** `fase-15`, no desktop Windows (`C:\Projetos\game-hub`); ponta de implementação conferida: `ed834cd`. Criada de `bbbfa41`, recebeu a `fase-linux` em `0a93c4a` e o núcleo do terreno em `b372efa`. A `main` local (`940dedf`) já é ancestral desta branch; a antiga instrução de rebase não se aplica. Merge na `main` só com pedido do dono.
