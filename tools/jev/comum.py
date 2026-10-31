@@ -96,8 +96,25 @@ def arquivos_do_diff(base: str = "HEAD", pasta: str = PROJETO) -> list:
 
 
 # ---- Privacidade: o que nunca sai do PC ------------------------------------------------------
+def candidatas_linux(casa: str) -> list:
+    """As pastas onde a Steam pode estar no Linux, na ordem do hub
+    (SteamClientLinux._steam_dir_candidates): ~/.steam/root e ~/.steam/steam (seguindo o
+    atalho), ~/.local/share/Steam, e os mesmos caminhos da Steam em Flatpak."""
+    saida = []
+    for dot_steam in (os.path.join(casa, ".steam"),
+                      os.path.join(casa, ".var", "app", "com.valvesoftware.Steam", ".steam")):
+        for nome in ("root", "steam"):
+            saida.append(os.path.realpath(os.path.join(dot_steam, nome)))
+    saida.append(os.path.join(casa, ".local", "share", "Steam"))
+    saida.append(os.path.join(casa, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"))
+    return saida
+
+
 def _pastas_da_steam() -> list:
-    """As pastas da Steam (para achar os jogos instalados e escondê-los dos logs)."""
+    """As pastas da Steam (para achar os jogos instalados e escondê-los dos logs).
+
+    Como o hub, só vale a pasta que tem `steamapps` dentro.
+    """
     pastas = []
     if os.name == "nt":
         try:
@@ -108,9 +125,15 @@ def _pastas_da_steam() -> list:
             pass
         pastas.append(r"C:\Program Files (x86)\Steam")
     else:
-        casa = os.path.expanduser("~")
-        pastas += [os.path.join(casa, ".steam", "steam"), os.path.join(casa, ".local", "share", "Steam")]
-    return [p for p in pastas if os.path.isdir(p)]
+        pastas += candidatas_linux(os.path.expanduser("~"))
+    # ~/.steam/root e ~/.steam/steam costumam ser atalhos para a mesma pasta: uma vez só.
+    unicas, vistas = [], set()
+    for p in pastas:
+        real = os.path.normcase(os.path.realpath(p))
+        if os.path.isdir(os.path.join(p, "steamapps")) and real not in vistas:
+            vistas.add(real)
+            unicas.append(p)
+    return unicas
 
 
 def _manifestos() -> list:
@@ -132,15 +155,32 @@ def _manifestos() -> list:
     return saida
 
 
+# Bit do StateFlags que quer dizer "instalado" (o mesmo do SteamLibrary). Sem ele, o jogo
+# ainda está baixando ou foi desinstalado pela metade, e o hub não cria o prédio.
+STATE_FLAG_INSTALADO = 4
+
+
+def ler_manifesto(arq: str) -> dict:
+    """{"app_id", "nome", "instalado"} de um appmanifest_<id>.acf (campos que faltam: vazios)."""
+    with open(arq, encoding="utf-8", errors="replace") as f:
+        texto = f.read()
+
+    def campo(nome: str) -> str:
+        m = re.search(r'"%s"\s+"([^"]*)"' % nome, texto, re.IGNORECASE)
+        return m.group(1) if m else ""
+
+    app_id = campo("appid") or (re.search(r"appmanifest_(\d+)\.acf$", arq) or [None, "0"])[1]
+    flags = campo("StateFlags")
+    return {"app_id": int(app_id) if app_id.isdigit() else 0, "nome": campo("name"),
+            "instalado": flags.isdigit() and (int(flags) & STATE_FLAG_INSTALADO) != 0}
+
+
 def jogos_instalados() -> list:
-    """Os nomes dos jogos instalados (lidos dos appmanifest_*.acf de cada biblioteca)."""
-    nomes = set()
-    for arq in _manifestos():
-        with open(arq, encoding="utf-8", errors="replace") as f:
-            m = re.search(r'"name"\s+"([^"]+)"', f.read())
-        if m:
-            nomes.add(m.group(1))
-    return sorted(nomes)
+    """Os nomes de todos os jogos com manifesto, para escondê-los dos logs.
+
+    Aqui entram também os que estão baixando: para a privacidade, esconder mais é melhor.
+    """
+    return sorted({m["nome"] for m in map(ler_manifesto, _manifestos()) if m["nome"]})
 
 
 # Os jogos que vários testes exigem instalados (tests/README.md, "A biblioteca de verdade importa").
@@ -148,15 +188,11 @@ JOGOS_EXIGIDOS = {2379780: "Balatro", 489830: "Skyrim", 892970: "Valheim", 41315
 
 
 def apps_instalados():
-    """Os app ids instalados neste PC, ou None se a Steam não foi achada (não dá para saber)."""
+    """Os app ids instalados neste PC, com o mesmo critério do SteamLibrary (StateFlags com
+    o bit de instalado), ou None se a Steam não foi achada (não dá para saber)."""
     if not _pastas_da_steam():
         return None
-    ids = set()
-    for arq in _manifestos():
-        m = re.search(r"appmanifest_(\d+)\.acf$", arq)
-        if m:
-            ids.add(int(m.group(1)))
-    return ids
+    return {m["app_id"] for m in map(ler_manifesto, _manifestos()) if m["instalado"] and m["app_id"]}
 
 
 def exigidos_faltando() -> dict:

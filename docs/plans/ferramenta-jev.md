@@ -51,6 +51,7 @@ O smoke de 2026-10-29 ([laya-spike-2026-10-27.md](../design/laya-spike-2026-10-2
     - Custo total do Jev na J.3: 137 chamadas, 176.603 tokens, ~US$ 0,0074 (média de US$ 0,00005 por triagem).
   - Revisão: `/codex:adversarial-review --base fase-15` (2026-10-31), um achado médio, corrigido na J.3.1.
   - [x] **J.3.1** (revisão adversarial do Codex): o prédio faltando (`Node not found: "Building_<id>`) só vira ambiente se o jogo `<id>` **não** estiver instalado neste PC. Sem essa prova, a culpa fica no código: uma mudança que tira o `GamePortal` do prédio dá a mesma mensagem. Se a Steam não for achada, nenhum prédio faltando vira ambiente. O portão continua em 95%: o `avaliar.py` simula a biblioteca de cada caso, e o gerador agora grava o `jogo_escondido`.
+  - [x] **J.3.2** (revisão do Codex): a ferramenta lê a biblioteca como o hub. Um jogo só conta como instalado com o bit 4 do `StateFlags` (como o `SteamLibrary`): um download pela metade não tem prédio e agora vira ambiente, com o aviso. No Linux, a Steam é procurada nos mesmos lugares do `SteamClientLinux` (`~/.steam/root`, `~/.steam/steam`, `~/.local/share/Steam` e o Flatpak). Para esconder nomes dos logs continuam entrando todos os manifestos, até os de download pela metade.
   - Portão, na parte guardada:
     - acerto balanceado ≥ 90%;
     - vencer a base só com regras do código por ≥ 10 pontos;

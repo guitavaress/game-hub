@@ -1,6 +1,7 @@
 """Testes da triagem (J.3): a tabela de decisão, a base e o portão. Sem Godot e sem rede."""
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -77,19 +78,41 @@ class TesteRegras(unittest.TestCase):
 
 
 class TesteJogosExigidos(unittest.TestCase):
-    def test_exigido_faltando(self):
-        todos = ["/x/appmanifest_%d.acf" % i for i in comum.JOGOS_EXIGIDOS]
-        with mock.patch.object(comum, "_pastas_da_steam", return_value=["/x"]):
-            with mock.patch.object(comum, "_manifestos", return_value=todos):
-                self.assertEqual(comum.exigidos_faltando(), {})
-                self.assertEqual(comum.apps_instalados(), set(comum.JOGOS_EXIGIDOS))
-            sem_skyrim = [m for m in todos if "489830" not in m]
-            with mock.patch.object(comum, "_manifestos", return_value=sem_skyrim):
-                self.assertEqual(comum.exigidos_faltando(), {489830: "Skyrim"})
-
     def test_sem_steam_nao_da_para_saber(self):
         with mock.patch.object(comum, "_pastas_da_steam", return_value=[]):
             self.assertIsNone(comum.apps_instalados())
+
+    def test_state_flags_como_o_hub(self):
+        # J.3.2 (revisão do Codex): manifesto sem o bit 4 do StateFlags = baixando; o hub não
+        # cria o prédio, então a triagem também não pode contar o jogo como instalado.
+        with tempfile.TemporaryDirectory() as tmp:
+            def manifesto(app_id, flags):
+                arq = os.path.join(tmp, "appmanifest_%d.acf" % app_id)
+                with open(arq, "w", encoding="utf-8") as f:
+                    f.write('"AppState"\n{\n\t"appid"\t\t"%d"\n\t"name"\t\t"Jogo %d"\n'
+                            '\t"StateFlags"\t\t"%d"\n}\n' % (app_id, app_id, flags))
+                return arq
+            arqs = [manifesto(2379780, 4), manifesto(489830, 1026), manifesto(892970, 6),
+                    manifesto(413150, 1028)]
+            with mock.patch.object(comum, "_pastas_da_steam", return_value=[tmp]):
+                with mock.patch.object(comum, "_manifestos", return_value=arqs):
+                    self.assertEqual(comum.apps_instalados(), {2379780, 892970, 413150})
+                    self.assertEqual(comum.exigidos_faltando(), {489830: "Skyrim"})
+                    # Para esconder dos logs, entram todos, até o que está baixando.
+                    self.assertIn("Jogo 489830", comum.jogos_instalados())
+
+    def test_caminhos_linux_como_o_hub(self):
+        # J.3.2: ~/.steam/root e a Steam em Flatpak, como o SteamClientLinux.
+        with tempfile.TemporaryDirectory() as casa:
+            flatpak = os.path.join(casa, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam")
+            root = os.path.join(casa, ".steam", "root")
+            candidatas = comum.candidatas_linux(casa)
+            self.assertIn(os.path.realpath(root), candidatas)
+            self.assertIn(flatpak, candidatas)
+            os.makedirs(os.path.join(flatpak, "steamapps"))
+            with mock.patch.object(comum.os, "name", "posix"), \
+                    mock.patch.object(comum.os.path, "expanduser", return_value=casa):
+                self.assertEqual(comum._pastas_da_steam(), [flatpak])
 
 
 class TesteAvaliarBiblioteca(unittest.TestCase):
