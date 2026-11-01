@@ -69,6 +69,7 @@ path_folder = "PavingStones070"
 path_tint = Color(0.7, 0.73, 0.78, 1)
 footstep = "snow"
 cover_streets = true
+street_light_scale = 0.4
 shell = "arch"
 scatter = Array[ExtResource("3_vs8nu")]([SubResource("Resource_xj38d"), SubResource("Resource_s3u4k"), SubResource("Resource_wwntb"), SubResource("Resource_b77x7")])
 snow_cover = 0.7

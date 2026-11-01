@@ -812,7 +812,7 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 	# Calçada em volta e o miolo do quarteirão (na cor do bairro, ou o chão do
 	# bioma); postes nos cantos.
 	_add_block_ground(self, cell, category_id)
-	CityDecor.add_block_lights(self, center)
+	CityDecor.add_block_lights(self, center, biome.street_light_scale if biome != null else 1.0)
 	await _keep_frame_light()
 
 	_build_street_sign(cell, category_id)

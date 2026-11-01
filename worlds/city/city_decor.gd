@@ -106,11 +106,13 @@ static func add_block_ground(parent: Node3D, center: Vector3, district_color: Co
 
 
 ## Um poste em cada canto do quarteirão, com o braço virado para o cruzamento.
-static func add_block_lights(parent: Node3D, center: Vector3) -> void:
+## "strength" é a força dos postes (o bioma de neve usa menos que 1).
+static func add_block_lights(parent: Node3D, center: Vector3, strength: float = 1.0) -> void:
 	var corner := CityLayout.BLOCK_SIZE / 2.0 - 0.7
 	for sx in [-1.0, 1.0]:
 		for sz in [-1.0, 1.0]:
 			var light := StreetLight.new()
+			light.strength = strength
 			light.position = center + Vector3(sx * corner, 0.0, sz * corner)
 			# O braço aponta para -Z do poste: giramos para ele apontar para fora.
 			light.rotation.y = atan2(-sx, -sz)

@@ -14,6 +14,9 @@ extends Resource
 @export var path_tint: Color = Color.WHITE
 @export var footstep: String = ""
 @export var cover_streets: bool = false
+## Força dos postes do bairro (15.13.5): a neve reflete bem mais luz que o
+## asfalto, então no bioma o poste acende mais fraco (1 = igual ao da cidade).
+@export_range(0.0, 1.0) var street_light_scale: float = 1.0
 @export_group("Elementos")
 ## Vazio herda a casca do bairro.
 @export var shell: String = ""

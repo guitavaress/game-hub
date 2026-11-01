@@ -131,6 +131,20 @@ func _run() -> void:
 	_check("nenhuma faixa na zona do bioma (conferidas %d)" % dashes.size(),
 			dashes_real and dashes_in == 0 and markings.multimesh.instance_count > 0)
 	_check_divisa(city, builder, town, rects, half, dashes)
+
+	# 15.13.5: a neve reflete mais luz, então os postes do RPG acendem mais fracos.
+	var scale: float = builder.biome_of("rpg").street_light_scale
+	_check("o bioma da montanha tem postes mais fracos (%.2f)" % scale, scale > 0.0 and scale < 1.0)
+	var weak := 0
+	var wrong_lights := 0
+	for node: Node in city.find_children("*", "StreetLight", true, false):
+		var light := node as StreetLight
+		var inside := _inside(Vector2(light.global_position.x, light.global_position.z), town)
+		if inside and is_equal_approx(light.strength, scale):
+			weak += 1
+		elif inside != is_equal_approx(light.strength, scale):
+			wrong_lights += 1
+	_check("os postes dos quarteirões do RPG usam a força do bioma (%d)" % weak, weak > 0 and wrong_lights == 0)
 	_check("nenhuma poça na zona do bioma", puddles_in == 0 and puddles > 0)
 
 	print("\n== clima ==")
