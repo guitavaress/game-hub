@@ -7,7 +7,9 @@ extends SceneTree
 ##   - raio para baixo em 50 pontos da trilha bate com os triângulos
 ##     desenhados (±5 cm), no corpo com a marca "snow";
 ##   - a mureta tem um vão só, onde a trilha passa, e o chão continua ali;
-##   - o bloco da torre fica no mirante;
+##   - 15.10: a torre do RPG no mirante; a plataforma de madeira na beirada
+##     virada para a praça (piso "wood", guarda-corpo, banco, e a cápsula não
+##     cai da ponta);
 ##   - 15.9.2: o mirante fora da linha do obelisco; a montanha é zona do bairro;
 ##   - 15.9.3: paredes dos dois lados e em volta do mirante, estacas, lampiões,
 ##     placa, marco no mapa, neve e rocha, e uma subida de verdade até 10 m;
@@ -17,6 +19,8 @@ extends SceneTree
 ## o nome puxa os autoloads antes da hora.)
 var failures: int = 0
 var _space: PhysicsDirectSpaceState3D
+## A plataforma do mirante (15.10), por load(): ela usa o TrailDressing.
+var _deck: GDScript = load("res://worlds/city/biome/lookout_deck.gd")
 
 
 func _initialize() -> void:
@@ -103,12 +107,15 @@ func _run() -> void:
 			floor_hits += 1
 	_check("o chão continua de dentro para fora do vão", floor_hits == 4)
 
-	print("\n== a torre (greybox) ==")
-	var tower: Node3D = terrain.get_node_or_null("TowerMarker")
+	print("\n== a torre (15.10) ==")
+	var tower: Node3D = city.get_node_or_null("DistrictLandmark_rpg")
 	var lookout: Vector3 = terrain.lookout_world()
-	_check("o bloco da torre fica no mirante", tower != null
-			and Vector2(tower.position.x - lookout.x, tower.position.z - lookout.z).length() <= field.lookout_radius
-			and tower.position.y > lookout.y)
+	_check("a torre do RPG fica no mirante", tower != null
+			and Vector2(tower.global_position.x - lookout.x, tower.global_position.z - lookout.z).length() <= field.lookout_radius
+			and is_equal_approx(tower.global_position.y, lookout.y))
+	if tower == null:
+		_finish()
+		return
 
 	print("\n== fora da linha praça–obelisco (15.9.2) ==")
 	var script: GDScript = load("res://worlds/city/biome/backdrop_terrain.gd")
@@ -118,11 +125,11 @@ func _run() -> void:
 			absf(off) >= script.LOOKOUT_MIN_ANGLE - 0.0001)
 	# Da praça, ao sul do obelisco (o ponto da captura), a linha até a torre passa longe dele.
 	var eye := Vector2(0.0, 12.0)
-	var to_tower := Vector2(tower.position.x, tower.position.z) - eye
+	var to_tower := Vector2(tower.global_position.x, tower.global_position.z) - eye
 	var clearance := absf(eye.cross(to_tower.normalized()))
 	print("   da praça, a linha até a torre passa a %.1f m do obelisco" % clearance)
 	_check("a linha da praça até a torre passa a mais de 3 m do obelisco", clearance > 3.0)
-	_check("o bloco da torre tem ~6 m de largura", is_equal_approx((tower.mesh as BoxMesh).size.x, 6.0))
+	_check("a torre tem ~6 m de largura", is_equal_approx(tower.footprint().size.x, 6.0))
 
 	print("\n== a montanha é zona do bairro (15.9.2) ==")
 	var map = city._map
@@ -167,6 +174,7 @@ func _run() -> void:
 	_check("os pinheiros e as rochas da cidade ficam dentro da mureta", scatter_outside == 0)
 
 	await _check_limits(city, terrain, points)
+	_check_deck(terrain, tower)
 	_check_signs(city, terrain, points)
 	await _check_climb(city, points)
 
@@ -229,15 +237,19 @@ func _check_limits(city: Node, terrain: Node, points: PackedVector3Array) -> voi
 			blocked_on_path += 1
 	_check("nenhuma parede (nem pilar) no caminho da trilha (60 pontos)", blocked_on_path == 0)
 
-	# O mirante: as paredes em volta, menos onde a trilha chega.
+	# O mirante: as paredes em volta, menos onde a trilha chega e onde a
+	# plataforma encosta (15.10; a ponta dela é conferida no _check_deck). As
+	# direções que dão na torre (atrás do meio) param antes: contam como fechadas.
 	var center: Vector3 = terrain.lookout_world() + Vector3(0.0, 0.9 + 0.3, 0.0)
 	var entry := (Vector2(points[last - 4].x, points[last - 4].z) - trail.lookout_center).normalized()
+	var deck_direction: Vector2 = _deck.direction(field, trail)
 	var ring_ok := 0
 	var ring_total := 0
 	var reach: float = field.lookout_radius + 4.0
-	for k in 12:
-		var direction := Heightfield.direction_of(TAU * k / 12.0)
-		if direction.dot(entry) > 0.8:
+	for k in 24:
+		var direction := Heightfield.direction_of(TAU * k / 24.0)
+		var on_ring: Vector2 = trail.lookout_center + direction * (field.lookout_radius + script.RING_GAP)
+		if direction.dot(entry) > 0.8 or _deck.is_in_opening(trail, deck_direction, on_ring):
 			continue
 		ring_total += 1
 		query.transform = Transform3D(Basis.IDENTITY, center)
@@ -251,7 +263,8 @@ func _check_limits(city: Node, terrain: Node, points: PackedVector3Array) -> voi
 	query.transform = Transform3D(Basis.IDENTITY, center)
 	query.motion = Vector3(exit.x, 0.0, exit.y) * past_ring
 	var entry_free: bool = _space.cast_motion(query)[0] >= 1.0
-	_check("o mirante é fechado em volta (%d de %d direções)" % [ring_ok, ring_total], ring_total >= 10 and ring_ok == ring_total)
+	_check("o mirante é fechado em volta, fora da entrada e da plataforma (%d de %d direções)" % [ring_ok, ring_total],
+			ring_total >= 16 and ring_ok == ring_total)
 	_check("e aberto onde a trilha chega", entry_free)
 
 	var lines: Array = script.wall_lines(field, trail)
@@ -269,7 +282,120 @@ func _check_limits(city: Node, terrain: Node, points: PackedVector3Array) -> voi
 	print("   %d estacas em %d cercas" % [stakes, stake_lines.size()])
 	_check("as estacas são as das cercas (uma MultiMesh)", multimesh.instance_count == stakes)
 	_check("e ficam na linha das paredes", stakes > trail.length() * 2.0 / script.STAKE_SPACING * 0.8 and off_line == 0)
-	_check("são três cercas: os dois lados e o mirante", stake_lines.size() == 3)
+	# O anel do mirante vira dois arcos: abre na trilha e na plataforma (que tem guarda-corpo próprio).
+	_check("são quatro cercas: os dois lados e os dois arcos do mirante", stake_lines.size() == 4)
+
+
+## 15.10: a plataforma de madeira na beirada do mirante virada para a praça.
+##   - aponta para a praça (o giro, se houver, fica dentro do limite);
+##   - raio para baixo no piso inteiro: a madeira ("wood"), na altura do piso,
+##     também na parte que fica no ar, além do disco;
+##   - a cápsula do jogador, empurrada para a ponta e para os lados, para em
+##     cima do piso (não cai);
+##   - a abertura do anel deixa passar do disco para a plataforma;
+##   - o banco fica no disco, virado para a abertura, com espaço dos lados;
+##   - a torre não encosta na plataforma, e o ponto da vista fica na ponta.
+func _check_deck(terrain: Node, tower: Node3D) -> void:
+	print("\n== a plataforma do mirante (15.10) ==")
+	var field: Heightfield = terrain.field
+	var trail: MountainTrail = terrain.trail
+	var deck: Node3D = terrain.get_deck()
+	_check("o mirante tem a plataforma de madeira", deck != null)
+	if deck == null:
+		return
+	var direction: Vector2 = deck.get_direction()
+	var toward_plaza := -trail.lookout_center.normalized()
+	var turn := rad_to_deg(direction.angle_to(toward_plaza))
+	print("   a plataforma aponta a %.0f° da linha até a praça" % absf(turn))
+	_check("a abertura fica virada para a praça (até %.0f°)" % rad_to_deg(_deck.MAX_TURN),
+			absf(turn) <= rad_to_deg(_deck.MAX_TURN) + 0.01)
+	var side := Vector2(-direction.y, direction.x)
+	var radius := field.lookout_radius
+	var top: float = _deck.deck_top(field)
+	var tip: float = radius + _deck.REACH
+
+	# O piso: raios para baixo de 0,5 em 0,5 m, da beirada do disco até a ponta.
+	var rays := 0
+	var wood := 0
+	var level := 0
+	var over_air := 0
+	var along := radius
+	while along <= tip - 0.3:
+		for lateral: float in [-1.6, -0.8, 0.0, 0.8, 1.6]:
+			var p := trail.lookout_center + direction * along + side * lateral
+			var hit := _ray_down(p, top + 2.0)
+			rays += 1
+			if hit.is_empty():
+				continue
+			if hit["collider"].get_meta("footstep", "") == "wood":
+				wood += 1
+			if absf(hit["position"].y - top) < 0.01:
+				level += 1
+			if field.surface_at(p) < top - 0.5:
+				over_air += 1
+		along += 0.5
+	print("   %d raios no piso: %d na madeira, %d na altura do piso, %d acima da encosta" % [rays, wood, level, over_air])
+	_check("o piso inteiro é de madeira (footstep \"wood\")", rays > 30 and wood == rays)
+	_check("e fica na altura do piso (±1 cm)", level == rays)
+	var tip_point: Vector2 = trail.lookout_center + direction * tip
+	var drop: float = top - field.surface_at(tip_point)
+	_check("a ponta avança por cima da encosta (o chão %.1f m abaixo; mínimo %.1f m)" % [drop, _deck.MIN_DROP],
+			drop >= _deck.MIN_DROP and over_air > 0)
+
+	# A cápsula não cai: empurrada para a ponta e para os lados, ela para no piso.
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.4
+	capsule.height = 1.8
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = capsule
+	query.exclude = [(deck.get_node("Deck") as CollisionObject3D).get_rid()]
+	var middle: Vector2 = trail.lookout_center + direction * (radius + _deck.REACH / 2.0)
+	var start := Vector3(middle.x, top + 0.9 + 0.3, middle.y)
+	# Do ponto de partida até a borda do piso, em cada direção.
+	var pushes: Array[Array] = [[direction, _deck.REACH / 2.0],
+			[side, _deck.WIDTH / 2.0], [-side, _deck.WIDTH / 2.0]]
+	var held := 0
+	for push: Array in pushes:
+		var dir: Vector2 = push[0]
+		var edge: float = push[1]
+		var length := edge + 3.0
+		query.transform = Transform3D(Basis.IDENTITY, start)
+		query.motion = Vector3(dir.x, 0.0, dir.y) * length
+		var moved: float = _space.cast_motion(query)[0] * length
+		if moved > 0.5 and moved + capsule.radius <= edge + 0.01:
+			held += 1
+		print("   empurrão: andou %.2f m (a borda fica a %.2f m)" % [moved, edge])
+	_check("empurrada para a ponta e para os lados, a cápsula para em cima do piso", held == 3)
+
+	# A abertura: do meio do disco, pela plataforma até perto da ponta, ao lado do banco.
+	var lane := trail.lookout_center + side * 1.3
+	query.exclude = []
+	query.transform = Transform3D(Basis.IDENTITY, Vector3(lane.x, top + 0.9 + 0.3, lane.y))
+	query.motion = Vector3(direction.x, 0.0, direction.y) * (tip - 1.0)
+	var free_share: float = _space.cast_motion(query)[0]
+	_check("do meio do disco até a ponta, passando ao lado do banco, o caminho é livre (%.0f%%)" % (free_share * 100.0),
+			free_share > 0.999)
+
+	var bench: Node3D = deck.get_node_or_null("Bench")
+	_check("o banco existe, com colisão", bench != null and bench.get_node_or_null("BenchBody") != null)
+	if bench != null:
+		var bench_spot := Vector2(bench.global_position.x, bench.global_position.z)
+		var facing := -Vector2(bench.global_basis.z.x, bench.global_basis.z.z)
+		_check("o banco fica no disco, virado para a abertura (e a praça)",
+				bench_spot.distance_to(trail.lookout_center) < radius and facing.dot(direction) > 0.99)
+
+	# A torre fica atrás, longe da plataforma e do banco; a vista fica na ponta.
+	var tower_spot := Vector2(tower.global_position.x, tower.global_position.z)
+	var tower_along := (tower_spot - trail.lookout_center).dot(direction)
+	var tower_reach: float = tower.footprint().size.x / sqrt(2.0)  # do meio ao canto
+	_check("a torre fica do outro lado do disco, longe do banco e da plataforma",
+			tower_along + tower_reach < radius - _deck.BENCH_BACK - 1.0)
+	var view: Vector3 = terrain.view_world()
+	var view_along := (Vector2(view.x, view.z) - trail.lookout_center).dot(direction)
+	var view_side := (Vector2(view.x, view.z) - trail.lookout_center).dot(side)
+	_check("o ponto da vista (capturas) fica na ponta da plataforma, do lado da praça", absf(view.y - top) < 0.01
+			and view_along > radius + _deck.REACH / 2.0 and view_along < tip
+			and absf(view_side) < _deck.WIDTH / 2.0 and view_side * side.dot(toward_plaza) > 0.0)
 
 
 ## 15.9.3: lampiões que acendem à noite, a placa da entrada e o marco no mapa;

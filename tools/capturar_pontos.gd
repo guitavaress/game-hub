@@ -15,8 +15,10 @@ extends SceneTree
 ##   praca    no meio da praça, olhando para o bairro
 ##   portico  na rua, antes do pórtico do bairro, olhando para dentro
 ##   cima     do alto (60 m), olhando o bairro inteiro
-##   mirante  acima do piso do mirante, olhando para a praça e a torre do relógio
-## O mirante entra quando existir um nó no grupo mountain_trail (Fase 15.9).
+##   mirante  na ponta da plataforma do mirante, olhando para a praça e a torre
+##            do relógio (sem plataforma, o centro do disco)
+## O mirante entra quando existir um nó no grupo mountain_trail (Fase 15.9); o
+## ponto da vista vem do view_world() dele (15.10), ou do lookout_world().
 ##
 ## Para testar uma amostra de assets sem mexer no jogo, escreva um script que
 ## estende este (extends "res://tools/capturar_pontos.gd"), monte a amostra em
@@ -174,7 +176,8 @@ func _points(area: Dictionary) -> Array[Dictionary]:
 			"target": Vector3(middle.x, 0.0, middle.y)})
 	for trail: Node in get_nodes_in_group(&"mountain_trail"):
 		if trail.has_method("trail_world_points") and trail.has_method("lookout_world"):
-			var floor_position: Vector3 = trail.call("lookout_world")
+			var view := "view_world" if trail.has_method("view_world") else "lookout_world"
+			var floor_position: Vector3 = trail.call(view)
 			points.append({"name": "mirante", "eye": floor_position + Vector3.UP * EYE_HEIGHT,
 					"target": Vector3(0.0, EYE_HEIGHT, 0.0)})
 			return points

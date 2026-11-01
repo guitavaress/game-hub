@@ -201,14 +201,20 @@ static func keep_out_points(parent: Node) -> Array[Vector3]:
 
 
 ## As áreas que ficam livres (no chão): a boca de cada estação do metrô, com
-## a escada, o corrimão e o totem (a forma que a estação dá em footprint()).
+## a escada, o corrimão e o totem (a forma que a estação dá em footprint()), e
+## a base dos marcos ancorados no chão (15.10: a torre do RPG sem montanha).
 static func keep_out_areas(parent: Node) -> Array[Rect2]:
 	var areas: Array[Rect2] = []
-	for node in parent.get_tree().get_nodes_in_group("transit_stop"):
+	var tree := parent.get_tree()
+	# "scatter_keep_out" = DistrictLandmark.KEEP_OUT_GROUP (pelo nome: o
+	# DistrictLandmark usa autoloads, e os testes carregam este script sozinho).
+	for node in tree.get_nodes_in_group("transit_stop") + tree.get_nodes_in_group(&"scatter_keep_out"):
 		var stop := node as Node3D
 		if stop == null or not parent.is_ancestor_of(stop):
 			continue
 		var local: Rect2 = stop.call("footprint") if stop.has_method("footprint") else STATION_FALLBACK
+		if not local.has_area():
+			continue
 		# Os quatro cantos no mundo; a caixa deles cobre a boca com qualquer giro.
 		var area := Rect2()
 		for k in 4:

@@ -70,7 +70,13 @@ func setup(field: Heightfield, trail: MountainTrail, stone: Material = null) -> 
 	name = "TrailDressing"
 	add_to_group("city_night")
 	var lines := wall_lines(field, trail)
-	_add_walls(field, lines)
+	# A plataforma do mirante (15.10) tem guarda-corpo próprio: a parede dela
+	# entra no corpo das paredes, mas não ganha estacas.
+	var deck := LookoutDeck.outline(field, trail, LookoutDeck.direction(field, trail))
+	var walls := lines.duplicate()
+	if deck.size() >= 2:
+		walls.append(deck)
+	_add_walls(field, walls)
 	_add_fence(field, lines)
 	_add_lamps(field, trail)
 	_add_gate(trail, stone if stone != null else CityDecor.make_material(STONE_COLOR))
@@ -79,9 +85,11 @@ func setup(field: Heightfield, trail: MountainTrail, stone: Material = null) -> 
 
 ## As linhas das paredes, no chão: x e z do mundo e, em y, a altura da trilha
 ## (ou do mirante) ali. Os dois lados da trilha, da mureta até o mirante, e o
-## anel do mirante, aberto onde a trilha chega.
+## anel do mirante, aberto onde a trilha chega e onde a plataforma de madeira
+## encosta (15.10; a parede da plataforma é a LookoutDeck.outline).
 static func wall_lines(field: Heightfield, trail: MountainTrail) -> Array[PackedVector3Array]:
 	var lines: Array[PackedVector3Array] = []
+	var deck_direction := LookoutDeck.direction(field, trail)
 	var last := trail.points.size() - 1
 	for side: float in [1.0, -1.0]:
 		var line := PackedVector3Array()
@@ -104,7 +112,8 @@ static func wall_lines(field: Heightfield, trail: MountainTrail) -> Array[Packed
 	for k in count:
 		var p := trail.lookout_center + Heightfield.direction_of(TAU * k / count) * radius
 		ring.append(p)
-		open.append(trail.closest(p).x < WALL_OFFSET - FOLD_TOLERANCE)
+		open.append(trail.closest(p).x < WALL_OFFSET - FOLD_TOLERANCE
+				or LookoutDeck.is_in_opening(trail, deck_direction, p))
 	var first := open.find(true)
 	var arc := PackedVector3Array()
 	for step in count:

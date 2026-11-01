@@ -16,13 +16,16 @@ extends Node3D
 ## 15.9.3: os limites e a sinalização da trilha (TrailDressing: paredes,
 ## estacas, lampiões, pilares e placa) e o material de neve e rocha (quem
 ## monta passa com use_material; sem ele, fica o cinza do greybox).
+## 15.10: a plataforma de madeira na beirada virada para a praça (LookoutDeck),
+## e o bloco cinza sai: a torre de verdade é o marco do bairro, que a cidade
+## ancora em tower_spot().
 ##
 ## Uso: setup(); se der true, chamar build_next() até devolver false (um pedaço
 ## por chamada, para a montagem não travar o quadro).
 ##
 ## Contrato com as ferramentas (tools/medir_desempenho.gd, capturar_pontos.gd):
-## o nó fica no grupo "mountain_trail" e responde trail_world_points() e
-## lookout_world().
+## o nó fica no grupo "mountain_trail" e responde trail_world_points(),
+## lookout_world() e (15.10) view_world(), o ponto da vista na plataforma.
 
 const GROUP: StringName = &"mountain_trail"
 ## Tamanho do quadrado da grade (m). Na 15.14 vem do GraphicsQuality.
@@ -36,17 +39,14 @@ const OPENING_DEPTH: float = 2.0
 ## Rede de segurança: as paredes da trilha seguram o jogador, mas, se algo
 ## escapar, ele para aqui, abaixo do chão, em vez de cair para sempre.
 const SAFETY_FLOOR_Y: float = -1.0
-## O bloco cinza no lugar da torre (a forma de verdade, com néon, vem na
-## 15.10): a torre mais grossa decidida pelo dono (~6 m) e uma altura de referência.
-const TOWER_SIZE: Vector3 = Vector3(6.0, 16.0, 6.0)
 ## Da praça, o mirante (e a torre) fica pelo menos este ângulo fora da
 ## bissetriz da cunha, para o obelisco do relógio não tapar a torre.
 const LOOKOUT_MIN_ANGLE: float = deg_to_rad(18.0)
 ## Os desvios tentados para a linha da subida, do menor ao maior.
 const AIM_SHIFTS: Array[float] = [deg_to_rad(12.0), deg_to_rad(18.0), deg_to_rad(24.0), deg_to_rad(30.0)]
-## A torre fica atrás do meio do mirante (a frente fica livre para a vista).
+## A torre fica atrás do meio do mirante, do lado longe da praça (a frente
+## fica livre para a plataforma e a vista).
 const TOWER_BACK_SHARE: float = 0.5
-const GREYBOX_COLOR: Color = Color(0.5, 0.5, 0.52)
 const TERRAIN_SHADER: Shader = preload("res://worlds/city/biome/terrain.gdshader")
 
 var field: Heightfield
@@ -91,7 +91,7 @@ func use_material(material: ShaderMaterial) -> void:
 
 
 ## Monta o próximo pedaço da malha. Falso quando acabou (aí entram a colisão,
-## os limites e a sinalização, a rede de segurança e o bloco da torre).
+## a plataforma do mirante, os limites e a sinalização e a rede de segurança).
 func build_next() -> bool:
 	if _next < _coords.size():
 		var mesh := TerrainMesh.build_chunk(field, _coords[_next], CELL_METERS, _material)
@@ -107,11 +107,15 @@ func build_next() -> bool:
 	if _next == _coords.size():
 		_next += 1
 		_add_collision()
+		var deck := LookoutDeck.new()
+		if deck.setup(field, trail):
+			add_child(deck)
+		else:
+			deck.free()  # sem lugar para a plataforma: o mirante fica só com o disco
 		var dressing := TrailDressing.new()
 		add_child(dressing)
 		dressing.setup(field, trail, stone_material)
 		_add_safety_floor()
-		_add_tower_marker()
 	return false
 
 
@@ -131,6 +135,26 @@ func trail_world_points() -> PackedVector3Array:
 ## O centro do piso do mirante, no mundo.
 func lookout_world() -> Vector3:
 	return Vector3(trail.lookout_center.x, field.lookout_height, trail.lookout_center.y)
+
+
+## A plataforma de madeira do mirante (null antes de a montagem acabar, ou se
+## ela não coube).
+func get_deck() -> LookoutDeck:
+	return get_node_or_null("LookoutDeck") as LookoutDeck
+
+
+## O ponto do chão de onde se olha a vista (no mundo): na ponta da plataforma
+## (o centro do disco, se ela não coube). As capturas "mirante" ficam aqui.
+func view_world() -> Vector3:
+	return LookoutDeck.view_spot(field, trail, LookoutDeck.direction(field, trail))
+
+
+## Onde fica a base da torre do bairro (no mundo): no mirante, atrás do meio
+## do disco, do lado longe da praça. A cidade ancora o marco do bairro aqui.
+func tower_spot() -> Vector3:
+	var away := trail.lookout_center.normalized()
+	var spot := trail.lookout_center + away * field.lookout_radius * TOWER_BACK_SHARE
+	return Vector3(spot.x, field.lookout_height, spot.y)
 
 
 ## Onde a trilha corta a mureta: retângulos (no chão) que a cidade deixa sem
@@ -221,15 +245,3 @@ func _add_safety_floor() -> void:
 	body.position.y = SAFETY_FLOOR_Y
 	add_child(body)
 
-
-func _add_tower_marker() -> void:
-	var away := trail.lookout_center.normalized()
-	var spot := trail.lookout_center + away * field.lookout_radius * TOWER_BACK_SHARE
-	var mesh := BoxMesh.new()
-	mesh.size = TOWER_SIZE
-	var tower := MeshInstance3D.new()
-	tower.name = "TowerMarker"
-	tower.mesh = mesh
-	tower.material_override = CityDecor.make_material(GREYBOX_COLOR)
-	tower.position = Vector3(spot.x, field.lookout_height + TOWER_SIZE.y / 2.0, spot.y)
-	add_child(tower)

@@ -169,6 +169,9 @@ func _ready() -> void:
 	await _keep_frame_light()
 	# A montanha vem antes da mureta: a trilha abre um vão nela.
 	var openings := await _build_backdrop(districts, half)
+	# Os marcos sem telhado (a torre do RPG) vêm depois da montanha (eles ficam
+	# no mirante) e antes dos pinheiros (que não nascem na base deles).
+	_build_anchored_landmarks(districts)
 	_build_ground_and_walls(half, openings)
 	# O clima vem com todos os bairros e a montanha prontos: ele cobre as zonas
 	# do bairro (quarteirões, vagas e a montanha).
@@ -638,6 +641,20 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 func _build_district_sign(district_cells: Array, category_id: String) -> void:
 	if district_cells.is_empty():
 		return
+	var cell: Vector2i = district_cells[0]
+	var district_sign := DistrictSign.new()
+	district_sign.name = "DistrictSign_%s" % category_id
+	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
+	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, _district_sign_height(district_cells, category_id), 0.0)
+	add_child(district_sign)
+	_district_signs.append(district_sign)
+
+
+## A altura do letreiro do bairro: acima do prédio mais alto possível, dos
+## enfeites altos dos quarteirões e do marco, se ele ficar nos quarteirões (a
+## torre no mirante da montanha fica longe do letreiro e não conta).
+func _district_sign_height(district_cells: Array, category_id: String) -> float:
 	var top := BuildingVariant.max_total_height()
 	for cell: Vector2i in district_cells:
 		var props := get_node_or_null("DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y])
@@ -645,32 +662,63 @@ func _build_district_sign(district_cells: Array, category_id: String) -> void:
 			top = maxf(top, props.get_top_y())
 	var landmark := get_node_or_null("DistrictLandmark_%s" % category_id) as DistrictLandmark
 	if landmark != null:
-		top = maxf(top, landmark.get_top_y())
-	var cell: Vector2i = district_cells[0]
-	var district_sign := DistrictSign.new()
-	district_sign.name = "DistrictSign_%s" % category_id
-	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
-			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
-	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, top + DISTRICT_SIGN_CLEARANCE, 0.0)
-	add_child(district_sign)
-	_district_signs.append(district_sign)
+		var spot := Vector2(landmark.global_position.x, landmark.global_position.z)
+		var half_block := CityLayout.BLOCK_SIZE / 2.0
+		for cell: Vector2i in district_cells:
+			var center := CityLayout.block_center(cell)
+			if absf(spot.x - center.x) <= half_block and absf(spot.y - center.z) <= half_block:
+				top = maxf(top, landmark.get_top_y())
+				break
+	return top + DISTRICT_SIGN_CLEARANCE
 
 
 ## O marco alto do bairro (torre, roda-gigante...), se o perfil tiver um
 ## "landmark_script": em cima do prédio mais alto do quarteirão do pórtico.
-func _build_landmark(category_id: String, buildings: Array[CityBuilding]) -> void:
+## Com "anchor" (15.10), no chão, nesse ponto. Sem âncora, o bairro sem prédio
+## (arcos) ou com montanha fica para _build_anchored_landmarks. null = sem marco.
+func _build_landmark(category_id: String, buildings: Array[CityBuilding],
+		anchor: Vector3 = Vector3.INF) -> DistrictLandmark:
 	var profile := Profiles.district(category_id)
-	if profile == null or profile.landmark_script.is_empty() or buildings.is_empty():
-		return
+	if profile == null or profile.landmark_script.is_empty():
+		return null
+	if not anchor.is_finite() and (buildings.is_empty() or _has_backdrop(category_id)):
+		return null
 	var script := load(profile.landmark_script) as GDScript
 	var landmark := script.new() as DistrictLandmark if script != null else null
 	if landmark == null:
 		push_warning("O marco %s do bairro %s não carregou." % [profile.landmark_script, category_id])
-		return
+		return null
 	landmark.name = "DistrictLandmark_%s" % category_id
 	landmark.category_id = category_id
 	landmark.buildings = buildings
+	landmark.anchor = anchor
 	add_child(landmark)
+	return landmark
+
+
+## O bairro tem montanha de fundo no bioma (a torre dele vai para o mirante)?
+static func _has_backdrop(category_id: String) -> bool:
+	var biome := BiomeBuilder.biome_of(category_id)
+	return biome != null and biome.backdrop != null
+
+
+## Os marcos que não ficam num telhado (15.10): no mirante da montanha do
+## bairro (BackdropTerrain.tower_spot) ou, sem montanha (ela não coube),
+## no meio do primeiro quarteirão, o do pórtico. Quando o marco fica nos
+## quarteirões, o letreiro do bairro sobe para ficar acima dele.
+func _build_anchored_landmarks(districts: Array[Dictionary]) -> void:
+	for district in districts:
+		var id: String = district["id"]
+		if not _district_cells.has(id) or get_node_or_null("DistrictLandmark_%s" % id) != null:
+			continue
+		var terrain := get_node_or_null("BackdropTerrain_%s" % id) as BackdropTerrain
+		var cells: Array[Vector2i] = _district_cells[id]
+		var anchor := terrain.tower_spot() if terrain != null else CityLayout.block_center(cells[0])
+		if _build_landmark(id, [] as Array[CityBuilding], anchor) == null:
+			continue
+		var district_sign := get_node_or_null("DistrictSign_%s" % id) as Node3D
+		if district_sign != null:
+			district_sign.position.y = _district_sign_height(_sectors[id].blocks, id)
 
 
 ## Placa de rua no poste da esquina do quarteirão mais perto da praça,
