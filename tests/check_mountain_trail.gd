@@ -158,6 +158,7 @@ func _run() -> void:
 	_check_signs(city, terrain, points)
 	await _check_climb(city, points)
 	await _check_quality_swap(city, tower)
+	await _check_swap_during_build(city)
 
 	print("\n== sem espaço, sem montanha ==")
 	var sector: DistrictSector = city._sectors["rpg"]
@@ -555,6 +556,30 @@ func _check_quality_swap(city: Node, tower: Node3D) -> void:
 		_check("a torre continua no mirante", is_equal_approx(tower.global_position.y, terrain.lookout_world().y))
 		_check_collision(terrain, terrain.trail_world_points())
 		_check_deck(terrain, tower)
+	app.set_quality(original)
+	while city._backdrop_rebuilding:
+		await physics_frame
+
+
+## Revisão do Sol na 15.14: uma troca feita ENQUANTO a cidade monta é ignorada
+## (a cidade ainda não está pronta); ao ficar pronta, a montanha se confere
+## sozinha. Aqui a montagem é simulada: _is_ready falso, troca, e o fim da
+## montagem (o mesmo _rebuild_backdrop que o _build chama ao terminar).
+func _check_swap_during_build(city: Node) -> void:
+	print("\n== troca durante a montagem (15.14) ==")
+	var app := root.get_node("AppConfig")
+	var original: String = app.get_quality()
+	var other := "leve" if original != "leve" else "alta"
+	city._is_ready = false
+	app.set_quality(other)
+	var terrain: Node = get_nodes_in_group("mountain_trail")[0]
+	_check("durante a montagem a troca é ignorada", not city._backdrop_rebuilding and is_equal_approx(terrain.cell_meters, 3.0 if original == "media" else (4.0 if original == "leve" else 2.0)))
+	city._is_ready = true
+	city._rebuild_backdrop()
+	while city._backdrop_rebuilding:
+		await physics_frame
+	terrain = get_nodes_in_group("mountain_trail")[0]
+	_check("ao terminar, a montanha usa a grade da qualidade nova", is_equal_approx(terrain.cell_meters, 4.0 if other == "leve" else 2.0))
 	app.set_quality(original)
 	while city._backdrop_rebuilding:
 		await physics_frame

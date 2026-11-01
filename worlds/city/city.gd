@@ -226,6 +226,8 @@ func _ready() -> void:
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
 	_is_ready = true
 	city_ready.emit()
+	# Uma troca de qualidade feita durante a montagem foi ignorada: confere agora.
+	_rebuild_backdrop()
 
 
 func is_city_ready() -> bool:
