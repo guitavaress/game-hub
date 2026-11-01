@@ -28,8 +28,6 @@ extends Node3D
 ## lookout_world() e (15.10) view_world(), o ponto da vista na plataforma.
 
 const GROUP: StringName = &"mountain_trail"
-## Tamanho do quadrado da grade (m). Na 15.14 vem do GraphicsQuality.
-const CELL_METERS: float = 3.0
 ## A colisão vai além da trilha e do mirante este tanto (encosta pisável).
 const COLLISION_MARGIN: float = 12.0
 ## O vão da mureta: a largura da trilha mais esta folga de cada lado.
@@ -48,6 +46,11 @@ const AIM_SHIFTS: Array[float] = [deg_to_rad(12.0), deg_to_rad(18.0), deg_to_rad
 ## fica livre para a plataforma e a vista).
 const TOWER_BACK_SHARE: float = 0.5
 const TERRAIN_SHADER: Shader = preload("res://worlds/city/biome/terrain.gdshader")
+
+## Tamanho do quadrado da grade (m) e se a malha faz sombra (15.14): quem monta
+## escolhe pela qualidade (GraphicsQuality), ANTES do setup().
+var cell_meters: float = 3.0
+var casts_shadow: bool = true
 
 var field: Heightfield
 var trail: MountainTrail
@@ -77,8 +80,8 @@ func setup(spec: TerrainSpec, sector: DistrictSector, half: float) -> bool:
 	if trail == null:
 		return false
 	field.set_trail(trail)
-	_coords = TerrainMesh.chunk_coords(field, CELL_METERS)
-	_collision_rect = TerrainCollision.aligned_rect(field, trail.bounds().grow(COLLISION_MARGIN), CELL_METERS)
+	_coords = TerrainMesh.chunk_coords(field, cell_meters)
+	_collision_rect = TerrainCollision.aligned_rect(field, trail.bounds().grow(COLLISION_MARGIN), cell_meters)
 	_material = ShaderMaterial.new()
 	_material.shader = TERRAIN_SHADER
 	add_to_group(GROUP)
@@ -94,13 +97,15 @@ func use_material(material: ShaderMaterial) -> void:
 ## a plataforma do mirante, os limites e a sinalização e a rede de segurança).
 func build_next() -> bool:
 	if _next < _coords.size():
-		var mesh := TerrainMesh.build_chunk(field, _coords[_next], CELL_METERS, _material)
+		var mesh := TerrainMesh.build_chunk(field, _coords[_next], cell_meters, _material)
 		if mesh != null:
 			var chunk := MeshInstance3D.new()
 			chunk.name = "Chunk_%d_%d" % [_coords[_next].x, _coords[_next].y]
 			chunk.mesh = mesh
+			if not casts_shadow:
+				chunk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(chunk)
-			if TerrainMesh.chunk_rect(field, _coords[_next], CELL_METERS).intersects(_collision_rect):
+			if TerrainMesh.chunk_rect(field, _coords[_next], cell_meters).intersects(_collision_rect):
 				_faces.append_array(TerrainCollision.faces_in(mesh, _collision_rect))
 		_next += 1
 		return true

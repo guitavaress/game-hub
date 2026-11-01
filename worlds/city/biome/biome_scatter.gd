@@ -62,8 +62,9 @@ func get_transforms(index: int) -> Array[Transform3D]:
 ## Monta as famílias do bioma que vão no bairro. "regions": o miolo de neve
 ## dos quarteirões e vagas; "keep_out": pontos livres (x, z, raio);
 ## "keep_out_areas": retângulos livres (no chão).
+## "amount" (15.14): quanto da densidade do perfil fica (GraphicsQuality.scatter_amount).
 func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_out: Array[Vector3],
-		keep_out_areas: Array[Rect2] = []) -> void:
+		keep_out_areas: Array[Rect2] = [], amount: float = 1.0) -> void:
 	name = "BiomeScatter_%s" % category_id
 	# O que já foi posto (x, z, raio), para as famílias não se atropelarem.
 	var occupied: Array[Vector3] = []
@@ -76,7 +77,7 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 			push_warning("O elemento %s do bioma %s não carregou." % [spec.source, biome.id])
 			continue
 		var items := plan(spec, regions, keep_out, occupied, hash([category_id, i]),
-				source["height"], source["radius"], keep_out_areas)
+				source["height"], source["radius"], keep_out_areas, amount)
 		_add_family(i, spec, source, items)
 
 
@@ -85,9 +86,9 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 ## "base_radius": altura e raio da malha (ou do tronco) sem escala.
 static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vector3],
 		occupied: Array[Vector3], seed_value: int, base_height: float, base_radius: float,
-		keep_out_areas: Array[Rect2] = []) -> Array[Dictionary]:
+		keep_out_areas: Array[Rect2] = [], amount: float = 1.0) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
-	if spec.density <= 0.0 or base_height <= 0.0:
+	if spec.density <= 0.0 or amount <= 0.0 or base_height <= 0.0:
 		return items
 	var impostor := spec.kind == "impostor"
 	var spacing := IMPOSTOR_SPACING if impostor else MESH_SPACING
@@ -103,7 +104,7 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 		var usable := region.grow(-clearance)
 		if usable.size.x <= 0.0 or usable.size.y <= 0.0:
 			continue
-		var wanted := floori(usable.get_area() * spec.density / 100.0 + rng.randf())
+		var wanted := floori(usable.get_area() * spec.density * amount / 100.0 + rng.randf())
 		# Só os pontos livres perto desta região (para a conta não crescer com a cidade).
 		var near_keep: Array[Vector3] = []
 		for point in keep_out:

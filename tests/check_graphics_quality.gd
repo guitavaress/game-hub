@@ -38,6 +38,15 @@ func _run() -> void:
 		_check("sombra do sol até %d m" % roundi(want[3]), is_equal_approx(sun.directional_shadow_max_distance, want[3]))
 		_check("a dica explica o anti-aliasing", helper.describe(level).contains("AA"))
 
+	# 15.14: a grade da montanha, os enfeites e a sombra do terreno por qualidade.
+	print("== terreno e enfeites (15.14) ==")
+	var terrain_wanted := {"leve": [4.0, 0.5, false], "media": [3.0, 0.75, true], "alta": [2.0, 1.0, true]}
+	for level: String in terrain_wanted:
+		var want: Array = terrain_wanted[level]
+		_check("%s: grade de %.0f m" % [level, want[0]], is_equal_approx(helper.terrain_cell_meters(level), want[0]))
+		_check("%s: %d%% dos enfeites" % [level, roundi(want[1] * 100.0)], is_equal_approx(helper.scatter_amount(level), want[1]))
+		_check("%s: terreno %s sombra" % [level, "com" if want[2] else "sem"], helper.terrain_casts_shadow(level) == want[2])
+
 	# A cidade usa o mesmo ajudante no sol dela e troca junto com o menu.
 	print("== sol da cidade ==")
 	app.set_sky("fotos")  # o sol "Sun" é o do céu de fotos

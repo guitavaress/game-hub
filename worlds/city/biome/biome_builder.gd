@@ -121,12 +121,14 @@ static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, 
 ## 15.9.3: a montanha ganha a neve e a rocha do bioma, e os pilares da
 ## entrada, a pedra dos arcos.
 static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, sector: DistrictSector,
-		half: float) -> BackdropTerrain:
+		half: float, level: String = "alta") -> BackdropTerrain:
 	if biome.backdrop == null:
 		return null
 	var terrain := BackdropTerrain.new()
 	terrain.name = "BackdropTerrain_%s" % category_id
 	terrain.footstep = biome.footstep
+	terrain.cell_meters = GraphicsQuality.terrain_cell_meters(level)
+	terrain.casts_shadow = GraphicsQuality.terrain_casts_shadow(level)
 	if not terrain.setup(biome.backdrop, sector, half):
 		terrain.free()
 		return null
@@ -168,14 +170,15 @@ static func terrain_material(biome: BiomeSpec) -> ShaderMaterial:
 ## Pinheiros e rochas do bairro (15.7), no miolo de neve de cada zona, longe
 ## das portas e das estações. Chamar com as portas e o metrô já montados.
 ## null se o bioma não tem nada para o bairro.
-static func add_scatter(parent: Node3D, category_id: String, biome: BiomeSpec, zones: Array[Rect2]) -> BiomeScatter:
+static func add_scatter(parent: Node3D, category_id: String, biome: BiomeSpec, zones: Array[Rect2],
+		amount: float = 1.0) -> BiomeScatter:
 	var has_town := false
 	for spec in biome.scatter:
 		has_town = has_town or spec.in_town
 	if not has_town:
 		return null
 	var scatter := BiomeScatter.new()
-	scatter.setup(category_id, biome, scatter_regions(zones), keep_out_points(parent), keep_out_areas(parent))
+	scatter.setup(category_id, biome, scatter_regions(zones), keep_out_points(parent), keep_out_areas(parent), amount)
 	parent.add_child(scatter)
 	return scatter
 

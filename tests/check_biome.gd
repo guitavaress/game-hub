@@ -285,6 +285,10 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 	var first: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations)
 	var second: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations)
 	_check("o sorteio é determinístico (%d cópias)" % first.size(), not first.is_empty() and first == second)
+	# 15.14: a metade da densidade dá a metade das cópias (mais ou menos), nunca mais.
+	var half_amount: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations, 0.5)
+	_check("com metade da densidade, bem menos cópias (%d de %d)" % [half_amount.size(), first.size()],
+			half_amount.size() < first.size() and half_amount.size() >= first.size() / 4)
 
 	# Os arcos do bioma usam a pedra com neve por cima.
 	var dressed := 0

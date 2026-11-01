@@ -61,27 +61,7 @@ func _run() -> void:
 	_check("e termina na altura do mirante", absf(points[points.size() - 1].y - field.lookout_height) < 0.01)
 	_check("o mirante fica na altura do perfil", is_equal_approx(terrain.lookout_world().y, field.lookout_height))
 
-	print("\n== colisão = desenho ==")
-	var cell: float = load("res://worlds/city/biome/backdrop_terrain.gd").CELL_METERS
-	var worst := 0.0
-	var worst_trail := 0.0
-	var misses := 0
-	var wrong_body := 0
-	for k in 50:
-		var p := points[int(k * (points.size() - 1) / 49.0)]
-		var hit := _ray_down(Vector2(p.x, p.z), p.y + 3.0)
-		if hit.is_empty():
-			misses += 1
-			continue
-		if hit["collider"].get_meta("footstep", "") != "snow":
-			wrong_body += 1
-		worst = maxf(worst, absf(hit["position"].y - _drawn_height(field, Vector2(p.x, p.z), cell)))
-		worst_trail = maxf(worst_trail, absf(hit["position"].y - p.y))
-	print("   maior diferença: %.3f m do desenho, %.3f m do traçado da trilha" % [worst, worst_trail])
-	_check("os 50 raios acertam o chão", misses == 0)
-	_check("o chão da trilha tem a marca \"snow\"", wrong_body == 0)
-	_check("a colisão bate com os triângulos desenhados (±5 cm)", worst <= 0.05)
-	_check("e fica perto do traçado da trilha (±25 cm)", worst_trail <= 0.25)
+	_check_collision(terrain, points)
 
 	print("\n== o vão da mureta ==")
 	var openings: Array[Rect2] = terrain.get_openings()
@@ -177,6 +157,7 @@ func _run() -> void:
 	_check_deck(terrain, tower)
 	_check_signs(city, terrain, points)
 	await _check_climb(city, points)
+	await _check_quality_swap(city, tower)
 
 	print("\n== sem espaço, sem montanha ==")
 	var sector: DistrictSector = city._sectors["rpg"]
@@ -485,6 +466,98 @@ func _check_climb(city: Node, points: PackedVector3Array) -> void:
 			% [player.global_position.y, (Time.get_ticks_msec() - started) / 1000.0, near, last, worst_off])
 	_check("o jogador sobe a pé até 10 m acima do chão", player.global_position.y >= 10.0)
 	_check("sem sair da trilha (a menos de 1,5 m do meio)", worst_off < 1.5)
+
+
+## Raio para baixo em 50 pontos da trilha contra os triângulos desenhados, na
+## grade da montanha que está montada (4, 3 ou 2 m, conforme a qualidade).
+func _check_collision(terrain: Node, points: PackedVector3Array) -> void:
+	var cell: float = terrain.cell_meters
+	print("\n== colisão = desenho (grade de %.0f m) ==" % cell)
+	var field: Heightfield = terrain.field
+	var worst := 0.0
+	var worst_trail := 0.0
+	var misses := 0
+	var wrong_body := 0
+	for k in 50:
+		var p := points[int(k * (points.size() - 1) / 49.0)]
+		var hit := _ray_down(Vector2(p.x, p.z), p.y + 3.0)
+		if hit.is_empty():
+			misses += 1
+			continue
+		if hit["collider"].get_meta("footstep", "") != "snow":
+			wrong_body += 1
+		worst = maxf(worst, absf(hit["position"].y - _drawn_height(field, Vector2(p.x, p.z), cell)))
+		worst_trail = maxf(worst_trail, absf(hit["position"].y - p.y))
+	print("   maior diferença: %.3f m do desenho, %.3f m do traçado da trilha" % [worst, worst_trail])
+	_check("os 50 raios acertam o chão", misses == 0)
+	_check("o chão da trilha tem a marca \"snow\"", wrong_body == 0)
+	_check("a colisão bate com os triângulos desenhados (±5 cm)", worst <= 0.05)
+	# A grade grossa corta as curvas fechadas: na de 4 m (Leve) o chão se afasta
+	# mais do traçado (medido: 65 cm); o critério firme é o do desenho (±5 cm).
+	var near := 0.25 if cell <= 3.0 else 0.8
+	_check("e fica perto do traçado da trilha (±%d cm)" % roundi(near * 100.0), worst_trail <= near)
+
+
+## 15.14: troca a qualidade com a cidade montada. A montanha se refaz com a
+## grade da qualidade, sem buraco no chão da trilha em nenhum quadro, e fica
+## uma só (com uma plataforma só). A colisão e a plataforma continuam valendo.
+func _check_quality_swap(city: Node, tower: Node3D) -> void:
+	var app := root.get_node("AppConfig")
+	var original: String = app.get_quality()
+	var helper: GDScript = load("res://autoload/graphics_quality.gd")
+	var order: Array[String] = ["leve", "media", "alta"]
+	for level in order:
+		print("\n== troca para %s (15.14) ==" % level)
+		var before: Node = get_nodes_in_group("mountain_trail")[0]
+		var points: PackedVector3Array = before.trail_world_points()
+		var stand := points[points.size() / 2]
+		var wanted: float = helper.terrain_cell_meters(level)
+		var changes: bool = not is_equal_approx(before.cell_meters, wanted) or before.casts_shadow != helper.terrain_casts_shadow(level)
+		app.set_quality(level)
+		var holes := 0
+		var frames := 0
+		while city._backdrop_rebuilding and frames < 3000:
+			await physics_frame
+			frames += 1
+			if _ray_down(Vector2(stand.x, stand.z), stand.y + 3.0).is_empty():
+				holes += 1
+		await physics_frame
+		await physics_frame
+		print("   refeita em %d quadros; quadros sem chão na trilha: %d" % [frames, holes])
+		_check("o jogador parado na trilha nunca fica sem chão", holes == 0)
+		var terrains := get_nodes_in_group("mountain_trail")
+		_check("só um BackdropTerrain depois da troca", terrains.size() == 1)
+		var count := 0
+		var decks := 0
+		for child: Node in city.get_children():
+			if child is BackdropTerrain:
+				count += 1
+				for grand: Node in child.get_children():
+					if grand is LookoutDeck:
+						decks += 1
+		_check("e um LookoutDeck só (montanhas na cidade: %d)" % count, count == 1 and decks == 1)
+		if terrains.size() != 1:
+			continue
+		var terrain: Node = terrains[0]
+		_check("o nome da montanha continua BackdropTerrain_rpg", terrain.name == "BackdropTerrain_rpg")
+		_check("a grade é de %.0f m" % wanted, is_equal_approx(terrain.cell_meters, wanted))
+		if changes:
+			_check("é uma montanha nova", terrain != before)
+		var shadows_off := 0
+		var chunks := 0
+		for child: Node in terrain.get_children():
+			if child is MeshInstance3D and String(child.name).begins_with("Chunk_"):
+				chunks += 1
+				if child.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+					shadows_off += 1
+		_check("pedaços da malha: %d; sem sombra: %d (só na Leve)" % [chunks, shadows_off],
+				chunks > 0 and shadows_off == (chunks if level == "leve" else 0))
+		_check("a torre continua no mirante", is_equal_approx(tower.global_position.y, terrain.lookout_world().y))
+		_check_collision(terrain, terrain.trail_world_points())
+		_check_deck(terrain, tower)
+	app.set_quality(original)
+	while city._backdrop_rebuilding:
+		await physics_frame
 
 
 func _finish() -> void:

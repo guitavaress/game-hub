@@ -135,6 +135,12 @@ var _map: CityMap
 var _district_cells: Dictionary[String, Array] = {}
 ## O setor (fatia) de cada bairro, do SectorLayout.
 var _sectors: Dictionary[String, DistrictSector] = {}
+## A montanha (15.14): o bairro dela e como foi montada, para refazer na troca
+## da qualidade.
+var _backdrop_district: String = ""
+var _backdrop_half: float = 0.0
+var _backdrop_cell: float = 0.0
+var _backdrop_rebuilding: bool = false
 
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
@@ -305,8 +311,44 @@ func _on_settings_changed(section: String, key: String) -> void:
 		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
 		for light in _sky_lights():
 			GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
+		_rebuild_backdrop()
 	elif section == "video" and key == "sky" and _environment != null:
 		_apply_sky(AppConfig.get_sky())
+
+
+## Refaz a montanha com a grade e a sombra da qualidade nova (15.14). A nova é
+## montada à parte, escondida, enquanto a velha continua no lugar (e segurando
+## quem está na trilha); só no fim a velha sai e a nova aparece, no mesmo
+## quadro. A torre, o vão da mureta, as zonas e o marco do mapa não dependem
+## da grade e não são refeitos.
+func _rebuild_backdrop() -> void:
+	if _backdrop_district.is_empty() or _backdrop_rebuilding or not _is_ready:
+		return
+	_backdrop_rebuilding = true
+	while true:
+		var level := AppConfig.get_quality()
+		var old := get_node_or_null("BackdropTerrain_%s" % _backdrop_district) as BackdropTerrain
+		var biome := BiomeBuilder.biome_of(_backdrop_district)
+		if old == null or biome == null:
+			break
+		if is_equal_approx(GraphicsQuality.terrain_cell_meters(level), _backdrop_cell) \
+				and old.casts_shadow == GraphicsQuality.terrain_casts_shadow(level):
+			break
+		var fresh := BiomeBuilder.add_backdrop(self, _backdrop_district, biome,
+				_sectors[_backdrop_district], _backdrop_half, level)
+		if fresh == null:
+			break
+		fresh.visible = false
+		while fresh.build_next():
+			await get_tree().process_frame
+		# A montagem é a mesma de antes, então o nome e o lugar não mudam.
+		remove_child(old)
+		old.queue_free()
+		fresh.name = "BackdropTerrain_%s" % _backdrop_district
+		fresh.visible = true
+		fresh.get_dressing().set_night(_day_night.get_night())
+		_backdrop_cell = fresh.cell_meters
+	_backdrop_rebuilding = false
 
 
 func _on_night_changed(night: float) -> void:
@@ -458,7 +500,9 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 			(town if inside.encloses(zone) else mountain).append(zone)
 		var rects := BiomeBuilder.covered_rects(town, half, biome.cover_streets)
 		BiomeBuilder.add_cover(self, district["id"], biome, rects)
-		BiomeBuilder.add_scatter(self, district["id"], biome, town)
+		# Os enfeites só mudam ao abrir a cidade (não se refazem na troca da qualidade).
+		BiomeBuilder.add_scatter(self, district["id"], biome, town,
+				GraphicsQuality.scatter_amount(AppConfig.get_quality()))
 		if not has_atmosphere:
 			# A névoa e o vento valem também na trilha e no mirante.
 			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
@@ -478,9 +522,13 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 		var biome := BiomeBuilder.biome_of(district["id"])
 		if biome == null or biome.backdrop == null:
 			continue
-		var terrain := BiomeBuilder.add_backdrop(self, district["id"], biome, _sectors[district["id"]], half)
+		var terrain := BiomeBuilder.add_backdrop(self, district["id"], biome, _sectors[district["id"]], half,
+				AppConfig.get_quality())
 		if terrain == null:
 			return []
+		_backdrop_district = district["id"]
+		_backdrop_half = half
+		_backdrop_cell = terrain.cell_meters
 		while terrain.build_next():
 			await _keep_frame_light()
 		for zone in terrain.get_zone_rects():
