@@ -40,6 +40,7 @@ Para detalhes de Godot (código, sinais, `.tres`, UI, shaders), use as skills `g
 ## 3. Evidência
 - **Capturas com janela** (sem `--headless`), salvas na **pasta temporária da sessão**. Nunca no repositório.
 - **Nunca** mostre ou salve captura com capas de jogos fora da pasta temporária (o repositório é público). Para a cidade, prefira a biblioteca falsa (`tests/fake_library.gd`).
+- **Conferir capturas da cidade (o que olhar primeiro):** gere com `python tools/jev/capturas/gerar_capturas.py --saida <pasta nova, fora do repo> --variantes normal --rodadas ajuste` (cópia descartável, biblioteca falsa com IDs inventados e sem capas) e rode `python tools/jev/capturas/conferir_capturas.py <pasta> --jev`. Dia/noite e neve estourada saem por código; "pinheiros sumiram" sai pelo Jev (custa centavos, com relatório de custo). Sem `--jev`, só código. A tabela aponta; quem aprova é o dono. Números: [o spike](../../../docs/design/jev-capturas-spike-2026-10-31.md).
 - **Desempenho:** meça com `tools/medir_desempenho.gd`. A régua é o desktop (Ryzen 5 5600 + RTX 4070); o notebook só serve para comparar antes e depois.
 - Se não der para capturar ou medir, diga isso no relatório. Não invente número.
 
