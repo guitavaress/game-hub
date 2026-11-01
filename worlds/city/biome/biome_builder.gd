@@ -62,23 +62,45 @@ static func add_block_ground(parent: Node3D, center: Vector3, biome: BiomeSpec) 
 
 
 ## As áreas que o setor coberto ocupa, a partir das zonas do bairro (cada uma
-## é um quarteirão com meia rua em volta). Com as ruas cobertas, as zonas da
-## borda vão até a mureta (a rua de fora também vira neve); sem elas, só os
-## quarteirões.
+## é um quarteirão com meia rua em volta). Com as ruas cobertas, a neve vai
+## até a mureta nas zonas da borda (a rua de fora também vira neve) e entre dois
+## quarteirões do bairro (a rua inteira). Onde a zona faz divisa com outro
+## bairro (15.13.1), a neve para no meio-fio: a rua fica de asfalto inteira, sem
+## a linha reta no meio dela. Sem as ruas cobertas, só os quarteirões.
 static func covered_rects(zones: Array[Rect2], half: float, cover_streets: bool) -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	# Onde termina a zona de um quarteirão da borda: a meia rua antes da mureta.
 	var edge := half - CityLayout.STREET_WIDTH
+	var curb := CityLayout.STREET_WIDTH / 2.0
 	for zone in zones:
 		if not cover_streets:
-			result.append(zone.grow(-CityLayout.STREET_WIDTH / 2.0))
+			result.append(zone.grow(-curb))
 			continue
 		var left := -half if zone.position.x <= -edge else zone.position.x
 		var top := -half if zone.position.y <= -edge else zone.position.y
 		var right := half if zone.end.x >= edge else zone.end.x
 		var bottom := half if zone.end.y >= edge else zone.end.y
+		# Lado sem mureta e sem outra zona do bairro do outro lado da rua: recua ao meio-fio.
+		if zone.position.x > -edge and not _has_neighbor(zone, zones, Vector2.LEFT):
+			left += curb
+		if zone.position.y > -edge and not _has_neighbor(zone, zones, Vector2.UP):
+			top += curb
+		if zone.end.x < edge and not _has_neighbor(zone, zones, Vector2.RIGHT):
+			right -= curb
+		if zone.end.y < edge and not _has_neighbor(zone, zones, Vector2.DOWN):
+			bottom -= curb
 		result.append(Rect2(left, top, right - left, bottom - top))
 	return result
+
+
+## Se outra zona do bairro encosta no lado "side" (LEFT, UP, RIGHT ou DOWN) da zona.
+static func _has_neighbor(zone: Rect2, zones: Array[Rect2], side: Vector2) -> bool:
+	# Um ponto logo depois do meio desse lado: cai na zona vizinha, se ela existe.
+	var probe := zone.get_center() + side * (zone.size / 2.0 + Vector2.ONE * 0.5)
+	for other in zones:
+		if other != zone and other.has_point(probe):
+			return true
+	return false
 
 
 ## O setor coberto: uma placa fina por área, num só corpo com colisão e com a

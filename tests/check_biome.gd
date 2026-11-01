@@ -82,8 +82,7 @@ func _run() -> void:
 	print("\n== neve debaixo do jogador ==")
 	var player = city.get_node("Player")
 	# Na rua, no canto de uma zona do RPG (o cruzamento fica livre de postes).
-	var zone: Rect2 = city.get_node("CityMap").zone_rects("rpg")[0]
-	var spot := zone.position + Vector2(1.5, 1.5)
+	var spot := rects[0].position + Vector2(1.5, 1.5)
 	player.global_position = Vector3(spot.x, 0.5, spot.y)
 	player.velocity = Vector3.ZERO
 	for i in 30:
@@ -116,9 +115,10 @@ func _run() -> void:
 	print("\n== faixas e poças ==")
 	var dashes_in := 0
 	var markings: MultiMeshInstance3D = city.get_node("LaneMarkings")
-	for i in markings.multimesh.instance_count:
-		var origin := markings.multimesh.get_instance_transform(i).origin
-		if _inside(Vector2(origin.x, origin.z), rects):
+	var dashes: Array = markings.get_meta("dashes", [])
+	var dashes_real := dashes.size() == markings.multimesh.instance_count
+	for dash: Transform3D in dashes:
+		if _inside(Vector2(dash.origin.x, dash.origin.z), rects):
 			dashes_in += 1
 	var puddles_in := 0
 	var puddles := 0
@@ -128,7 +128,9 @@ func _run() -> void:
 			if _inside(Vector2(child.position.x, child.position.z), rects):
 				puddles_in += 1
 	print("   faixas: %d (na neve: %d); poças: %d (na neve: %d)" % [markings.multimesh.instance_count, dashes_in, puddles, puddles_in])
-	_check("nenhuma faixa na zona do bioma", dashes_in == 0 and markings.multimesh.instance_count > 0)
+	_check("nenhuma faixa na zona do bioma (conferidas %d)" % dashes.size(),
+			dashes_real and dashes_in == 0 and markings.multimesh.instance_count > 0)
+	_check_divisa(city, builder, town, rects, half, dashes)
 	_check("nenhuma poça na zona do bioma", puddles_in == 0 and puddles > 0)
 
 	print("\n== clima ==")
@@ -139,6 +141,47 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(0 if failures == 0 else 1)
+
+
+## A divisa com outro bairro (15.13.1): a neve para no meio-fio, e a rua fica de
+## asfalto inteira (com as faixas), sem a linha reta no meio dela.
+func _check_divisa(city: Node, builder: GDScript, town: Array[Rect2], rects: Array[Rect2], half: float,
+		dashes: Array) -> void:
+	print("
+== divisa com outro bairro (15.13.1) ==")
+	var curb := CityLayout.STREET_WIDTH / 2.0
+	var receded := 0
+	var wrong := 0
+	for i in town.size():
+		var zone := town[i]
+		var rect := rects[i]
+		# Só os lados que não são mureta: aí a rua é do outro bairro, ou de ninguém.
+		if zone.position.x > -(half - CityLayout.STREET_WIDTH) and rect.position.x > zone.position.x + 0.01:
+			receded += 1
+			if not is_equal_approx(rect.position.x, zone.position.x + curb):
+				wrong += 1
+	_check("alguma zona recua ao meio-fio na divisa (%d lados)" % receded, receded > 0)
+	_check("o recuo é a meia rua, sem sobra (%d fora)" % wrong, wrong == 0)
+	# Nenhuma zona perde o próprio quarteirão (o recuo só tira a rua).
+	var block_kept := true
+	for i in town.size():
+		block_kept = block_kept and rects[i].encloses(town[i].grow(-curb))
+	_check("o quarteirão de cada zona continua coberto", block_kept)
+	# Entre dois quarteirões do bairro a rua continua coberta inteira.
+	var covered_area := 0.0
+	for rect in rects:
+		covered_area += rect.get_area()
+	var total := 0.0
+	for zone in town:
+		total += zone.get_area()
+	_check("a neve cobre menos que as zonas inteiras (as ruas da divisa saíram)", covered_area < total)
+	# A rua da divisa volta a ter faixas: alguma faixa fora da neve, dentro de uma zona do bairro.
+	var dashes_on_border := 0
+	for dash: Transform3D in dashes:
+		var point := Vector2(dash.origin.x, dash.origin.z)
+		if _inside(point, town) and not _inside(point, rects):
+			dashes_on_border += 1
+	_check("a rua da divisa tem faixas (%d)" % dashes_on_border, dashes_on_border > 0)
 
 
 ## Pinheiros e rochas (15.7): uma MultiMesh por família do bairro, nada nas

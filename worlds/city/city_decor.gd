@@ -340,6 +340,8 @@ static func add_street_markings(parent: Node3D, cells: Array[Vector2i], half: fl
 	var instance := MultiMeshInstance3D.new()
 	instance.name = "LaneMarkings"
 	instance.multimesh = multimesh
+	# Sem tela (nos testes) a MultiMesh devolve as cópias zeradas: guarda onde elas estão.
+	instance.set_meta("dashes", dashes)
 	parent.add_child(instance)
 
 
