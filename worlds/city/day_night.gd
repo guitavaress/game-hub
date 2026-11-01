@@ -219,6 +219,14 @@ func set_fog_overlay(weight: float, density_scale: float, tint: Color,
 	_apply_fog()
 
 
+## A tinta do bioma muda o tom da névoa, mas não o brilho da hora (15.13.3):
+## de noite a névoa continua escura, e no pôr do sol não puxa para uma cor fixa.
+static func tint_keeping_brightness(base: Color, tint: Color) -> Color:
+	var tint_luma := maxf(tint.get_luminance(), 0.001)
+	var scale := base.get_luminance() / tint_luma
+	return Color(minf(tint.r * scale, 1.0), minf(tint.g * scale, 1.0), minf(tint.b * scale, 1.0))
+
+
 func _apply_fog() -> void:
 	if environment == null:
 		return
@@ -233,7 +241,7 @@ func _apply_fog() -> void:
 	if _fog_overlay_weight <= 0.0:
 		return
 	environment.fog_density = density * lerpf(1.0, _fog_overlay_scale, _fog_overlay_weight)
-	environment.fog_light_color = color.lerp(_fog_overlay_tint,
+	environment.fog_light_color = color.lerp(tint_keeping_brightness(color, _fog_overlay_tint),
 			_fog_overlay_tint_amount * _fog_overlay_weight)
 	environment.fog_height = lerpf(_base_fog_height, _fog_overlay_height, _fog_overlay_weight)
 	environment.fog_height_density = lerpf(_base_fog_height_density,

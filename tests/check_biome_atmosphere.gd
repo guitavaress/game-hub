@@ -94,7 +94,18 @@ func _run() -> void:
 	_finish_audio(atmosphere)
 	_check("Timer detecta entrada na zona", atmosphere.get_weight() == 1.0)
 	_check("névoa usa escala e tinta do spec", is_equal_approx(env.fog_density, base_density * 2.0)
-			and env.fog_light_color.is_equal_approx(base_color.lerp(spec.fog_tint, 0.3)))
+			and env.fog_light_color.is_equal_approx(base_color.lerp(clock.tint_keeping_brightness(base_color, spec.fog_tint), 0.3)))
+	# 15.13.3: a tinta muda o tom, não o brilho da hora (a noite não clareia, o pôr do sol não vira areia).
+	var night: Color = Color("080A12")
+	var sunset: Color = Color("E8A07A")
+	var night_tinted: Color = clock.tint_keeping_brightness(night, spec.fog_tint)
+	var sunset_tinted: Color = clock.tint_keeping_brightness(sunset, spec.fog_tint)
+	_check("a tinta não clareia a névoa da noite (%.3f)" % night_tinted.get_luminance(),
+			absf(night_tinted.get_luminance() - night.get_luminance()) < 0.01
+			and night.lerp(night_tinted, 0.3).get_luminance() < 0.06)
+	_check("a tinta mantém o brilho do pôr do sol, só muda o tom",
+			absf(sunset_tinted.get_luminance() - sunset.get_luminance()) < 0.02
+			and sunset_tinted.b > sunset_tinted.r)
 	_check("bruma fixa abaixo do mirante, densidade do spec", is_equal_approx(env.fog_height, 20.0)
 			and is_equal_approx(env.fog_height_density, 0.01))
 	_check("no chão: só camada baixa no volume do perfil", is_equal_approx(low.volume_db, -24.0) and high.volume_linear == 0.0)

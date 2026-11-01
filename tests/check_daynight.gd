@@ -113,7 +113,8 @@ func _check_overlay(day_night: Node, label: String) -> void:
 	var observed: Array = _fog_snapshot(env)
 	day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
 	_check(label, is_equal_approx(observed[0], env.fog_density * 1.6)
-			and (observed[1] as Color).is_equal_approx(env.fog_light_color.lerp(Color(0.65, 0.72, 0.82), 0.18))
+			and (observed[1] as Color).is_equal_approx(env.fog_light_color.lerp(
+					day_night.tint_keeping_brightness(env.fog_light_color, Color(0.65, 0.72, 0.82)), 0.18))
 			and is_equal_approx(observed[2], 4.8) and is_equal_approx(observed[3], 0.006))
 	day_night.set_fog_overlay(0.6, 2.0, Color(0.65, 0.72, 0.82), 0.3, 8.0, 0.01)
 
