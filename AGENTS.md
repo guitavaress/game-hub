@@ -123,6 +123,7 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 | **Astra** | GPT-6-Astra | ChatGPT Plus | partes difíceis da trilha paralela; revisões de maior risco do que o Claude fez |
 | **Sol** | GPT-6.1-Sol | ChatGPT Plus | subetapas delimitadas da trilha paralela; revisões comuns |
 | **Terra** | GPT-5.6-Terra | ChatGPT Plus | texto mecânico, docs, rodar e relatar a bateria |
+| **Haiku** | Claude Haiku 5.5 (id `claude-haiku-5-5`) | Claude Pro | tarefas mecânicas e de leitura: explorar arquivos e referências (só leitura), rodar a bateria e relatar, atualizar README e ROADMAP, marcar os [x] do plano, conferir licenças e créditos |
 
 | Momento | Quem | Esforço |
 |---|---|---|
@@ -130,11 +131,13 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 | Integração difícil, geometria, shaders | Opus ou Astra (o dono da trilha) | high |
 | Subetapa delimitada | Sonnet ou Sol (o dono da trilha) | medium |
 | Revisão | **cruzada**: o GPT revisa o Claude (`/codex:review` ou `/codex:adversarial-review`) e o Opus revisa o GPT (diff da branch, só leitura, antes do merge) | igual ao da subetapa; high nos pontos de risco |
-| Explorar arquivos e referências, só leitura | subagente Explore do Claude Code | low |
-| Tarefa mecânica, texto, execução/relato de testes | Terra (ou Sonnet) | low |
+| Explorar arquivos e referências, só leitura | subagente Explore do Claude Code, com o Haiku 5.5 | low |
+| Tarefa mecânica, texto, execução/relato de testes | Terra, Haiku ou Sonnet | low |
 
 - O plano de cada fase diz, por subetapa, o modelo, o esforço, a trilha e quem revisa.
 - Os rótulos dos planos do período OpenCode (Astra, Sol, Luna, Spark) já eram modelos GPT: Luna (GPT-6-Luna) e Spark (GPT-5.3-Codex-Spark) saíram do fluxo.
+- O Haiku **não** é usado em shaders, geometria, integração, revisão visual com capturas, mudanças de arquitetura, nada que mexa em `.tres`, nem na revisão de risco do trabalho do outro lado.
+- O Haiku só edita texto que nenhum outro agente esteja mexendo (subagente sozinho não isola arquivos), e o que ele entrega passa por uma conferência rápida de quem o chamou (modelo menor erra mais em contexto longo). É um teste: na próxima subetapa de texto, comparar com o Sonnet.
 - Cota: Claude Pro e ChatGPT Plus têm janelas de 5 h. O ideal é sempre uma sessão de cada lado trabalhando; a revisão cruzada roda enquanto a outra trilha implementa. Se um lado esgotar, a trilha dele pausa (ou `/codex:transfer` leva a sessão ao Codex). Mantenha a *review gate* do Codex **desligada** (gasta cota).
 - Dois erros iguais pedem replanejamento. `xhigh`/`max`/`ultra` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão.
 
