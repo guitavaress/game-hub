@@ -200,6 +200,17 @@ func _check_landmark_without_mountain() -> void:
 	_check("ancorado no meio do primeiro quarteirão, no chão",
 			landmark.is_anchored() and landmark.global_position.distance_to(center) < 0.01)
 	_check_tower_body("rpg", landmark)
+	# 15.13.4: quatro braseiros; a chama brilha mais de noite que de dia.
+	_check("a torre tem quatro braseiros (%d)" % landmark._flames.size(), landmark._flames.size() == 4)
+	landmark.set_night(0.0)
+	var day_glow: float = landmark._flame_material.emission_energy_multiplier
+	landmark.set_night(1.0)
+	var night_glow: float = landmark._flame_material.emission_energy_multiplier
+	_check("a chama é mais forte de noite (%.1f contra %.1f de dia)" % [night_glow, day_glow], night_glow > day_glow * 3.0)
+	var light_count := 0
+	for light in landmark.find_children("*", "Light3D", true, false):
+		light_count += 1
+	_check("os braseiros não criam luz nova (só emissão)", light_count == 0)
 	var variant_class: GDScript = load("res://worlds/city/building_variant.gd")
 	_check("o topo passa do prédio mais alto possível (%.1f m)" % landmark.get_top_y(),
 			landmark.get_top_y() > variant_class.max_total_height())
