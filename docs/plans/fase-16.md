@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 aprovada. 16.3 e 16.6 juntadas na `fase-16`; 16.2 feita (esperando a sua aprovação). A trilha B faz a 16.4.
+- **Agora:** 16.1 e 16.2 aprovadas; 16.3 e 16.6 juntadas. A 16.4 está pronta na `worktree/leitura-b2` (falta o merge com as capturas); depois vem a 16.5.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -41,7 +41,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_shelf` (o quad existe, tem a textura, a caixa não; proporção da capa horizontal), `check_portal_shell` (dois rótulos, `double_sided = false`, verso girado). Rodar `check_shelf check_portal_shell check_portal_regression`.
   - Captura: estante de dia e de noite; arco do RPG pela frente e por trás.
   - Commit: `Fase 16.1: capas inteiras na estante e nome do arco dos dois lados`
-- [x] **16.2 Topo e painéis** (grande, sem revisão cruzada · trilha A, Opus · high) — grande porque mexe no `player.gd`, que tudo usa; roda a bateria completa.
+- [x] **16.2 Topo e painéis** (`1f4f068`) (grande, sem revisão cruzada · trilha A, Opus · high) — grande porque mexe no `player.gd`, que tudo usa; roda a bateria completa.
   - Arquivos: `ui/district_title.gd` (faixa própria; cede à carga), `ui/hud.gd` (expõe a altura máxima da pilha de avisos), `player/player.gd` (`_update_hud_visibility()` único, ligado aos `opened`/`closed` dos painéis).
   - Teste: `check_district_title` (retângulo do título não cruza o da pilha cheia; não aparece com carga), um caso novo em `check_search` ou `check_toasts` (abre busca → HUD escondido; fecha → volta; intro e foco continuam escondendo). Depois a bateria completa.
   - Captura: aviso + título juntos; busca, mapa e metrô abertos; carga na porta.
@@ -90,6 +90,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02 (16.2): a captura com a faixa abaixo da pilha **cheia** (3 avisos) pôs o "24 jogos" em cima da mira (o risco previsto). A faixa passa a ficar abaixo do espaço de **2** avisos comuns (`Hud.TITLE_BAND_TOASTS`); um 3º aviso, ou avisos longos, fazem o título ceder a vez pelo mesmo caminho da carga (não aparece, ou some em 0,15 s). Nunca se cruzam, e o título fica ~80 px acima da mira (720 de altura de referência).
 - 2026-11-02 (16.2): a altura de um aviso comum sai do tema (`Toast.nominal_height()`, em `ui/toast.gd`, arquivo fora da lista original), e não de número solto. A pilha é medida pelo tamanho já arrumado: no quadro em que um aviso entra, o mínimo dele ainda é provisório (centenas de px).
 - 2026-11-02 (16.2): as capturas saíram em 2560×1440 (a janela não aceita 1600×900 pelo script); a UI escala com a janela (`canvas_items`), então 1600×900 fica igual em proporção.
+- 2026-11-02: o dono aprovou a 16.2. Padrão novo: sessões finalizadas do Orca são fechadas antes de abrir as novas (AGENTS.md).
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
