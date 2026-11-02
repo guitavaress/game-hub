@@ -3,7 +3,7 @@
 O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
-- **Próxima fase:** [Leitura](ROADMAP.md#1-leitura), a primeira da ROADMAP nova. O plano dela é o próximo passo.
+- **Fase em andamento:** [Fase 16, Leitura](plans/fase-16.md), a primeira da [ROADMAP nova](ROADMAP.md#1-leitura).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 15](plans/fase-15.md), já na `main`.
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
