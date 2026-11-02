@@ -38,6 +38,7 @@ var _neon_material: StandardMaterial3D
 var _poster: MeshInstance3D
 var _poster_material: StandardMaterial3D
 var _name_label: Label3D
+var _name_back_label: Label3D  # o mesmo nome, virado para quem olha por trás
 ## true quando a placa mostra o hero (e não a capa).
 var _hero_mode: bool = false
 var _night: float = 0.0
@@ -88,9 +89,28 @@ func _ready() -> void:
 	label.font_size = 48
 	label.width = outer_width * 100.0
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Ancorado por baixo: um nome de duas linhas cresce para cima, sem cobrir a placa.
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	label.position = Vector3(0.0, OPENING.y + LINTEL_HEIGHT + NAME_HEIGHT, front)
 	add_child(label)
 	_name_label = label
+	# Verso: o rótulo da frente só aparece pela frente; este, girado 180°,
+	# lê certo por trás. Fica levemente atrás para não brigar de profundidade.
+	label.double_sided = false
+	var back := Label3D.new()
+	back.name = "NameBack"
+	back.text = label.text
+	back.modulate = label.modulate
+	back.pixel_size = label.pixel_size
+	back.font_size = label.font_size
+	back.width = label.width
+	back.autowrap_mode = label.autowrap_mode
+	back.vertical_alignment = label.vertical_alignment
+	back.double_sided = false
+	back.rotation.y = PI
+	back.position = label.position - Vector3(0.0, 0.0, 0.002)
+	add_child(back)
+	_name_back_label = back
 
 	_build_poster(front)
 	build_portal()
@@ -170,6 +190,8 @@ func _set_poster(texture: Texture2D, fixed: Vector2, w: int, h: int) -> void:
 	_poster.visible = true
 	if _name_label != null:
 		_name_label.position.y = OPENING.y + LINTEL_HEIGHT + POSTER_GAP + quad_size.y + POSTER_NAME_GAP
+		if _name_back_label != null:
+			_name_back_label.position.y = _name_label.position.y
 
 
 ## A imagem da placa (null se ainda não há).

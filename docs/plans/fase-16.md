@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** plano aprovado (16.0). A próxima é a 16.1, estante e arco.
+- **Agora:** 16.1 feita (estante e arco). A próxima é a 16.2, topo e painéis.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -36,7 +36,7 @@ Os quatro resultados da tabela "Próximo passo" da revisão aparecem nas captura
 Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leitura-b`, só os arquivos listados). Se a cota do ChatGPT acabar, o Sonnet faz as da B na trilha A.
 
 - [x] **16.0 Plano** (só de docs · Opus) — este arquivo em `docs/plans/fase-16.md`; `Início.md` aponta para ele. Commit: `Docs: plano da Fase 16 (Leitura)`
-- [ ] **16.1 Estante e arco** (pequena + captura · trilha A, Sonnet subagente · medium)
+- [x] **16.1 Estante e arco** (pequena + captura · trilha A, Sonnet subagente · medium)
   - Arquivos: `worlds/home/library_shelf.gd` (`ShelfBox`: caixa escura + quad da capa; `show_art`), `components/portal_shell/arch_shell.gd` (nome + verso).
   - Teste: `check_shelf` (o quad existe, tem a textura, a caixa não; proporção da capa horizontal), `check_portal_shell` (dois rótulos, `double_sided = false`, verso girado). Rodar `check_shelf check_portal_shell check_portal_regression`.
   - Captura: estante de dia e de noite; arco do RPG pela frente e por trás.
@@ -81,6 +81,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 
 ## Decisões tomadas durante a fase
 - 2026-11-02: plano aprovado pelo dono como está (16.0).
+- 2026-11-02 (16.1): a captura mostrou a 2ª linha do nome do arco atrás da placa (o rótulo era centrado na vertical). Os dois rótulos passam a ser ancorados por baixo (`VERTICAL_ALIGNMENT_BOTTOM`): o nome cresce para cima.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
