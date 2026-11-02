@@ -24,6 +24,10 @@ extends SceneTree
 ## ela mede só a parede vazia, e é a referência para comparar depois.
 ## Um quarto trecho sobe a trilha a 9 m/s e gira 360° no mirante em ~3 s.
 ## Sai MEDIDA_MONTANHA; sem trilha integrada, sai apenas "| sem montanha".
+## Antes de tudo sai MEDIDA_AMBIENTE (janela, Hz, vsync, placa, CPU, Godot). Depois,
+## MEDIDA_MONTAGEM: quanto o add_child da cidade travou, o 1º quadro (a janela
+## desenha pela primeira vez e compila shaders), o pior quadro depois dele (meta
+## da Fase 15: até 50 ms no desktop, na Alta) e quantos quadros passaram de 50 ms.
 ## A qualidade escolhida é só para a medida: a do usuário é devolvida no fim.
 
 const SPEED: float = 9.0
@@ -49,18 +53,33 @@ func _run() -> void:
 		library_script.install(root, count)
 	var games: int = root.get_node("SteamLibrary").get_installed_games().size()
 
+	_print_environment()
 	var built := Time.get_ticks_msec()
+	# Com janela, a cidade abre como no hub de verdade: você em casa e a cidade
+	# montando aos poucos lá fora. Sem janela (check_perf_tool), monta de uma vez.
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
-	city.play_intro = false
 	root.add_child(city)
+	var add_child_ms := Time.get_ticks_msec() - built
+	# Quadro a quadro até a cidade ficar pronta. Sem janela a montagem inteira
+	# cabe no add_child e não sobra quadro nenhum.
+	var build_frames: Array[int] = []
+	var build_last_us := Time.get_ticks_usec()
 	while not city.is_city_ready():
 		await process_frame
+		var build_now_us := Time.get_ticks_usec()
+		build_frames.append((build_now_us - build_last_us) / 1000)
+		build_last_us = build_now_us
 	var build_ms := Time.get_ticks_msec() - built
+	_report_build(games, quality, hour, build_ms, add_child_ms, build_frames)
 	var day_night = city._day_night
 	day_night.hour_offset = hour - day_night.current_hour()
 	day_night.update_now()
 
 	var player = city.get_node("Player")
+	# A abertura (tela GAME HUB) termina antes de andar; a caminhada é na rua.
+	while player.in_intro:
+		await process_frame
+	player.set_indoors(null)
 	var far := _far_street(city)
 	var path: Array[Vector3] = [Vector3(0, 0.1, 19), Vector3(far, 0.1, 19), Vector3(far, 0.1, -far), Vector3(far, 0.1, 19), Vector3(0, 0.1, 19)]
 	player.teleport_to(Transform3D(Basis.looking_at(Vector3.RIGHT), path[0]))
@@ -230,6 +249,29 @@ func _report(label: String, games: int, quality: String, hour: float, build_ms: 
 	print("%s jogos=%d qualidade=%s hora=%.0f | montagem=%d ms | fps_medio=%.1f | quadro_p99=%.0f ms | pior=%.0f ms | desenhos=%d | textura=%.0f MB | memoria=%.0f MB | quadros=%d" % [
 		label, games, quality, hour, build_ms, deltas.size() / total, p99 * 1000.0, worst * 1000.0,
 		draw_calls / maxi(samples, 1), texture_mb, memory_mb, deltas.size()])
+
+
+## A linha da montagem: o 1º quadro fica à parte do pior (é a janela abrindo).
+func _report_build(games: int, quality: String, hour: float, build_ms: int, add_child_ms: int, frames: Array[int]) -> void:
+	var first: int = frames[0] if frames.size() > 0 else 0
+	var worst: int = 0
+	var over: int = 0
+	for i in range(1, frames.size()):
+		worst = maxi(worst, frames[i])
+		if frames[i] > 50:
+			over += 1
+	print("MEDIDA_MONTAGEM jogos=%d qualidade=%s hora=%.0f | montagem=%d ms | add_child=%d ms | primeiro_quadro=%d ms | pior=%d ms | acima_50ms=%d | quadros=%d" % [
+		games, quality, hour, build_ms, add_child_ms, first, worst, over, frames.size()])
+
+
+## Uma linha com a máquina e a janela, para registrar junto da medida.
+func _print_environment() -> void:
+	var window := root.get_window()
+	var vsync: String = "sim" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "nao"
+	print("MEDIDA_AMBIENTE janela=%dx%d | tela_hz=%.0f | vsync=%s | gpu=%s | cpu=%s | godot=%s" % [
+		window.size.x, window.size.y, DisplayServer.screen_get_refresh_rate(), vsync,
+		RenderingServer.get_video_adapter_name(), OS.get_processor_name(),
+		Engine.get_version_info().string])
 
 
 ## Rua mais longe do mapa (a de fora, entre o último anel e a borda).

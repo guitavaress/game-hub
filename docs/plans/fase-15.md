@@ -503,6 +503,23 @@ As skills do projeto (`.claude/skills/`) entram nas subetapas com estes papéis.
     - [x] **15.15b** (Terra · low; revisão Sonnet · low) [trilha B, janela 3]: rascunho do texto do README e do ROADMAP, entregue à A sem marcar status;
       - **Feita em 2026-10-26** pela trilha B (Terra, `d8f8254`, base `184cebc`), revisada pelo Opus e juntada. O rascunho fica em `docs/plans/fase-15-rascunho-docs.md`, com as lacunas `[A PREENCHER]` e `[confirmar na 15.15c]`. Na 15.15c: creditar no README os passos na neve (`footstep_snow_000` a `004`, Kenney Impact Sounds) e apagar o rascunho depois de aplicado;
     - **15.15c** (Opus · medium nas medidas; Terra · low no texto) [trilha A, janela 4]: medida no desktop (Alta), documentação final e o commit abaixo.
+      - **Ferramenta (2026-11-01):** a medida antiga desligava a abertura (`play_intro = false`), e aí a cidade montava inteira dentro do `add_child`: não havia "pior quadro da montagem" para medir. Com janela, o `medir_desempenho` passou a usar a abertura de verdade (casa e montagem aos poucos) e ganhou duas linhas: `MEDIDA_AMBIENTE` (janela, Hz, vsync, placa, CPU, Godot) e `MEDIDA_MONTAGEM` (total, `add_child`, 1º quadro à parte, pior quadro depois dele, quadros acima de 50 ms). As outras linhas não mudaram. A base `ed834cd` foi medida num worktree fora do repositório com a mesma ferramenta copiada.
+      - **Medida no desktop (2026-11-02, ponta `282746d`, base `ed834cd`):** Alta, 22 h, janela 2560×1440, 165 Hz, vsync ligado, RTX 4070 + Ryzen 5 5600, Godot 4.7.2; PC parado, base e ponta intercaladas. "0" = biblioteca de verdade (18 jogos). Logs fora do repositório.
+
+        | | base 0 | ponta 0 | base 200 | ponta 200 | ponta 600 |
+        |---|---|---|---|---|---|
+        | montagem total | 2,97 s | 3,35 s | 6,35 s | 6,80 s | 9,28 s |
+        | pior quadro da montagem (sem o 1º) | 74 ms | 91 ms | 73 ms | 86 ms | 86 ms |
+        | quadros > 50 ms na montagem | 2 | 4 | 1 | 3 | 4 |
+        | `add_child` / 1º quadro | 1,5 s / 513 ms | 1,6 s / 469 ms | 1,5 s / 454 ms | 1,7 s / 457 ms | 1,9 s / 461 ms |
+        | caminhada: FPS / p99 / pior | 165 / 7 / 10 | 165 / 7 / 15 | 152 / 11 / 49 | 145 / 13 / 50 | 96 / 32 / 70 |
+        | subida e giro no mirante: FPS / p99 / pior | — | 165 / 7 / 37 | — | 163 / 9 / 20 | 160 / 9 / 52 |
+        | desenhos na caminhada | 1212 | 1170 | 3144 | 2950 | 4309 |
+
+        - **Montagem ≤ 50 ms: não passa**, nem na base (73–74 ms). A fase somou ~13–17 ms ao pior quadro e 1–2 quadros acima de 50 ms. A trava do `add_child` (1,5–1,9 s) e o 1º quadro (~0,5 s, shaders) vêm de antes e acontecem com a tela GAME HUB.
+        - **Subida:** sem queda visível (200 jogos: 163 FPS, p99 9 ms). Caminhada com 200: ~7 FPS abaixo da base, bem acima de 60.
+        - **600 falsos:** a montanha **cabe** (como decidido na 15.9.3: borda a 252 m). O "sem terreno" é o de 1000 jogos, conferido pelo `check_mountain_fallback` na bateria; o item "600 falsos" acima ficou desatualizado.
+        - **Notebook (Leve):** não medido nesta sessão; fica para quando o notebook estiver à mão (só antes/depois).
   - Faz:
     - o `medir_desempenho` ganha `MEDIDA_MONTANHA` (sobe a trilha e gira no mirante);
      - no desktop (Alta), medir com janela a base pré-integração `ed834cd` e a ponta, no mesmo dia/máquina, a 0 e 200 jogos; registrar montagem (pior quadro ≤ 50 ms), caminhada, subida e giro no mirante, resolução, qualidade, hora e hardware;

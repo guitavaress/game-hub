@@ -1,7 +1,7 @@
 extends SceneTree
 ## Teste da ferramenta de desempenho (Fase 13.9): roda tools/medir_desempenho.gd
-## sem janela, com 7 jogos falsos, e confere que saem as quatro linhas
-## (MEDIDA, MEDIDA_CASA, MEDIDA_ESPELHO e MEDIDA_MONTANHA) no formato de sempre. Os números
+## sem janela, com 7 jogos falsos, e confere que saem MEDIDA_AMBIENTE, MEDIDA_MONTAGEM
+## e as quatro linhas (MEDIDA, MEDIDA_CASA, MEDIDA_ESPELHO e MEDIDA_MONTANHA) no formato de sempre. Os números
 ## sem janela não valem nada: só o formato e a presença das linhas.
 
 var failures := 0
@@ -26,6 +26,8 @@ func _run() -> void:
 		found[match.get_string(1)] = true
 	if RegEx.create_from_string("(?m)^MEDIDA_MONTANHA jogos=\\d+ qualidade=leve hora=22 \\| sem montanha\\r?$").search(text) != null:
 		found["MEDIDA_MONTANHA"] = true
+	_check("sai a linha MEDIDA_AMBIENTE", RegEx.create_from_string("MEDIDA_AMBIENTE janela=\\d+x\\d+ \\| tela_hz=-?\\d+ \\| vsync=(sim|nao) \\| gpu=.* \\| cpu=.* \\| godot=\\S+").search(text) != null)
+	_check("sai a linha MEDIDA_MONTAGEM", RegEx.create_from_string("MEDIDA_MONTAGEM jogos=\\d+ qualidade=leve hora=22 \\| montagem=\\d+ ms \\| add_child=\\d+ ms \\| primeiro_quadro=\\d+ ms \\| pior=\\d+ ms \\| acima_50ms=\\d+ \\| quadros=\\d+").search(text) != null)
 	for label in ["MEDIDA", "MEDIDA_CASA", "MEDIDA_ESPELHO", "MEDIDA_MONTANHA"]:
 		_check("sai a linha %s" % label, found.has(label))
 	_check("a qualidade do usuário foi devolvida", FileAccess.get_file_as_string("user://config.cfg").contains('quality="%s"' % app.get_quality()))
