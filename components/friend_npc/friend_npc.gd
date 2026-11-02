@@ -28,7 +28,8 @@ const AVATAR_FORWARD: float = 0.12
 ## Largura máxima do texto de status (quebra em linhas se passar disso).
 const STATUS_MAX_WIDTH: float = 2.2   # metros
 ## Nome e plaquinha somem a partir desta distância (m).
-const LABEL_MAX_DISTANCE: float = 20.0
+const LABEL_MAX_DISTANCE: float = 5.0
+const LABEL_FADE_DISTANCE: float = 1.0
 const PLATE_COLOR: Color = Color(9.0 / 255.0, 10.0 / 255.0, 13.0 / 255.0, 0.72)
 const PLATE_PADDING: Vector2 = Vector2(0.12, 0.06)
 const STATUS_COLOR_PLAYING: Color = Color("5fe3a1")
@@ -162,7 +163,7 @@ func _build_figure() -> void:
 
 
 ## Nome e status sobre uma plaquinha escura, sempre virados para quem olha.
-## Sem contorno (o fundo já dá a leitura) e somem a partir de 20 m.
+## Sem contorno (o fundo já dá a leitura), somem suavemente perto dos 5 m.
 func _build_labels() -> void:
 	var status := friend.status_text()
 	if friend.is_playing() and not show_game_name:
@@ -198,6 +199,8 @@ func _build_labels() -> void:
 	plate.material_override = material
 	plate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	plate.visibility_range_end = LABEL_MAX_DISTANCE
+	plate.visibility_range_end_margin = LABEL_FADE_DISTANCE
+	plate.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	plate.position = status_label.position + Vector3(0.0, plate_size.y / 2.0 - PLATE_PADDING.y, 0.0)
 	add_child(plate)
 
@@ -249,4 +252,6 @@ func _make_label(text: String, font: Font, font_size: int, pixel_size: float, co
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	label.render_priority = 1
 	label.visibility_range_end = LABEL_MAX_DISTANCE
+	label.visibility_range_end_margin = LABEL_FADE_DISTANCE
+	label.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	return label
