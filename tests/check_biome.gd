@@ -81,7 +81,7 @@ func _run() -> void:
 
 	print("\n== neve debaixo do jogador ==")
 	var player = city.get_node("Player")
-	# Na rua, no canto de uma zona do RPG (o cruzamento fica livre de postes).
+	# No canto da área coberta (onde a zona recua, é o do quarteirão; o resto, a rua).
 	var spot := rects[0].position + Vector2(1.5, 1.5)
 	player.global_position = Vector3(spot.x, 0.5, spot.y)
 	player.velocity = Vector3.ZERO
@@ -130,7 +130,7 @@ func _run() -> void:
 	print("   faixas: %d (na neve: %d); poças: %d (na neve: %d)" % [markings.multimesh.instance_count, dashes_in, puddles, puddles_in])
 	_check("nenhuma faixa na zona do bioma (conferidas %d)" % dashes.size(),
 			dashes_real and dashes_in == 0 and markings.multimesh.instance_count > 0)
-	_check_divisa(city, builder, town, rects, half, dashes)
+	_check_divisa(town, rects, half, dashes)
 
 	# 15.13.5: a neve reflete mais luz, então os postes do RPG acendem mais fracos.
 	var scale: float = builder.biome_of("rpg").street_light_scale
@@ -159,8 +159,7 @@ func _run() -> void:
 
 ## A divisa com outro bairro (15.13.1): a neve para no meio-fio, e a rua fica de
 ## asfalto inteira (com as faixas), sem a linha reta no meio dela.
-func _check_divisa(city: Node, builder: GDScript, town: Array[Rect2], rects: Array[Rect2], half: float,
-		dashes: Array) -> void:
+func _check_divisa(town: Array[Rect2], rects: Array[Rect2], half: float, dashes: Array) -> void:
 	print("
 == divisa com outro bairro (15.13.1) ==")
 	var curb := CityLayout.STREET_WIDTH / 2.0
