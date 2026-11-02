@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 aprovada. A trilha B entregou a 16.3 e a 16.6 (falta o merge com as capturas) e faz a 16.4; a trilha A faz a 16.2.
+- **Agora:** 16.1 aprovada. 16.3 e 16.6 juntadas na `fase-16`. A trilha B faz a 16.4; a trilha A faz a 16.2.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -46,7 +46,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_district_title` (retângulo do título não cruza o da pilha cheia; não aparece com carga), um caso novo em `check_search` ou `check_toasts` (abre busca → HUD escondido; fecha → volta; intro e foco continuam escondendo). Depois a bateria completa.
   - Captura: aviso + título juntos; busca, mapa e metrô abertos; carga na porta.
   - Commit: `Fase 16.2: aviso e título em lugares próprios; HUD some com painel aberto`
-- [ ] **16.3 Praça legível** (pequena + captura · trilha B, Sol · medium)
+- [x] **16.3 Praça legível** (`f4c4cc5`, merge `f420805`) (pequena + captura · trilha B, Sol · medium)
   - Arquivo: `components/friend_npc/friend_npc.gd` (distância do rótulo e fade).
   - Teste: `check_holograms check_phase5 check_avatar`.
   - Captura: chegada à praça às 13 h e às 22 h, com a biblioteca falsa e amigos falsos.
@@ -61,7 +61,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_metro check_fast_travel check_city_map` (nomes sem "· N"; `detail` com "praça"; soma dos "jogos perto" = total do bairro).
   - Captura: painel do metrô no RPG (o bairro com mais estações).
   - Commit: `Fase 16.5: estações do metrô dizem onde ficam`
-- [ ] **16.6 Legenda do mapa** (pequena + captura · trilha B, Sol · medium)
+- [x] **16.6 Legenda do mapa** (`ede7e4c`, `ff0c55b`, merge `f420805`) (pequena + captura · trilha B, Sol · medium)
   - Arquivos: `ui/map_view.gd` (nomes por último; nome da trilha; funções de símbolo reaproveitáveis), `ui/world_map.gd` (legenda).
   - Teste: `check_city_map check_planta check_minimap` (legenda só no mapa grande; minimapa igual).
   - Captura: mapa (M) aberto na praça.
@@ -84,6 +84,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02 (16.1): a captura mostrou a 2ª linha do nome do arco atrás da placa (o rótulo era centrado na vertical). Os dois rótulos passam a ser ancorados por baixo (`VERTICAL_ALIGNMENT_BOTTOM`): o nome cresce para cima.
 - 2026-11-02: o dono aprovou a 16.1. A trilha B entregou a 16.3 (`f4c4cc5`) e a 16.6 (`ede7e4c`, `ff0c55b`, revisadas pelo Opus: legenda com as cores do mapa e nome da trilha vindo dos dados) na `worktree/leitura-b`; o merge e as capturas ficam com a A.
 - 2026-11-02: a 16.4 passa da trilha A para a B (Sol), por decisão do dono, para usar a cota do ChatGPT enquanto a A faz a 16.2. Os arquivos das duas não se cruzam. Como a 16.4 precisa da estante da 16.1, ela sai de um worktree novo (`worktree/leitura-b2`) criado da `fase-16`.
+- 2026-11-02 (merge da B, `f420805`): testes da 16.3 e da 16.6 ok; capturas da praça às 13 h e às 22 h (12 amigos falsos) sem parede de nomes: de longe só os corpos, de perto só o nome do mais próximo, sem nomes cruzados. O "só o mais perto mostra" não é necessário. O mapa (M) mostra a legenda, "Praça" e "Trilha do Mirante"; a bússola e o minimapa ainda aparecem por trás (é a 16.2).
 - 2026-11-02: a bateria completa da 16.2 vale também para o merge da `worktree/leitura-b` (feito no começo da 16.2, com os testes de cada subetapa e as capturas).
 
 ## Checklist de teste manual (fim da fase)
