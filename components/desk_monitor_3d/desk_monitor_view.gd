@@ -4,6 +4,9 @@ extends Control
 ## saída do compositor e, por cima, o cursor e a barrinha do "segure Esc". O
 ## cursor é desenhado pelo hub (os apps não sabem onde está o mouse no mundo).
 
+const UNAVAILABLE_TEXT: String = "SÓ NO LINUX"
+const UNAVAILABLE_DETAIL: String = "Esta mesa funciona no hub no Linux. No Windows ela fica desligada."
+
 const CURSOR_COLOR := Color(1, 1, 1)
 const CURSOR_EDGE := Color(0, 0, 0)
 

@@ -193,7 +193,8 @@ func _on_box_hold(box: ShelfBox, ratio: float) -> void:
 	if _waiting_for_game:
 		return
 	var neon := GameCategories.get_neon_color(GameCategories.get_category_id(box.app_id))
-	ScreenFade.set_door_charge(ratio, GameInfo.game_name(box.app_id), neon)
+	ScreenFade.set_door_charge(ratio, GameInfo.game_name(box.app_id), neon,
+			InputDevice.fill("solte {interact} para cancelar"))
 
 
 func _on_box_opened(box: ShelfBox) -> void:
