@@ -47,8 +47,15 @@ func _run() -> void:
 		var forward: Vector3 = (left - right).cross(Vector3.UP).normalized()
 		_check("%s de frente para o +Z do projetor" % npc.friend.name, forward.dot(npc.global_basis.z.normalized()) > 0.95)
 		var labels := npc.find_children("*", "Label3D", true, false)
-		_check("%s: nome sem contorno e some a 20 m" % npc.friend.name, labels.all(func(l) -> bool:
-			return l.outline_size == 0 and is_equal_approx(l.visibility_range_end, 20.0)))
+		_check("%s: nome e status sem contorno, com fade perto dos 5 m" % npc.friend.name,
+			labels.size() == 2 and labels.all(func(l: Label3D) -> bool:
+				return l.outline_size == 0 and _has_label_fade(l)))
+		var plates: Array[Node] = npc.get_children().filter(func(n: Node) -> bool:
+			return n is MeshInstance3D and n.mesh is QuadMesh)
+		_check("%s: placa acompanha o fade dos textos" % npc.friend.name,
+			plates.size() == 1 and _has_label_fade(plates[0]))
+		_check("%s: a mira continua mostrando nome e estado" % npc.friend.name,
+			npc.get_look_label() == "%s — %s" % [npc.friend.name, npc.friend.status_text()])
 	var ana = npcs.filter(func(n) -> bool: return n.friend.name == "Ana")[0]
 	_check("avatar padrão ('?') não aparece", not ana._avatar.visible and not ana.friend.has_custom_avatar())
 	var caio = npcs.filter(func(n) -> bool: return n.friend.name == "Caio")[0]
@@ -56,6 +63,12 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+func _has_label_fade(geometry: GeometryInstance3D) -> bool:
+	return is_equal_approx(geometry.visibility_range_end, 5.0) \
+			and is_equal_approx(geometry.visibility_range_end_margin, 1.0) \
+			and geometry.visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
 func _check(label: String, ok: bool) -> void:

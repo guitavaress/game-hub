@@ -7,6 +7,8 @@ extends Control
 ## Só usa _draw (nenhum nó por prédio): custo quase zero. Redesenha poucas
 ## vezes por segundo (REFRESH_SECONDS), e não a cada quadro.
 
+signal refreshed
+
 const REFRESH_SECONDS: float = 0.2
 const BACKGROUND: Color = Color(0.05, 0.055, 0.07, 0.86)
 ## A praça: cor de pedra clara, diferente de qualquer bairro (o cinza é do
@@ -69,6 +71,15 @@ func refresh() -> void:
 	_target = _read_target()
 	_layout()
 	queue_redraw()
+	refreshed.emit()
+
+
+## Cor do primeiro marco deste tipo; branco enquanto os dados não chegaram.
+func get_landmark_color(kind: String) -> Color:
+	for landmark: Dictionary in _data.get("landmarks", []):
+		if landmark["kind"] == kind:
+			return landmark["color"]
+	return PLAYER_COLOR
 
 
 func is_indoors() -> bool:
@@ -121,13 +132,14 @@ func _draw() -> void:
 		return
 	var gap: float = _data.get("gap", 0.0)
 	var font := get_theme_default_font()
+	var labels: Array[Dictionary] = []
 
 	var plaza: Rect2 = _data["plaza"]
 	var plaza_px := _pixel_rect(plaza.grow(-gap / 2.0))
 	draw_rect(plaza_px, PLAZA_COLOR)
 	draw_circle(plaza_px.get_center(), maxf(plaza_px.size.x * 0.12, 2.0), FOUNTAIN_COLOR)
 	if show_labels:
-		_draw_label(font, "Praça", plaza_px.get_center() + Vector2(0.0, plaza_px.size.y * 0.3))
+		labels.append({"text": "Praça", "center": plaza_px.get_center() + Vector2(0.0, plaza_px.size.y * 0.3)})
 	for area: Dictionary in _data["areas"]:
 		var color: Color = area["color"]
 		# Primeiro as vagas (a fatia inteira aparece, da praça até a borda).
@@ -152,26 +164,16 @@ func _draw() -> void:
 				if rect.get_center().distance_to(mean) < label_rect.get_center().distance_to(mean):
 					label_rect = rect
 			# Texto claro com contorno escuro: lê bem em cima de qualquer cor de bairro.
-			_draw_label(font, String(area["name"]).split(" e ")[0], _pixel_rect(label_rect).get_center())
+			labels.append({"text": String(area["name"]).split(" e ")[0], "center": _pixel_rect(label_rect).get_center()})
 	for landmark: Dictionary in _data["landmarks"]:
 		var at := to_pixel(landmark["pos"])
-		if landmark["kind"] == "home":
-			_draw_house(at, landmark["color"])
-			continue
-		if landmark["kind"] == "marco":
-			# Ponto alto e visível de longe (a torre): um ponto claro com aro escuro.
-			draw_circle(at, 6.0, Color.BLACK)
-			draw_circle(at, 4.5, landmark["color"])
-			continue
-		if landmark["kind"] == "trilha":
-			# A entrada da trilha da montanha (na mureta): um triângulo, como um pico.
-			var peak := PackedVector2Array([at + Vector2(0, -7), at + Vector2(7, 5), at + Vector2(-7, 5)])
-			draw_colored_polygon(peak, landmark["color"])
-			peak.append(peak[0])
-			draw_polyline(peak, Color.BLACK, 1.5)
-			continue
-		draw_circle(at, 5.0, Color.BLACK)
-		draw_circle(at, 3.5, landmark["color"])
+		draw_symbol(self, landmark["kind"], at, landmark["color"])
+		if show_labels and not follow_player and landmark["kind"] == "trilha":
+			var text: String = landmark["name"]
+			var half_width: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x / 2.0
+			var center: Vector2 = (at + Vector2(0, 22)).clamp(
+				Vector2(half_width + 4.0, 14.0), size - Vector2(half_width + 4.0, 14.0))
+			labels.append({"text": text, "center": center})
 
 	if _target.get("visible", false):
 		var at := _clamp_to_view(to_pixel(_target["pos"]))
@@ -184,28 +186,50 @@ func _draw() -> void:
 	else:
 		# O jogador: uma seta branca virada para onde ele olha.
 		var me := _clamp_to_view(to_pixel(_player_xz))
-		var forward := Vector2(sin(_heading), -cos(_heading))
-		var side := Vector2(-forward.y, forward.x)
-		var arrow := PackedVector2Array([me + forward * 9.0, me - forward * 6.0 + side * 6.0, me - forward * 3.0, me - forward * 6.0 - side * 6.0])
-		draw_colored_polygon(arrow, PLAYER_COLOR)
-		arrow.append(arrow[0])
-		draw_polyline(arrow, Color.BLACK, 1.5)  # contorno: aparece até sobre a praça clara
+		draw_symbol(self, "player", me, PLAYER_COLOR, _heading)
 
 	draw_rect(Rect2(Vector2.ZERO, size), BORDER_COLOR, false, 1.0)
 	if show_area_name and not _area_name.is_empty():
 		var width := font.get_string_size(_area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		draw_rect(Rect2(0.0, size.y - 22.0, size.x, 22.0), Color(0, 0, 0, 0.55))
 		draw_string(font, Vector2((size.x - width) / 2.0, size.y - 7.0), _area_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("DDE2EA"))
+	# Os nomes ficam por cima de todas as áreas e símbolos da planta.
+	for label: Dictionary in labels:
+		_draw_label(font, label["text"], label["center"])
 
 
 ## Marco da casa: uma casinha (telhado e paredes) com contorno escuro, maior
 ## que as bolinhas das estações.
-func _draw_house(at: Vector2, color: Color) -> void:
+static func _draw_house(canvas: CanvasItem, at: Vector2, color: Color) -> void:
 	var house := PackedVector2Array([at + Vector2(0, -8), at + Vector2(7, -1), at + Vector2(5, -1),
 			at + Vector2(5, 6), at + Vector2(-5, 6), at + Vector2(-5, -1), at + Vector2(-7, -1)])
-	draw_colored_polygon(house, color)
+	canvas.draw_colored_polygon(house, color)
 	house.append(house[0])
-	draw_polyline(house, Color.BLACK, 1.5)
+	canvas.draw_polyline(house, Color.BLACK, 1.5)
+
+
+## Mesmos símbolos na planta e na legenda; as coordenadas são locais ao controle.
+## Chame apenas durante o desenho do controle recebido.
+static func draw_symbol(canvas: CanvasItem, kind: String, at: Vector2, color: Color, heading: float = 0.0) -> void:
+	if kind == "home":
+		_draw_house(canvas, at, color)
+	elif kind == "player":
+		var forward := Vector2(sin(heading), -cos(heading))
+		var side := Vector2(-forward.y, forward.x)
+		var arrow := PackedVector2Array([at + forward * 9.0, at - forward * 6.0 + side * 6.0,
+			at - forward * 3.0, at - forward * 6.0 - side * 6.0])
+		canvas.draw_colored_polygon(arrow, color)
+		arrow.append(arrow[0])
+		canvas.draw_polyline(arrow, Color.BLACK, 1.5)
+	elif kind == "trilha":
+		var peak := PackedVector2Array([at + Vector2(0, -7), at + Vector2(7, 5), at + Vector2(-7, 5)])
+		canvas.draw_colored_polygon(peak, color)
+		peak.append(peak[0])
+		canvas.draw_polyline(peak, Color.BLACK, 1.5)
+	else:
+		var radius: float = 6.0 if kind == "marco" else 5.0
+		canvas.draw_circle(at, radius, Color.BLACK)
+		canvas.draw_circle(at, radius - 1.5, color)
 
 
 ## Faixa "Você está em casa" no alto do mapa (no lugar da seta).
