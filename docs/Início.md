@@ -3,8 +3,10 @@
 O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
-- **Fase atual:** [Fase 15](plans/fase-15.md), feita no desktop, esperando o merge na `main`.
-- **Para responder:** [Revisão da ROADMAP (2026-11-02)](revisao-roadmap-2026-11-02.md), as perguntas que decidem a próxima ROADMAP.
+- **Próxima fase:** [Leitura](ROADMAP.md#1-leitura), a primeira da ROADMAP nova. O plano dela é o próximo passo.
+- **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
+- **Última fase feita:** [Fase 15](plans/fase-15.md), já na `main`.
+- **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
 
 ## Rumo
 - [ROADMAP](ROADMAP.md): para onde o projeto vai e em que ordem (a fonte única).
@@ -13,7 +15,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Referência
 - [Plataforma](PLATAFORMA.md): Steam, Windows e Linux.
-- Design: [storyboard](design/storyboard-brief.md), [revisão de 2026-10-10](design/revisao-2026-10-10.md), [bioma montanha](design/bioma-montanha.md), [addons](design/addons-2026-10-13.md), [exploração open source](design/exploracao-open-source-2026-10-15.md).
+- Design: [storyboard](design/storyboard-brief.md), [revisão de 2026-11-02](design/revisao-2026-11-02.md), [revisão de 2026-10-10](design/revisao-2026-10-10.md), [bioma montanha](design/bioma-montanha.md), [addons](design/addons-2026-10-13.md), [exploração open source](design/exploracao-open-source-2026-10-15.md).
 
 ## Regras do cofre
 1. **Ideia nova vai para `ideias/`**, com o modelo "ideia". Ideia não é tarefa: só vira trabalho quando entra na ROADMAP como fase.
