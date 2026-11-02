@@ -25,7 +25,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
 |---|---|---|
 | **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
 | **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | ✅ pronta: casa na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](plans/fase-13.md) |
-| **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
+| **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); ✅ primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
 | **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
 | **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland), com as janelas dos programas dentro do mundo, como o Waylandcraft | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); ✅ janelas no mundo (a mesa com três monitores) na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
 | **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔜 perfis do usuário (local) na [Fase 18](#fase-18-mundos-abertos); compartilhamento e loja no [Horizonte](#horizonte-sem-compromisso) |
@@ -39,6 +39,7 @@ Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engin
   - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
   - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
 - **Fase 14** (2026-10): painel do sistema, autostart e atalho (parte 1); o hub como compositor Wayland (parte 2); e a **mesa com três monitores**, com a barra, o menu e os atalhos do Omarchy dentro do hub (parte 3). Falta a medida no desktop. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
+- **Fase 15** (2026-11): o primeiro bioma. O bairro RPG vira neve, arcos de pedra, pinheiros e rochas, com uma montanha atrás e trilha até o mirante; cada bairro passou a ser uma fatia da praça até a borda. Detalhes na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha).
 - **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Conferida no Windows (bateria completa e jogo de verdade) em 2026-10-19 e juntada na `main`.
 
 Os detalhes estão no [README](../README.md) e no histórico do git.
@@ -145,7 +146,7 @@ Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeo
 | [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
 | [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy (reaberta: janelas no mundo) | V5 | notebook ✅ (é o lugar ideal) |
 | [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
-| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha (em andamento: 15.0 e 15.8) | V3 | desktop Windows (Alta); notebook para comparação |
+| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha ✅ | V3 | desktop Windows (Alta) ✅; notebook para comparação |
 | [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
 | [17](#fase-17-visitar-a-cidade-de-um-amigo) | Visitar a cidade de um amigo | V4 (sem servidor) | notebook ✅ |
 | [18](#fase-18-mundos-abertos) | Mundos abertos | V6 (local) | notebook ✅ |
@@ -201,14 +202,16 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 **Objetivo:** fazer tudo o que só o desktop responde e juntar o trabalho na `main`.
 
 **Entregas:**
-- **Conferências pendentes:** desempenho na Alta (fases 8–12; pior quadro da montagem ≤ 50 ms), Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade); **a medida da mesa na Alta** (Fase 14, 14.32: três monitores de 1920×1080, parados e com o Brave tocando vídeo; se pesar, baixar para 1600×900).
+- **Conferências pendentes:** desempenho na Alta (fases 8–12); **o pior quadro da montagem** (Fase 15: 86 ms com 200 jogos e 91 ms com a biblioteca de verdade, contra a meta de 50 ms; a base já dava 73–74 ms; achar e dividir os quadros pesados enquanto a cidade monta, e a trava de ~1,6 s antes do primeiro quadro); a comparação da Fase 15 no notebook (Leve, antes e depois, 0 e 200 jogos); Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade); **a medida da mesa na Alta** (Fase 14, 14.32: três monitores de 1920×1080, parados e com o Brave tocando vídeo; se pesar, baixar para 1600×900).
 - **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
-- **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** para medir ao vivo e o **Sky3D** no lugar das fotos HDRI do céu (ou no começo da Fase 15), cada um com permissão para baixar.
+- **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** (já no projeto, F3) para medir ao vivo e a decisão do **Sky3D** (já no projeto, como opção) como céu padrão; a revisão da 15.13 achou a névoa laranja forte às 18 h e a praça quase preta às 22 h na montanha. Também a Leve com `alpha_cut` e 3D a 67% (15.13.6), se a medida pedir.
 - Juntar a `fase-linux` na `main`, se o dono pedir.
 
 **Quando começar:** ganha o próximo número livre e um plano curto.
 
 ### Fase 15: Primeiro bioma, o bairro RPG na montanha
+
+✅ **Feita no desktop Windows** (2026-11-02); falta a comparação no notebook.
 
 **Versão:** V3. **Onde testar:** notebook (Leve) + desktop (Alta).
 
@@ -225,7 +228,11 @@ Plano e registro: [plans/fase-14.md](plans/fase-14.md).
 - **Terreno por malha feita por código**, e não pelo Terrain3D (binários pesados no histórico e a primeira importação que derruba a Godot; veja a [avaliação](design/addons-2026-10-13.md)). Fica atrás de um ponto único, para a troca futura.
 - **Visual guiado pelas skills do projeto:** direção de arte e uma amostra aprovada antes de baixar o resto, a trilha em greybox antes de enfeitar e uma revisão visual com capturas no fim.
 
-**Andamento (2026-10-23):** 15.0 concluída (assets e amostra aprovada) e 15.8 integrada (núcleo isolado do terreno). Próxima: **15.1**, bioma como dado. Montanha, setores, clima e trilha caminhável ainda não estão integrados à cidade. Desde 2026-10-24 o trabalho segue com Claude Code + Codex (ver AGENTS.md); 15.1 e 15.2 já feitas, próxima 15.3.
+**O que entregou (2026-11-02):** o bairro RPG prova que a biblioteca pode decidir o mundo. Os portais ficaram no chão plano nevado, com calçada de pedra, arcos de pedra com a capa do jogo, pinheiros e rochas; há neve caindo, névoa, vento e passos próprios. Atrás do setor do RPG, uma montanha feita por código tem uma trilha caminhável (limites, placas e o vão na mureta) até o mirante, com a torre do bairro e a cidade lá embaixo. A qualidade muda a malha (4/3/2 m), os enfeites (50/75/100%) e a sombra do terreno, e a troca refaz a montanha sem tirar o chão. Todos os bairros ocupam setores contínuos da praça até a borda, sem mudar jogos, variantes nem decoração. Com ~1000 jogos a montanha não cabe e a cidade monta sem ela. A revisão visual (15.13) trouxe a rua do pórtico de asfalto, a noite do céu de fotos sem o deserto, a névoa do bioma que mantém o brilho da hora, os braseiros da torre e os postes mais fracos na neve.
+
+**Medida (desktop, Alta, 2026-11-02):** Ryzen 5 5600 + RTX 4070, janela 2560×1440 a 165 Hz (vsync), 22 h; base de antes da fase (`ed834cd`) e ponta, intercaladas. Caminhada com 200 jogos: 145 FPS (base 152), p99 13 ms. Subida e giro no mirante com 200 jogos: 163 FPS, p99 9 ms, sem queda visível. **Montagem:** o pior quadro (depois do primeiro) foi 86 ms com 200 jogos e 91 ms com a biblioteca de verdade, contra 73–74 ms na base: **a meta de 50 ms não passa**, e o dono aceitou registrar como pendência. Números completos no [plano](plans/fase-15.md). No notebook (Leve), a comparação antes e depois ainda não foi feita.
+
+**Falta fora da fase:** o pior quadro da montagem e a comparação no notebook vão para a [Trilha do desktop](#trilha-do-desktop); o Sky3D na montanha e a Leve com `alpha_cut` (15.13.6) também. A encosta com pinheiros e rochas, o canto côncavo da divisa neve/asfalto e o destaque da torre de dia vão para a [Fase 16](#fase-16-biomas-pela-biblioteca).
 
 **Assets:** pinheiro, rocha, neve e passos na neve, todos CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
 

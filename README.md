@@ -25,6 +25,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
 | 14 | O hub no Omarchy: painel do sistema (hora, bateria, Wi-Fi, volume), abrir o hub ao entrar no Omarchy, um atalho para chamá-lo de volta e **a mesa com três monitores**: o hub é um compositor Wayland, e os apps (terminal, Brave, a barra e o menu do Omarchy) aparecem nos monitores da casa, com os atalhos do Omarchy (como o Waylandcraft) | ✅ pronta no Linux (falta a medida no desktop e a conferência no Windows) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
+| 15 | Primeiro bioma: o bairro RPG vira neve, arcos de pedra, pinheiros e rochas, com neve caindo, névoa, vento e passos na neve; atrás dele, uma montanha com trilha até o mirante e a torre. Cada bairro passou a ser uma fatia da praça até a borda | ✅ pronta no desktop Windows (falta a comparação no notebook; a montagem da cidade ainda tem quadros acima de 50 ms) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
@@ -255,6 +256,14 @@ Cada tema é um perfil em `profiles/homes/` (um `.tres`, o `HomeProfile`): mater
 ### Como criar um bairro novo
 Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para criar um: no editor da Godot, botão direito num `.tres` › Duplicar, ajuste nome, cores, tags da Steam, sons, enfeite, clima e arquitetura no inspetor, e acrescente o arquivo na lista **Districts** de `profiles/world_profile.tres` (a ordem da lista é a ordem dos bairros). Não é preciso mexer em código.
 
+## O bairro RPG na montanha
+
+O bairro RPG é o primeiro **bioma**: o asfalto vira neve com calçada de pedra, os prédios viram **arcos de pedra** com a capa do jogo, e há pinheiros, rochas, neve caindo, névoa, vento e passos na neve. À noite, os postes do bairro ficam mais fracos (para a neve não estourar de branco) e a torre acende quatro braseiros no alto.
+
+Atrás do bairro, fora da mureta da cidade, sobe uma **montanha** feita por código. Siga as placas "Trilha do Mirante" até o vão da mureta e suba a pé: a trilha tem limites dos dois lados, e no alto ficam o **mirante** (uma plataforma de madeira) e a **torre do RPG**, com a cidade lá embaixo. Na qualidade Leve a montanha fica mais simples (malha mais grossa, metade dos pinheiros e sem sombra); trocar a qualidade refaz a montanha sem tirar o chão de baixo dos pés.
+
+Para isso, cada bairro passou a ocupar uma **fatia** da praça até a borda da cidade (aperte **M** para ver no mapa), e o bioma é **dado**: um `BiomeSpec` no perfil do bairro (`profiles/biomes/montanha.tres`), com chão, enfeites, clima, névoa e terreno. Numa biblioteca enorme (perto de 1000 jogos), a cidade fica grande demais para a montanha caber: o bairro continua nevado, sem montanha e sem trilha.
+
 ## Créditos
 
 - **Céus (HDRI):** [Poly Haven](https://polyhaven.com), **CC0** (domínio público): `kloofendal_48d_partly_cloudy_puresky` (dia), `qwantani_dusk_2_puresky` (pôr do sol) e `rogland_clear_night` (noite), em 2K. Detalhes em `assets/polyhaven/LICENSE.txt`.
@@ -264,7 +273,7 @@ Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para cri
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
 - **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
 - **Avatar e hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
-- **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds, Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
+- **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds (inclusive os passos na neve, `footstep_snow_000` a `004`), Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
 - **Menu de depuração (F3):** [Debug Menu](https://github.com/godot-extended-libraries/godot-debug-menu) v1.2.0, de Calinou, licença **MIT** (`addons/debug_menu/LICENSE.md`). F3 alterna entre FPS, tempos de quadro e hardware.
 - **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
 - O estalo da lareira da cabana (`fire_crackle.wav`) também é gerado pelo mesmo script, CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).

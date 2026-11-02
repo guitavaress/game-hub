@@ -5,7 +5,7 @@ Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Ste
 
 **Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
 
-- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), visual v2 e Fase Linux (detalhes no [README](README.md)).
+- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), a Fase 15 (o bairro RPG na montanha; no desktop, com a montagem acima de 50 ms como pendência), visual v2 e Fase Linux (detalhes no [README](README.md)).
 - **Fase 14 (feita no Linux):** o hub é um compositor Wayland aninhado (como o **Waylandcraft**) e a casa tem **três monitores na mesa do computador**, com a barra, o menu e os atalhos do Omarchy dentro. **Falta** a medida no desktop (Alta). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
 - **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
 
@@ -72,7 +72,7 @@ tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual;
                jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev
 assets/        só CC0, com LICENSE em cada pasta de origem
-addons/        (ainda vazio) addons de terceiros, com LICENSE; regras na seção "Addons"
+addons/        addons de terceiros, com LICENSE: debug_menu (F3) e sky_3d (opção de céu); regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
