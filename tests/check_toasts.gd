@@ -78,6 +78,51 @@ func _run() -> void:
 	_check("vermelho, título + frase", error_toast.kind == 1 and error_toast.title == "Balatro não abriu"
 		and "Abra a Steam" in error_toast.text)
 
+	print("\n== painel aberto: o HUD sai de baixo (16.2) ==")
+	var player = city.get_node("Player")
+	_check("começa com o HUD", hud.visible)
+	var panels := {"busca": player.get_game_search(), "mapa": player.get_world_map(),
+			"pausa": player.get_pause_menu()}
+	for panel_name: String in panels:
+		var panel = panels[panel_name]
+		panel.open()
+		_check("%s aberta: HUD escondido" % panel_name, panel.is_open() and not hud.visible)
+		panel.close()
+		_check("%s fechada: HUD de volta" % panel_name, not panel.is_open() and hud.visible)
+	paused = false
+	var stops := city.find_children("*", "TransitStop", true, false)
+	_check("há estação de metrô", not stops.is_empty())
+	if not stops.is_empty():
+		var transit = player.get_transit_panel()
+		_check("metrô aberto: HUD escondido", transit.open_for(stops[0]) and not hud.visible)
+		transit.close()
+		_check("metrô fechado: HUD de volta", hud.visible)
+	paused = false
+	print("   aviso com o mapa aberto espera a volta do HUD")
+	hud.clear_messages()
+	player.get_world_map().open()
+	hud.show_message("Chegou com o mapa aberto")
+	_check("fica na fila", hud.get_messages().is_empty())
+	player.get_world_map().close()
+	await process_frame
+	_check("aparece ao fechar", hud.get_messages().size() == 1)
+	hud.clear_messages()
+	print("   a abertura continua escondendo")
+	player.start_intro()
+	_check("abertura: HUD escondido", not hud.visible)
+	player.get_world_map().open()
+	player.get_world_map().close()
+	_check("abrir e fechar um painel não traz o HUD na abertura", not hud.visible)
+	player.finish_intro()
+	_check("fim da abertura: HUD de volta", hud.visible)
+	player.get_world_map().open()
+	player.start_intro()
+	player.finish_intro()
+	_check("fim da abertura com o mapa aberto: HUD continua escondido", not hud.visible)
+	player.get_world_map().close()
+	_check("fechou o mapa: HUD de volta", hud.visible)
+	paused = false
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 

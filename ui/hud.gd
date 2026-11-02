@@ -9,7 +9,9 @@ extends CanvasLayer
 ##   Um clique suave toca quando o alvo muda;
 ## - AVISOS no topo (Toast): título + frase de ação, com uma barrinha de cor
 ##   (amarela = info, vermelha = erro, verde = sessão). Até 3 empilhados; um
-##   quarto aviso tira o mais antigo. Somem sozinhos.
+##   quarto aviso tira o mais antigo. Somem sozinhos;
+## - TÍTULO DO BAIRRO numa faixa própria, abaixo do espaço de 2 avisos; se a
+##   pilha passar disso, o título cede a vez: os dois nunca se cruzam (Fase 16.2).
 ## Cores, fontes e caixas vêm do tema do hub (HubTheme).
 ##
 ## Os sistemas mandam avisos como um texto só; a PRIMEIRA LINHA vira o título
@@ -25,6 +27,11 @@ const TOASTS_TOP: float = 12.0
 ## Minimapa no canto superior direito.
 const MINIMAP_SIZE: Vector2 = Vector2(168.0, 168.0)
 const TOASTS_GAP: int = 8
+## O título do bairro fica abaixo do espaço de tantos avisos. Com 3 (a pilha
+## cheia) ele cairia em cima da mira; com 2, um 3º aviso faz o título ceder a vez.
+const TITLE_BAND_TOASTS: int = 2
+## Espaço entre a pilha de avisos e o título do bairro (px).
+const TITLE_GAP: float = 8.0
 
 ## Sons (Kenney, CC0).
 const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
@@ -73,6 +80,7 @@ func _ready() -> void:
 	_district_title = DistrictTitle.new()
 	_district_title.name = "DistrictTitle"
 	add_child(_district_title)
+	_apply_map_visibility()  # já com o título: ele ganha a faixa dele
 	visibility_changed.connect(_show_waiting_messages)
 	InputDevice.device_changed.connect(func(_gamepad: bool) -> void:
 		_set_line(_look_action, InputDevice.fill(_look_action_raw)))
@@ -462,7 +470,6 @@ func _build_compass() -> void:
 	AppConfig.settings_changed.connect(func(section: String, key: String) -> void:
 		if section == "video" and key == "show_map":
 			_apply_map_visibility())
-	_apply_map_visibility()
 
 
 ## Em casa a bússola e o minimapa somem (eles falam do mundo lá fora).
@@ -476,6 +483,27 @@ func _apply_map_visibility() -> void:
 	_compass.visible = on
 	_minimap.visible = on
 	_toasts.offset_top = TOASTS_TOP + (Compass.SIZE_PX.y + TOASTS_GAP if on else 0.0)
+	# O título fica abaixo do espaço de TITLE_BAND_TOASTS avisos. Se a pilha
+	# passar disso (um aviso a mais, ou avisos longos), ele cede a vez (some ou
+	# nem aparece) em vez de cruzar.
+	_district_title.set_band(get_title_band_top(), func() -> bool:
+		return get_toasts_bottom() + TITLE_GAP > get_title_band_top() + 0.5)
+
+
+## Onde começa a faixa do título do bairro (px, do alto da tela): abaixo do
+## espaço de TITLE_BAND_TOASTS avisos comuns (título + uma linha), mais TITLE_GAP.
+func get_title_band_top() -> float:
+	return _toasts.offset_top + TITLE_BAND_TOASTS * Toast.nominal_height() \
+			+ (TITLE_BAND_TOASTS - 1) * TOASTS_GAP + TITLE_GAP
+
+
+## Até onde a pilha de avisos chega agora (px, do alto da tela). Usa o tamanho
+## já arrumado da pilha: no quadro em que um aviso entra, o tamanho mínimo dele
+## ainda é provisório (o texto não quebrou as linhas) e dá centenas de px.
+func get_toasts_bottom() -> float:
+	if _visible_toasts().is_empty():
+		return _toasts.offset_top
+	return _toasts.offset_top + _toasts.size.y
 
 
 func get_minimap() -> MapView:
