@@ -12,7 +12,8 @@ extends Node3D
 ## Quem chega por outra parada aparece no ponto de saída (get_exit_transform),
 ## um pouco à frente da entrada e virado para fora.
 ##
-## Quem cria preenche stop_name, color, order e detail ANTES de adicionar à cena.
+## Quem cria preenche stop_name, color e order ANTES de adicionar à cena. O detail
+## pode vir depois: só o painel do metrô lê, quando abre.
 
 ## Tamanho da entrada (largura, altura, profundidade).
 const ENTRY_SIZE: Vector3 = Vector3(1.4, 2.4, 1.4)
