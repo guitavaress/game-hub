@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 e 16.2 aprovadas; 16.3 e 16.6 juntadas. A 16.4 está pronta na `worktree/leitura-b2` (falta o merge com as capturas); depois vem a 16.5.
+- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. A 16.4 espera a sua aprovação; depois vem a 16.5.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -51,7 +51,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_holograms check_phase5 check_avatar`.
   - Captura: chegada à praça às 13 h e às 22 h, com a biblioteca falsa e amigos falsos.
   - Commit: `Fase 16.3: nomes dos hologramas só de perto`
-- [ ] **16.4 Instruções certas** (pequena · trilha B, Sol · medium, worktree `worktree/leitura-b2` saído da `fase-16`) — depois da 16.1 (mesmo arquivo da estante).
+- [x] **16.4 Instruções certas** (`86a82aa`, merge `6b8152a`, constante `d50d24d`) (pequena · trilha B, Sol · medium, worktree `worktree/leitura-b2` saído da `fase-16`) — depois da 16.1 (mesmo arquivo da estante).
   - Arquivos: `ui/door_charge.gd` e `ui/screen_fade.gd` (`hint` opcional), `worlds/home/library_shelf.gd` (passa "solte {interact}"), `worlds/home/friends_wall.gd` (texto do mural), `components/desk_monitor_3d/desk_monitor_3d.gd` e `desk_monitor_view.gd` (estado indisponível).
   - Teste: `check_door_charge check_shelf check_friends_wall check_desk_monitors check_computer_desk check_theme check_transitions check_pause_menu` (o `check_desk_monitors:102` espera "SEM SINAL": manter para disponível, novo caso para indisponível).
   - Captura: carga na estante; mural vazio; mesa no Windows.
@@ -91,6 +91,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02 (16.2): a altura de um aviso comum sai do tema (`Toast.nominal_height()`, em `ui/toast.gd`, arquivo fora da lista original), e não de número solto. A pilha é medida pelo tamanho já arrumado: no quadro em que um aviso entra, o mínimo dele ainda é provisório (centenas de px).
 - 2026-11-02 (16.2): as capturas saíram em 2560×1440 (a janela não aceita 1600×900 pelo script); a UI escala com a janela (`canvas_items`), então 1600×900 fica igual em proporção.
 - 2026-11-02: o dono aprovou a 16.2. Padrão novo: sessões finalizadas do Orca são fechadas antes de abrir as novas (AGENTS.md).
+- 2026-11-02 (merge da `worktree/leitura-b2`, `6b8152a`): a frase "recue para cancelar" estava escrita duas vezes; ficou só em `DoorCharge.DEFAULT_HINT`, e o `ScreenFade` usa a constante (`d50d24d`). Testes da 16.4 ok; capturas: a carga na estante diz "solte E para cancelar", o mural vazio diz "Configure os amigos em Esc › Amigos" e a mesa no Windows mostra "SÓ NO LINUX" nos três monitores e no cartão, sem "compositor". Worktree e branch `leitura-b2` apagados.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
