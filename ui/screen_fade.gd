@@ -87,7 +87,7 @@ func is_splash_visible() -> bool:
 
 
 ## Espera na porta: progress 0..1 fecha a vinheta e enche o anel ("0" esconde).
-func set_door_charge(progress: float, game_name: String = "", color: Color = Color.WHITE, hint: String = "recue para cancelar") -> void:
+func set_door_charge(progress: float, game_name: String = "", color: Color = Color.WHITE, hint: String = DoorCharge.DEFAULT_HINT) -> void:
 	door_charge.set_progress(progress, game_name, color, hint)
 
 

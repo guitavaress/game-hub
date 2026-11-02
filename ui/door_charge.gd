@@ -11,6 +11,8 @@ const RING_DIAMETER: float = 80.0
 const RING_WIDTH: float = 4.0
 const TEXT_TOP: float = 58.0  # distância do centro da tela até o texto (px)
 const VIGNETTE_SHADER: Shader = preload("res://ui/vignette.gdshader")
+## A instrução padrão (a do portal). Quem usa a carga pode mandar outra.
+const DEFAULT_HINT: String = "recue para cancelar"
 
 var _vignette: ColorRect
 var _vignette_material: ShaderMaterial
@@ -62,13 +64,13 @@ func _ready() -> void:
 
 	_title = _make_label("", &"HubTitleSmall")
 	texts.add_child(_title)
-	_hint = _make_label("recue para cancelar", &"HubCaption")
+	_hint = _make_label(DEFAULT_HINT, &"HubCaption")
 	texts.add_child(_hint)
 
 
 ## progress: 0..1 (0 esconde tudo). "game_name" e "color" (a cor do anel)
 ## só precisam vir quando mudam. A instrução vem de quem usa a carga.
-func set_progress(progress: float, game_name: String = "", color: Color = Color.WHITE, hint: String = "recue para cancelar") -> void:
+func set_progress(progress: float, game_name: String = "", color: Color = Color.WHITE, hint: String = DEFAULT_HINT) -> void:
 	progress = clampf(progress, 0.0, 1.0)
 	visible = progress > 0.0
 	if not visible:
