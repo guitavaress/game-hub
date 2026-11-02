@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. A 16.4 espera a sua aprovação; depois vem a 16.5.
+- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. 16.4 aprovada; agora a 16.5.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -92,6 +92,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02 (16.2): as capturas saíram em 2560×1440 (a janela não aceita 1600×900 pelo script); a UI escala com a janela (`canvas_items`), então 1600×900 fica igual em proporção.
 - 2026-11-02: o dono aprovou a 16.2. Padrão novo: sessões finalizadas do Orca são fechadas antes de abrir as novas (AGENTS.md).
 - 2026-11-02 (merge da `worktree/leitura-b2`, `6b8152a`): a frase "recue para cancelar" estava escrita duas vezes; ficou só em `DoorCharge.DEFAULT_HINT`, e o `ScreenFade` usa a constante (`d50d24d`). Testes da 16.4 ok; capturas: a carga na estante diz "solte E para cancelar", o mural vazio diz "Configure os amigos em Esc › Amigos" e a mesa no Windows mostra "SÓ NO LINUX" nos três monitores e no cartão, sem "compositor". Worktree e branch `leitura-b2` apagados.
+- 2026-11-02: o dono aprovou a 16.4.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
