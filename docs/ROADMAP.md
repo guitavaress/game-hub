@@ -1,316 +1,164 @@
 # Roadmap do Game Hub
 
-Este arquivo é a **fonte única** do roadmap: para onde o projeto vai e em que ordem. O que já está pronto, e como usar, fica no [README](../README.md). Cada fase nova ganha um plano detalhado em [`docs/plans/`](plans/README.md) antes de começar.
+Este arquivo é a **fonte única** do roadmap: para onde o projeto vai e em que ordem. Como usar o que já está pronto fica no [README](../README.md). Cada fase ganha um plano em [`plans/`](plans/README.md) antes de começar, e o plano é o registro detalhado dela. Esta versão saiu da [revisão de 2026-11-02](revisao-roadmap-2026-11-02.md).
 
-## Visão: o norte
+## Visão
 
-O Game Hub começou como um launcher 3D: uma cidade onde cada jogo da biblioteca Steam é um prédio. A ideia de longo prazo é maior. O projeto quer ser um **desktop virtual transformado em mundo**:
+O Game Hub é um **launcher de jogos em forma de mundo** e um **lugar para encontrar os amigos**, inspirado no PlayStation Home.
 
-- **A casa é o computador.** Você mora numa casa, cabana ou tenda, e dentro dela ficam a biblioteca, os amigos, as configurações e as estatísticas. Sair da casa é "ir jogar".
-- **A biblioteca é a matéria-prima do mundo.** Os seus jogos decidem os bairros, os biomas, a arquitetura, o clima e o som. Duas bibliotecas diferentes geram dois mundos diferentes.
-- **Os amigos estão lá.** Hoje eles aparecem como hologramas. No futuro, você poderá visitar o mundo deles.
-- **A inspiração é o PlayStation Home**: espaço pessoal, identidade, encontro e descoberta, com os jogos no centro.
+- **A casa é o seu espaço:** a biblioteca, os amigos, as estatísticas e o seu avatar.
+- **A cidade é a sua biblioteca:** cada jogo é uma porta, os bairros vêm das categorias, e o que você joga molda o lugar.
+- **Os amigos estão lá:** hoje como hologramas; depois, num encontro de verdade dentro do hub.
 
-O caminho dos dados, que não depende de engine:
+O hub já é rápido e funciona bem. O que falta é o **"uau"**: encantar nos primeiros 5 minutos, de quem entra pela primeira vez a quem volta todo dia.
 
 ```
-Steam  →  dados do jogo  →  World Profile  →  gerador do mundo  →  engine  →  Game Hub
-(biblioteca,  (tags, horas,     (bioma, clima,      (cidade hoje,      (Godot)
- amigos)       capas)            arquitetura, som)   biomas depois)
+Steam  →  dados do jogo  →  perfil do mundo  →  gerador  →  Godot  →  Game Hub
+(biblioteca,  (tags, horas,     (bioma, clima,      (cidade,
+ amigos)       capas)            arquitetura, som)   biomas)
 ```
 
-## As versões da visão (storyboard V1–V6)
+### O caminho do produto
+
+| Etapa | Para quem | Chega quando |
+|---|---|---|
+| 1 | Para mim | você abre o hub para jogar no dia a dia, no lugar da Steam |
+| 2 | Para mim e os amigos | 2 ou 3 amigos instalam e usam (fase [Mostrar para amigos](#3-mostrar-para-amigos)) |
+| 3 | Público | um PoC publicado em subreddits específicos. Antes: custos, questões legais e monetização ([Horizonte](#horizonte-sem-compromisso)) |
+
+### As versões da visão (storyboard V1–V6)
 
 | Versão | O que é | Situação |
 |---|---|---|
-| **V1** Cidade e categorias | Biblioteca Steam vira uma cidade com bairros por categoria | ✅ pronta (fases 1–6, visual v2) |
-| **V2** Mundo pessoal | Casa, avatar, amigos e áreas privadas | ✅ pronta: casa na [Fase 9](plans/fase-9.md); avatar, casa personalizável e estatísticas na [Fase 13](plans/fase-13.md) |
-| **V3** Mundo dinâmico | Biomas e arquitetura gerados a partir dos jogos | 🟡 base na [Fase 7](plans/fase-7.md); ✅ primeiro bioma na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) e biomas pela biblioteca na [Fase 16](#fase-16-biomas-pela-biblioteca) |
-| **V4** Multiplayer e visitas | Visitar o mundo dos amigos, eventos | 🔜 visita sem servidor na [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo); ao vivo no [Horizonte](#horizonte-sem-compromisso) |
-| **V5** Linux e desktop | Rodar no Linux; o hub como ambiente de desktop (Hyprland), com as janelas dos programas dentro do mundo, como o Waylandcraft | ✅ Linux pronto ([Fase Linux](#fase-linux-feita)); ✅ janelas no mundo (a mesa com três monitores) na [Fase 14](#fase-14-o-hub-no-omarchy); o hub como sessão inteira no [Horizonte](#horizonte-sem-compromisso) |
-| **V6** Plataforma | Mundos, biomas e enfeites criados pela comunidade; loja | 🔜 perfis do usuário (local) na [Fase 18](#fase-18-mundos-abertos); compartilhamento e loja no [Horizonte](#horizonte-sem-compromisso) |
-
-## O que já foi feito
-
-- **Fases 1 a 6:** andar em primeira pessoa, portal de jogo com o `GameLauncher`, cidade gerada da biblioteca com bairros por categoria, launcher robusto, amigos como hologramas e polimento (horas jogadas, sons, dia e noite).
-- **Visual v2 (P1):** céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos e cartão do jogo.
-- **Visual v2, parte 2 (P2.12–P2.22):**
-  - menu de pausa, busca com Tab e abertura pelo céu;
-  - pórticos, prédios variados, horizonte, noite viva, hologramas humanos e árvores;
-  - **identidade dos 10 bairros**, cada um com o seu elemento: telões, lâmpadas de cassino, névoa, placar, guindaste, estandartes, lampiões, mesa holográfica, varal de lâmpadas e totem.
-- **Fase 14** (2026-10): painel do sistema, autostart e atalho (parte 1); o hub como compositor Wayland (parte 2); e a **mesa com três monitores**, com a barra, o menu e os atalhos do Omarchy dentro do hub (parte 3). Falta a medida no desktop. Detalhes na [Fase 14](#fase-14-o-hub-no-omarchy).
-- **Fase 15** (2026-11): o primeiro bioma. O bairro RPG vira neve, arcos de pedra, pinheiros e rochas, com uma montanha atrás e trilha até o mirante; cada bairro passou a ser uma fatia da praça até a borda. Detalhes na [Fase 15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha).
-- **Fase Linux** (antecipada em 2026-10): o hub roda no Linux (testado no Omarchy, com Hyprland). Windows e Linux ficam atrás da mesma interface em `autoload/platform/`. Conferida no Windows (bateria completa e jogo de verdade) em 2026-10-19 e juntada na `main`.
-
-Os detalhes estão no [README](../README.md) e no histórico do git.
+| **V1** Cidade e categorias | A biblioteca vira uma cidade com bairros | ✅ fases 1–6 |
+| **V2** Mundo pessoal | Casa, avatar e amigos | ✅ fases 9 e 13 |
+| **V3** Mundo dinâmico | O que você joga molda o lugar | 🟡 primeiro bioma na Fase 15; [biomas baratos](#5-biomas-baratos-poc) |
+| **V4** Amigos | Encontrar e visitar os amigos | 🔜 [Visitar amigos (V-Sekai)](#4-visitar-amigos-v-sekai) |
+| **V5** Desktop | O hub como ambiente de desktop | ⏸️ mesa com três monitores na Fase 14 (só Linux); [parado](#parados) |
+| **V6** Plataforma | Mundos criados pela comunidade, loja | [Horizonte](#horizonte-sem-compromisso) |
 
 ## Próximas fases
 
-A ordem vale até alguém decidir mudar. Antes de começar uma fase, o plano dela vai para `docs/plans/fase-N.md` e é aprovado.
+Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 16), com o plano aprovado em `plans/fase-N.md`.
 
-### Fase 7: World Profile ✅ feita
+Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 5 abaixo (biomas), a "Fase 17" é a 4 (amigos) e a "Fase 18" está em [Parados](#parados).
 
-**Objetivo:** tudo o que muda de um bairro para outro passa a ser **dado num perfil**, e não mais decisão espalhada pelo código. É a base da V3 (biomas) e deixa a lógica do produto independente de engine.
+### 1. Leitura
+**Objetivo:** o que já existe passa a se ler bem. É o bloco curto da [revisão de design de 2026-11-02](design/revisao-2026-11-02.md#próximo-passo), que muda rápido o que se vê:
+- capas inteiras na estante;
+- o nome do arco do RPG sem aparecer ao contrário por trás;
+- avisos, título e painéis sem disputar o topo da tela;
+- os nomes dos hologramas contidos na praça;
+- os textos que orientam: cancelar na estante, amigos no mural, estações do metrô, legenda do mapa e a mesa "indisponível" sem jargão no Windows.
 
-**Hoje esses dados estão espalhados em:**
-- `autoload/game_categories.gd`: a tabela `CATEGORIES` (nome, cores, tags da Steam);
-- `components/ambient_emitter/category_ambience.gd`: um `match` com o som de cada bairro;
-- `worlds/city/district_props/district_props.gd`: um `match` com o enfeite de cada bairro;
-- ids fixos dentro de enfeites (`rpg_banners.gd`, `sports_scoreboard.gd`, `strategy_table.gd`).
+**Pronto quando:** os quatro resultados da tabela "Próximo passo" da revisão aparecem nas capturas e no seu teste.
 
-**Entregas:**
-- Um **perfil por categoria**, com nome, cores, tags, som ambiente, enfeite do bairro, **clima**, arquitetura (estilo dos prédios), densidade e landmark. O formato (Resource `.tres` da Godot ou tabela) é decidido no plano da fase.
-- Cidade, sons e enfeites **leem o perfil**.
-- **Clima por bairro:** chuva leve à noite (antigo item P3.25), por exemplo uma garoa no bairro Terror.
-- **PortalShell** (antigo item P3.26): separar o "invólucro" (prédio, arco de pedra, boxe de corrida) do `GamePortal`. O perfil diz qual invólucro usar.
+### 2. O momento uau
+**Objetivo:** o hub encanta. É onde mora a frustração de hoje:
+- a casa está vazia e pouco aconchegante, e a vista da janela está péssima;
+- a trilha não tem conteúdo, e o mirante está feio;
+- a luz apaga a praça e o mirante à noite e deixa o dia sem contraste (revisão de design, C1 e C2).
 
-**Feito:** perfis `.tres` em `profiles/`, `GameCategories` como fachada, som, enfeite, pesos de andares e parede e garoa vindos do perfil, `PortalShell` com prédio e arco. Densidade e landmark ficaram como campos reservados, sem efeito (vão para "Depois").
+**Como:**
+- **Primeira subetapa:** você escolhe de 3 a 5 referências do que é "uau" (imagens que ficam fora do repositório).
+- Uma amostra é aprovada antes de construir o resto (skill `create-game-assets`).
+- Primeiro a luz e o que já existe; modelos novos só se a amostra pedir. Assets só CC0, com permissão antes de baixar.
 
-**Pronto quando:** criar um bairro novo é escrever um perfil novo, mais um script de enfeite opcional, sem mexer em nenhum `match`.
+**Pronto quando:** a casa, a janela, a trilha e o mirante passam na sua comparação de antes e depois, nas capturas e no jogo.
 
-### Fase 8: Escala ✅ feita (no Linux; falta o desempenho no desktop)
+### 3. Mostrar para amigos
+**Objetivo:** a etapa 2 do produto. Um build que 2 ou 3 amigos instalam e usam.
 
-**Objetivo:** o hub continua gostoso com **centenas de jogos**.
+**Entregas** (o plano decide os detalhes):
+- o export para o Windows;
+- o primeiro uso sem editar arquivo à mão;
+- o que fazer sem a chave da Steam Web API;
+- um jeito simples de ouvir o que eles acharam.
 
-**Entregas:**
-- **Viagem rápida:** da busca (Tab) e dos pórticos direto para a porta do jogo ou para a entrada do bairro.
-- **Bússola** (antigo P3.23): uma faixa no topo, com a seta do destino da busca.
-- **Minimapa** (antigo P3.24): visto de cima, atualizado poucas vezes por segundo.
-- **Transporte entre bairros:** metrô ou bonde, antes de qualquer carro.
-- Teste de desempenho com uma **biblioteca falsa de ~200 jogos**, com ajustes de desenho à distância (LOD) se precisar.
+**Pronto quando:** um amigo instala sozinho, abre um jogo pelo hub e conta o que achou.
 
-**Feito:** biblioteca falsa de 200 jogos para testes (`tests/fake_library.gd`) e `tools/medir_desempenho.gd`; planta da cidade como dado (`CityMap`); viagem rápida (Shift+Enter na busca); bússola; minimapa e mapa grande (M); metrô (`TransitStop` + `MetroEntrance`, com estações extras nos bairros grandes); capas comprimidas (memória de textura de 1,9 GB para 0,5 GB com 200 jogos). Ficaram para depois, se a medida no desktop pedir: LOD, sons e luzes só de perto. Bonde andando de verdade e clicar no mapa para viajar não entraram.
+### 4. Visitar amigos (V-Sekai)
+**Objetivo:** o encontro com os amigos acontece **dentro do hub**, com peças do [V-Sekai](https://github.com/v-sekai) (MIT): avatar VRM, espelho, voz, sala de encontro e ideias de rede. Substitui a "visita sem servidor" de antes.
 
-**Pronto quando:** com 200 jogos, o hub continua leve, e qualquer jogo fica a menos de ~20 s de distância.
+**Primeira subetapa, um estudo curto.** Atualiza o [estudo de 15/10](design/exploracao-open-source-2026-10-15.md) e responde:
+- que funções queremos;
+- para cada uma: a licença, se roda na Godot 4.7.2 oficial e se precisa de servidor;
+- qual é o menor encontro que dá para testar.
 
-### Fase 9: A casa ✅ feita
+**As ferramentas do estudo:**
+- o código do V-Sekai, que é aberto;
+- o **REA** (engenharia reversa), só no que existe apenas compilado ou em execução. As regras de uso estão no [AGENTS.md](../AGENTS.md#modelos-e-esforço).
 
-**Objetivo:** o primeiro passo da ideia "a casa é o computador" (V2). Plano e registro: [plans/fase-9.md](plans/fase-9.md).
+**Pronto quando:** o plano da fase sai do estudo, com o menor encontro definido.
 
-**O que entregou:**
-- Um **loft** onde o jogador nasce em ~1 s, com a cidade montando em segundo plano; a abertura pelo céu saiu.
-- O HUD em **forma física**: estante com a biblioteca (páginas e filtro por bairro), mural dos amigos e um computador cuja tela é o menu de configurações, clicável.
-- **E para interagir**, também nas portas: a do loft e a "Casa" da praça.
-- O menu de pausa (Esc), a busca e o mapa continuam funcionando em casa.
-
-**Falta:** a conferência no desktop (Alta, e o pior quadro da montagem ≤ 50 ms). No notebook, em casa, a medida dá 60 FPS na Leve.
-
-### Fase 10: Acabamento ✅ feita (no Linux; falta a conferência no desktop)
-
-**Objetivo:** fazer o top 5 da [revisão de 2026-10-10](design/revisao-2026-10-10.md), que dá muito resultado com pouco trabalho. Plano e registro: [plans/fase-10.md](plans/fase-10.md).
-
-**O que entregou:**
-- Texturas com mipmaps e compressão de placa (inclusive os céus): o asfalto ao longe parou de granular, e a memória de textura caiu ~80 MB.
-- Anti-aliasing por qualidade (Alta: MSAA 2x + SMAA; Média: SMAA; Leve: FXAA) e, na Leve, sombra do sol mais curta e mais barata.
-- A UI escala com a tela (stretch `canvas_items`, base 1280 × 720), sem mudar a velocidade do mouse.
-- O cartão do prédio diz "Entre pela porta para jogar"; a porta do loft diz "E para sair".
-- Bairros com arquitetura própria (pesos de andares e paredes nos perfis) e um letreiro alto por bairro, acima de todos os telhados.
-- Primeira vez guiada: cartão de controles, nascer virado para a estante e aviso de "A cidade está pronta".
-
-**Falta:** a conferência no desktop (Alta com MSAA + SMAA). O resto da revisão fica para uma "Fase 11: Sensação e marcos" (game feel da porta e da câmera, marcos altos, tema único, som).
-
-### Fase 11: Sensação e marcos ✅ feita (no Linux; falta a conferência no desktop)
-
-**Objetivo:** os itens 5, 6 e 8 da "Ordem sugerida" da [revisão de 2026-10-10](design/revisao-2026-10-10.md): game feel da porta e da câmera, marcos altos (torre do relógio e um marco por bairro), som (música, fundo da cidade, passos de madeira) e itens soltos. Plano e registro: [plans/fase-11.md](plans/fase-11.md).
-
-**O que entregou:** curvas em todas as transições de UI; câmera com balanço, afundada ao pousar e FOV de corrida (com opção para desligar); a porta que "pesa" (FOV, avanço, vão aceso e som novo); sensibilidade do mouse e FOV nas opções; torre do relógio na praça e um marco alto por bairro; canal Música, fundo da cidade, som de "Outros" e passos de madeira com eco em casa; título ao entrar no bairro. A medida no notebook (Leve, 200 jogos) piorou ~0,5 FPS.
-
-**Falta:** a conferência no desktop e ouvir os sons (as escolhas foram feitas pelo nome do arquivo).
-
-### Fase 12: Tema e controles ✅ feita (no Linux; falta a conferência com o controle no desktop)
-
-**Objetivo:** tema único para todas as telas (revisão 5.2), menu pelo teclado e **controle Xbox para jogar tudo** (5.3), com as dicas na tela trocando entre teclas e botões conforme o aparelho usado. Plano e registro: [plans/fase-12.md](plans/fase-12.md).
-
-**O que entregou:** o `HubTheme` (5 tamanhos de letra, um raio, duas cores de painel) usado por todas as telas; o menu de pausa e o computador da casa navegáveis por setas, Enter e Esc; o controle Xbox andando, olhando, pulando, interagindo e usando busca, mapa, metrô, pausa e computador; a busca rolando por todos os jogos; e as dicas ("Esc", "E", "Segure E para jogar") que viram os botões do controle quando ele é usado.
-
-**Falta:** a conferência à mão com o controle de verdade, no notebook e no desktop (Windows, XInput). Os testes automáticos usam eventos falsos.
-
-### Fase Linux (feita)
-
-Antecipada em 2026-10, quando o dono passou a usar um notebook com Omarchy. O desktop vai ter dual boot, então **Windows e Linux são alvos de primeira classe**. Plano e registro: [plans/fase-linux.md](plans/fase-linux.md).
-
-**O que entregou:**
-- **Mesma interface** em `autoload/platform/`: o `SteamClient` responde "onde está a Steam?", "quem está logado?" e "qual jogo está rodando?"; o `WindowHost` esconde e mostra a janela.
-- **No Linux, o jogo rodando vem do processo `reaper`** que a Steam cria para cada jogo. O `~/.steam/registry.vdf` não guarda isso.
-- **No Hyprland**, o jogo abre num workspace vazio do monitor escolhido, e o hub se esconde num workspace oculto e volta ao fechar o jogo.
-- Detalhes técnicos em [PLATAFORMA](PLATAFORMA.md).
-
-**Falta:** a conferência à mão no Windows (checklist no fim do plano). A bateria passa inteira no Linux (25 testes), com Balatro, Skyrim, Valheim e Stardew instalados, e o GitHub Actions já confere o backend do Windows (`reg.exe` e `tasklist` de verdade); falta abrir um jogo de verdade e ver a janela.
-
-### A ordem a partir da Fase 13
-
-Decidida em 2026-10-12. Até ~18/10/2026 o dono está só no **notebook** (Radeon 610M, qualidade Leve); o **desktop** (RTX 4070, Windows e Linux) é a régua de desempenho e de visual. Por isso vêm primeiro as fases que rodam bem no notebook (13 e 14), depois os biomas, que pedem o desktop para o visual final. O que só o desktop responde fica numa trilha à parte.
-
-| Fase | Nome | Versão | Onde dá para fazer |
-|---|---|---|---|
-| [13](#fase-13-casa-parte-2) | Casa, parte 2 ✅ | V2 | notebook ✅ |
-| [14](#fase-14-o-hub-no-omarchy) | O hub no Omarchy (reaberta: janelas no mundo) | V5 | notebook ✅ (é o lugar ideal) |
-| [—](#trilha-do-desktop) | Trilha do desktop (a partir de 18/10, entre duas fases) | todas | só desktop |
-| [15](#fase-15-primeiro-bioma-o-bairro-rpg-na-montanha) | Primeiro bioma: o bairro RPG na montanha ✅ | V3 | desktop Windows (Alta) ✅; notebook para comparação |
-| [16](#fase-16-biomas-pela-biblioteca) | Biomas pela biblioteca | V3 | notebook (Leve) + desktop (Alta) |
-| [17](#fase-17-visitar-a-cidade-de-um-amigo) | Visitar a cidade de um amigo | V4 (sem servidor) | notebook ✅ |
-| [18](#fase-18-mundos-abertos) | Mundos abertos | V6 (local) | notebook ✅ |
-
-Cada fase ganha o seu `docs/plans/fase-N.md` aprovado quando começar; fluxo e modelos em [OPENCODE.md](OPENCODE.md).
-
-### Fase 13: Casa, parte 2 ✅ feita (no Linux; falta a conferência no desktop)
-
-Plano e registro: [plans/fase-13.md](plans/fase-13.md). **O que entregou:** temas da casa como dado (`HomeProfile`, com loft e cabana), troca pela aba **Casa** do computador, cor das paredes e do néon, 3 disposições prontas dos móveis, o quadro de estatísticas (`LibraryStats`), o avatar como dado (`AvatarSpec`, o mesmo formato que a V4 vai trocar) e o espelho com o provador. A medida no notebook (Leve) não piorou: em casa 60 FPS, e de frente para o espelho o p99 ficou em ~19 ms. **Falta:** a conferência no desktop (Alta).
-
-**Versão:** V2. **Onde testar:** notebook ✅.
-
-**Objetivo:** a casa vira "sua": dá para mudar, mostra a sua história de jogador e você ganha um rosto.
+### 5. Biomas baratos (PoC)
+**Objetivo:** provar o coração da V3 ("o que você joga molda o lugar") sem o custo da montanha.
 
 **Entregas:**
-- **Estatísticas na parede:** horas totais, os mais jogados, horas por bairro e o jogado mais recente (dados que o `SteamLibrary` já lê do `localconfig.vdf`).
-- **Temas da casa como dado** (regra 4): um `HomeProfile` (`.tres`) com materiais, cores, luzes e móveis. O loft atual vira o primeiro perfil, e entra um segundo tema (cabana). A troca é pelo computador da casa.
-- **Personalizar:** cor das paredes, do néon e posições prontas de móveis (lugares fixos, sem arrastar livre).
-- **Avatar:** escolher a aparência (o modelo da Quaternius que já está no projeto, com cores) e vê-la num espelho na casa. É a mesma figura que os amigos verão na V4.
+- 2 ou 3 biomas só com chão, enfeites e clima, sem terreno;
+- o bairro (e o marco dele) cresce com as horas jogadas;
+- as sobras da Fase 15: a encosta com pinheiros e rochas, o canto côncavo da divisa neve/asfalto e o destaque da torre de dia.
 
-**Pronto quando:** trocar de loft para cabana pelo computador muda a casa na hora, sem código novo por tema; a parede mostra as estatísticas reais; o espelho mostra o avatar escolhido, que fica salvo no `config.cfg`.
+**Pronto quando:** um bioma novo é um perfil novo, e dá para ver um bairro maior que outro pelas horas jogadas.
 
-### Fase 14: O hub no Omarchy ✅ feita no Linux (2026-10-17; reaberta em 2026-10-14)
+## Dia de conferência
 
-Plano e registro: [plans/fase-14.md](plans/fase-14.md).
+As fases feitas que diziam "falta a conferência no desktop" viram **um checklist único, feito num dia só**: [plans/conferencia-desktop.md](plans/conferencia-desktop.md).
 
-**Por que foi reaberta:** a referência do dono é o **Waylandcraft**, um mod do Minecraft que é um compositor Wayland: as janelas dos programas viram objetos dentro do mundo, usados com o teclado e o mouse sem sair do jogo. A parte 1 entregou um launcher (o app abre por cima e o hub some). A **parte 2** faz o hub virar um compositor Wayland aninhado (Rust + Smithay, uma GDExtension só para Linux): os apps abertos pela estante aparecem em **três telões fixos na casa**, e você digita e clica neles. O launcher da parte 1 fica como plano B (Windows, sem a extensão, apps só X11).
+## Parados
 
-**O que a parte 1 entregou:** uma **estante de apps** na casa (os programas viram caixas com ícone; abrir um funciona como abrir um jogo: "Abrindo…", o hub some e volta quando a janela do app fecha), o **painel do sistema** (hora, bateria, Wi-Fi e volume), a aba **Sistema** do computador (abrir o hub ao entrar no Omarchy e a linha do atalho `SUPER + H`) e o atalho que chama o hub de volta. Decisão do dono: os apps ficam **na casa**, e não num bairro novo da cidade. **Falta:** no Windows, só a lista de apps foi feita (sem conferir ao vivo); a conferência de desempenho no desktop.
+Nada aqui anda sem uma decisão nova sua.
 
-**Versão:** V5 (primeiro passo de desktop). **Onde testar:** notebook ✅ (é o lugar ideal).
+| O quê | Por quê |
+|---|---|
+| Compositor e o desktop virtual (V5) | A mesa com três monitores fica como está (só Linux). Outras prioridades vêm antes |
+| Perfis do usuário (a antiga Fase 18) | Ninguém além de você usa o hub ainda |
+| Ouvir e trocar os sons (Fase 11) | Não é o "uau" agora. Mais tarde, talvez com sons comprados |
+| Meta de 50 ms na montagem (Fase 15: 86 ms) | Ninguém sentiu o tranco. Fica em aberto até o produto pedir |
+| Jev (TypeSafe) | Não se pagou até aqui: sem tarefa nova e sem gasto. A triagem da bateria é só código e continua, opcional |
 
-**Objetivo:** o hub começa a ser parte do desktop no Linux, e não só um launcher da Steam.
+## Feito
 
-**Entregas:**
-- **Apps além da Steam:** os programas instalados (arquivos `.desktop` no Linux; atalhos do Menu Iniciar no Windows) viram portais, num bairro "Apps" ou numa estante de apps na casa. Abrir um app usa o mesmo fluxo de "Abrindo" e de voltar.
-- **Sistema dentro da casa:** relógio real, bateria, rede e volume num painel físico (uma parede ou o computador).
-- **Iniciar com o sistema e atalho global:** entrada de autostart e um atalho do Hyprland para chamar o hub.
-- Tudo de sistema operacional só em `autoload/platform/` (regra 5), com o backend do Windows mínimo (só a lista de apps).
-
-**Pronto quando (parte 1):** no notebook, abrir o Firefox ou o terminal pelo hub funciona como abrir um jogo (o hub some e volta), e a casa mostra a bateria certa.
-
-**Parte 3 (2026-10-15):** o dono não gostou dos telões nas paredes nem da estante de apps. No lugar, **três monitores na mesa do computador**, que são o "Linux de dentro": o compositor ganhou monitores (saídas), camadas (layer-shell, para a barra e o menu) e um arranjo das janelas; o Quickshell do Omarchy roda dentro, e sentado à mesa valem os atalhos do Omarchy (lidos da config de verdade, com o submap do Hyprland e uma tecla de emergência). As configurações da casa moram só no menu de pausa.
-
-**Pronto quando (parte 2):** no notebook, o terminal e o Brave abertos pela estante aparecem em telões da casa; dá para digitar (com os acentos do ABNT2), clicar e abrir menus neles sem o hub sumir; sem a extensão compilada, tudo funciona como na parte 1.
-
-**Pronto quando (parte 3):** no notebook, `E` na mesa senta e mostra a barra do Omarchy nos três monitores; `SUPER + Enter` abre o terminal no monitor com o mouse, `SUPER + Space` abre o menu do Omarchy ali, as setas trocam o foco entre as janelas e os monitores, segurar Esc levanta e os atalhos voltam ao Hyprland. **Falta:** a medida no desktop (Alta).
-
-### Trilha do desktop
-
-**Versão:** todas. **Onde testar:** só no desktop, a partir de 18/10/2026, entre duas fases (sem número fixo).
-
-**Objetivo:** fazer tudo o que só o desktop responde e juntar o trabalho na `main`.
-
-**Entregas:**
-- **Conferências pendentes:** desempenho na Alta (fases 8–12); **o pior quadro da montagem** (Fase 15: 86 ms com 200 jogos e 91 ms com a biblioteca de verdade, contra a meta de 50 ms; a base já dava 73–74 ms; achar e dividir os quadros pesados enquanto a cidade monta, e a trava de ~1,6 s antes do primeiro quadro); a comparação da Fase 15 no notebook (Leve, antes e depois, 0 e 200 jogos); Windows (Fase Linux e Fase 7), controle Xbox de verdade (Fase 12), ouvir os sons da Fase 11 e a lista de apps do Windows (Fase 14: conferir os atalhos do Menu Iniciar e abrir um app de verdade); **a medida da mesa na Alta** (Fase 14, 14.32: três monitores de 1920×1080, parados e com o Brave tocando vídeo; se pesar, baixar para 1600×900).
-- **A luz que esperava a medida** ([revisão](design/revisao-2026-10-10.md) 4.3 e 8.2): sombra nos postes de perto, `distance_fade` e GI só na Alta.
-- **Spikes de addons** ([avaliação](design/addons-2026-10-13.md)): o **Debug Menu** (já no projeto, F3) para medir ao vivo e a decisão do **Sky3D** (já no projeto, como opção) como céu padrão; a revisão da 15.13 achou a névoa laranja forte às 18 h e a praça quase preta às 22 h na montanha. Também a Leve com `alpha_cut` e 3D a 67% (15.13.6), se a medida pedir.
-- Juntar a `fase-linux` na `main`, se o dono pedir.
-
-**Quando começar:** ganha o próximo número livre e um plano curto.
-
-### Fase 15: Primeiro bioma, o bairro RPG na montanha
-
-✅ **Feita no desktop Windows** (2026-11-02); falta a comparação no notebook.
-
-**Versão:** V3. **Onde testar:** notebook (Leve) + desktop (Alta).
-
-**Objetivo:** provar a ideia "a biblioteca decide o mundo" com um bioma só (antigo P3.27), feito nos quarteirões do próprio bairro, no mesmo mapa da cidade (não é um mundo separado).
-
-**Entregas:**
-- O perfil do bairro ganha um **bioma** (dado): chão (neve e pedra no lugar do asfalto), invólucro dos portais (o arco de pedra, que já existe), enfeites espalhados (pinheiros e rochas), clima (neve, reaproveitando a garoa), névoa e som.
-- Morros de fundo e uma subida no setor do bairro (terreno simples, feito por código), sem quebrar ruas, metrô e minimapa.
-- A cidade continua igual nos outros bairros.
-
-**Plano:** [plans/fase-15.md](plans/fase-15.md) (aprovado em 2026-10-17). Decisões do dono:
-- **Portais no chão plano:** os quarteirões do RPG continuam em y = 0 (neve, arcos, pinheiros, rochas). A montanha sobe atrás do bairro, fora da borda da cidade, com uma trilha até um mirante com a torre do RPG.
-- **Setores:** todos os bairros viram fatias da praça até a borda, então cada bairro ganha uma borda própria para o seu bioma (base da Fase 16).
-- **Terreno por malha feita por código**, e não pelo Terrain3D (binários pesados no histórico e a primeira importação que derruba a Godot; veja a [avaliação](design/addons-2026-10-13.md)). Fica atrás de um ponto único, para a troca futura.
-- **Visual guiado pelas skills do projeto:** direção de arte e uma amostra aprovada antes de baixar o resto, a trilha em greybox antes de enfeitar e uma revisão visual com capturas no fim.
-
-**O que entregou (2026-11-02):** o bairro RPG prova que a biblioteca pode decidir o mundo. Os portais ficaram no chão plano nevado, com calçada de pedra, arcos de pedra com a capa do jogo, pinheiros e rochas; há neve caindo, névoa, vento e passos próprios. Atrás do setor do RPG, uma montanha feita por código tem uma trilha caminhável (limites, placas e o vão na mureta) até o mirante, com a torre do bairro e a cidade lá embaixo. A qualidade muda a malha (4/3/2 m), os enfeites (50/75/100%) e a sombra do terreno, e a troca refaz a montanha sem tirar o chão. Todos os bairros ocupam setores contínuos da praça até a borda, sem mudar jogos, variantes nem decoração. Com ~1000 jogos a montanha não cabe e a cidade monta sem ela. A revisão visual (15.13) trouxe a rua do pórtico de asfalto, a noite do céu de fotos sem o deserto, a névoa do bioma que mantém o brilho da hora, os braseiros da torre e os postes mais fracos na neve.
-
-**Medida (desktop, Alta, 2026-11-02):** Ryzen 5 5600 + RTX 4070, janela 2560×1440 a 165 Hz (vsync), 22 h; base de antes da fase (`ed834cd`) e ponta, intercaladas. Caminhada com 200 jogos: 145 FPS (base 152), p99 13 ms. Subida e giro no mirante com 200 jogos: 163 FPS, p99 9 ms, sem queda visível. **Montagem:** o pior quadro (depois do primeiro) foi 86 ms com 200 jogos e 91 ms com a biblioteca de verdade, contra 73–74 ms na base: **a meta de 50 ms não passa**, e o dono aceitou registrar como pendência. Números completos no [plano](plans/fase-15.md). No notebook (Leve), a comparação antes e depois ainda não foi feita.
-
-**Falta fora da fase:** o pior quadro da montagem e a comparação no notebook vão para a [Trilha do desktop](#trilha-do-desktop); o Sky3D na montanha e a Leve com `alpha_cut` (15.13.6) também. A encosta com pinheiros e rochas, o canto côncavo da divisa neve/asfalto e o destaque da torre de dia vão para a [Fase 16](#fase-16-biomas-pela-biblioteca).
-
-**Assets:** pinheiro, rocha, neve e passos na neve, todos CC0 (pedir permissão antes de baixar, com nome, origem e tamanho).
-
-**Pronto quando:** com a biblioteca de verdade e com 200 jogos falsos, o bairro RPG tem portais no chão plano nevado e a montanha atrás, com trilha até o mirante, e o visual foi aprovado nas capturas. Desempenho: medir a meta no desktop (Alta) na 15.15; se não for possível, registrar a pendência na trilha do desktop. No notebook (Leve), só comparação antes e depois.
-
-### Fase 16: Biomas pela biblioteca
-
-**Versão:** V3. **Onde testar:** notebook (Leve) + desktop (Alta).
-
-**Objetivo:** cada categoria pode ter o seu bioma, e o que você joga molda o lugar.
-
-**Entregas:**
-- Um tipo de bioma genérico (`BiomeSpec`) com 3 ou 4 biomas além da montanha (floresta, pista e garagens, neblina e abandono), escolhidos pelo perfil de cada bairro. "Cidade" continua sendo o padrão.
-- O bioma reage à biblioteca: o tamanho e o marco do bairro crescem com as horas jogadas, e os jogos mais jogados ficam no ponto mais alto ou mais central.
-- Escolher o bioma de um bairro pelo `config.cfg` (como já se escolhe o bairro de um jogo).
-
-**Pronto quando:** criar um bioma novo é escrever um perfil, sem mexer em código da cidade (como a Fase 7 fez com os bairros).
-
-### Fase 17: Visitar a cidade de um amigo
-
-**Versão:** V4, sem servidor. **Onde testar:** notebook ✅.
-
-**Objetivo:** o primeiro passo de "visitar o mundo dos amigos", com custo zero.
-
-**Entregas:**
-- Ler a biblioteca **pública** de um amigo pela Steam Web API (`GetOwnedGames`, com a mesma chave já configurada).
-- A cidade passa a ser montada a partir de uma "fonte de biblioteca" (a sua ou a de um amigo), e não direto do `SteamLibrary`.
-- No mural da casa, "Visitar a cidade de Ana": a tela escurece e você anda na cidade dela, com os bairros e biomas que a biblioteca dela gera. Portas de jogos que você não tem mostram "Ver na loja" em vez de abrir.
-- O amigo aparece como o holograma de sempre (com o avatar da Steam) na praça da cidade dele. O avatar escolhido na Fase 13 só chega aos outros com servidor (V4 ao vivo, no Horizonte).
-
-**Pronto quando:** com um amigo de perfil público, dá para visitar a cidade dele e voltar para casa, sem nenhuma conta ou servidor novo.
-
-### Fase 18: Mundos abertos
-
-**Versão:** V6, primeiro passo (local). **Onde testar:** notebook ✅.
-
-**Objetivo:** o usuário cria bairros, biomas e casas sem programar, com **perfis do usuário**.
-
-**Entregas:**
-- Uma pasta de perfis do usuário em `user://` (bairros, biomas e temas de casa), lida junto com os do projeto.
-- Formato documentado, com validação e aviso amigável de erro.
-- Um exemplo pronto e um guia curto no README.
-
-**Pronto quando:** copiar um perfil de bioma para a pasta do usuário e reabrir o hub faz o bioma aparecer, sem tocar no projeto.
-
-## Depois
-
-Vazio: em 2026-10-12, tudo o que estava aqui virou fase (13 a 18).
+| Fase | O que entregou | Plano |
+|---|---|---|
+| 1–6 | Andar em primeira pessoa, portal de jogo, cidade por categorias, launcher, amigos como hologramas, dia e noite | — |
+| Visual v2 | Céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", pausa, busca, pórticos e a identidade dos 10 bairros | — |
+| 7 World Profile | Bairros como dado (`profiles/`), `PortalShell`, garoa por bairro | [fase-7](plans/fase-7.md) |
+| 8 Escala | Biblioteca falsa de 200 jogos, viagem rápida, bússola, minimapa, mapa (M) e metrô | [fase-8](plans/fase-8.md) |
+| 9 A casa | Loft, estante, mural, computador e "E para interagir" | [fase-9](plans/fase-9.md) |
+| 10 Acabamento | Mipmaps, anti-aliasing, UI que escala, primeira vez guiada e letreiros | [fase-10](plans/fase-10.md) |
+| 11 Sensação e marcos | Curvas nas transições, câmera com peso, porta que pesa, torre do relógio e marcos, som | [fase-11](plans/fase-11.md) |
+| 12 Tema e controles | Tema único, menus pelo teclado e controle Xbox (conferido por você em 2026-11-02) | [fase-12](plans/fase-12.md) |
+| 13 Casa, parte 2 | Loft e cabana, cores, disposições, estatísticas, avatar e espelho | [fase-13](plans/fase-13.md) |
+| 14 O hub no Omarchy | Painel do sistema, autostart, compositor Wayland e a mesa com três monitores (só Linux; em [Parados](#parados)) | [fase-14](plans/fase-14.md) |
+| 15 Primeiro bioma | O RPG na neve, com arcos, pinheiros e uma montanha com trilha e mirante; setores contínuos | [fase-15](plans/fase-15.md) |
+| Linux | O hub roda no Linux; a plataforma fica isolada em `autoload/platform/` ([PLATAFORMA](PLATAFORMA.md)) | [fase-linux](plans/fase-linux.md) |
 
 ## Horizonte (sem compromisso)
 
-Ideias guardadas para não se perderem. Nada aqui está planejado.
+Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas vão para [`ideias/`](ideias/README.md).
 
-- **V4 ao vivo:** ver o amigo andando na cidade, com o avatar que ele escolheu, e eventos. É o primeiro item com **custo de servidor**. A visita sem servidor é a [Fase 17](#fase-17-visitar-a-cidade-de-um-amigo).
-- **V5 completo:** o hub como a sessão inteira do Hyprland, e não um programa dentro dela. O primeiro passo é a [Fase 14](#fase-14-o-hub-no-omarchy) (o hub já vira um compositor aninhado). Depois dela: pendurar janelas em qualquer lugar, telões na cidade e dmabuf (zero cópia).
-- **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários, trocados entre eles. O primeiro passo, local, é a [Fase 18](#fase-18-mundos-abertos).
-- **Addons para depois** ([avaliação](design/addons-2026-10-13.md)):
-  - **GodotSteam**, para os amigos virem da Steam local, sem a chave da Web API. Exige rodar o hub como app da Steam.
-  - **gdcef**, um navegador dentro do `Screen3D`.
-  - Trailers em vídeo nos telões.
-  - **LimboAI** para hologramas e multidões.
-  - **Godot Steam Audio** para eco e oclusão.
-- **Veículos**, em degraus do mais simples ao mais caro:
-  1. carros decorativos seguindo caminhos;
-  2. dirigir um veículo simples;
-  3. transporte público entre bairros (já coberto pela Fase 8);
-  4. tráfego com semáforos e rotas.
-
-  Simulação realista de carro não serve ao produto. **Transporte público vem antes de dirigir.**
+- **Etapa pública do produto:** custos, questões legais, monetização e o PoC no Reddit.
+- **V4 ao vivo:** ver o amigo andando, com o avatar dele, e eventos. É o primeiro item com custo de servidor; a fase 4 diz se ele é necessário.
+- **V5 completo:** o hub como a sessão inteira do Hyprland, janelas em qualquer lugar, dmabuf.
+- **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários.
+- **Addons para depois** ([avaliação](design/addons-2026-10-13.md)): GodotSteam (amigos sem a chave da Web API), gdcef (navegador no `Screen3D`), trailers nos telões, LimboAI e Godot Steam Audio.
+- **Veículos**, do mais simples ao mais caro: carros decorativos, dirigir um veículo simples, tráfego. Transporte público já existe (o metrô) e vem antes de dirigir.
+- **Brand kit** (`game-hub-brand-kit/`, estudo não aprovado): no máximo um acento de cor e o símbolo, quando o produto pedir (revisão de design).
 
 ## Decisões registradas
 
-- **Engine: seguir na Godot.** O hub fica aberto junto com os jogos, então ser leve é requisito. A Unreal 5 só entraria se o foco visual ou procedural justificar, e o World Profile em dados mantém essa porta aberta.
-- **Sem protótipo paralelo agora** (Astra, web 3D...). Ele dividiria o esforço antes de a experiência atual estar validada.
-- **Monetização depois.** Primeiro, validar que o hub continua divertido depois que passa a novidade.
-- **Ordem das fases 13 a 18** (2026-10-12): a V2 vem primeiro (Casa, parte 2); **o bairro vira o bioma**, nos quarteirões do próprio bairro e no mesmo mapa da cidade; e a **V4 começa sem servidor**, visitando a cidade gerada da biblioteca pública de um amigo.
+- **Engine: seguir na Godot.** O hub fica aberto junto com os jogos, então ser leve é requisito.
+- **Sem protótipo paralelo** (outra engine, web 3D): dividiria o esforço antes de a experiência estar validada.
+- **Monetização depois** da etapa 2 do produto.
+- **2026-10-12:** o bairro vira o bioma, nos quarteirões do próprio bairro e no mesmo mapa da cidade.
+- **2026-11-02, revisão da ROADMAP:**
+  - o norte é o launcher + o encontro com amigos; o desktop virtual entra em pausa;
+  - o produto tem 3 etapas;
+  - a ordem é Leitura → Uau → Amigos → V-Sekai → Biomas baratos;
+  - o fluxo de trabalho fica congelado por 3 fases;
+  - a cerimônia completa vale só para subetapas grandes, e a revisão cruzada só nos pontos de risco;
+  - as conferências pendentes viram um dia só.
+  Detalhes no [AGENTS.md](../AGENTS.md) e na [revisão](revisao-roadmap-2026-11-02.md).
 
-## Regras que já valem
-
-- **Dados de mundo em perfis:** a partir da Fase 7, cores, sons, enfeites e clima novos por categoria entram no perfil, e não em `match` espalhado.
-- **Plataforma isolada:** código específico do Windows ou do Linux só em `autoload/platform/` (o `tests/check_platform.gd` confere). Os sistemas pedem "qual jogo está rodando?" ao `SteamClient`, e não "leia o registro".
+As regras de arquitetura (dados de mundo em perfis, plataforma isolada etc.) estão no [AGENTS.md](../AGENTS.md#regras-de-arquitetura).
