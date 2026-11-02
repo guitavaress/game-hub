@@ -45,6 +45,7 @@ func _ready() -> void:
 	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(_view)
+	column.add_child(_build_legend())
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -53,6 +54,27 @@ func _ready() -> void:
 	_hint = HubTheme.label("fechar o mapa", &"HubCaption")
 	row.add_child(_hint)
 	column.add_child(row)
+
+
+## A legenda pertence ao painel grande, sem ocupar espaço no minimapa.
+func _build_legend() -> HBoxContainer:
+	var legend := HBoxContainer.new()
+	legend.name = "MapLegend"
+	legend.alignment = BoxContainer.ALIGNMENT_CENTER
+	legend.add_theme_constant_override("separation", 16)
+	var entries: Dictionary[String, String] = {
+		"player": "você", "home": "casa", "metro": "metrô", "marco": "torre", "trilha": "trilha"
+	}
+	for kind: String in entries:
+		var item := HBoxContainer.new()
+		item.add_theme_constant_override("separation", 4)
+		var icon := Control.new()
+		icon.custom_minimum_size = Vector2(20, 24)
+		icon.draw.connect(MapView.draw_symbol.bind(icon, kind, Vector2(10, 12), MapView.PLAYER_COLOR))
+		item.add_child(icon)
+		item.add_child(HubTheme.label(entries[kind], &"HubCaption"))
+		legend.add_child(item)
+	return legend
 
 
 func _input(event: InputEvent) -> void:

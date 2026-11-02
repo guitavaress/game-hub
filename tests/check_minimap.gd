@@ -48,6 +48,8 @@ func _check_minimap(city: Node) -> void:
 	var guide = city.get_node("RouteGuide")
 	var map = get_first_node_in_group("world_map")
 	_check("o minimapa existe e aparece", mini != null and mini.visible)
+	_check("minimapa continua sem nomes sobre a planta nem legenda",
+		mini.follow_player and not mini.show_labels and mini.find_child("MapLegend", true, false) == null)
 	mini.refresh()
 	_check("a seta fica no meio (segue o jogador)", mini.get_player_pixel().distance_to(mini.size / 2.0) < 1.0)
 	_check("na praça: nome embaixo = \"Praça\"", mini.get_area_name() == "Praça")
@@ -86,6 +88,28 @@ func _check_world_map(city: Node) -> void:
 	_check("mapa grande fechado no começo", not world_map.is_open())
 	await _press("open_map")
 	_check("M abriu o mapa e pausou", world_map.is_open() and paused)
+	var legend: Node = world_map.find_child("MapLegend", true, false)
+	_check("mapa grande tem legenda visível", legend != null and legend.is_visible_in_tree())
+	if legend != null:
+		var labels: Array[String] = []
+		var kinds: Array[String] = []
+		var icons: int = 0
+		for item: Node in legend.get_children():
+			for child: Node in item.get_children():
+				if child is Label:
+					labels.append(child.text)
+				elif child is Control and child.draw.get_connections().size() == 1:
+					icons += 1
+					var callback: Callable = child.draw.get_connections()[0]["callable"]
+					if callback.get_method() == &"draw_symbol":
+						kinds.append(callback.get_bound_arguments()[1])
+		_check("legenda explica os cinco símbolos", labels == ["você", "casa", "metrô", "torre", "trilha"] and icons == 5)
+		_check("legenda usa o desenho de símbolos da planta",
+			kinds == ["player", "home", "metro", "marco", "trilha"])
+		var view: Control = world_map.get_view()
+		_check("legenda cabe no painel e fica fora da planta",
+			legend.size.x >= legend.get_combined_minimum_size().x
+			and legend.get_global_rect().position.y >= view.get_global_rect().end.y)
 	_check("com o mapa aberto, a busca não abre", not search.can_open())
 	_check("com o mapa aberto, o menu não abre", not menu.can_open())
 	await _press("open_map")
