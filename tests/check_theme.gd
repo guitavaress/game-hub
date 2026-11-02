@@ -88,13 +88,9 @@ func _run() -> void:
 	var desk = load("res://worlds/home/computer_desk.gd").new()
 	root.add_child(desk)
 	await process_frame
-	var content: Control = desk.get_screen()._content
-	_check("o conteúdo da tela 3D usa o tema", content.theme == theme)
-	_check_clean("a tela do computador", content)
-	var heading := _find_label(content, "CONFIGURAÇÕES")
-	_check("dentro do SubViewport, o título resolve para 28 px", heading != null
-			and heading.get_theme_font_size("font_size") == theme_script.SIZE_TITLE)
-	_check("as configurações da tela usam o mesmo tema", desk.get_settings().theme == theme)
+	# Os monitores (14.28) desenham o "SEM SINAL" eles mesmos (DeskMonitorView), sem Label.
+	_check("o conteúdo do monitor é a imagem da saída", desk.get_screen().get_content() is DeskMonitorView)
+	_check("são três monitores", desk.get_screens().size() == 3)
 	desk.queue_free()
 
 	await _check_panels(theme)

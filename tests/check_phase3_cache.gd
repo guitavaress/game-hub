@@ -40,7 +40,7 @@ func _on_frame() -> void:
 			var cats = root.get_node("GameCategories")
 			var count := {}
 			for child in _city.get_children():
-				if child.name.begins_with("Building_"):
+				if child.has_method("get_poster_rect") and child.name.begins_with("Building_"):
 					var c: String = cats.get_category_id(child.game.app_id)
 					count[c] = count.get(c, 0) + 1
 			print("pronta em %.2f s | mostrou 'Organizando'? %s | bairros: %s" % [seconds, _saw_message, count])

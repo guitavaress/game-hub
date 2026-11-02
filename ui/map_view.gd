@@ -18,6 +18,8 @@ const LABEL_OUTLINE: Color = Color(0, 0, 0, 0.9)
 const BORDER_COLOR: Color = Color(1, 1, 1, 0.18)
 const PLAYER_COLOR: Color = Color("FFFFFF")
 const AREA_ALPHA: float = 0.85
+## As vagas do bairro (zonas sem prédio): a mesma cor, bem mais fraca.
+const VACANT_ALPHA: float = 0.34
 
 ## true = o centro acompanha o jogador, com "pixels_per_meter"; false = o mapa
 ## inteiro cabe no controle.
@@ -128,6 +130,14 @@ func _draw() -> void:
 		_draw_label(font, "Praça", plaza_px.get_center() + Vector2(0.0, plaza_px.size.y * 0.3))
 	for area: Dictionary in _data["areas"]:
 		var color: Color = area["color"]
+		# Primeiro as vagas (a fatia inteira aparece, da praça até a borda).
+		var vacant_color := color
+		vacant_color.a = VACANT_ALPHA
+		var bounds: Rect2 = _data["bounds"]
+		for rect: Rect2 in area.get("zones", []):
+			# Só o que fica dentro da mureta (a montanha da 15.9 fica de fora).
+			if not (area["rects"] as Array).has(rect) and bounds.encloses(rect):
+				draw_rect(_pixel_rect(rect.grow(-gap / 2.0)), vacant_color)
 		color.a = AREA_ALPHA
 		var mean := Vector2.ZERO
 		for rect: Rect2 in area["rects"]:
@@ -152,6 +162,13 @@ func _draw() -> void:
 			# Ponto alto e visível de longe (a torre): um ponto claro com aro escuro.
 			draw_circle(at, 6.0, Color.BLACK)
 			draw_circle(at, 4.5, landmark["color"])
+			continue
+		if landmark["kind"] == "trilha":
+			# A entrada da trilha da montanha (na mureta): um triângulo, como um pico.
+			var peak := PackedVector2Array([at + Vector2(0, -7), at + Vector2(7, 5), at + Vector2(-7, 5)])
+			draw_colored_polygon(peak, landmark["color"])
+			peak.append(peak[0])
+			draw_polyline(peak, Color.BLACK, 1.5)
 			continue
 		draw_circle(at, 5.0, Color.BLACK)
 		draw_circle(at, 3.5, landmark["color"])

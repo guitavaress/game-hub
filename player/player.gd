@@ -63,6 +63,13 @@ const FOOTSTEP_SURFACES: Dictionary[String, Array] = {
 		preload("res://assets/kenney/impact-sounds/footstep_wood_003.ogg"),
 		preload("res://assets/kenney/impact-sounds/footstep_wood_004.ogg"),
 	],
+	"snow": [
+		preload("res://assets/kenney/impact-sounds/footstep_snow_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_snow_004.ogg"),
+	],
 }
 const DEFAULT_SURFACE: String = "concrete"
 ## Eco dos passos em casa (canal "Passos"): sala pequena, pouco eco.
@@ -183,6 +190,8 @@ func _ready() -> void:
 	# Um jogo que abre (por exemplo, por fora do hub) tira o foco na hora,
 	# como fecha o menu de pausa.
 	GameLauncher.game_started.connect(func(_app_id: int, _source: Node) -> void:
+		leave_focus(true))
+	AppLauncher.app_launch_started.connect(func(_app_id: String, _source: Node) -> void:
 		leave_focus(true))
 
 
@@ -488,6 +497,13 @@ func focus_on(screen: Node3D) -> void:
 	screen.set_focused(true, self)
 
 
+## Com o foco numa tela, desliza a câmera para outra pose (ex.: o zoom num
+## monitor da mesa). Não faz nada fora do foco ou saindo dele.
+func move_focus_camera(pose: Transform3D) -> void:
+	if _focus_screen != null and not _focus_leaving:
+		_slide_camera(pose)
+
+
 ## Sai do foco: a câmera volta para a cabeça e o jogador ganha os controles
 ## de novo. "instant" pula a animação (ex.: um jogo abriu).
 func leave_focus(instant: bool = false) -> void:
@@ -611,7 +627,8 @@ func _update_interact(delta: float) -> void:
 ## Dá para interagir agora? Não na abertura, em viagem, com painel aberto ou
 ## com um jogo abrindo/rodando.
 func _can_interact() -> bool:
-	return not in_intro and not _traveling and not is_overlay_open() and not GameLauncher.is_busy()
+	return not in_intro and not _traveling and not is_overlay_open() \
+			and not GameLauncher.is_busy() and not AppLauncher.is_busy()
 
 
 func _find_interactable(hit: Object) -> Node:

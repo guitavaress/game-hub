@@ -44,6 +44,14 @@ func _run() -> void:
 	_check("continua fechado", not menu.is_open())
 	fade.set_door_charge(0.0)
 
+	print("\n== abas da casa e do sistema (Fase 14.25) ==")
+	var tabs: Array = menu.get_settings()._tab_buttons.map(func(b: Button) -> String: return b.text)
+	_check("o menu tem Som e vídeo, Controles, Amigos e Casa (%s)" % str(tabs), tabs.size() >= 4 and tabs[3] == "Casa")
+	_check("a aba Casa tem tema, móveis, paredes e néon", menu.get_home_view() != null
+			and not menu.get_home_view()._theme_buttons.is_empty() and not menu.get_home_view()._neon_buttons.is_empty())
+	var system_view = menu.get_system_view()
+	_check("o Sistema só existe onde o hub abre ao entrar", (system_view != null) == (tabs.size() == 5 and tabs[4] == "Sistema"))
+
 	print("\n== volume ==")
 	menu.open()
 	var old_effects: float = app.get_volume("Efeitos")
@@ -102,6 +110,18 @@ func _run() -> void:
 	file.store_string(backup)
 	file.close()
 	_check("config.cfg restaurado", FileAccess.get_file_as_string(CONFIG) == backup)
+
+	print("\n== Sair com apps abertos pede confirmação (Fase 14.22) ==")
+	var quit_button: Button = menu.get_quit_button()
+	_check("sem apps abertos, o botão é o de sempre", quit_button.text == "Sair do hub")
+	menu._quit_armed = false
+	var sessions = root.get_node("AppSessions")
+	sessions._titles[99] = "Terminal"  # um app "aberto" de mentira
+	menu._on_quit_pressed()
+	_check("1º clique só avisa", menu._quit_armed and quit_button.text.contains("vai fechar"))
+	sessions._titles.erase(99)
+	menu._disarm_quit()
+	_check("fechar o menu desarma o aviso", quit_button.text == "Sair do hub" and not menu._quit_armed)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()

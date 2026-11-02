@@ -3,7 +3,7 @@ extends Node
 ## A PLANTA da cidade como dado (Fase 8): quem ocupa cada quarteirão, onde
 ## ficam o pórtico de cada bairro e a praça. Quem desenha mapas (minimapa,
 ## mapa grande, bússola) não conhece a cidade: pergunta a quem estiver no
-## grupo "world_map" (regras 1 e 2 do CLAUDE.md). Cada mundo publica a sua
+## grupo "world_map" (regras 1 e 2 do AGENTS.md). Cada mundo publica a sua
 ## planta; um bioma futuro faz o mesmo.
 ##
 ## Tudo é em metros no plano do chão: Vector2(x, z), norte = -Z.
@@ -13,9 +13,12 @@ extends Node
 ##    "plaza":  Rect2,                      a praça
 ##    "areas":  [{"id", "name", "color", "neon", "games": int,
 ##                "rects": Array[Rect2],    quarteirões (com meia rua em volta)
+##                "zones": Array[Rect2],    o território todo: quarteirões e vagas (Fase 15.4)
+##                                          e a montanha atrás da mureta (15.9, fora de "bounds")
 ##                "gate": Vector2}],        pórtico (Vector2.INF = sem)
 ##    "gap": float,                         largura das ruas (quem desenha encolhe os retângulos)
-##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   marcos: "metro" (estações), "home" (porta de casa), "marco" (torre do relógio)
+##    "landmarks": [{"kind", "name", "pos": Vector2, "color"}]}   marcos: "metro" (estações), "home" (porta de casa), "marco" (torre do relógio),
+##                                                                 "trilha" (a entrada da trilha da montanha, 15.9.3)
 
 const PLAZA_NAME: String = "Praça"
 
@@ -48,6 +51,42 @@ static func block_rect(cell: Vector2i) -> Rect2:
 
 ## Um quarteirão do bairro "id" (com "games" jogos nele).
 func add_block(id: String, cell: Vector2i, games: int) -> void:
+	var area := _area(id)
+	area["games"] = int(area["games"]) + games
+	(area["rects"] as Array[Rect2]).append(block_rect(cell))
+
+
+## Uma ZONA do bairro "id": um pedaço do território dele (quarteirão ou vaga;
+## na Fase 15.9, também a montanha). O clima e a névoa do bairro valem nas
+## zonas. O título do bairro não: ele continua só nos quarteirões (area_id_at).
+func add_zone(id: String, cell: Vector2i) -> void:
+	add_zone_rect(id, block_rect(cell))
+
+
+## Uma zona com forma livre (a montanha da 15.9, atrás da mureta).
+func add_zone_rect(id: String, rect: Rect2) -> void:
+	(_area(id)["zones"] as Array[Rect2]).append(rect)
+
+
+## As zonas do bairro (vazio = o bairro não existe).
+func zone_rects(id: String) -> Array[Rect2]:
+	if not _area_index.has(id):
+		return [] as Array[Rect2]
+	return _areas[_area_index[id]]["zones"]
+
+
+## O id do bairro cuja zona contém o ponto (x, z) ("" = praça, rua de fora ou nada).
+func zone_id_at(position: Vector3) -> String:
+	var point := Vector2(position.x, position.z)
+	for area in _areas:
+		for rect: Rect2 in area["zones"]:
+			if rect.has_point(point):
+				return area["id"]
+	return ""
+
+
+## A área do bairro "id", criada na primeira vez (na ordem do mundo).
+func _area(id: String) -> Dictionary:
 	if not _area_index.has(id):
 		_area_index[id] = _areas.size()
 		_areas.append({
@@ -57,11 +96,10 @@ func add_block(id: String, cell: Vector2i, games: int) -> void:
 			"neon": GameCategories.get_neon_color(id),
 			"games": 0,
 			"rects": [] as Array[Rect2],
+			"zones": [] as Array[Rect2],
 			"gate": Vector2.INF,
 		})
-	var area := _areas[_area_index[id]]
-	area["games"] = int(area["games"]) + games
-	(area["rects"] as Array[Rect2]).append(block_rect(cell))
+	return _areas[_area_index[id]]
 
 
 ## Onde fica o pórtico do bairro.
@@ -71,7 +109,8 @@ func set_gate(id: String, position: Vector2) -> void:
 
 
 ## Um ponto de interesse ("metro" para estação, "home" para a porta de casa,
-## "marco" para um ponto alto como a torre do relógio).
+## "marco" para um ponto alto como a torre do relógio, "trilha" para a
+## entrada da trilha da montanha).
 func add_landmark(kind: String, landmark_name: String, position: Vector2, color: Color) -> void:
 	_landmarks.append({"kind": kind, "name": landmark_name, "pos": position, "color": color})
 

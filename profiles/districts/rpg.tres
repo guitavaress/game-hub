@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_lpw1u"]
 [ext_resource type="Script" path="res://profiles/district_profile.gd" id="2_2kfey"]
+[ext_resource type="Resource" path="res://profiles/biomes/montanha.tres" id="2_jsjph"]
 
 [sub_resource type="Resource" id="Resource_lpw1u"]
 script = ExtResource("1_lpw1u")
@@ -21,3 +22,4 @@ props_script = "res://worlds/city/district_props/rpg_banners.gd"
 floor_weights = PackedFloat32Array(0.45, 0.35, 0.2, 0, 0)
 wall_weights = PackedFloat32Array(0.1, 0.1, 0.8)
 landmark_script = "res://worlds/city/district_landmarks/rpg_tower.gd"
+biome = ExtResource("2_jsjph")

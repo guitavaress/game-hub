@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Só no KDE
+Exec=so-kde
+OnlyShowIn=KDE;

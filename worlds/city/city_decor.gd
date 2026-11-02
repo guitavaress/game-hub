@@ -106,11 +106,13 @@ static func add_block_ground(parent: Node3D, center: Vector3, district_color: Co
 
 
 ## Um poste em cada canto do quarteirão, com o braço virado para o cruzamento.
-static func add_block_lights(parent: Node3D, center: Vector3) -> void:
+## "strength" é a força dos postes (o bioma de neve usa menos que 1).
+static func add_block_lights(parent: Node3D, center: Vector3, strength: float = 1.0) -> void:
 	var corner := CityLayout.BLOCK_SIZE / 2.0 - 0.7
 	for sx in [-1.0, 1.0]:
 		for sz in [-1.0, 1.0]:
 			var light := StreetLight.new()
+			light.strength = strength
 			light.position = center + Vector3(sx * corner, 0.0, sz * corner)
 			# O braço aponta para -Z do poste: giramos para ele apontar para fora.
 			light.rotation.y = atan2(-sx, -sz)
@@ -235,8 +237,9 @@ static func add_plaza(parent: Node3D) -> void:
 
 ## Poças nas beiras das ruas: manchas escuras e lisas (rugosidade 0) que
 ## refletem o céu, os postes e o néon. São Decals (projeções no chão),
-## sorteadas sempre iguais (semente fixa).
-static func add_puddles(parent: Node3D, half: float) -> void:
+## sorteadas sempre iguais (semente fixa). Nenhuma cai em "skip" (as ruas
+## cobertas por um bioma).
+static func add_puddles(parent: Node3D, half: float, skip: Array[Rect2] = []) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 90210
 	var textures := _puddle_textures()
@@ -258,17 +261,20 @@ static func add_puddles(parent: Node3D, half: float) -> void:
 					var offset := side * (CityLayout.STREET_WIDTH / 2.0 - 0.8 - width / 2.0)
 					var spot := Vector3(t + rng.randf_range(-3.0, 3.0), 0.0, street + offset) if along_x \
 							else Vector3(street + offset, 0.0, t + rng.randf_range(-3.0, 3.0))
-					var puddle := Decal.new()
 					var pair: Array = textures[rng.randi_range(0, textures.size() - 1)]
-					puddle.texture_albedo = pair[0]
-					puddle.texture_orm = pair[1]
-					puddle.albedo_mix = 0.3
-					puddle.normal_fade = 0.9  # só no chão (não no meio-fio)
-					puddle.cull_mask = 1
-					puddle.size = Vector3(length, 1.0, width) if along_x else Vector3(width, 1.0, length)
-					puddle.position = spot + Vector3(0.0, 0.2, 0.0)
-					puddle.rotation.y = rng.randf_range(-0.15, 0.15)
-					parent.add_child(puddle)
+					var turn := rng.randf_range(-0.15, 0.15)
+					# O sorteio acima roda sempre, para as poças de fora não mudarem de lugar.
+					if not _in_any(Vector2(spot.x, spot.z), skip, length / 2.0):
+						var puddle := Decal.new()
+						puddle.texture_albedo = pair[0]
+						puddle.texture_orm = pair[1]
+						puddle.albedo_mix = 0.3
+						puddle.normal_fade = 0.9  # só no chão (não no meio-fio)
+						puddle.cull_mask = 1
+						puddle.size = Vector3(length, 1.0, width) if along_x else Vector3(width, 1.0, length)
+						puddle.position = spot + Vector3(0.0, 0.2, 0.0)
+						puddle.rotation.y = turn
+						parent.add_child(puddle)
 				t += PUDDLE_STEP
 
 
@@ -296,9 +302,10 @@ static func _puddle_textures() -> Array:
 	return _puddles
 
 
-## Faixas tracejadas no meio das ruas (sem pintar em cima dos cruzamentos).
+## Faixas tracejadas no meio das ruas (sem pintar em cima dos cruzamentos nem
+## nas ruas cobertas por um bioma, "skip").
 ## Todas as faixas são UMA MultiMesh: milhares de cópias custam quase nada.
-static func add_street_markings(parent: Node3D, cells: Array[Vector2i], half: float) -> void:
+static func add_street_markings(parent: Node3D, cells: Array[Vector2i], half: float, skip: Array[Rect2] = []) -> void:
 	var ring := 0
 	for cell in cells:
 		ring = maxi(ring, maxi(absi(cell.x), absi(cell.y)))
@@ -314,8 +321,11 @@ static func add_street_markings(parent: Node3D, cells: Array[Vector2i], half: fl
 		while t < half - period / 2.0:
 			if not _near_any(t, lines, CityLayout.STREET_WIDTH / 2.0 + 0.5):
 				# Rua na direção Z (x fixo) e rua na direção X (z fixo, girada 90°).
-				dashes.append(Transform3D(Basis.IDENTITY, Vector3(line, 0.03, t)))
-				dashes.append(Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(t, 0.03, line)))
+				# A faixa da divisa entre um bioma e a cidade também sai (metade ficaria na neve).
+				if not _in_any(Vector2(line, t), skip, LANE_DASH_LENGTH / 2.0):
+					dashes.append(Transform3D(Basis.IDENTITY, Vector3(line, 0.03, t)))
+				if not _in_any(Vector2(t, line), skip, LANE_DASH_LENGTH / 2.0):
+					dashes.append(Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(t, 0.03, line)))
 			t += period
 
 	var dash_mesh := BoxMesh.new()
@@ -332,7 +342,17 @@ static func add_street_markings(parent: Node3D, cells: Array[Vector2i], half: fl
 	var instance := MultiMeshInstance3D.new()
 	instance.name = "LaneMarkings"
 	instance.multimesh = multimesh
+	# Sem tela (nos testes) a MultiMesh devolve as cópias zeradas: guarda onde elas estão.
+	instance.set_meta("dashes", dashes)
 	parent.add_child(instance)
+
+
+## Se o ponto (x, z) cai em algum dos retângulos, com folga "margin" em volta.
+static func _in_any(point: Vector2, rects: Array[Rect2], margin: float) -> bool:
+	for rect in rects:
+		if rect.grow(margin).has_point(point):
+			return true
+	return false
 
 
 static func _near_any(value: float, list: Array[float], distance: float) -> bool:

@@ -1,0 +1,6606 @@
+{
+	"cases": {
+		"200": {
+			"districts": {
+				"acao": {
+					"blocks": [
+						[
+							2,
+							3
+						],
+						[
+							1,
+							3
+						],
+						[
+							0,
+							3
+						],
+						[
+							-1,
+							3
+						],
+						[
+							-2,
+							3
+						],
+						[
+							-3,
+							3
+						],
+						[
+							-3,
+							2
+						]
+					],
+					"games": 28,
+					"gate": [
+						65.5,
+						0.0,
+						95.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						76.0,
+						46.1,
+						114.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Ação e Roguelike",
+							"transform": [
+								76.0,
+								0.0,
+								102.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						},
+						{
+							"name": "Ação e Roguelike · 2",
+							"transform": [
+								-114.0,
+								0.0,
+								102.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"aventura": {
+					"blocks": [
+						[
+							-3,
+							-1
+						],
+						[
+							-3,
+							-2
+						],
+						[
+							-3,
+							-3
+						],
+						[
+							-2,
+							-3
+						],
+						[
+							-1,
+							-3
+						]
+					],
+					"games": 19,
+					"gate": [
+						-103.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						-114.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Aventura e Mistério",
+							"transform": [
+								-114.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						},
+						{
+							"name": "Aventura e Mistério · 2",
+							"transform": [
+								-38.0,
+								0.0,
+								-102.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"cartas": {
+					"blocks": [
+						[
+							-3,
+							1
+						],
+						[
+							-3,
+							0
+						]
+					],
+					"games": 7,
+					"gate": [
+						-103.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						-114.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Cartas e Tabuleiro",
+							"transform": [
+								-114.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"casual": {
+					"blocks": [
+						[
+							0,
+							-4
+						],
+						[
+							1,
+							-4
+						],
+						[
+							2,
+							-4
+						],
+						[
+							3,
+							-4
+						]
+					],
+					"games": 14,
+					"gate": [
+						-10.5,
+						0.0,
+						-133.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						-152.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Casual e Festa",
+							"transform": [
+								0.0,
+								0.0,
+								-140.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"esportes": {
+					"blocks": [
+						[
+							0,
+							-1
+						],
+						[
+							1,
+							-1
+						],
+						[
+							1,
+							0
+						]
+					],
+					"games": 10,
+					"gate": [
+						-10.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Esportes e Corrida",
+							"transform": [
+								0.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"estrategia": {
+					"blocks": [
+						[
+							3,
+							-2
+						],
+						[
+							3,
+							-1
+						],
+						[
+							3,
+							0
+						],
+						[
+							3,
+							1
+						],
+						[
+							3,
+							2
+						],
+						[
+							3,
+							3
+						]
+					],
+					"games": 21,
+					"gate": [
+						103.5,
+						0.0,
+						-57.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						114.0,
+						43.7,
+						-76.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Estratégia e Tática",
+							"transform": [
+								114.0,
+								0.0,
+								-64.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						},
+						{
+							"name": "Estratégia e Tática · 2",
+							"transform": [
+								114.0,
+								0.0,
+								64.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"outros": {
+					"blocks": [
+						[
+							4,
+							-4
+						],
+						[
+							4,
+							-3
+						]
+					],
+					"games": 6,
+					"gate": [
+						141.5,
+						0.0,
+						-133.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						152.0,
+						43.7,
+						-152.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Outros",
+							"transform": [
+								152.0,
+								0.0,
+								-140.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"rpg": {
+					"blocks": [
+						[
+							1,
+							1
+						],
+						[
+							0,
+							1
+						],
+						[
+							-1,
+							1
+						],
+						[
+							-1,
+							0
+						],
+						[
+							-1,
+							-1
+						],
+						[
+							0,
+							-2
+						],
+						[
+							1,
+							-2
+						],
+						[
+							2,
+							-2
+						],
+						[
+							2,
+							-1
+						],
+						[
+							2,
+							0
+						],
+						[
+							2,
+							1
+						],
+						[
+							2,
+							2
+						],
+						[
+							1,
+							2
+						],
+						[
+							0,
+							2
+						],
+						[
+							-1,
+							2
+						]
+					],
+					"games": 57,
+					"gate": [
+						27.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "RPG e Fantasia",
+							"transform": [
+								38.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"simulacao": {
+					"blocks": [
+						[
+							1,
+							-3
+						],
+						[
+							2,
+							-3
+						],
+						[
+							3,
+							-3
+						]
+					],
+					"games": 12,
+					"gate": [
+						27.5,
+						0.0,
+						-95.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						51.2,
+						-114.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Simulação e Construção",
+							"transform": [
+								38.0,
+								0.0,
+								-102.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"sobrevivencia": {
+					"blocks": [
+						[
+							-2,
+							2
+						],
+						[
+							-2,
+							1
+						],
+						[
+							-2,
+							0
+						],
+						[
+							-2,
+							-1
+						],
+						[
+							-2,
+							-2
+						],
+						[
+							-1,
+							-2
+						],
+						[
+							0,
+							-3
+						]
+					],
+					"games": 26,
+					"gate": [
+						-65.5,
+						0.0,
+						57.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						-76.0,
+						43.7,
+						76.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Sobrevivência e Terror",
+							"transform": [
+								-76.0,
+								0.0,
+								64.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						},
+						{
+							"name": "Sobrevivência e Terror · 2",
+							"transform": [
+								0.0,
+								0.0,
+								-102.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				}
+			},
+			"games": {
+				"9000000": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000001": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000002": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000003": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000004": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000005": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000006": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000007": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000008": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000009": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000010": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000011": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000012": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000013": {
+					"district": "outros",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						145.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000014": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000015": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000016": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000017": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000018": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000019": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000020": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000021": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000022": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000023": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000024": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000025": {
+					"district": "outros",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						159.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000026": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000027": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000028": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000029": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000030": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000031": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000032": {
+					"district": "simulacao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000033": {
+					"district": "cartas",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000034": {
+					"district": "esportes",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000035": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000036": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000037": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000038": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000039": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000040": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000041": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000042": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000043": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000044": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000045": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000046": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000047": {
+					"district": "acao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000048": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000049": {
+					"district": "esportes",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000050": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000051": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000052": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000053": {
+					"district": "acao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000054": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000055": {
+					"district": "outros",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						145.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000056": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000057": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000058": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000059": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000060": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000061": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000062": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000063": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000064": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000065": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000066": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000067": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000068": {
+					"district": "outros",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						159.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000069": {
+					"district": "simulacao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000070": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000071": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000072": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000073": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000074": {
+					"district": "cartas",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000075": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000076": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000077": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000078": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000079": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000080": {
+					"district": "casual",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000081": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000082": {
+					"district": "acao",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000083": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000084": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000085": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000086": {
+					"district": "esportes",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000087": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000088": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000089": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000090": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000091": {
+					"district": "sobrevivencia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000092": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000093": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000094": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000095": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000096": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000097": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000098": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000099": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000100": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000101": {
+					"district": "simulacao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000102": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000103": {
+					"district": "aventura",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000104": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000105": {
+					"district": "sobrevivencia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000106": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000107": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000108": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000109": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000110": {
+					"district": "acao",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000111": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000112": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000113": {
+					"district": "cartas",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000114": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000115": {
+					"district": "esportes",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000116": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000117": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000118": {
+					"district": "esportes",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000119": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000120": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000121": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000122": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000123": {
+					"district": "acao",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000124": {
+					"district": "acao",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000125": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000126": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000127": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000128": {
+					"district": "cartas",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000129": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000130": {
+					"district": "outros",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						145.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000131": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000132": {
+					"district": "simulacao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000133": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000134": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000135": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000136": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000137": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000138": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000139": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000140": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000141": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000142": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000143": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000144": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000145": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-159.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000146": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000147": {
+					"district": "acao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000148": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000149": {
+					"district": "simulacao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000150": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000151": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000152": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						121.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000153": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000154": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000155": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000156": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-145.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000157": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000158": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000159": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000160": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000161": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000162": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000163": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000164": {
+					"district": "sobrevivencia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000165": {
+					"district": "simulacao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000166": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000167": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000168": {
+					"district": "cartas",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000169": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000170": {
+					"district": "cartas",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000171": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000172": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000173": {
+					"district": "cartas",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000174": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000175": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000176": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000177": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000178": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000179": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000180": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000181": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000182": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000183": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						121.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000184": {
+					"district": "outros",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						159.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000185": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000186": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000187": {
+					"district": "sobrevivencia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000188": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000189": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-107.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000190": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-69.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000191": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000192": {
+					"district": "sobrevivencia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000193": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						69.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000194": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-83.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000195": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000196": {
+					"district": "estrategia",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						107.0,
+						0.0,
+						107.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000197": {
+					"district": "aventura",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-107.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000198": {
+					"district": "acao",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-121.0,
+						0.0,
+						83.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000199": {
+					"district": "aventura",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-121.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				}
+			},
+			"half": 176.0
+		},
+		"40": {
+			"districts": {
+				"acao": {
+					"blocks": [
+						[
+							1,
+							-2
+						]
+					],
+					"games": 3,
+					"gate": [
+						27.5,
+						0.0,
+						-57.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						-76.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Ação e Roguelike",
+							"transform": [
+								38.0,
+								0.0,
+								-64.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"aventura": {
+					"blocks": [
+						[
+							2,
+							-1
+						]
+					],
+					"games": 4,
+					"gate": [
+						65.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						76.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Aventura e Mistério",
+							"transform": [
+								76.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"cartas": {
+					"blocks": [
+						[
+							2,
+							-2
+						]
+					],
+					"games": 1,
+					"gate": [
+						65.5,
+						0.0,
+						-57.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						76.0,
+						43.7,
+						-76.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Cartas e Tabuleiro",
+							"transform": [
+								76.0,
+								0.0,
+								-64.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"casual": {
+					"blocks": [
+						[
+							2,
+							0
+						]
+					],
+					"games": 4,
+					"gate": [
+						86.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						76.0,
+						43.7,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Casual e Festa",
+							"transform": [
+								76.0,
+								0.0,
+								-12.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"esportes": {
+					"blocks": [
+						[
+							0,
+							-1
+						]
+					],
+					"games": 3,
+					"gate": [
+						-10.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Esportes e Corrida",
+							"transform": [
+								0.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"estrategia": {
+					"blocks": [
+						[
+							0,
+							-2
+						]
+					],
+					"games": 2,
+					"gate": [
+						-10.5,
+						0.0,
+						-57.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						-76.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Estratégia e Tática",
+							"transform": [
+								0.0,
+								0.0,
+								-64.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"outros": {
+					"blocks": [
+						[
+							2,
+							1
+						]
+					],
+					"games": 2,
+					"gate": [
+						65.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						76.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Outros",
+							"transform": [
+								76.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"rpg": {
+					"blocks": [
+						[
+							1,
+							-1
+						],
+						[
+							1,
+							0
+						],
+						[
+							1,
+							1
+						],
+						[
+							0,
+							1
+						]
+					],
+					"games": 13,
+					"gate": [
+						27.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "RPG e Fantasia",
+							"transform": [
+								38.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"simulacao": {
+					"blocks": [
+						[
+							-1,
+							-1
+						]
+					],
+					"games": 3,
+					"gate": [
+						-27.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						-38.0,
+						47.1,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Simulação e Construção",
+							"transform": [
+								-38.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"sobrevivencia": {
+					"blocks": [
+						[
+							-1,
+							1
+						],
+						[
+							-1,
+							0
+						]
+					],
+					"games": 5,
+					"gate": [
+						-27.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						-38.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Sobrevivência e Terror",
+							"transform": [
+								-38.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				}
+			},
+			"games": {
+				"9000000": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000001": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000002": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000003": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000004": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000005": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000006": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000007": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000008": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000009": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000010": {
+					"district": "estrategia",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000011": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000012": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000013": {
+					"district": "outros",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000014": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000015": {
+					"district": "acao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-83.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000016": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000017": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000018": {
+					"district": "casual",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000019": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000020": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000021": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000022": {
+					"district": "rpg",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000023": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000024": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000025": {
+					"district": "outros",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000026": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000027": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000028": {
+					"district": "casual",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						7.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000029": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000030": {
+					"district": "simulacao",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000031": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						45.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000032": {
+					"district": "simulacao",
+					"floors": 7,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000033": {
+					"district": "cartas",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						69.0,
+						0.0,
+						-69.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000034": {
+					"district": "esportes",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000035": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-45.0,
+						0.0,
+						45.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000036": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000037": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						83.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000038": {
+					"district": "esportes",
+					"floors": 6,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-45.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete048/Concrete048_1K-JPG_Color.jpg"
+				},
+				"9000039": {
+					"district": "sobrevivencia",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-31.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				}
+			},
+			"half": 100.0
+		},
+		"6": {
+			"districts": {
+				"acao": {
+					"blocks": [
+						[
+							1,
+							1
+						]
+					],
+					"games": 1,
+					"gate": [
+						27.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Ação e Roguelike",
+							"transform": [
+								38.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"aventura": {
+					"blocks": [
+						[
+							0,
+							1
+						]
+					],
+					"games": 1,
+					"gate": [
+						-10.5,
+						0.0,
+						19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Aventura e Mistério",
+							"transform": [
+								0.0,
+								0.0,
+								26.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"estrategia": {
+					"blocks": [
+						[
+							1,
+							0
+						]
+					],
+					"games": 1,
+					"gate": [
+						48.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Estratégia e Tática",
+							"transform": [
+								38.0,
+								0.0,
+								-12.0,
+								-1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								-1.0
+							]
+						}
+					]
+				},
+				"rpg": {
+					"blocks": [
+						[
+							0,
+							-1
+						]
+					],
+					"games": 2,
+					"gate": [
+						-10.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						0.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "RPG e Fantasia",
+							"transform": [
+								0.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				},
+				"sobrevivencia": {
+					"blocks": [
+						[
+							1,
+							-1
+						]
+					],
+					"games": 1,
+					"gate": [
+						27.5,
+						0.0,
+						-19.0,
+						0.0,
+						0.0,
+						-1.0,
+						0.0,
+						1.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0
+					],
+					"sign": [
+						38.0,
+						43.7,
+						-38.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"stations": [
+						{
+							"name": "Sobrevivência e Terror",
+							"transform": [
+								38.0,
+								0.0,
+								-26.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0,
+								0.0,
+								0.0,
+								0.0,
+								1.0
+							]
+						}
+					]
+				}
+			},
+			"games": {
+				"9000000": {
+					"district": "sobrevivencia",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000001": {
+					"district": "acao",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000002": {
+					"district": "rpg",
+					"floors": 4,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000003": {
+					"district": "rpg",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						7.0,
+						0.0,
+						-31.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				},
+				"9000004": {
+					"district": "estrategia",
+					"floors": 5,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						31.0,
+						0.0,
+						-7.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Color.jpg"
+				},
+				"9000005": {
+					"district": "aventura",
+					"floors": 3,
+					"shell": "res://worlds/city/city_building.gd",
+					"transform": [
+						-7.0,
+						0.0,
+						31.0,
+						-1.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						-1.0
+					],
+					"wall": "res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_Color.jpg"
+				}
+			},
+			"half": 62.0
+		}
+	},
+	"origem": "158aec0, antes da refatoração 15.2; IDs fixos"
+}

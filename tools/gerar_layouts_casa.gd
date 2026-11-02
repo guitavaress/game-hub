@@ -20,11 +20,11 @@ func _run() -> void:
 	catalog.layouts.clear()
 	# O giro de quem nasce é virado para a estante.
 	catalog.layouts.append(_layout("padrao", "Padrão", {
-		"estante": "oeste", "mural": "leste", "estatisticas": "sul_esquerda", "espelho": "sul_direita"}, 35.0))
+		"apps": "norte_esquerda", "estante": "oeste", "mural": "leste", "estatisticas": "sul_esquerda", "espelho": "sul_direita"}, 35.0))
 	catalog.layouts.append(_layout("espelhada", "Espelhada", {
-		"estante": "leste", "mural": "oeste", "estatisticas": "sul_direita", "espelho": "sul_esquerda"}, -35.0))
+		"apps": "norte_esquerda", "estante": "leste", "mural": "oeste", "estatisticas": "sul_direita", "espelho": "sul_esquerda"}, -35.0))
 	catalog.layouts.append(_layout("estante_na_entrada", "Estante na entrada", {
-		"estante": "sul_esquerda", "mural": "leste", "estatisticas": "oeste", "espelho": "sul_direita"}, 130.0))
+		"apps": "norte_esquerda", "estante": "sul_esquerda", "mural": "leste", "estatisticas": "oeste", "espelho": "sul_direita"}, 130.0))
 	var error := ResourceSaver.save(catalog, CATALOG_PATH)
 	print("Disposições gravadas (erro %d)." % error)
 	quit()

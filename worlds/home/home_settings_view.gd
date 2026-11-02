@@ -1,9 +1,8 @@
 class_name HomeSettingsView
 extends VBoxContainer
-## A aba "CASA" do computador (Fase 13.8): tema, posição dos móveis e as cores
+## A aba "CASA" do menu de pausa (Fase 13.8; veio do computador na 14.25): tema, posição dos móveis e as cores
 ## das paredes e do néon. Cada clique grava no AppConfig ([home]) e a casa muda
-## na hora, atrás do monitor. É uma página do SettingsView (add_page); o menu
-## de pausa não a usa: a casa se muda de dentro de casa.
+## na hora, atrás do menu. É uma página do SettingsView (add_page).
 ##
 ## As opções vêm do catálogo (profiles/home_catalog.tres): temas, disposições e
 ## as paletas de cores. O teclado e o controle andam pelos botões como no resto

@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Sem programa
+Exec=sem-programa
+TryExec=programa-que-nao-existe-xyz

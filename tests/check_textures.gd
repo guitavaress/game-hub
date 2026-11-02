@@ -1,5 +1,5 @@
 extends SceneTree
-## Teste das texturas nítidas (Fase 10.1).
+## Teste das texturas nítidas (Fase 10.1; o bioma montanha entrou na 15.0).
 ##
 ## As texturas da ambientCG, o atlas das árvores e os céus HDRI são importados
 ## com compressão de placa (VRAM) e, menos os céus, com mipmaps: assim o
@@ -33,7 +33,14 @@ func _run() -> void:
 			if file.ends_with(".import"):
 				imports.append("res://assets/ambientcg/%s/%s" % [folder, file])
 	imports.append("res://assets/generated/tree_impostor.png.import")
-	_check("achou as 21 texturas da ambientCG e o atlas (%d)" % imports.size(), imports.size() == 22)
+	# Fase 15.0 (bioma montanha): o atlas do pinheiro e as texturas da rocha 3D.
+	imports.append("res://assets/generated/pine_impostor.png.import")
+	for folder in DirAccess.get_directories_at("res://assets/polyhaven/models"):
+		var textures := "res://assets/polyhaven/models/%s/textures" % folder
+		for file in DirAccess.get_files_at(textures):
+			if file.ends_with(".import"):
+				imports.append("%s/%s" % [textures, file])
+	_check("achou as 27 texturas da ambientCG, os 2 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 32)
 	var bad: Array[String] = []
 	var bad_normals: Array[String] = []
 	for path in imports:
@@ -44,7 +51,7 @@ func _run() -> void:
 		if int(config.get_value("params", "compress/mode", 0)) != 2 \
 				or not bool(config.get_value("params", "mipmaps/generate", false)):
 			bad.append(path.get_file())
-		var is_normal := path.contains("_NormalGL")
+		var is_normal := path.contains("_NormalGL") or path.contains("_nor_gl")
 		if is_normal and int(config.get_value("params", "compress/normal_map", 0)) != 1:
 			bad_normals.append(path.get_file())
 	_check("todas com compress/mode=2 e mipmaps (erradas: %s)" % str(bad), bad.is_empty())
@@ -67,6 +74,8 @@ func _run() -> void:
 		"res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_NormalGL.jpg",
 		"res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Roughness.jpg",
 		"res://assets/generated/tree_impostor.png",
+		"res://assets/ambientcg/Snow010A/Snow010A_1K-JPG_Color.jpg",
+		"res://assets/generated/pine_impostor.png",
 	]
 	for path in samples:
 		var texture := load(path) as CompressedTexture2D

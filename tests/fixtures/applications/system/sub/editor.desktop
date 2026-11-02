@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Editor
+Exec=sh -c editor
+TryExec=sh
+Categories=Utility;TextEditor;Development;

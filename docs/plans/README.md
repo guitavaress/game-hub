@@ -3,7 +3,7 @@
 Cada fase do [roadmap](../ROADMAP.md) ganha um plano aqui **antes** de qualquer código. O plano também é a **memória entre sessões**: uma sessão nova lê o arquivo, vê quais subetapas estão marcadas `[x]` e continua da primeira em aberto.
 
 ## Regras
-- O arquivo se chama `fase-N.md` (ex.: `fase-7.md`). Ele é escrito no modo plan (Opus, esforço high) e **aprovado pelo dono** antes de qualquer código.
+- O arquivo se chama `fase-N.md` (ex.: `fase-7.md`). Planeje no modo plano do Claude Code e obtenha **aprovação do dono** antes de implementar. Modelos e revisão em [AGENTS.md](../../AGENTS.md#modelos-e-esforço).
 - **Subetapas pequenas:** cada uma cabe numa sessão, tem teste próprio e termina num commit. Se uma subetapa precisa de mais de ~5 arquivos novos ou de dois sistemas diferentes, divida.
 - **A ordem importa:** primeiro o que não muda nada visível (estrutura, dados), depois o que usa a estrutura nova, e o visual por último.
 - **Durante a execução:**
@@ -35,13 +35,13 @@ Por que a fase existe, o que ela resolve e como o hub fica quando ela acabar
   Alternativa descartada e por quê.
 
 ## Subetapas
-- [ ] **N.1 <nome>** (modelo: Sonnet · esforço: medium)
+- [ ] **N.1 <nome>** (quem: Claude · esforço: medium)
   - Faz: o que muda, em uma ou duas frases.
   - Arquivos: `caminho/novo.gd` (novo), `caminho/existente.gd` (muda X).
   - Teste: `tests/check_<nome>.gd` verifica Y.
   - Manual: o que o dono abre e vê.
   - Commit: `Fase N.1: <mensagem>`
-- [ ] **N.2 <nome>** (modelo: Opus · esforço: high, se for difícil)
+- [ ] **N.2 <nome>** (quem: Claude · esforço: high, se for difícil; revisão: Codex)
   - ...
 
 ## Riscos

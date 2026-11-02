@@ -56,14 +56,71 @@ func _run() -> void:
 	print("   13h: %d postes acesos | janelas: brilho %.2f | sol %.2f" % [lit, building._walls_material.get_shader_parameter("night"), day_night.sun.light_energy])
 	_check("tudo apagado às 13h", lit == 0 and building._walls_material.get_shader_parameter("night") == 0.0)
 
+	print("\n== mistura da névoa do bioma ==")
+	var env: Environment = day_night.environment
+	for hour: float in [6.0, 13.0, 18.25, 23.0]:
+		_set_hour(day_night, city, hour)
+		var original: Array = _fog_snapshot(env)
+		day_night.set_fog_overlay(0.0, 3.0, Color.RED, 1.0, 12.0, 0.03)
+		_check("peso zero preserva exatamente a névoa às %.2fh" % hour, _fog_snapshot(env) == original)
+		day_night.set_fog_overlay(0.6, 2.0, Color(0.65, 0.72, 0.82), 0.3, 8.0, 0.01)
+		_check_overlay(day_night, "aplicada imediatamente às %.2fh" % hour)
+		day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
+		_check("sair do bioma restaura a névoa às %.2fh" % hour, _fog_snapshot(env) == original)
+		# O relógio real pode virar o segundo: confira a nova base separadamente.
+		day_night.set_fog_overlay(0.6, 2.0, Color(0.65, 0.72, 0.82), 0.3, 8.0, 0.01)
+		day_night.update_now()
+		_check_overlay(day_night, "relógio não acumula nem apaga a mistura")
+		day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
+	day_night.set_fog_overlay(0.6, 2.0, Color(0.65, 0.72, 0.82), 0.3, 8.0, 0.01)
+	day_night._unhandled_input(f8)
+	_check_overlay(day_night, "F8 mantém a mistura na mesma chamada")
+	for sky: String in ["sky3d", "fotos"]:
+		city._apply_sky(sky)
+		_check_overlay(day_night, "troca de céu para %s mantém a mistura" % sky)
+	for quality: String in ["leve", "media", "alta"]:
+		GraphicsQuality.apply_to_environment(env, quality)
+		day_night.update_now()
+		_check_overlay(day_night, "qualidade %s mantém a mistura" % quality)
+		_check("névoa comum segue ligada em %s" % quality, env.fog_enabled)
+		if quality == "leve":
+			_check("bruma funciona sem névoa volumétrica", not env.volumetric_fog_enabled and env.fog_height_density > 0.0)
+	# Um Environment novo também recebe a mistura imediatamente.
+	var replacement: Environment = Environment.new()
+	replacement.fog_height = 2.0
+	replacement.fog_height_density = 0.002
+	day_night.environment = replacement
+	_check("ambiente substituído mantém densidade e cor", replacement.fog_density == env.fog_density
+			and replacement.fog_light_color == env.fog_light_color)
+	_check("altura mistura sobre a base do ambiente novo", is_equal_approx(replacement.fog_height, 5.6)
+			and is_equal_approx(replacement.fog_height_density, 0.0068))
+	day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
+	_check("peso zero restaura altura própria do ambiente novo", is_equal_approx(replacement.fog_height, 2.0)
+			and is_equal_approx(replacement.fog_height_density, 0.002))
+	city.queue_free()
+	await process_frame
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
-	quit()
+	quit(1 if failures > 0 else 0)
+
+
+func _fog_snapshot(env: Environment) -> Array:
+	return [env.fog_density, env.fog_light_color, env.fog_height, env.fog_height_density]
+
+
+func _check_overlay(day_night: Node, label: String) -> void:
+	var env: Environment = day_night.environment
+	var observed: Array = _fog_snapshot(env)
+	day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
+	_check(label, is_equal_approx(observed[0], env.fog_density * 1.6)
+			and (observed[1] as Color).is_equal_approx(env.fog_light_color.lerp(
+					day_night.tint_keeping_brightness(env.fog_light_color, Color(0.65, 0.72, 0.82)), 0.18))
+			and is_equal_approx(observed[2], 4.8) and is_equal_approx(observed[3], 0.006))
+	day_night.set_fog_overlay(0.6, 2.0, Color(0.65, 0.72, 0.82), 0.3, 8.0, 0.01)
 
 
 func _set_hour(day_night, city, hour: float) -> void:
-	var now := Time.get_time_dict_from_system()
-	var real_hour: float = now["hour"] + now["minute"] / 60.0 + now["second"] / 3600.0
-	day_night.hour_offset = hour - real_hour
+	day_night.hour_offset += hour - day_night.current_hour()
 	day_night.update_now()
 
 

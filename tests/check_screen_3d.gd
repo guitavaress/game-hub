@@ -34,12 +34,12 @@ func _run() -> void:
 	var hud = player.get_hud()
 	var camera: Camera3D = player.get_node("Head/Camera3D")
 	var home = city.get_home()
-	var desk = home.get_node("ComputerDesk")
-	var screen = desk.get_screen()
-	var settings = desk.get_settings()
+	var fixture = load("res://tests/settings_screen.gd").install(home)
+	var screen = fixture.screen
+	var settings = fixture.settings
 
 	print("== Montagem ==")
-	_check("o computador está na casa", desk != null and screen != null and settings != null)
+	_check("o computador está na casa", screen != null and settings != null)
 	_check("a tela fica na camada do interior", screen.get_node("Surface").layers == 1 << 19)
 	var size: Vector2i = screen.get_viewport_node().size
 	_check("o conteúdo tem a resolução da tela (%dx%d)" % [size.x, size.y], size == screen.resolution)

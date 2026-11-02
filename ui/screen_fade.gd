@@ -60,6 +60,15 @@ func _ready() -> void:
 		game_screen.show_opening(app_id))
 	GameLauncher.game_started.connect(func(app_id: int, _source: Node) -> void:
 		game_screen.show_playing(app_id))
+	# Apps comuns: "Abrindo X…" com o ícone. Se o ícone ainda estava carregando,
+	# ele entra assim que chegar.
+	AppLauncher.app_launch_started.connect(func(app_id: String, _source: Node) -> void:
+		var app := AppLibrary.get_app(app_id)
+		game_screen.show_app_opening(app.name if app != null else app_id, AppLibrary.get_icon(app_id)))
+	AppLibrary.icon_ready.connect(func(app_id: String) -> void:
+		if AppLauncher.get_app_id() == app_id and game_screen.get_mode() == "abrindo":
+			var app := AppLibrary.get_app(app_id)
+			game_screen.show_app_opening(app.name if app != null else app_id, AppLibrary.get_icon(app_id)))
 
 
 ## Abertura: a cortina fica transparente (o céu aparece) e a tela "GAME HUB"

@@ -108,8 +108,14 @@ var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 var _day_night: DayNight
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
-## O sol (e a lua) da cidade.
+## O céu de fotos: o WorldEnvironment, o sol (que de noite vira a "lua") e o
+## céu de fotos, guardado para voltar a ele se a opção Céu mudar.
+var _world_env: WorldEnvironment
 var _sun: DirectionalLight3D
+var _photo_sky: Sky
+## O céu do addon Sky3D (opção Céu = "sky3d"): ele é o WorldEnvironment e tem
+## sol e lua próprios.
+var _sky3d: Sky3D
 ## A casa do jogador e a porta "Casa" da praça.
 var _home: Home
 var _home_door: TravelDoor
@@ -127,6 +133,14 @@ var _asphalt: StandardMaterial3D
 var _map: CityMap
 ## Quarteirões de cada bairro, na ordem em que foram montados.
 var _district_cells: Dictionary[String, Array] = {}
+## O setor (fatia) de cada bairro, do SectorLayout.
+var _sectors: Dictionary[String, DistrictSector] = {}
+## A montanha (15.14): o bairro dela e como foi montada, para refazer na troca
+## da qualidade.
+var _backdrop_district: String = ""
+var _backdrop_half: float = 0.0
+var _backdrop_cell: float = 0.0
+var _backdrop_rebuilding: bool = false
 
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
@@ -159,10 +173,21 @@ func _ready() -> void:
 	# A porta "Casa" vira um marco nos mapas (depois das estações: fica por cima).
 	_map.add_landmark("home", "Casa", Vector2(HOME_DOOR_SPOT.x, HOME_DOOR_SPOT.z), HomeDoorFacade.NEON_COLOR)
 	await _keep_frame_light()
-	_build_ground_and_walls(half)
+	# A montanha vem antes da mureta: a trilha abre um vão nela.
+	var openings := await _build_backdrop(districts, half)
+	# Os marcos sem telhado (a torre do RPG) vêm depois da montanha (eles ficam
+	# no mirante) e antes dos pinheiros (que não nascem na base deles).
+	_build_anchored_landmarks(districts)
+	_build_ground_and_walls(half, openings)
+	# O clima vem com todos os bairros e a montanha prontos: ele cobre as zonas
+	# do bairro (quarteirões, vagas e a montanha).
+	for district in districts:
+		_build_weather(district["id"])
 	await _keep_frame_light()
-	CityDecor.add_street_markings(self, cells, half)
-	CityDecor.add_puddles(self, half)
+	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
+	var covered := _build_biome_covers(districts, half, player)
+	CityDecor.add_street_markings(self, cells, half, covered)
+	CityDecor.add_puddles(self, half, covered)
 	await _keep_frame_light()
 	CityDecor.add_plaza(self)
 	_build_clock_tower()
@@ -201,6 +226,8 @@ func _ready() -> void:
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
 	_is_ready = true
 	city_ready.emit()
+	# Uma troca de qualidade feita durante a montagem foi ignorada: confere agora.
+	_rebuild_backdrop()
 
 
 func is_city_ready() -> bool:
@@ -284,7 +311,46 @@ func _clock_text() -> String:
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality" and _environment != null:
 		GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
-		GraphicsQuality.apply_to_sun(_sun, AppConfig.get_quality())
+		for light in _sky_lights():
+			GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
+		_rebuild_backdrop()
+	elif section == "video" and key == "sky" and _environment != null:
+		_apply_sky(AppConfig.get_sky())
+
+
+## Refaz a montanha com a grade e a sombra da qualidade nova (15.14). A nova é
+## montada à parte, escondida, enquanto a velha continua no lugar (e segurando
+## quem está na trilha); só no fim a velha sai e a nova aparece, no mesmo
+## quadro. A torre, o vão da mureta, as zonas e o marco do mapa não dependem
+## da grade e não são refeitos.
+func _rebuild_backdrop() -> void:
+	if _backdrop_district.is_empty() or _backdrop_rebuilding or not _is_ready:
+		return
+	_backdrop_rebuilding = true
+	while true:
+		var level := AppConfig.get_quality()
+		var old := get_node_or_null("BackdropTerrain_%s" % _backdrop_district) as BackdropTerrain
+		var biome := BiomeBuilder.biome_of(_backdrop_district)
+		if old == null or biome == null:
+			break
+		if is_equal_approx(GraphicsQuality.terrain_cell_meters(level), _backdrop_cell) \
+				and old.casts_shadow == GraphicsQuality.terrain_casts_shadow(level):
+			break
+		var fresh := BiomeBuilder.add_backdrop(self, _backdrop_district, biome,
+				_sectors[_backdrop_district], _backdrop_half, level)
+		if fresh == null:
+			break
+		fresh.visible = false
+		while fresh.build_next():
+			await get_tree().process_frame
+		# A montagem é a mesma de antes, então o nome e o lugar não mudam.
+		remove_child(old)
+		old.queue_free()
+		fresh.name = "BackdropTerrain_%s" % _backdrop_district
+		fresh.visible = true
+		fresh.get_dressing().set_night(_day_night.get_night())
+		_backdrop_cell = fresh.cell_meters
+	_backdrop_rebuilding = false
 
 
 func _on_night_changed(night: float) -> void:
@@ -335,13 +401,19 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 
 # --- Bairros e prédios -------------------------------------------------------
 
-## Monta todos os bairros. Devolve os quarteirões usados (para medir o mapa).
+## Monta todos os bairros. Cada um ganha uma fatia da cidade, da praça até a
+## borda (SectorLayout): os quarteirões com prédios e, perto da borda, as vagas.
+## Devolve as células de todos os territórios (para medir o mapa).
 ## Na abertura, monta um quarteirão por quadro, para a barra de progresso andar.
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
-	var block_count := 0
+	var counts: Array[int] = []
+	var ids: Array[String] = []
 	for district in districts:
-		block_count += ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK))
-	var cells := CityLayout.block_cells(block_count)
+		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
+		ids.append(district["id"])
+	# O bairro com terreno de fundo (a montanha) fica com a fatia no norte.
+	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
+	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
 	var app_ids: Array[int] = []
@@ -354,49 +426,132 @@ func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[V
 	_map.name = "CityMap"
 	add_child(_map)
 
-	var next_cell := 0
 	var built := 0
-	for district in districts:
+	for district_index in districts.size():
+		var district: Dictionary = districts[district_index]
+		var sector: DistrictSector = sectors[district_index]
+		_sectors[district["id"]] = sector
+		cells.append_array(sector.territory)
+		# O território todo (quarteirões e vagas) vira zona do bairro no mapa.
+		for cell in sector.territory:
+			_map.add_zone(district["id"], cell)
 		var district_games: Array = district["games"]
-		var first_cell := next_cell
+		var block_index: int = 0
 		# Cada quarteirão recebe até 4 jogos do bairro.
 		for first in range(0, district_games.size(), CityLayout.LOTS_PER_BLOCK):
+			var cell: Vector2i = sector.blocks[block_index]
 			var block_games := district_games.slice(first, first + CityLayout.LOTS_PER_BLOCK)
-			await _build_block(cells[next_cell], district["id"], block_games)
-			_map.add_block(district["id"], cells[next_cell], block_games.size())
+			await _build_block(cell, district["id"], block_games)
+			_map.add_block(district["id"], cell, block_games.size())
 			if not _district_cells.has(district["id"]):
 				_district_cells[district["id"]] = [] as Array[Vector2i]
-			_district_cells[district["id"]].append(cells[next_cell])
+			_district_cells[district["id"]].append(cell)
 			if first == 0:
 				# O pórtico fica no primeiro quarteirão do bairro (o mais perto da praça).
-				_build_gate(cells[next_cell], district["id"])
-			next_cell += 1
+				_build_gate(cell, district["id"])
+			block_index += 1
 			built += block_games.size()
 			_report_progress("Construindo bairros… %d de %d jogos" % [built, total_games],
 					lerpf(0.2, 0.9, float(built) / maxf(total_games, 1.0)))
-		_build_weather(cells.slice(first_cell, next_cell), district["id"])
+		# As vagas (o resto da fatia, perto da borda) ganham só o chão.
+		for cell in sector.territory:
+			if not sector.blocks.has(cell):
+				_build_vacant(cell, district["id"])
+		await _keep_frame_light()
 		# O letreiro vem com o bairro inteiro pronto: ele fica acima dos enfeites
 		# altos de todos os quarteirões (a grua de um vizinho alcança a ponta dele).
-		_build_district_sign(cells.slice(first_cell, next_cell), district["id"])
+		_build_district_sign(sector.blocks, district["id"])
 	return cells
 
 
-## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; a área
-## cobre todos os quarteirões dele e metade da rua em volta.
-func _build_weather(district_cells: Array, category_id: String) -> void:
+## Uma vaga: um quarteirão do bairro sem jogo, perto da borda. Fica só o chão
+## (calçada e miolo na cor do bairro, ou o do bioma), sem postes nem enfeites.
+## O nó se chama Vacant_<bairro>_<x>_<z>.
+func _build_vacant(cell: Vector2i, category_id: String) -> void:
+	var vacant := Node3D.new()
+	vacant.name = "Vacant_%s_%d_%d" % [category_id, cell.x, cell.y]
+	add_child(vacant)
+	_add_block_ground(vacant, cell, category_id)
+
+
+## O chão de um quarteirão: o do bioma do bairro, se houver; senão, o da cidade.
+func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> void:
+	var biome := BiomeBuilder.biome_of(category_id)
+	if biome != null:
+		BiomeBuilder.add_block_ground(parent, CityLayout.block_center(cell), biome)
+	else:
+		CityDecor.add_block_ground(parent, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
+
+
+## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
+## passos), os pinheiros e as rochas, e a névoa e o vento do primeiro deles.
+## Roda depois do metrô: as estações e as portas ficam livres dos enfeites.
+## Devolve as áreas cobertas de todos.
+func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
+	var covered: Array[Rect2] = []
+	var has_atmosphere := false
+	var inside := Rect2(-half, -half, half * 2.0, half * 2.0)
+	for district in districts:
+		var biome := BiomeBuilder.biome_of(district["id"])
+		if biome == null:
+			continue
+		# O chão e os enfeites só dentro da mureta; a montanha tem os dela.
+		var town: Array[Rect2] = []
+		var mountain: Array[Rect2] = []
+		for zone in _map.zone_rects(district["id"]):
+			(town if inside.encloses(zone) else mountain).append(zone)
+		var rects := BiomeBuilder.covered_rects(town, half, biome.cover_streets)
+		BiomeBuilder.add_cover(self, district["id"], biome, rects)
+		# Os enfeites só mudam ao abrir a cidade (não se refazem na troca da qualidade).
+		BiomeBuilder.add_scatter(self, district["id"], biome, town,
+				GraphicsQuality.scatter_amount(AppConfig.get_quality()))
+		if not has_atmosphere:
+			# A névoa e o vento valem também na trilha e no mirante.
+			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
+			has_atmosphere = true
+		if biome.cover_streets:
+			covered.append_array(rects)
+	return covered
+
+
+## A montanha atrás do primeiro bairro com terreno de fundo (o da fatia no
+## norte), um pedaço da malha por vez. A montanha vira zona do bairro (o
+## clima, a névoa e o vento valem nela) e a entrada da trilha, um marco no
+## mapa. Devolve os vãos que a trilha abre na mureta (nenhum se não houver
+## montanha ou ela não couber).
+func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
+	for district in districts:
+		var biome := BiomeBuilder.biome_of(district["id"])
+		if biome == null or biome.backdrop == null:
+			continue
+		var terrain := BiomeBuilder.add_backdrop(self, district["id"], biome, _sectors[district["id"]], half,
+				AppConfig.get_quality())
+		if terrain == null:
+			return []
+		_backdrop_district = district["id"]
+		_backdrop_half = half
+		_backdrop_cell = terrain.cell_meters
+		while terrain.build_next():
+			await _keep_frame_light()
+		for zone in terrain.get_zone_rects():
+			_map.add_zone_rect(district["id"], zone)
+		_map.add_landmark("trilha", TrailDressing.SIGN_TEXT, terrain.trail.start,
+				GameCategories.get_neon_color(district["id"]))
+		return terrain.get_openings()
+	return []
+
+
+## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
+## todas as zonas dele (quarteirões e vagas, cada uma com meia rua em volta).
+func _build_weather(category_id: String) -> void:
 	var profile := Profiles.district(category_id)
-	if profile == null or profile.weather == null or district_cells.is_empty():
+	var zones := _map.zone_rects(category_id)
+	if profile == null or profile.effective_weather() == null or zones.is_empty():
 		return
-	var reach := CityLayout.BLOCK_SIZE / 2.0 + CityLayout.STREET_WIDTH / 2.0
-	var area := Rect2()
-	for i in district_cells.size():
-		var center := CityLayout.block_center(district_cells[i])
-		var block := Rect2(center.x - reach, center.z - reach, reach * 2.0, reach * 2.0)
-		area = block if i == 0 else area.merge(block)
 	var weather := DistrictWeather.new()
 	weather.name = "DistrictWeather_%s" % category_id
-	weather.spec = profile.weather
-	weather.area = area
+	weather.spec = profile.effective_weather()
+	weather.areas = zones.duplicate()
 	add_child(weather)
 
 
@@ -536,6 +691,20 @@ func _build_gate(cell: Vector2i, category_id: String) -> void:
 func _build_district_sign(district_cells: Array, category_id: String) -> void:
 	if district_cells.is_empty():
 		return
+	var cell: Vector2i = district_cells[0]
+	var district_sign := DistrictSign.new()
+	district_sign.name = "DistrictSign_%s" % category_id
+	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
+			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
+	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, _district_sign_height(district_cells, category_id), 0.0)
+	add_child(district_sign)
+	_district_signs.append(district_sign)
+
+
+## A altura do letreiro do bairro: acima do prédio mais alto possível, dos
+## enfeites altos dos quarteirões e do marco, se ele ficar nos quarteirões (a
+## torre no mirante da montanha fica longe do letreiro e não conta).
+func _district_sign_height(district_cells: Array, category_id: String) -> float:
 	var top := BuildingVariant.max_total_height()
 	for cell: Vector2i in district_cells:
 		var props := get_node_or_null("DistrictProps_%s_%d_%d" % [category_id, cell.x, cell.y])
@@ -543,32 +712,63 @@ func _build_district_sign(district_cells: Array, category_id: String) -> void:
 			top = maxf(top, props.get_top_y())
 	var landmark := get_node_or_null("DistrictLandmark_%s" % category_id) as DistrictLandmark
 	if landmark != null:
-		top = maxf(top, landmark.get_top_y())
-	var cell: Vector2i = district_cells[0]
-	var district_sign := DistrictSign.new()
-	district_sign.name = "DistrictSign_%s" % category_id
-	district_sign.setup(GameCategories.get_category_name(category_id).to_upper(),
-			GameCategories.get_neon_color(category_id), DISTRICT_SIGN_TEXT_HEIGHT)
-	district_sign.position = CityLayout.block_center(cell) + Vector3(0.0, top + DISTRICT_SIGN_CLEARANCE, 0.0)
-	add_child(district_sign)
-	_district_signs.append(district_sign)
+		var spot := Vector2(landmark.global_position.x, landmark.global_position.z)
+		var half_block := CityLayout.BLOCK_SIZE / 2.0
+		for cell: Vector2i in district_cells:
+			var center := CityLayout.block_center(cell)
+			if absf(spot.x - center.x) <= half_block and absf(spot.y - center.z) <= half_block:
+				top = maxf(top, landmark.get_top_y())
+				break
+	return top + DISTRICT_SIGN_CLEARANCE
 
 
 ## O marco alto do bairro (torre, roda-gigante...), se o perfil tiver um
 ## "landmark_script": em cima do prédio mais alto do quarteirão do pórtico.
-func _build_landmark(category_id: String, buildings: Array[CityBuilding]) -> void:
+## Com "anchor" (15.10), no chão, nesse ponto. Sem âncora, o bairro sem prédio
+## (arcos) ou com montanha fica para _build_anchored_landmarks. null = sem marco.
+func _build_landmark(category_id: String, buildings: Array[CityBuilding],
+		anchor: Vector3 = Vector3.INF) -> DistrictLandmark:
 	var profile := Profiles.district(category_id)
-	if profile == null or profile.landmark_script.is_empty() or buildings.is_empty():
-		return
+	if profile == null or profile.landmark_script.is_empty():
+		return null
+	if not anchor.is_finite() and (buildings.is_empty() or _has_backdrop(category_id)):
+		return null
 	var script := load(profile.landmark_script) as GDScript
 	var landmark := script.new() as DistrictLandmark if script != null else null
 	if landmark == null:
 		push_warning("O marco %s do bairro %s não carregou." % [profile.landmark_script, category_id])
-		return
+		return null
 	landmark.name = "DistrictLandmark_%s" % category_id
 	landmark.category_id = category_id
 	landmark.buildings = buildings
+	landmark.anchor = anchor
 	add_child(landmark)
+	return landmark
+
+
+## O bairro tem montanha de fundo no bioma (a torre dele vai para o mirante)?
+static func _has_backdrop(category_id: String) -> bool:
+	var biome := BiomeBuilder.biome_of(category_id)
+	return biome != null and biome.backdrop != null
+
+
+## Os marcos que não ficam num telhado (15.10): no mirante da montanha do
+## bairro (BackdropTerrain.tower_spot) ou, sem montanha (ela não coube),
+## no meio do primeiro quarteirão, o do pórtico. Quando o marco fica nos
+## quarteirões, o letreiro do bairro sobe para ficar acima dele.
+func _build_anchored_landmarks(districts: Array[Dictionary]) -> void:
+	for district in districts:
+		var id: String = district["id"]
+		if not _district_cells.has(id) or get_node_or_null("DistrictLandmark_%s" % id) != null:
+			continue
+		var terrain := get_node_or_null("BackdropTerrain_%s" % id) as BackdropTerrain
+		var cells: Array[Vector2i] = _district_cells[id]
+		var anchor := terrain.tower_spot() if terrain != null else CityLayout.block_center(cells[0])
+		if _build_landmark(id, [] as Array[CityBuilding], anchor) == null:
+			continue
+		var district_sign := get_node_or_null("DistrictSign_%s" % id) as Node3D
+		if district_sign != null:
+			district_sign.position.y = _district_sign_height(_sectors[id].blocks, id)
 
 
 ## Placa de rua no poste da esquina do quarteirão mais perto da praça,
@@ -606,17 +806,18 @@ static func _toward_center(value: int) -> float:
 
 
 func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> void:
-	var category_color := GameCategories.get_category_color(category_id)
 	var center := CityLayout.block_center(cell)
+	var biome := BiomeBuilder.biome_of(category_id)
 
-	# Calçada em volta e o miolo do quarteirão na cor do bairro; postes nos cantos.
-	CityDecor.add_block_ground(self, center, category_color)
-	CityDecor.add_block_lights(self, center)
+	# Calçada em volta e o miolo do quarteirão (na cor do bairro, ou o chão do
+	# bioma); postes nos cantos.
+	_add_block_ground(self, cell, category_id)
+	CityDecor.add_block_lights(self, center, biome.street_light_scale if biome != null else 1.0)
 	await _keep_frame_light()
 
 	_build_street_sign(cell, category_id)
 
-	# Prédios nos terrenos; o que sobrar vira pracinha.
+	# Prédios nos terrenos; o que sobrar vira pracinha (no bioma, fica o chão dele).
 	var lots := CityLayout.lots_facing_center_first(cell)
 	# Os enfeites só recebem as cascas que são prédios (eles usam a fachada,
 	# o cartaz e o néon do prédio).
@@ -629,7 +830,7 @@ func _build_block(cell: Vector2i, category_id: String, block_games: Array) -> vo
 			if shell is CityBuilding:
 				buildings.append(shell)
 			await _keep_frame_light()  # um prédio (com as capas) pesa: divide os quadros
-		else:
+		elif biome == null:
 			CityDecor.add_park(self, lot)
 	# O elemento que dá cara ao bairro (telões, letreiros...), se houver.
 	DistrictProps.decorate(self, category_id, cell, buildings)
@@ -647,7 +848,7 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	# (andares, recuo, janelas etc.: veja BuildingVariant).
 	var profile := Profiles.district(category_id)
 	var variant := BuildingVariant.from_app_id(game.app_id, profile.floor_weights if profile != null else PackedFloat32Array())
-	var kind := profile.shell if profile != null else "building"
+	var kind := profile.effective_shell() if profile != null else "building"
 	var shell_script: GDScript = _shells.get(kind, CityBuilding)
 
 	var shell := shell_script.new() as PortalShell
@@ -658,6 +859,9 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 	shell.accent_color = GameCategories.get_category_color(category_id)
 	if shell is CityBuilding:
 		shell.variant = variant
+	var biome := BiomeBuilder.biome_of(category_id)
+	if biome != null:
+		BiomeBuilder.dress_shell(shell, biome)  # a pedra do bioma (arcos com neve por cima)
 	shell.transform = lot
 	add_child(shell)
 	return shell
@@ -665,7 +869,8 @@ func _build_game_building(lot: Transform3D, game: SteamGame, category_id: String
 
 # --- Céu, chão e muros -------------------------------------------------------
 
-## Céu (três fotos HDRI misturadas), sol e o relógio de dia e noite.
+## Céu, sol e o relógio de dia e noite. O céu é o de fotos (três HDRI
+## misturadas) ou o do addon Sky3D, pela opção Céu do menu (veja _apply_sky).
 func _build_environment() -> void:
 	var sky_material := ShaderMaterial.new()
 	sky_material.shader = SKY_SHADER
@@ -673,12 +878,11 @@ func _build_environment() -> void:
 	sky_material.set_shader_parameter("sunset_sky", SKY_SUNSET)
 	sky_material.set_shader_parameter("sunset_gain", SKY_SUNSET_GAIN)
 	sky_material.set_shader_parameter("night_sky", SKY_NIGHT)
-	var sky := Sky.new()
-	sky.sky_material = sky_material
+	_photo_sky = Sky.new()
+	_photo_sky.sky_material = sky_material
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
-	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX  # cores mais "de cinema"
@@ -699,24 +903,89 @@ func _build_environment() -> void:
 	GraphicsQuality.apply_to_environment(env, AppConfig.get_quality())
 	AppConfig.settings_changed.connect(_on_settings_changed)
 
-	var world_env := WorldEnvironment.new()
-	world_env.environment = env
-	add_child(world_env)
-
-	var sun := DirectionalLight3D.new()
-	sun.name = "Sun"
-	sun.shadow_enabled = true
-	# Até onde vai a sombra: depende da qualidade (mais curta na Leve).
-	GraphicsQuality.apply_to_sun(sun, AppConfig.get_quality())
-	add_child(sun)
-	_sun = sun
-
 	_day_night = DayNight.new()
 	_day_night.environment = env
-	_day_night.sky_material = sky_material
-	_day_night.sun = sun
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
+	_apply_sky(AppConfig.get_sky())
 	add_child(_day_night)
+
+
+## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).
+## O Environment é o mesmo nos dois: neblina, efeitos e qualidade não mudam.
+func _apply_sky(mode: String) -> void:
+	for old: Node in [_world_env, _sun, _sky3d]:
+		if old != null:
+			remove_child(old)  # sai já, para não haver dois céus num quadro
+			old.queue_free()
+	_world_env = null
+	_sun = null
+	_sky3d = null
+	_day_night.sky_material = null
+	_day_night.sun = null
+	_day_night.sky3d = null
+
+	if mode == "sky3d":
+		_environment.sky = null  # vazio: o Sky3D cria o céu dele
+		_sky3d = Sky3D.new()
+		_sky3d.name = "Sky3D"
+		# set_environment, e não "environment =": o Sky3D só aceita a troca
+		# de Environment depois de entrar na cena.
+		_sky3d.set_environment(_environment)
+		add_child(_sky3d)
+		_sky3d.game_time_enabled = false  # quem anda com a hora é o DayNight
+		_sky3d.fog_enabled = false        # a neblina continua a do DayNight
+		# À noite, menos luz do céu (quase preto) e mais luz ambiente; lua mais forte.
+		_sky3d.night_sky_contribution = 0.4
+		_sky3d.moon_energy = 0.45
+		_set_sky3d_place(_sky3d.tod)
+		for light in _sky_lights():
+			_setup_sky_light(light)
+		_day_night.sky3d = _sky3d
+	else:
+		_environment.sky = _photo_sky
+		_environment.ambient_light_sky_contribution = 1.0  # o Sky3D mexe nela
+		_world_env = WorldEnvironment.new()
+		_world_env.environment = _environment
+		add_child(_world_env)
+		_sun = DirectionalLight3D.new()
+		_sun.name = "Sun"
+		_sun.shadow_enabled = true
+		_setup_sky_light(_sun)
+		add_child(_sun)
+		_day_night.sky_material = _photo_sky.sky_material
+		_day_night.sun = _sun
+	if _day_night.is_inside_tree():
+		_day_night.update_now()
+
+
+## O sol e a lua do céu atual (no céu de fotos, é uma luz só).
+func _sky_lights() -> Array[DirectionalLight3D]:
+	if _sky3d != null:
+		return [_sky3d.sun, _sky3d.moon]
+	if _sun != null:
+		return [_sun]
+	return []
+
+
+## Toda luz do céu: sombra conforme a qualidade (mais curta na Leve) e sem
+## entrar na casa nem no corpo do espelho (que ficam "dentro de casa").
+func _setup_sky_light(light: DirectionalLight3D) -> void:
+	GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
+	light.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+	light.light_cull_mask &= ~AvatarBody.reflection_layers()
+
+
+## Onde e quando fica a cidade, para o Sky3D pôr o sol, a lua (com a fase
+## certa) e as estrelas: Brasil (latitude de São Paulo) e a data do PC. A
+## longitude acompanha o fuso (-3 h × 15°), e o sol fica no alto ao meio-dia.
+func _set_sky3d_place(tod: TimeOfDay) -> void:
+	tod.latitude = deg_to_rad(-23.5)
+	tod.longitude = deg_to_rad(-45.0)
+	tod.utc = -3.0
+	var today := Time.get_date_dict_from_system()
+	tod.year = today["year"]
+	tod.month = today["month"]
+	tod.day = today["day"]
 
 
 ## O fundo da cidade (vento e trânsito ao longe): um loop 2D, sem posição, no
@@ -730,6 +999,8 @@ func _build_ambience_bed() -> void:
 	player.stream = AmbientEmitter.looping(load(spec.files[0]))
 	player.bus = &"Ambiente"
 	player.volume_db = spec.volume_db
+	# A atmosfera do bioma (BiomeAtmosphere) acha o fundo por este grupo para abaixá-lo.
+	player.add_to_group(&"city_ambience_bed")
 	add_child(player)
 	player.play()
 	_ambience_bed = player
@@ -749,8 +1020,7 @@ func _build_home() -> void:
 	_home.name = "Home"
 	_home.position = HOME_ORIGIN
 	add_child(_home)
-	_sun.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
-	_sun.light_cull_mask &= ~AvatarBody.reflection_layers()  # o corpo do espelho também fica dentro de casa
+	# O sol da cidade não entra em casa: veja _setup_sky_light.
 
 	_home_door = TravelDoor.new()
 	_home_door.name = "HomeDoor"
@@ -784,7 +1054,7 @@ func get_home_door() -> TravelDoor:
 	return _home_door
 
 
-func _build_ground_and_walls(half: float) -> void:
+func _build_ground_and_walls(half: float, openings: Array[Rect2] = []) -> void:
 	# Chão com colisão (cor de asfalto: o que não é quarteirão vira rua).
 	var ground := CSGBox3D.new()
 	ground.name = "Ground"
@@ -797,22 +1067,18 @@ func _build_ground_and_walls(half: float) -> void:
 	add_child(ground)
 
 	# Mureta com grade nas bordas (baixa: deixa ver o horizonte) e uma barreira
-	# invisível para ninguém pular para fora do mapa.
+	# invisível para ninguém pular para fora do mapa. Os vãos (a trilha da
+	# montanha) ficam sem mureta, sem barreira e sem grade.
 	var y := BORDER_WALL_HEIGHT / 2.0
-	var length := half * 2.0
-	var sides: Array[Array] = [
-		[Vector3(0.0, 0.0, -half), Vector3(length, 0.0, 0.0)],
-		[Vector3(0.0, 0.0, half), Vector3(length, 0.0, 0.0)],
-		[Vector3(-half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
-		[Vector3(half, 0.0, 0.0), Vector3(0.0, 0.0, length)],
-	]
-	for side in sides:
-		var center: Vector3 = side[0]
-		var along: Vector3 = side[1]
-		var wall_size := Vector3(maxf(along.x, 0.6), BORDER_WALL_HEIGHT, maxf(along.z, 0.6))
-		_add_wall(center + Vector3(0.0, y, 0.0), wall_size)
-		_add_barrier(center, Vector3(wall_size.x, BORDER_BARRIER_HEIGHT, wall_size.z))
-	_add_railing(half)
+	for side in _border_sides(half):
+		for span in _wall_spans(half, side, openings):
+			var center := _border_point(side, (span.x + span.y) / 2.0)
+			var length := span.y - span.x
+			var along_x := is_zero_approx(side.x)
+			var wall_size := Vector3(length if along_x else 0.6, BORDER_WALL_HEIGHT, 0.6 if along_x else length)
+			_add_wall(center + Vector3(0.0, y, 0.0), wall_size)
+			_add_barrier(center, Vector3(wall_size.x, BORDER_BARRIER_HEIGHT, wall_size.z))
+	_add_railing(half, openings)
 
 	# O horizonte: anel de silhuetas a 400 m e o chão escuro até lá.
 	var skyline := CitySkyline.new()
@@ -952,7 +1218,8 @@ func _add_barrier(base: Vector3, barrier_size: Vector3) -> void:
 
 ## Grade de metal em cima da mureta: barras finas a cada 25 cm e um corrimão.
 ## Todas as barras são UMA MultiMesh (milhares de cópias, um só desenho).
-func _add_railing(half: float) -> void:
+## Nos vãos não há barra nem corrimão.
+func _add_railing(half: float, openings: Array[Rect2] = []) -> void:
 	var metal := StandardMaterial3D.new()
 	metal.albedo_color = Color("1A1D22")
 	metal.metallic = 0.8
@@ -962,34 +1229,71 @@ func _add_railing(half: float) -> void:
 	bar.material = metal
 
 	var per_side := int(half * 2.0 / BORDER_RAILING_SPACING)
+	var y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT / 2.0
+	var spots: Array[Vector3] = []
+	for side in _border_sides(half):
+		var spans := _wall_spans(half, side, openings)
+		for i in per_side:
+			var t := -half + (i + 0.5) * BORDER_RAILING_SPACING
+			for span in spans:
+				if t >= span.x and t <= span.y:
+					spots.append(_border_point(side, t) + Vector3(0.0, y, 0.0))
+					break
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = bar
-	multimesh.instance_count = per_side * 4
-	var y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT / 2.0
-	var index := 0
-	for i in per_side:
-		var t := -half + (i + 0.5) * BORDER_RAILING_SPACING
-		for spot in [Vector3(t, y, -half), Vector3(t, y, half), Vector3(-half, y, t), Vector3(half, y, t)]:
-			multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, spot))
-			index += 1
+	multimesh.instance_count = spots.size()
+	for index in spots.size():
+		multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, spots[index]))
 	var bars := MultiMeshInstance3D.new()
 	bars.name = "Railing"
 	bars.multimesh = multimesh
 	add_child(bars)
 
-	# Corrimão em cima das barras.
+	# Corrimão em cima das barras: um por trecho de mureta.
 	var top_y := BORDER_WALL_HEIGHT + BORDER_RAILING_HEIGHT
-	for rail_size_center in [
-		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, -half)],
-		[Vector3(half * 2.0, 0.06, 0.08), Vector3(0.0, top_y, half)],
-		[Vector3(0.08, 0.06, half * 2.0), Vector3(-half, top_y, 0.0)],
-		[Vector3(0.08, 0.06, half * 2.0), Vector3(half, top_y, 0.0)],
-	]:
-		var rail := MeshInstance3D.new()
-		var rail_mesh := BoxMesh.new()
-		rail_mesh.size = rail_size_center[0]
-		rail.mesh = rail_mesh
-		rail.material_override = metal
-		rail.position = rail_size_center[1]
-		add_child(rail)
+	for side in _border_sides(half):
+		var along_x := is_zero_approx(side.x)
+		for span in _wall_spans(half, side, openings):
+			var length := span.y - span.x
+			var rail := MeshInstance3D.new()
+			var rail_mesh := BoxMesh.new()
+			rail_mesh.size = Vector3(length, 0.06, 0.08) if along_x else Vector3(0.08, 0.06, length)
+			rail.mesh = rail_mesh
+			rail.material_override = metal
+			rail.position = _border_point(side, (span.x + span.y) / 2.0) + Vector3(0.0, top_y, 0.0)
+			add_child(rail)
+
+
+## O meio de cada lado da borda (norte, sul, oeste, leste), no chão.
+static func _border_sides(half: float) -> Array[Vector2]:
+	return [Vector2(0.0, -half), Vector2(0.0, half), Vector2(-half, 0.0), Vector2(half, 0.0)]
+
+
+## Um ponto do lado "side" da borda, "t" metros ao longo dele (de -half a half).
+static func _border_point(side: Vector2, t: float) -> Vector3:
+	if is_zero_approx(side.x):
+		return Vector3(t, 0.0, side.y)
+	return Vector3(side.x, 0.0, t)
+
+
+## Os trechos de mureta de um lado, de -half a half, sem os vãos que o cortam.
+## Cada trecho é Vector2(de, até), ao longo do lado.
+static func _wall_spans(half: float, side: Vector2, openings: Array[Rect2]) -> Array[Vector2]:
+	var along_x := is_zero_approx(side.x)
+	var cuts: Array[Vector2] = []
+	for rect in openings:
+		if along_x and rect.position.y <= side.y and side.y <= rect.end.y:
+			cuts.append(Vector2(rect.position.x, rect.end.x))
+		elif not along_x and rect.position.x <= side.x and side.x <= rect.end.x:
+			cuts.append(Vector2(rect.position.y, rect.end.y))
+	cuts.sort()
+	var spans: Array[Vector2] = []
+	var from := -half
+	for cut in cuts:
+		if cut.x > from:
+			spans.append(Vector2(from, minf(cut.x, half)))
+		from = maxf(from, cut.y)
+	if from < half:
+		spans.append(Vector2(from, half))
+	return spans

@@ -37,6 +37,14 @@ const IRON_COLOR: Color = Color("1F1C1A")
 ## Quanto a chama treme: a luz sobe e desce até essa fração do valor normal.
 const FLICKER_AMOUNT: float = 0.2
 
+## Força do poste (15.13.5): multiplica a luz e o círculo no chão. O bioma de
+## neve usa menos que 1, porque a neve reflete bem mais luz que o asfalto.
+var strength: float = 1.0:
+	set(value):
+		strength = clampf(value, 0.0, 1.0)
+		if _light != null:
+			_apply_light()
+
 ## Poste queimado: não acende à noite (o bairro Terror tem um).
 var broken: bool = false:
 	set(value):
@@ -245,10 +253,10 @@ func _process(delta: float) -> void:
 ## Aplica o acendimento (e o tremor) na luz, no brilho do vidro e no círculo do chão.
 func _apply_light() -> void:
 	_light.visible = _on > 0.01
-	_light.light_energy = _light_energy * _on * _flicker
+	_light.light_energy = _light_energy * strength * _on * _flicker
 	_led_material.emission_energy_multiplier = _glow_energy * _on * _flicker
 	_pool.visible = _on > 0.01
-	_pool.emission_energy = _pool_energy * _on * _flicker
+	_pool.emission_energy = _pool_energy * strength * _on * _flicker
 
 
 func _add_part(part: Node) -> void:

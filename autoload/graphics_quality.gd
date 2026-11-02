@@ -73,6 +73,34 @@ static func weather_amount(level: String) -> float:
 	return 1.0
 
 
+## Tamanho do quadrado da grade da montanha (m): 4 na Leve, 3 na Média, 2 na
+## Alta (quanto menor, mais fina a encosta e mais triângulos). Fase 15.14.
+static func terrain_cell_meters(level: String) -> float:
+	match level:
+		"leve":
+			return 4.0
+		"media":
+			return 3.0
+	return 2.0
+
+
+## Quanto da densidade dos pinheiros e rochas do bioma fica: 50% na Leve, 75%
+## na Média, 100% na Alta (multiplica a densidade do perfil).
+static func scatter_amount(level: String) -> float:
+	match level:
+		"leve":
+			return 0.5
+		"media":
+			return 0.75
+	return 1.0
+
+
+## A montanha faz sombra? Só fora da Leve (a sombra do terreno é cara e,
+## com o sol curto da Leve, quase não aparece).
+static func terrain_casts_shadow(level: String) -> bool:
+	return level != "leve"
+
+
 ## Tamanho (px) da imagem do espelho da casa (Fase 13.10). Mesma proporção do
 ## vidro (8:15): na Leve, 240 × 450.
 static func mirror_resolution(level: String) -> Vector2i:

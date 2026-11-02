@@ -155,6 +155,7 @@ func _reset_home_choices() -> void:
 	app.set_home_layout("")
 	app.set_home_wall_color("")
 	app.set_home_neon_color("")
+	app.set_sky("fotos")  # o teste procura o sol do céu de fotos ("Sun")
 
 
 ## A fachada da porta "Casa" (HomeDoorFacade): lugar, folgas, sólida, néon e mapa.

@@ -14,6 +14,10 @@ extends Node
 ##   - 19:00 a 05:30: noite (luz fraca e azulada da "lua", neblina densa)
 ##
 ## F8 adianta o relógio da cidade em 3 horas (para testar sem esperar).
+##
+## Com o céu "sky3d" (opção Céu do menu), o sol, a lua, as estrelas e o céu
+## são do addon Sky3D: este relógio só repassa a hora a ele, e continua cuidando
+## da neblina, da exposição e do aviso night_changed.
 
 ## Quanto está de noite: 0.0 = dia claro, 1.0 = noite fechada.
 signal night_changed(night: float)
@@ -52,11 +56,36 @@ const NIGHT_FOG_DENSITY: float = 0.006
 const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
 const SUNSET_FOG_COLOR: Color = Color("E8A07A")
 const NIGHT_FOG_COLOR: Color = Color("080A12")
+## Luz ambiente à noite. No Sky3D o céu noturno é quase preto (ele não tem a
+## foto clara da noite), então a luz ambiente compensa.
+const NIGHT_AMBIENT: float = 0.2
+const SKY3D_NIGHT_AMBIENT: float = 0.9
+
+var _fog_weights: Vector3 = Vector3(1.0, 0.0, 0.0)
+var _fog_overlay_weight: float = 0.0
+var _fog_overlay_scale: float = 1.0
+var _fog_overlay_tint: Color = Color.WHITE
+var _fog_overlay_tint_amount: float = 0.0
+var _fog_overlay_height: float = 0.0
+var _fog_overlay_height_density: float = 0.0
+var _base_fog_height: float = 0.0
+var _base_fog_height_density: float = 0.0
 
 ## Quem este relógio controla (a cidade preenche antes de adicionar à cena).
-var environment: Environment
+## Ao substituir o ambiente, mantém a mistura e guarda a altura original dele.
+var environment: Environment:
+	set(value):
+		if environment == value:
+			return
+		environment = value
+		if environment != null:
+			_base_fog_height = environment.fog_height
+			_base_fog_height_density = environment.fog_height_density
+			_apply_fog()
 var sky_material: ShaderMaterial
 var sun: DirectionalLight3D
+## O céu do addon Sky3D, quando é ele o céu (aí sky_material e sun ficam vazios).
+var sky3d: Sky3D
 
 ## Horas somadas ao relógio do PC com F8.
 var hour_offset: float = 0.0
@@ -129,10 +158,36 @@ func update_now() -> void:
 	# Céu: quanto de cada foto (dia, pôr do sol, noite) aparece agora.
 	# As estrelas só entram quando a noite já está pela metade (senão elas
 	# apareceriam no meio do pôr do sol); o resto fica com o pôr do sol.
+	# Os mesmos pesos misturam a neblina e a exposição, com qualquer céu.
 	var day_weight := maxf(daylight - sunset, 0.0)
 	var night_weight := smoothstep(0.5, 1.0, night)
 	var sunset_weight := maxf(1.0 - day_weight - night_weight, 0.0)
 	var weights := Vector3(day_weight, sunset_weight, night_weight)
+	if sky3d != null:
+		# O Sky3D calcula o sol, a lua e as estrelas pela hora e pela data.
+		sky3d.current_time = hour
+	else:
+		_apply_photo_sky(hour, daylight, sunset, elevation, sun_yaw, weights)
+
+	# Exposição, neblina, luz ambiente e brilho (glow).
+	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
+	_fog_weights = weights
+	_apply_fog()
+	var night_ambient := SKY3D_NIGHT_AMBIENT if sky3d != null else NIGHT_AMBIENT
+	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight)
+	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
+
+	if absf(night - _night) > 0.005:
+		_night = night
+		night_changed.emit(night)
+
+
+## O céu de fotos: mistura as três fotos e move o sol (ou a "lua") à mão.
+func _apply_photo_sky(hour: float, daylight: float, sunset: float, elevation: float,
+		sun_yaw: float, weights: Vector3) -> void:
+	var day_weight := weights.x
+	var sunset_weight := weights.y
+	var night_weight := weights.z
 	sky_material.set_shader_parameter("day_weight", day_weight)
 	sky_material.set_shader_parameter("sunset_weight", sunset_weight)
 	sky_material.set_shader_parameter("night_weight", night_weight)
@@ -149,17 +204,48 @@ func update_now() -> void:
 	sun.light_energy = lerpf(MOON_ENERGY, lerpf(DAY_SUN_ENERGY, SUNSET_SUN_ENERGY, sunset), daylight)
 	sun.shadow_opacity = _mix3(weights, DAY_SHADOW_OPACITY, SUNSET_SHADOW_OPACITY, NIGHT_SHADOW_OPACITY)
 
-	# Exposição, neblina, luz ambiente e brilho (glow).
-	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
-	environment.fog_density = _mix3(weights, DAY_FOG_DENSITY, SUNSET_FOG_DENSITY, NIGHT_FOG_DENSITY)
-	environment.fog_light_color = DAY_FOG_COLOR * weights.x + SUNSET_FOG_COLOR * weights.y \
-			+ NIGHT_FOG_COLOR * weights.z
-	environment.ambient_light_energy = lerpf(0.2, 1.0, daylight)
-	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
 
-	if absf(night - _night) > 0.005:
-		_night = night
-		night_changed.emit(night)
+## Mistura sobre a névoa do relógio, sem multiplicar o resultado anterior.
+## Os quatro primeiros argumentos bastam para névoa de profundidade.
+## height é a cota global da bruma; density positiva concentra névoa embaixo.
+func set_fog_overlay(weight: float, density_scale: float, tint: Color,
+		tint_amount: float, height: float = 0.0, height_density: float = 0.0) -> void:
+	_fog_overlay_weight = clampf(weight, 0.0, 1.0)
+	_fog_overlay_scale = maxf(density_scale, 0.0)
+	_fog_overlay_tint = tint
+	_fog_overlay_tint_amount = clampf(tint_amount, 0.0, 1.0)
+	_fog_overlay_height = height
+	_fog_overlay_height_density = maxf(height_density, 0.0)
+	_apply_fog()
+
+
+## A tinta do bioma muda o tom da névoa, mas não o brilho da hora (15.13.3):
+## de noite a névoa continua escura, e no pôr do sol não puxa para uma cor fixa.
+static func tint_keeping_brightness(base: Color, tint: Color) -> Color:
+	var tint_luma := maxf(tint.get_luminance(), 0.001)
+	var scale := base.get_luminance() / tint_luma
+	return Color(minf(tint.r * scale, 1.0), minf(tint.g * scale, 1.0), minf(tint.b * scale, 1.0))
+
+
+func _apply_fog() -> void:
+	if environment == null:
+		return
+	var density: float = _mix3(_fog_weights, DAY_FOG_DENSITY, SUNSET_FOG_DENSITY, NIGHT_FOG_DENSITY)
+	var color: Color = DAY_FOG_COLOR * _fog_weights.x + SUNSET_FOG_COLOR * _fog_weights.y \
+			+ NIGHT_FOG_COLOR * _fog_weights.z
+	# Peso zero restaura os valores exatos, inclusive a névoa de altura original.
+	environment.fog_density = density
+	environment.fog_light_color = color
+	environment.fog_height = _base_fog_height
+	environment.fog_height_density = _base_fog_height_density
+	if _fog_overlay_weight <= 0.0:
+		return
+	environment.fog_density = density * lerpf(1.0, _fog_overlay_scale, _fog_overlay_weight)
+	environment.fog_light_color = color.lerp(tint_keeping_brightness(color, _fog_overlay_tint),
+			_fog_overlay_tint_amount * _fog_overlay_weight)
+	environment.fog_height = lerpf(_base_fog_height, _fog_overlay_height, _fog_overlay_weight)
+	environment.fog_height_density = lerpf(_base_fog_height_density,
+			_fog_overlay_height_density, _fog_overlay_weight)
 
 
 func get_night() -> float:

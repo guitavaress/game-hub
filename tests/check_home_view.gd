@@ -45,18 +45,21 @@ func _run() -> void:
 	var player = city.get_node("Player")
 	var camera: Camera3D = player.get_node("Head/Camera3D")
 	var home = city.get_home()
-	var desk = home.get_node("ComputerDesk")
-	var screen = desk.get_screen()
-	var settings = desk.get_settings()
-	var view = desk.get_home_view()
+	var fixture = load("res://tests/settings_screen.gd").install(home)
+	var screen = fixture.screen
+	var settings = fixture.settings
+	var view = fixture.home_view
 
 	print("== a aba Casa ==")
-	_check("o computador tem 4 abas, a última é Casa", settings._tab_buttons.size() == 4 and settings._tab_buttons[3].text == "Casa")
+	# A 5ª aba, "Sistema", só existe onde o hub sabe abrir ao entrar (Linux).
+	_check("a tela tem a aba Casa depois das 3 de sempre", settings._tab_buttons.size() >= 4 and settings._tab_buttons[3].text == "Casa")
 	_check("a aba Casa tem tema, móveis, paredes e néon",
 			view._theme_buttons.size() == catalog.homes.size() and view._theme_buttons.has("teste")
 			and view._layout_buttons.size() == 3
 			and view._wall_buttons.size() == 9 and view._neon_buttons.size() == 9)
-	_check("o menu de pausa não ganha a aba", player.get_pause_menu().get_settings()._tab_buttons.size() == 3)
+	var pause_settings = player.get_pause_menu().get_settings()
+	_check("o menu de pausa tem a aba Casa (Fase 14.25)", pause_settings._tab_buttons.size() >= 4
+			and pause_settings._tab_buttons[3].text == "Casa" and player.get_pause_menu().get_home_view() != null)
 
 	# O jogador na frente do monitor, com o foco nele.
 	var front: Vector3 = screen.global_basis.z

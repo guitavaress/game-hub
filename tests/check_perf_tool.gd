@@ -1,7 +1,7 @@
 extends SceneTree
 ## Teste da ferramenta de desempenho (Fase 13.9): roda tools/medir_desempenho.gd
-## sem janela, com 7 jogos falsos, e confere que saem as três linhas
-## (MEDIDA, MEDIDA_CASA e MEDIDA_ESPELHO) no formato de sempre. Os números
+## sem janela, com 7 jogos falsos, e confere que saem MEDIDA_AMBIENTE, MEDIDA_MONTAGEM
+## e as quatro linhas (MEDIDA, MEDIDA_CASA, MEDIDA_ESPELHO e MEDIDA_MONTANHA) no formato de sempre. Os números
 ## sem janela não valem nada: só o formato e a presença das linhas.
 
 var failures := 0
@@ -20,11 +20,15 @@ func _run() -> void:
 			"-s", "res://tools/medir_desempenho.gd", "--", "7", "leve", "22"], output, true)
 	var text := "\n".join(PackedStringArray(output))
 	_check("a ferramenta terminou sem erro (código %d)" % code, code == 0 and not text.contains("SCRIPT ERROR"))
-	var pattern := RegEx.create_from_string("(MEDIDA(?:_CASA|_ESPELHO)?) jogos=\\d+ qualidade=leve hora=22 \\| montagem=\\d+ ms \\| fps_medio=[\\d.]+ \\| quadro_p99=\\d+ ms \\| pior=\\d+ ms \\| desenhos=\\d+ \\| textura=\\d+ MB \\| memoria=\\d+ MB \\| quadros=\\d+")
+	var pattern := RegEx.create_from_string("(MEDIDA(?:_CASA|_ESPELHO|_MONTANHA)?) jogos=\\d+ qualidade=leve hora=22 \\| montagem=\\d+ ms \\| fps_medio=[\\d.]+ \\| quadro_p99=\\d+ ms \\| pior=\\d+ ms \\| desenhos=\\d+ \\| textura=\\d+ MB \\| memoria=\\d+ MB \\| quadros=\\d+")
 	var found := {}
 	for match in pattern.search_all(text):
 		found[match.get_string(1)] = true
-	for label in ["MEDIDA", "MEDIDA_CASA", "MEDIDA_ESPELHO"]:
+	if RegEx.create_from_string("(?m)^MEDIDA_MONTANHA jogos=\\d+ qualidade=leve hora=22 \\| sem montanha\\r?$").search(text) != null:
+		found["MEDIDA_MONTANHA"] = true
+	_check("sai a linha MEDIDA_AMBIENTE", RegEx.create_from_string("MEDIDA_AMBIENTE janela=\\d+x\\d+ \\| tela_hz=-?\\d+ \\| vsync=(sim|nao) \\| gpu=.* \\| cpu=.* \\| godot=\\S+").search(text) != null)
+	_check("sai a linha MEDIDA_MONTAGEM", RegEx.create_from_string("MEDIDA_MONTAGEM jogos=\\d+ qualidade=leve hora=22 \\| montagem=\\d+ ms \\| add_child=\\d+ ms \\| primeiro_quadro=\\d+ ms \\| pior=\\d+ ms \\| acima_50ms=\\d+ \\| quadros=\\d+").search(text) != null)
+	for label in ["MEDIDA", "MEDIDA_CASA", "MEDIDA_ESPELHO", "MEDIDA_MONTANHA"]:
 		_check("sai a linha %s" % label, found.has(label))
 	_check("a qualidade do usuário foi devolvida", FileAccess.get_file_as_string("user://config.cfg").contains('quality="%s"' % app.get_quality()))
 	var file := FileAccess.open("user://config.cfg", FileAccess.WRITE)
