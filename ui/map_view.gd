@@ -7,6 +7,8 @@ extends Control
 ## Só usa _draw (nenhum nó por prédio): custo quase zero. Redesenha poucas
 ## vezes por segundo (REFRESH_SECONDS), e não a cada quadro.
 
+signal refreshed
+
 const REFRESH_SECONDS: float = 0.2
 const BACKGROUND: Color = Color(0.05, 0.055, 0.07, 0.86)
 ## A praça: cor de pedra clara, diferente de qualquer bairro (o cinza é do
@@ -69,6 +71,15 @@ func refresh() -> void:
 	_target = _read_target()
 	_layout()
 	queue_redraw()
+	refreshed.emit()
+
+
+## Cor do primeiro marco deste tipo; branco enquanto os dados não chegaram.
+func get_landmark_color(kind: String) -> Color:
+	for landmark: Dictionary in _data.get("landmarks", []):
+		if landmark["kind"] == kind:
+			return landmark["color"]
+	return PLAYER_COLOR
 
 
 func is_indoors() -> bool:
@@ -158,7 +169,7 @@ func _draw() -> void:
 		var at := to_pixel(landmark["pos"])
 		draw_symbol(self, landmark["kind"], at, landmark["color"])
 		if show_labels and not follow_player and landmark["kind"] == "trilha":
-			var text: String = "Trilha do Mirante"
+			var text: String = landmark["name"]
 			var half_width: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x / 2.0
 			var center: Vector2 = (at + Vector2(0, 22)).clamp(
 				Vector2(half_width + 4.0, 14.0), size - Vector2(half_width + 4.0, 14.0))

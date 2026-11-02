@@ -93,6 +93,7 @@ func _check_world_map(city: Node) -> void:
 	if legend != null:
 		var labels: Array[String] = []
 		var kinds: Array[String] = []
+		var tower_icon: Control
 		var icons: int = 0
 		for item: Node in legend.get_children():
 			for child: Node in item.get_children():
@@ -103,10 +104,22 @@ func _check_world_map(city: Node) -> void:
 					var callback: Callable = child.draw.get_connections()[0]["callable"]
 					if callback.get_method() == &"draw_symbol":
 						kinds.append(callback.get_bound_arguments()[1])
+						if callback.get_bound_arguments()[1] == "marco":
+							tower_icon = child
 		_check("legenda explica os cinco símbolos", labels == ["você", "casa", "metrô", "torre", "trilha"] and icons == 5)
 		_check("legenda usa o desenho de símbolos da planta",
 			kinds == ["player", "home", "metro", "marco", "trilha"])
 		var view: Control = world_map.get_view()
+		var landmarks: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"]
+		var towers: Array = landmarks.filter(func(mark: Dictionary) -> bool: return mark["kind"] == "marco")
+		_check("torre na legenda tem a cor do marco da planta", tower_icon != null
+			and not towers.is_empty() and tower_icon.self_modulate.is_equal_approx(towers[0]["color"]))
+		# Dados que chegam depois também precisam atualizar os ícones.
+		if tower_icon != null and not towers.is_empty():
+			tower_icon.self_modulate = Color.TRANSPARENT
+			view.refresh()
+			_check("atualizar os dados restaura a cor da torre na legenda",
+				tower_icon.self_modulate.is_equal_approx(towers[0]["color"]))
 		_check("legenda cabe no painel e fica fora da planta",
 			legend.size.x >= legend.get_combined_minimum_size().x
 			and legend.get_global_rect().position.y >= view.get_global_rect().end.y)

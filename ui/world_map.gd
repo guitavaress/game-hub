@@ -11,6 +11,7 @@ const MARGIN: float = 48.0
 
 var _view: MapView
 var _hint: Label
+var _legend_icons: Dictionary[String, Control] = {}
 
 
 func _ready() -> void:
@@ -46,6 +47,7 @@ func _ready() -> void:
 	_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(_view)
 	column.add_child(_build_legend())
+	_view.refreshed.connect(_update_legend)
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -71,10 +73,20 @@ func _build_legend() -> HBoxContainer:
 		var icon := Control.new()
 		icon.custom_minimum_size = Vector2(20, 24)
 		icon.draw.connect(MapView.draw_symbol.bind(icon, kind, Vector2(10, 12), MapView.PLAYER_COLOR))
+		_legend_icons[kind] = icon
 		item.add_child(icon)
 		item.add_child(HubTheme.label(entries[kind], &"HubCaption"))
 		legend.add_child(item)
 	return legend
+
+
+## A cor acompanha os dados da planta, inclusive quando chegam após abrir o mapa.
+func _update_legend() -> void:
+	for kind: String in _legend_icons:
+		var icon: Control = _legend_icons[kind]
+		# O metrô usa branco: cada estação tem a cor do próprio bairro.
+		icon.self_modulate = MapView.PLAYER_COLOR if kind in ["player", "metro"] else _view.get_landmark_color(kind)
+		icon.queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
