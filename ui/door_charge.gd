@@ -67,12 +67,13 @@ func _ready() -> void:
 
 
 ## progress: 0..1 (0 esconde tudo). "game_name" e "color" (a cor do anel)
-## só precisam vir quando mudam.
-func set_progress(progress: float, game_name: String = "", color: Color = Color.WHITE) -> void:
+## só precisam vir quando mudam. A instrução vem de quem usa a carga.
+func set_progress(progress: float, game_name: String = "", color: Color = Color.WHITE, hint: String = "recue para cancelar") -> void:
 	progress = clampf(progress, 0.0, 1.0)
 	visible = progress > 0.0
 	if not visible:
 		return
+	_hint.text = hint
 	if not game_name.is_empty():
 		_title.text = "ENTRANDO EM %s" % game_name.to_upper()
 		_ring.color = color

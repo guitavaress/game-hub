@@ -2,7 +2,7 @@ class_name FriendsWall
 extends Node3D
 ## O MURAL DOS AMIGOS (Fase 9.5): um cartão por amigo online (foto, nome,
 ## situação e jogo), com quem está jogando primeiro. Sem chave ou sem amigos
-## online, um cartão avisa para configurar os amigos no computador.
+## online, um cartão avisa para configurar os amigos no menu.
 ##
 ## E num amigo leva até a porta do jogo dele (GamePortal.get_arrival_transform).
 ## Se o jogo não está na biblioteca, leva até onde a porta da rua leva (a praça).
@@ -215,7 +215,7 @@ static func _plate(card: Node3D, color: Color) -> void:
 	card.add_child(plate)
 
 
-static func _text(card: Node3D, text: String, at: Vector2, size: int, color: Color, width: float) -> void:
+static func _text(card: Node3D, text: String, at: Vector2, size: int, color: Color, width: float) -> Label3D:
 	var label := Label3D.new()
 	label.text = text
 	label.font_size = size
@@ -227,6 +227,7 @@ static func _text(card: Node3D, text: String, at: Vector2, size: int, color: Col
 	label.position = Vector3(at.x, at.y, CARD_SIZE.z / 2.0 + 0.005)
 	label.layers = Home.INTERIOR_LAYER_MASK
 	card.add_child(label)
+	return label
 
 
 # --- Peças ----------------------------------------------------------------------
@@ -294,13 +295,19 @@ class FriendCard extends Area3D:
 
 ## O cartão de "ninguém aqui": sem chave ou sem amigos online.
 class EmptyCard extends Area3D:
+	const INSTRUCTION: String = "Configure os amigos em {menu} › Amigos"
 	var problem: String = ""
+	var _instruction: Label3D
 
 	func _ready() -> void:
 		FriendsWall._look_area(self)
 		FriendsWall._plate(self, Color(0.2, 0.19, 0.22))
-		FriendsWall._text(self, "Configure os amigos no computador", Vector2(-0.42, 0.1), 36, FriendsWall.TEXT_COLOR, 340.0)
+		_instruction = FriendsWall._text(self, InputDevice.fill(INSTRUCTION), Vector2(-0.42, 0.1), 36, FriendsWall.TEXT_COLOR, 340.0)
+		InputDevice.device_changed.connect(_on_device_changed)
 		FriendsWall._text(self, "Nenhum amigo online", Vector2(-0.42, -0.15), 28, Color(0.7, 0.7, 0.75), 340.0)
 
 	func get_look_info() -> Dictionary:
-		return {"title": "Configure os amigos no computador", "detail": "Nenhum amigo online" if problem.is_empty() else problem}
+		return {"title": InputDevice.fill(INSTRUCTION), "detail": "Nenhum amigo online" if problem.is_empty() else problem}
+
+	func _on_device_changed(_gamepad: bool) -> void:
+		_instruction.text = InputDevice.fill(INSTRUCTION)

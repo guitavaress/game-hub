@@ -134,6 +134,20 @@ func _run() -> void:
 	_check("o HUD mostra o cartão da caixa", hud.get_look_text().begins_with(portal.get_game_name()))
 	_check("e a dica de segurar E", hud.get_look_action() == "Segure E para jogar")
 
+	print("== Instrução da carga e cancelamento ==")
+	var device = root.get_node("InputDevice")
+	device.set_gamepad(false)
+	Input.action_press("interact")
+	await create_timer(0.3).timeout
+	_check("a estante pede para soltar E", fade.door_charge.visible and fade.door_charge._hint.text == "solte E para cancelar")
+	device.set_gamepad(true)
+	await _frames(2)
+	_check("com controle a estante pede para soltar X", fade.door_charge._hint.text == "solte X para cancelar")
+	Input.action_release("interact")
+	await _frames(3)
+	_check("soltar cancela a carga sem abrir o jogo", not fade.door_charge.visible and opened.is_empty())
+	device.set_gamepad(false)
+
 	print("== Segurar E ==")
 	Input.action_press("interact")
 	await create_timer(0.6).timeout
