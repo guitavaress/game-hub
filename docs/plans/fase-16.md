@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 feita (estante e arco). A próxima é a 16.2, topo e painéis.
+- **Agora:** 16.1 aprovada. A trilha B entregou a 16.3 e a 16.6 (falta o merge com as capturas) e faz a 16.4; a trilha A faz a 16.2.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -51,7 +51,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_holograms check_phase5 check_avatar`.
   - Captura: chegada à praça às 13 h e às 22 h, com a biblioteca falsa e amigos falsos.
   - Commit: `Fase 16.3: nomes dos hologramas só de perto`
-- [ ] **16.4 Instruções certas** (pequena · trilha A, Sonnet subagente · medium) — depois da 16.1 (mesmo arquivo da estante).
+- [ ] **16.4 Instruções certas** (pequena · trilha B, Sol · medium, worktree `worktree/leitura-b2` saído da `fase-16`) — depois da 16.1 (mesmo arquivo da estante).
   - Arquivos: `ui/door_charge.gd` e `ui/screen_fade.gd` (`hint` opcional), `worlds/home/library_shelf.gd` (passa "solte {interact}"), `worlds/home/friends_wall.gd` (texto do mural), `components/desk_monitor_3d/desk_monitor_3d.gd` e `desk_monitor_view.gd` (estado indisponível).
   - Teste: `check_door_charge check_shelf check_friends_wall check_desk_monitors check_computer_desk check_theme check_transitions check_pause_menu` (o `check_desk_monitors:102` espera "SEM SINAL": manter para disponível, novo caso para indisponível).
   - Captura: carga na estante; mural vazio; mesa no Windows.
@@ -82,6 +82,9 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 ## Decisões tomadas durante a fase
 - 2026-11-02: plano aprovado pelo dono como está (16.0).
 - 2026-11-02 (16.1): a captura mostrou a 2ª linha do nome do arco atrás da placa (o rótulo era centrado na vertical). Os dois rótulos passam a ser ancorados por baixo (`VERTICAL_ALIGNMENT_BOTTOM`): o nome cresce para cima.
+- 2026-11-02: o dono aprovou a 16.1. A trilha B entregou a 16.3 (`f4c4cc5`) e a 16.6 (`ede7e4c`, `ff0c55b`, revisadas pelo Opus: legenda com as cores do mapa e nome da trilha vindo dos dados) na `worktree/leitura-b`; o merge e as capturas ficam com a A.
+- 2026-11-02: a 16.4 passa da trilha A para a B (Sol), por decisão do dono, para usar a cota do ChatGPT enquanto a A faz a 16.2. Os arquivos das duas não se cruzam. Como a 16.4 precisa da estante da 16.1, ela sai de um worktree novo (`worktree/leitura-b2`) criado da `fase-16`.
+- 2026-11-02: a bateria completa da 16.2 vale também para o merge da `worktree/leitura-b` (feito no começo da 16.2, com os testes de cada subetapa e as capturas).
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
