@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. 16.4 aprovada; agora a 16.5.
+- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. 16.4 aprovada; a 16.5 espera a sua aprovação; depois vem o fechamento (16.7).
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
@@ -56,7 +56,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_door_charge check_shelf check_friends_wall check_desk_monitors check_computer_desk check_theme check_transitions check_pause_menu` (o `check_desk_monitors:102` espera "SEM SINAL": manter para disponível, novo caso para indisponível).
   - Captura: carga na estante; mural vazio; mesa no Windows.
   - Commit: `Fase 16.4: instruções certas na estante, no mural e na mesa`
-- [ ] **16.5 Metrô com lugar** (pequena · trilha A, Sonnet subagente · medium)
+- [x] **16.5 Metrô com lugar** (`89b1658`) (pequena · trilha A, Sonnet subagente · medium)
   - Arquivo: `worlds/city/city.gd` (`_build_metro`/`_add_metro_stop`, ~563–650: nome e `detail`).
   - Teste: `check_metro check_fast_travel check_city_map` (nomes sem "· N"; `detail` com "praça"; soma dos "jogos perto" = total do bairro).
   - Captura: painel do metrô no RPG (o bairro com mais estações).
@@ -93,6 +93,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02: o dono aprovou a 16.2. Padrão novo: sessões finalizadas do Orca são fechadas antes de abrir as novas (AGENTS.md).
 - 2026-11-02 (merge da `worktree/leitura-b2`, `6b8152a`): a frase "recue para cancelar" estava escrita duas vezes; ficou só em `DoorCharge.DEFAULT_HINT`, e o `ScreenFade` usa a constante (`d50d24d`). Testes da 16.4 ok; capturas: a carga na estante diz "solte E para cancelar", o mural vazio diz "Configure os amigos em Esc › Amigos" e a mesa no Windows mostra "SÓ NO LINUX" nos três monitores e no cartão, sem "compositor". Worktree e branch `leitura-b2` apagados.
 - 2026-11-02: o dono aprovou a 16.4.
+- 2026-11-02 (16.5, `89b1658`): a distância "a ~X m da praça" é em linha reta até a Central, de 10 em 10 m; os "N jogos perto" usam a mesma medida pelas ruas da criação das estações. O `detail` é escrito depois que todas as estações do bairro existem, então o comentário do `TransitStop` passou a dizer que ele pode vir depois (só o painel lê, ao abrir); o contrato não mudou. Testes ok; captura do painel na Central (200 jogos falsos): as 3 do RPG "perto da praça · 16", "a ~150 m · 18" e "a ~120 m · 23". A ordem no painel é a de criação (não a distância).
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
