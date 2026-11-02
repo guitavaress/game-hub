@@ -75,7 +75,8 @@ assets/        só CC0, com LICENSE em cada pasta de origem
 addons/        addons de terceiros, com LICENSE: debug_menu (F3) e sky_3d (opção de céu); regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
-docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
+docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cofre do Obsidian do dono (painel em Início.md)
+  ideias/        caixa de entrada de ideias. Ideia aqui NÃO é tarefa: só vira trabalho quando entra na ROADMAP como fase
 .claude/skills/  skills locais (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 

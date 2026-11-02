@@ -1,0 +1,14 @@
+filters:
+  and:
+    - file.inFolder("ideias")
+    - file.ext == "md"
+    - file.name != "README"
+views:
+  - type: table
+    name: Ideias
+    order:
+      - file.name
+      - status
+      - versao
+      - custo
+      - data
