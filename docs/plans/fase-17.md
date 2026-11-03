@@ -144,6 +144,7 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
     - o espelho, também (165,0);
     - a caminhada ficou em 152,2 (antes 152,8).
   - **De dia (13 h)** a casa ficou parecida com antes, com as luminárias acesas. Em volta da janela ficou mais escuro (40% quase preto, antes 24%): fica para a 17.9.
+- 2026-11-03: o dono aprovou a 17.2, sabendo que a diferença ainda é modesta: a janela (17.3) e os objetos (17.4) são o que mais pesa contra a referência. Os `.uid` da 17.1b entraram em `4ce7a2d`.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
