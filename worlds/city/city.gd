@@ -583,10 +583,9 @@ func _build_metro(districts: Array[Dictionary]) -> void:
 			continue
 		var stop_name := GameCategories.get_category_name(id)
 		var neon := GameCategories.get_neon_color(id)
-		var detail := "%d jogos" % (districts[i]["games"] as Array).size()
 		var stops: Array[TransitStop] = []
 		var first: Array = _block_station_spot(cells[0])
-		stops.append(_add_metro_stop(stop_name, neon, (i + 1) * 10, detail, first[0], first[1]))
+		stops.append(_add_metro_stop(stop_name, neon, (i + 1) * 10, "", first[0], first[1]))
 		var portals: Array = portals_by_district.get(id, [])
 		while stops.size() < METRO_MAX_PER_DISTRICT:
 			var farthest: GamePortal = null
@@ -599,9 +598,58 @@ func _build_metro(districts: Array[Dictionary]) -> void:
 			if farthest == null:
 				break
 			var spot: Array = _block_station_spot(_cell_of(farthest.global_position))
-			stops.append(_add_metro_stop("%s · %d" % [stop_name, stops.size() + 1], neon,
-					(i + 1) * 10 + stops.size(), detail, spot[0], spot[1]))
+			stops.append(_add_metro_stop(stop_name, neon,
+					(i + 1) * 10 + stops.size(), "", spot[0], spot[1]))
+		_sort_metro_stops(stops, (i + 1) * 10)
+		_describe_metro_stops(stops, portals)
 		await _keep_frame_light()  # com 200 jogos, as contas do metrô pesam: um bairro por vez
+
+
+## Põe as estações do bairro em ordem de distância da praça (a mais perto
+## primeiro): o "order" (que o painel e os atalhos 1-9 seguem) e o nome do nó
+## passam a seguir essa ordem. Os nomes são trocados em duas voltas para dois
+## irmãos nunca terem o mesmo nome no meio da troca.
+func _sort_metro_stops(stops: Array[TransitStop], first_order: int) -> void:
+	stops.sort_custom(func(a: TransitStop, b: TransitStop) -> bool:
+		return _metro_plaza_distance(a) < _metro_plaza_distance(b))
+	for k in stops.size():
+		stops[k].name = "MetroSorting_%d" % k
+	for k in stops.size():
+		stops[k].order = first_order + k
+		stops[k].name = "Metro_%d" % stops[k].order
+
+
+## Distância em linha reta (plano XZ) da estação até a Central.
+static func _metro_plaza_distance(stop: TransitStop) -> float:
+	return Vector2(stop.position.x - METRO_CENTRAL_SPOT.x, stop.position.z - METRO_CENTRAL_SPOT.z).length()
+
+
+## Escreve o "detail" de cada estação do bairro: onde ela fica e quantas portas
+## ela atende (as que têm esta estação como a mais perto, andando pelas ruas).
+## Cada porta é medida uma vez só, depois que todas as estações existem.
+## Como o nome é o mesmo em todas, é o detail que diferencia uma da outra.
+## As estações já vêm em ordem de distância: a primeira é a "perto da praça".
+## A distância da praça é em linha reta (plano XZ) até a Central, de 10 em 10 m.
+func _describe_metro_stops(stops: Array[TransitStop], portals: Array) -> void:
+	var served: Array[int] = []
+	served.resize(stops.size())
+	served.fill(0)
+	for portal: GamePortal in portals:
+		var best := INF
+		var best_index := 0
+		for k in stops.size():
+			var length := _nearest_stop_walk([stops[k]] as Array[TransitStop], portal)
+			if length < best:
+				best = length
+				best_index = k
+		served[best_index] += 1
+	for k in stops.size():
+		var near := "%d %s perto" % [served[k], "jogo" if served[k] == 1 else "jogos"]
+		if k == 0:
+			stops[k].detail = "perto da praça · " + near
+		else:
+			var from_plaza := _metro_plaza_distance(stops[k])
+			stops[k].detail = "a ~%d m da praça · %s" % [roundi(from_plaza / 10.0) * 10, near]
 
 
 ## Quanto se anda pelas ruas da estação mais perto (das dadas) até a porta.

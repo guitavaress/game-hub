@@ -3,11 +3,10 @@
 ## Visão
 Um launcher em forma de mundo 3D em primeira pessoa. Cada jogo da biblioteca Steam é um prédio numa cidade, e os prédios se agrupam em bairros por categoria. Ao entrar na porta, a tela escurece, o hub se minimiza e o jogo abre pela Steam. Quando o jogo fecha, o hub volta na mesma porta. Amigos aparecem como hologramas na porta do jogo que estão jogando.
 
-**Norte de longo prazo:** um desktop virtual transformado em mundo, inspirado no PlayStation Home. A casa é o computador, e a biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
-
-- **Feito:** fases 1–13, a Fase 14 (no Linux; falta a medida no desktop), a Fase 15 (o bairro RPG na montanha; no desktop, com a montagem acima de 50 ms como pendência), visual v2 e Fase Linux (detalhes no [README](README.md)).
-- **Fase 14 (feita no Linux):** o hub é um compositor Wayland aninhado (como o **Waylandcraft**) e a casa tem **três monitores na mesa do computador**, com a barra, o menu e os atalhos do Omarchy dentro. **Falta** a medida no desktop (Alta). Plano em [docs/plans/fase-14.md](docs/plans/fase-14.md#parte-3-a-mesa-com-três-monitores).
-- **Próximas fases, ordem e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" é implementado sem virar fase antes.
+**Norte (revisão de 2026-11-02):** um **launcher de jogos em forma de mundo** e um **lugar para encontrar os amigos**, inspirado no PlayStation Home. A biblioteca decide como o mundo é (bairros, biomas, clima, som). **Sistemas e cenário ficam separados**, porque os mesmos sistemas vão servir a biomas e mundos maiores.
+- O hub já é rápido e funciona bem. **O que falta é o "uau"**, e o dono quer ver mudança visível com frequência.
+- O desktop virtual (o compositor da Fase 14, só Linux) está **em pausa**.
+- **Feito, próximas fases, parados e decisões:** [docs/ROADMAP.md](docs/ROADMAP.md). Nada do "Horizonte" nem de "Parados" é implementado sem virar fase antes.
 
 ## Sobre o dono do projeto
 - Tem conhecimento **básico** de programação. Explique as decisões de forma simples, em português, e comente o código em português.
@@ -75,7 +74,8 @@ assets/        só CC0, com LICENSE em cada pasta de origem
 addons/        addons de terceiros, com LICENSE: debug_menu (F3) e sky_3d (opção de céu); regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
-docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/
+docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cofre do Obsidian do dono (painel em Início.md)
+  ideias/        caixa de entrada de ideias. Ideia aqui NÃO é tarefa: só vira trabalho quando entra na ROADMAP como fase
 .claude/skills/  skills locais (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 
@@ -125,16 +125,34 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 | **Terra** | GPT-5.6-Terra | ChatGPT Plus | texto mecânico, docs, rodar e relatar a bateria |
 | **Haiku** | Claude Haiku 5.5 (id `claude-haiku-5-5`) | Claude Pro | tarefas mecânicas e de leitura: explorar arquivos e referências (só leitura), rodar a bateria e relatar, atualizar README e ROADMAP, marcar os [x] do plano, conferir licenças e créditos |
 
-| Momento | Quem | Esforço |
-|---|---|---|
-| Planejar, arquitetura | Opus (modo plano do Claude Code) | high |
-| Integração difícil, geometria, shaders | Opus ou Astra (o dono da trilha) | high |
-| Subetapa delimitada | Sonnet ou Sol (o dono da trilha) | medium |
-| Revisão | **cruzada**: o GPT revisa o Claude (`/codex:review` ou `/codex:adversarial-review`) e o Opus revisa o GPT (diff da branch, só leitura, antes do merge) | igual ao da subetapa; high nos pontos de risco |
-| Explorar arquivos e referências, só leitura | subagente Explore do Claude Code, com o Haiku 5.5 | low |
-| Tarefa mecânica, texto, execução/relato de testes | Terra, Haiku ou Sonnet | low |
+**Fluxo congelado (dono, 2026-11-02):** este fluxo (Claude Code + Codex + Orca) não muda por 3 fases. Isso quer dizer: nenhuma ferramenta, orquestrador ou modelo novo (o Paperclip fica fora). Cada troca custava sessões só de documentação.
+- **Exceção: o REA** (engenharia reversa: MCP `rea` + skill `reverse-engineer-anything`), instalado pelo dono para o estudo do V-Sekai. Ele fica **só no desenvolvimento**, nunca no hub.
+- A base do estudo é ler o código aberto do V-Sekai. A própria skill do REA manda pular o REA quando há código-fonte.
+- O REA entra só no que existe apenas compilado ou em execução (ex.: observar um build do V-Sekai rodando).
+- **Nunca** num programa fechado cujos termos proíbam engenharia reversa (ex.: o VRChat, que serve só como referência de função, visto de fora).
 
-- O plano de cada fase diz, por subetapa, o modelo, o esforço, a trilha e quem revisa.
+**O Opus coordena.** Uma sessão do Opus por fase planeja, distribui, junta e fala com o dono. As subetapas pequenas rodam como **subagentes** dessa sessão, ou como workers do Orca. Continua uma Godot por vez (veja "Uma bateria por vez").
+
+| Momento | Quem | Esforço | Sessão |
+|---|---|---|---|
+| Planejar uma fase, arquitetura | Opus (modo plano do Claude Code) | high | **nova** |
+| Coordenar a fase | Opus | medium | uma por fase; nova quando ficar longa |
+| Subetapa **grande** (veja "Fluxo de uma fase") | Opus, ou Astra na trilha do Codex | high | **nova** |
+| Subetapa **pequena** | Sonnet, ou Sol na trilha do Codex, como subagente | medium | a do coordenador |
+| Revisão cruzada (**só nas grandes de risco**) | o Astra revisa o Claude (`/codex:review` ou `/codex:adversarial-review`); o Opus revisa o GPT (diff da branch, só leitura, antes do merge) | high | a do coordenador |
+| Revisão visual com capturas | Opus | medium | a do coordenador |
+| Explorar arquivos e referências, só leitura | subagente Explore, com o Haiku 5.5 | low | a do coordenador |
+| Tarefa mecânica, texto, rodar e relatar testes | Haiku ou Terra, como subagente | low | a do coordenador |
+
+- **Sessão nova** em três casos:
+  - ao planejar uma fase;
+  - ao começar uma subetapa grande;
+  - quando a sessão ficou longa (o Claude Code resumiu a conversa) ou mudou de assunto.
+
+  No resto, siga na sessão do coordenador. Sessão nova relê o AGENTS.md e o plano, e sessão longa encarece cada mensagem. O subagente trabalha num contexto próprio e devolve só o resultado.
+- O plano de cada fase diz, por subetapa, o tamanho (grande ou pequena), o modelo, o esforço, a trilha e, nas grandes de risco, quem revisa.
+- **Na trilha do Codex**, o Astra fica para as subetapas difíceis e as revisões de risco, e o Sol faz o resto: o ChatGPT Plus bateu no limite em 2026-11-02.
+- **O Jev (TypeSafe) está parado** (ROADMAP, "Parados"): sem tarefa nova e sem gasto.
 - Os rótulos dos planos do período OpenCode (Astra, Sol, Luna, Spark) já eram modelos GPT: Luna (GPT-6-Luna) e Spark (GPT-5.3-Codex-Spark) saíram do fluxo.
 - O Haiku **não** é usado em shaders, geometria, integração, revisão visual com capturas, mudanças de arquitetura, nada que mexa em `.tres`, nem na revisão de risco do trabalho do outro lado.
 - O Haiku só edita texto que nenhum outro agente esteja mexendo (subagente sozinho não isola arquivos), e o que ele entrega passa por uma conferência rápida de quem o chamou (modelo menor erra mais em contexto longo). É um teste: na próxima subetapa de texto, comparar com o Sonnet.
@@ -143,32 +161,53 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 
 ### Fluxo de uma fase
 1. **Plano primeiro.** Planeje (modo plano do Claude Code) seguindo [docs/plans/README.md](docs/plans/README.md), espere aprovação e registre a decisão aprovada em `docs/plans/fase-N.md`.
-2. **Uma branch por fase** (`fase-7`) e **subetapas numeradas** (7.1, 7.2...). Cada subetapa tem teste, commit e o seu `[x]` marcado no plano.
-3. **Volte ao modo plan quando:** surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas. Atualize o plano.
-4. **Ao fim de cada subetapa:** resumo curto, checklist de teste manual e a mensagem do commit.
-5. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
+2. **Uma branch por fase** (`fase-7`) e **subetapas numeradas** (7.1, 7.2...). Cada subetapa tem commit e o seu `[x]` marcado no plano. O dono aprova as subetapas **uma a uma**.
+3. **Cada subetapa tem um tamanho**, escrito no plano. A cerimônia completa vale só para as grandes.
+   - **Grande:** mexe em geometria, shader, compositor, dados salvos (`config.cfg`, `.tres`, cache), arquitetura (um contrato entre sistemas) ou integração difícil. Leva tudo: bateria completa, captura (se for visual), revisão cruzada (se for de risco) e checklist de teste manual.
+   - **Pequena:** o resto (texto, ajuste de valor, UI localizada, um teste). Roda **só os testes do que mudou** (`bash tests/run_tests.sh check_<a> check_<b>`), mais uma captura se mudou algo visível. Sem revisão cruzada.
+   - **Só de docs:** sem bateria.
+   - A **bateria completa** roda também antes de cada merge e ao fim da fase.
+4. **Volte ao modo plan quando:** surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas. Atualize o plano.
+5. **Ao fim de cada subetapa:** um resumo curto que **começa pelo que o dono vai ver**, o checklist de teste manual e a mensagem do commit. O dono hoje lê mais do que testa: o resumo tem que levar a testar.
+6. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
 
 ### Sessões e contexto
-- **Uma sessão por subetapa grande.** O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
+- **Quando abrir uma sessão nova:** veja "Modelos e esforço". O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
 - Leia o mapa acima antes de explorar o código. Abra só os arquivos que o passo precisa.
 - **Duas trilhas (Orca):**
   - **A, a principal**, usa o checkout na branch da fase (`C:\Projetos\game-hub` no desktop; `~/git/game-hub` no notebook). É dona do mundo (`city.gd`, builders, `.tres`), do plano e do status, e faz os merges;
   - **B, a paralela**, usa um worktree e uma sessão próprios (branch `worktree/<nome>`, criada pelo orquestrador ou com `git worktree add`) e só mexe nos arquivos que o plano dá a ela. Ela não marca o plano nem edita `.tres`. Entrega à A o hash-base, os arquivos, a API, o comando e o resultado dos testes, e as pendências;
   - subagente sozinho não isola arquivos. Confira a base antes de editar. O plano define arquivos, contratos e ordem de integração, e um contrato compartilhado só muda combinado com a A.
 - **Orquestrador (Orca, Nimbalyst):** os botões de Commit e Merge **não são usados**. O Commit pode usar o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply, e o merge é feito pela trilha A, depois da revisão e com a bateria.
-- **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava, mas um `godot -s` rodado à mão (inclusive as capturas) não espera: só uma trilha roda Godot assim de cada vez.
+- **Disparar as trilhas de uma sessão (CLI `orca`, com o Orca aberto; `orca status` confere):**
+  - escreva o prompt de cada trilha num arquivo fora do repositório (pasta temporária da sessão);
+  - **B:** `orca worktree create --repo path:C:/Projetos/game-hub --name <nome> --branch worktree/<nome> --base-branch fase-N --agent codex --model gpt-6.1-sol --effort medium --prompt "$(cat <arquivo>)" --json`. O `--base-branch` tem que ser a branch da fase, nunca a `main`. Troque o modelo pelo do plano (`gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`);
+  - **A:** `orca agent launch --agent claude --worktree path:C:/Projetos/game-hub --model claude-opus-5-5 --effort medium --prompt "$(cat <arquivo>)" --json`;
+  - o prompt da B começa conferindo a base (`git merge-base --is-ancestor <hash-base> HEAD`) e lista os arquivos dela, **incluindo os testes**;
+  - acompanhar: `orca terminal read --terminal <handle>`; responder a uma pergunta: `orca terminal send --terminal <handle> --text "..." --enter`;
+  - o Orca abre o Claude com `--dangerously-skip-permissions` e o Codex em modo YOLO. A tela de confirmação do Claude é aceita **pelo dono**, nunca pelo agente;
+  - **só no Orca: feche as sessões finalizadas antes de abrir as novas.** `orca terminal list` mostra as abertas, e `orca terminal close --terminal <handle> --tab` fecha uma. Feche só as deste projeto que já entregaram, nunca a do coordenador que está disparando. O worktree da B fica até o merge, mesmo com a sessão dele fechada;
+  - **subetapa nova para a B depois de um merge:** um worktree novo (`<nome>2`, `<nome>3`...) criado da branch da fase, para já ter o que a A juntou. Não reaproveite o worktree antigo;
+  - **limpeza (padrão):** depois que a A juntou a branch da B, apague o worktree e a branch. Antes, confira `git merge-base --is-ancestor worktree/<nome> fase-N` e `git -C <pasta do worktree> status --short` vazio; depois rode `orca worktree rm --worktree name:<nome> --delete-branch`. Worktree com trabalho em andamento não se apaga;
+  - sobras do Orca em `C:/Users/gui_t/orca/workspaces/.orca-preparing/` (travadas, com HEAD solto) só se apagam se o processo do Orca que as travou não existir mais (o número depois de `orca-create-preparation:v1:` em `.git/worktrees/*/locked`) e se estiverem limpas: `git worktree unlock <pasta>`, `git worktree remove <pasta>` e `git worktree prune`.
+- **Prompt da próxima sessão:** toda entrega termina dizendo se o próximo passo é sessão nova ou não e com um prompt pronto por trilha ativa, com a ferramenta, o modelo e o esforço.
+- **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava só onde há `flock` (Linux); **no Windows (Git Bash) roda sem trava**. Um `godot -s` rodado à mão (inclusive as capturas) nunca espera. Por isso, antes de rodar testes ou capturas, confira se há Godot de teste rodando (PowerShell: `Get-CimInstance Win32_Process -Filter "Name like 'Godot%'" | Select-Object ProcessId,CommandLine`; as de teste têm `-s` ou `--headless` na linha; o editor aberto não conta) e espere ela acabar.
 
 ### Testes
-- **Antes de cada commit:** `bash tests/run_tests.sh` precisa terminar com `RESULTADO GERAL: TUDO OK`. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).
-- **Quando a bateria falhar,** rode a triagem antes de ler os logs: salve a saída fora do repositório e rode `python tools/jev/triar_falhas.py <saída>`. Ela roda de novo só o que falhou e diz se é regressão, erro de script, tempo esgotado, ambiente ou instável. É só código: sem internet e sem custo. Confira sempre um log inteiro, e dois erros seguidos da triagem a suspendem. Detalhes: skill `triagem-falhas`.
+- **Bateria completa** (`bash tests/run_tests.sh`, até `RESULTADO GERAL: TUDO OK`): antes do commit de uma subetapa **grande**, antes de cada merge e ao fim da fase. Na **pequena**, rode só os testes do que mudou (`bash tests/run_tests.sh check_<nome> ...`). Commit **só de docs** dispensa a bateria. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).
+- **Quando a bateria falhar,** a triagem é **opcional**. Para usar: salve a saída fora do repositório e rode `python tools/jev/triar_falhas.py <saída>`.
+  - Ela roda de novo só o que falhou e diz se é regressão, erro de script, tempo esgotado, ambiente ou instável.
+  - É só código: sem internet e sem custo.
+  - Confira sempre um log inteiro.
+  - Detalhes: skill `triagem-falhas`.
 - Recurso novo ganha um `tests/check_<nome>.gd`. Formato e armadilhas: [tests/README.md](tests/README.md).
 - Mudança visual: confira com captura de tela (com janela, fora do repositório) antes de entregar.
 
 ### Definição de pronto
 Uma subetapa só está pronta quando:
-1. `bash tests/run_tests.sh` termina com `RESULTADO GERAL: TUDO OK` e o recurso novo tem seu `tests/check_<nome>.gd`.
+1. Os testes do tamanho dela passaram: a bateria completa na grande; os testes do que mudou na pequena; nada no commit só de docs. Recurso novo tem seu `tests/check_<nome>.gd`.
 2. As regras de arquitetura continuam valendo (sistemas não conhecem mundos; código de SO só em `autoload/platform/`).
 3. Mudança visual foi conferida com captura de tela (fora do repositório).
-4. O dono recebeu o resumo curto e o checklist de teste manual.
+4. O dono recebeu o resumo curto (começando pelo que ele vai ver) e o checklist de teste manual.
 5. O commit foi feito (e-mail noreply, sem `config.cfg` nem chave) e o `[x]` da subetapa marcado em `docs/plans/fase-N.md`.
 6. Ao fim da fase: README e ROADMAP atualizados.

@@ -98,7 +98,7 @@ func get_look_info() -> Dictionary:
 	if _source == null:
 		return {
 			"title": screen_name,
-			"detail": "Sem sinal" if available else "O Linux do hub precisa do compositor (só no Linux)",
+			"detail": "Sem sinal" if available else DeskMonitorView.UNAVAILABLE_DETAIL,
 			"action": action_text if available else "",
 		}
 	var title := _source.get_title()
@@ -418,7 +418,8 @@ func _update_view() -> void:
 	if _view == null:
 		return
 	_view.texture = _source.get_texture() if _source != null else null
-	_view.idle_detail = "" if available or _source != null else "O Linux do hub precisa do compositor (só no Linux)"
+	_view.idle_text = "SEM SINAL" if available else DeskMonitorView.UNAVAILABLE_TEXT
+	_view.idle_detail = "" if available or _source != null else DeskMonitorView.UNAVAILABLE_DETAIL
 	var leader := _leader
 	_view.exit_progress = leader.get_exit_progress() if leader != null else 0.0
 	_view.cursor = leader._cursor if leader != null and leader._under == self else Vector2.INF

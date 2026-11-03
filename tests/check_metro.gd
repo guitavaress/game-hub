@@ -127,9 +127,59 @@ func _check_reach(city: Node) -> void:
 	var landmarks: Array = get_first_node_in_group("world_map").get_map_data()["landmarks"] \
 			.filter(func(landmark: Dictionary) -> bool: return landmark["kind"] == "metro")
 	_check("cada estação é um marco no mapa", landmarks.size() == stops.size())
+	_check_names_and_details(stops, by_color, categories)
 	var blocked := _blocked_exits()
 	_check("a saída de toda estação está livre (bloqueadas: %d)" % blocked, blocked == 0)
 	_check_clearance(city, stops)
+
+
+## Nome só com o bairro (sem "· 2"), detail com "praça", e a soma dos
+## "N jogos perto" das estações do bairro = as portas do bairro.
+func _check_names_and_details(stops: Array, by_color: Dictionary, categories: Node) -> void:
+	var bad_name := 0
+	var bad_detail := 0
+	for stop in stops:
+		if stop.stop_name.contains("·"):
+			bad_name += 1
+		if stop != stops[0] and not stop.detail.contains("praça"):
+			bad_detail += 1
+	_check("nenhum nome de estação tem \"·\" (%d)" % bad_name, bad_name == 0)
+	_check("todo detail de estação de bairro diz \"praça\" (%d)" % bad_detail, bad_detail == 0)
+	var doors: Dictionary = {}
+	for node in get_nodes_in_group("game_portal"):
+		if node.app_id > 0:
+			var neon: Color = categories.get_neon_color(categories.get_category_id(node.app_id))
+			doors[neon] = int(doors.get(neon, 0)) + 1
+	var regex := RegEx.create_from_string("(\\d+) jogos? perto")
+	var wrong := 0
+	for neon: Color in by_color:
+		var sum := 0
+		for stop in by_color[neon]:
+			var found := regex.search(stop.detail)
+			sum += int(found.get_string(1)) if found != null else 0
+		if sum != int(doors.get(neon, 0)):
+			wrong += 1
+			print("   soma errada: ", sum, " x ", doors.get(neon, 0))
+		if by_color[neon].size() >= 2:
+			for stop in by_color[neon]:
+				print("   ", stop.stop_name, " | ", stop.detail)
+	_check("a soma dos \"jogos perto\" de cada bairro = as portas dele (erros: %d)" % wrong, wrong == 0)
+	# Ordem: dentro do bairro, a mais perto da praça (Central) vem primeiro e é
+	# a "perto da praça"; o painel e os atalhos 1-9 seguem o "order".
+	var plaza := Vector2(stops[0].position.x, stops[0].position.z)
+	var out_of_order := 0
+	for neon: Color in by_color:
+		var line: Array = by_color[neon].duplicate()
+		line.sort_custom(func(a, b) -> bool: return a.order < b.order)
+		if not line[0].detail.begins_with("perto da praça"):
+			out_of_order += 1
+		for k in range(1, line.size()):
+			var before := Vector2(line[k - 1].position.x, line[k - 1].position.z).distance_to(plaza)
+			var after := Vector2(line[k].position.x, line[k].position.z).distance_to(plaza)
+			if after < before:
+				out_of_order += 1
+				print("   fora de ordem: ", line[k].stop_name, " | ", line[k].detail)
+	_check("estações do bairro em ordem crescente de distância da praça (erros: %d)" % out_of_order, out_of_order == 0)
 
 
 ## A boca de cada estação não encosta em nada sólido nem em poste, placa,

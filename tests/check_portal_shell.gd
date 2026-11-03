@@ -82,6 +82,17 @@ func _run() -> void:
 			poster_size.x <= arch_script.OPENING.x + 2.0 * arch_script.PILLAR_WIDTH + 0.01
 			and poster.position.y - poster_size.y / 2.0 >= arch_script.OPENING.y + arch_script.LINTEL_HEIGHT - 0.01)
 	_check("o nome fica acima da placa", arch.get_node("Name").position.y > poster.position.y + poster_size.y / 2.0)
+	# O arco tem verso (16.1): dois rótulos, cada um visível só pelo seu lado.
+	var name_front: Label3D = arch.get_node("Name")
+	var name_back: Label3D = arch.get_node_or_null("NameBack")
+	_check("o arco tem o rótulo NameBack", name_back != null)
+	_check("os dois rótulos são de um lado só", not name_front.double_sided and not name_back.double_sided)
+	_check("o de trás está girado 180° em Y", absf(absf(name_back.rotation.y) - PI) < 0.01)
+	_check("o nome cresce para cima (não cobre a placa)",
+			name_front.vertical_alignment == VERTICAL_ALIGNMENT_BOTTOM
+			and name_back.vertical_alignment == VERTICAL_ALIGNMENT_BOTTOM)
+	_check("mesmo texto e mesma altura nos dois",name_back.text == name_front.text
+			and is_equal_approx(name_back.position.y, name_front.position.y))
 	var other_tex := ImageTexture.create_from_image(Image.create_empty(64, 64, false, Image.FORMAT_RGB8))
 	root.get_node("GameArt").hero_ready.emit(BALATRO + 1, other_tex)
 	_check("hero de outro jogo é ignorado", arch.get_art_texture() == hero)

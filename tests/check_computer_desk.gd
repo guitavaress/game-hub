@@ -33,7 +33,7 @@ func _run() -> void:
 		var info: Dictionary = screen.get_look_info()
 		screen.available = false  # como no Windows: sem compositor, o monitor só explica
 		info = screen.get_look_info()
-		sem_sinal = sem_sinal and info["detail"].begins_with("O Linux do hub") and info["action"] == ""
+		sem_sinal = sem_sinal and info["detail"] == "Esta mesa funciona no hub no Linux. No Windows ela fica desligada." and info["action"] == ""
 		screen.interact(null)
 		sem_sinal = sem_sinal and not screen.is_focused()
 		screen.available = true

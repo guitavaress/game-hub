@@ -101,6 +101,31 @@ func _run() -> void:
 	_check("o portal diz como entrar", portal_info.get("action", "") == "Entre pela porta para jogar")
 	_check("a caixa pede para segurar E (o marcador {interact} vira E no teclado)", box_info.get("action", "") == "Segure {interact} para jogar")
 
+	print("== A capa (16.1) ==")
+	var cover_script = box.get_script()
+	var horizontal: Vector2 = cover_script.cover_size(Vector2(0.4, 0.6), Vector2(460, 215))
+	_check("capa horizontal cabe na área sem esticar (proporção da imagem)",
+			horizontal.x <= 0.4 + 0.0001 and horizontal.y <= 0.6 + 0.0001
+			and is_equal_approx(horizontal.x / horizontal.y, 460.0 / 215.0))
+	var vertical: Vector2 = cover_script.cover_size(Vector2(0.4, 0.6), Vector2(600, 900))
+	_check("capa em pé (600x900) preenche a área", vertical.is_equal_approx(Vector2(0.4, 0.6)))
+	var test_tex := ImageTexture.create_from_image(Image.create_empty(460, 215, false, Image.FORMAT_RGB8))
+	root.get_node("GameArt")._textures[app_id] = test_tex
+	box.show_art()
+	var cover: MeshInstance3D = box.find_child("Cover", true, false)
+	_check("a caixa tem o quad Cover", cover != null and cover.mesh is QuadMesh)
+	var cover_material := cover.material_override as StandardMaterial3D
+	_check("o quad tem a textura da capa e aparece", cover_material != null
+			and cover_material.albedo_texture == test_tex and cover.visible)
+	var quad_size: Vector2 = (cover.mesh as QuadMesh).size
+	_check("o quad tem a proporção da imagem e cabe na caixa",
+			is_equal_approx(quad_size.x / quad_size.y, 460.0 / 215.0)
+			and quad_size.x <= shelf.BOX_SIZE.x + 0.0001 and quad_size.y <= shelf.BOX_SIZE.y + 0.0001)
+	_check("o quad fica na frente da caixa", cover.position.z > shelf.BOX_SIZE.z / 2.0)
+	var body := cover.get_parent() as MeshInstance3D
+	_check("o material da caixa não tem textura (só cor)",
+			(body.material_override as StandardMaterial3D).albedo_texture == null)
+
 	print("== Olhando a caixa ==")
 	player.teleport_to(shelf.get_return_transform())
 	player.set_indoors(home.get_environment())
@@ -108,6 +133,20 @@ func _run() -> void:
 	await _frames(4)
 	_check("o HUD mostra o cartão da caixa", hud.get_look_text().begins_with(portal.get_game_name()))
 	_check("e a dica de segurar E", hud.get_look_action() == "Segure E para jogar")
+
+	print("== Instrução da carga e cancelamento ==")
+	var device = root.get_node("InputDevice")
+	device.set_gamepad(false)
+	Input.action_press("interact")
+	await create_timer(0.3).timeout
+	_check("a estante pede para soltar E", fade.door_charge.visible and fade.door_charge._hint.text == "solte E para cancelar")
+	device.set_gamepad(true)
+	await _frames(2)
+	_check("com controle a estante pede para soltar X", fade.door_charge._hint.text == "solte X para cancelar")
+	Input.action_release("interact")
+	await _frames(3)
+	_check("soltar cancela a carga sem abrir o jogo", not fade.door_charge.visible and opened.is_empty())
+	device.set_gamepad(false)
 
 	print("== Segurar E ==")
 	Input.action_press("interact")

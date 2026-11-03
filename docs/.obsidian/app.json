@@ -1,0 +1,8 @@
+{
+  "useMarkdownLinks": true,
+  "newLinkFormat": "relative",
+  "alwaysUpdateLinks": true,
+  "attachmentFolderPath": "_anexos",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "ideias"
+}

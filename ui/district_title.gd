@@ -1,7 +1,7 @@
 class_name DistrictTitle
 extends Control
 ## Título ao entrar num BAIRRO (Fase 11.11): o nome grande, na cor néon, e
-## "12 jogos" embaixo, no alto da tela (abaixo da bússola). Entra com fade e
+## "12 jogos" embaixo, no alto da tela (abaixo dos avisos). Entra com fade e
 ## desliza, fica ~2,5 s e sai (curvas cúbicas, como o resto da UI).
 ##
 ## Quem decide quando mostrar é ele mesmo: a cada POLL_SECONDS ele pergunta ao
@@ -9,6 +9,13 @@ extends Control
 ## jogador está. Mudou para um bairro -> mostra. Na praça, na rua de fora e em
 ## casa, nada. O mesmo bairro não repete antes de REPEAT_SECONDS (na divisa a
 ## pessoa pode ir e voltar sem o título piscar).
+##
+## LUGAR PRÓPRIO (Fase 16.2): o HUD põe o título numa faixa abaixo do espaço
+## de 2 avisos (set_band), para os dois nunca se cruzarem. O título
+## CEDE A VEZ (não aparece, ou some rápido se já estiver na tela) quando:
+## - a carga de uma porta está na tela (ScreenFade.door_charge), que fica no
+##   meio da tela e é mais importante;
+## - os avisos passaram da conta e invadiram a faixa (quem diz é o HUD).
 
 const POLL_SECONDS: float = 0.25
 const REPEAT_SECONDS: float = 20.0
@@ -16,7 +23,9 @@ const HOLD_SECONDS: float = 2.5
 const FADE_IN_SECONDS: float = 0.4
 const FADE_OUT_SECONDS: float = 0.5
 const SLIDE_PIXELS: float = 14.0
-## Distância do alto da tela até o título (abaixo da bússola).
+## Quanto dura o sumiço rápido quando o título cede a vez (s).
+const YIELD_SECONDS: float = 0.15
+## Distância do alto da tela até o título quando ninguém dá uma faixa (sem HUD).
 const TOP_MARGIN: float = 76.0
 const SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
 
@@ -31,6 +40,10 @@ var _current_area: String = ""
 ## Quando (ms) cada bairro mostrou o título pela última vez.
 var _last_shown_ms: Dictionary[String, int] = {}
 var _showing: bool = false
+## Alto da faixa do título (px, do alto da tela); veja set_band.
+var _top: float = TOP_MARGIN
+## Pergunta se a faixa está ocupada por outra coisa (vazia = nunca está).
+var _band_taken: Callable = Callable()
 
 
 func _ready() -> void:
@@ -42,7 +55,7 @@ func _ready() -> void:
 	_column.add_theme_constant_override("separation", 0)
 	_column.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_column.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_column.offset_top = TOP_MARGIN
+	_column.offset_top = _top
 	_column.modulate.a = 0.0
 	_column.visible = false
 	add_child(_column)
@@ -60,6 +73,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _showing and must_yield():
+		_yield_now()
 	_elapsed += delta
 	if _elapsed >= POLL_SECONDS:
 		_elapsed = 0.0
@@ -89,8 +104,30 @@ func poll() -> void:
 			return
 
 
-## Mostra o título: nome do bairro, contagem de jogos e a cor néon.
+## A faixa do título: o alto dela (px) e quem diz se ela está ocupada.
+func set_band(top: float, band_taken: Callable = Callable()) -> void:
+	_top = top
+	_band_taken = band_taken
+	if not _showing:
+		_column.offset_top = _top
+
+
+func get_band_top() -> float:
+	return _top
+
+
+## O título tem que ceder a vez agora? (carga da porta ou faixa ocupada)
+func must_yield() -> bool:
+	if ScreenFade.door_charge.visible:
+		return true
+	return _band_taken.is_valid() and bool(_band_taken.call())
+
+
+## Mostra o título: nome do bairro, contagem de jogos e a cor néon. Se ele
+## tiver que ceder a vez (veja must_yield), não aparece.
 func show_title(district_name: String, games: int, color: Color) -> void:
+	if must_yield():
+		return
 	_title.text = district_name.to_upper()
 	HubTheme.tint(_title, color)  # o neon do bairro é dado
 	_subtitle.text = "%d %s" % [games, "jogo" if games == 1 else "jogos"]
@@ -100,18 +137,31 @@ func show_title(district_name: String, games: int, color: Color) -> void:
 		_tween.kill()
 	_column.visible = true
 	_column.modulate.a = 0.0
-	_column.offset_top = TOP_MARGIN - SLIDE_PIXELS
+	_column.offset_top = _top - SLIDE_PIXELS
 	_tween = create_tween()
 	_tween.set_parallel()
 	_tween.tween_property(_column, "modulate:a", 1.0, FADE_IN_SECONDS) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(_column, "offset_top", TOP_MARGIN, FADE_IN_SECONDS) \
+	_tween.tween_property(_column, "offset_top", _top, FADE_IN_SECONDS) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.chain().tween_property(_column, "modulate:a", 0.0, FADE_OUT_SECONDS) \
 			.set_delay(HOLD_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_tween.chain().tween_callback(func() -> void:
-		_showing = false
-		_column.visible = false)
+	_tween.chain().tween_callback(_hide)
+
+
+## Some rápido, sem esperar o tempo na tela.
+func _yield_now() -> void:
+	_showing = false
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	_tween = create_tween()
+	_tween.tween_property(_column, "modulate:a", 0.0, YIELD_SECONDS) 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_tween.tween_callback(_hide)
+
+
+func _hide() -> void:
+	_showing = false
+	_column.visible = false
 
 
 func is_showing() -> bool:

@@ -94,12 +94,21 @@ func _run() -> void:
 	for monitor in monitors:
 		monitor.seat_requested.connect(func() -> void: requested[0] += 1)
 	middle.available = false
+	var unavailable_detail: String = "Esta mesa funciona no hub no Linux. No Windows ela fica desligada."
+	_check("indisponível mostra SÓ NO LINUX na tela", middle._view.idle_text == "SÓ NO LINUX")
+	_check("a tela e o cartão explicam a disponibilidade", middle._view.idle_detail == unavailable_detail
+			and middle.get_look_info()["detail"] == unavailable_detail)
+	_check("a explicação não usa compositor", not middle._view.idle_text.to_lower().contains("compositor")
+			and not middle._view.idle_detail.to_lower().contains("compositor")
+			and not str(middle.get_look_info()).to_lower().contains("compositor"))
 	middle.interact(player)
 	_check("sem compositor, E não pede nada nem senta", requested[0] == 0 and not middle.is_focused())
 	middle.available = true
 	middle.interact(player)
 	_check("com compositor possível, E pede para ligar (e sem fonte ainda não senta)", requested[0] == 1 and not middle.is_focused())
-	_check("a imagem do monitor sem fonte é o SEM SINAL", middle.get_content() is DeskMonitorView and middle.get_source() == null)
+	_check("a imagem do monitor sem fonte é o SEM SINAL", middle.get_content() is DeskMonitorView and middle.get_source() == null
+			and middle._view.idle_text == "SEM SINAL" and middle._view.idle_detail == ""
+			and middle.get_look_info()["detail"] == "Sem sinal")
 
 	print("== A câmera enquadra os três ==")
 	var sources: Array[FakeSource] = []

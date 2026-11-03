@@ -26,6 +26,7 @@ Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o b
 | 14 | O hub no Omarchy: painel do sistema (hora, bateria, Wi-Fi, volume), abrir o hub ao entrar no Omarchy, um atalho para chamá-lo de volta e **a mesa com três monitores**: o hub é um compositor Wayland, e os apps (terminal, Brave, a barra e o menu do Omarchy) aparecem nos monitores da casa, com os atalhos do Omarchy (como o Waylandcraft) | ✅ pronta no Linux (falta a medida no desktop e a conferência no Windows) |
 | 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
 | 15 | Primeiro bioma: o bairro RPG vira neve, arcos de pedra, pinheiros e rochas, com neve caindo, névoa, vento e passos na neve; atrás dele, uma montanha com trilha até o mirante e a torre. Cada bairro passou a ser uma fatia da praça até a borda | ✅ pronta no desktop Windows (falta a comparação no notebook; a montagem da cidade ainda tem quadros acima de 50 ms) |
+| 16 | Leitura: capas inteiras na estante, o nome do arco do RPG legível pela frente e por trás, aviso e título do bairro em lugares separados (o título cede durante a carga da porta), o HUD some com a busca, o mapa, o metrô ou a pausa abertos, os nomes dos amigos só aparecem de perto, os textos dizem o que apertar, as estações do metrô dizem onde ficam, o mapa grande tem legenda, e a mesa no Windows diz "SÓ NO LINUX" | ✅ pronta no desktop Windows (falta o merge na main) |
 
 A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
 
@@ -55,7 +56,7 @@ Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos.
 - **Steam no Omarchy:** para a janela da Steam não pular na frente quando um jogo abre, abra a Steam com `steam -silent` (ela fica na bandeja da barra) e impeça as janelas dela de roubar o foco. Veja [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
 - **Bússola e minimapa:** a faixa no topo mostra para onde você olha e o destino da busca, com a distância. O minimapa no canto mostra o quarteirão e o bairro onde você está. Esc › "Bússola e mapa" desliga os dois.
 
-**Metrô:** há uma estação na praça (a noroeste do chafariz) e uma em cada bairro, no vão entre dois prédios. Bairros grandes ganham mais estações, para nenhuma porta ficar a mais de ~20 s correndo.
+**Metrô:** há uma estação na praça (a noroeste do chafariz) e uma em cada bairro, no vão entre dois prédios. Bairros grandes ganham mais estações, para nenhuma porta ficar a mais de ~20 s correndo. O painel do metrô diz onde cada estação fica ("perto da praça" ou a quantos metros dela) e quantos jogos ela atende.
 
 **Controle Xbox:** joga tudo.
 
@@ -91,7 +92,7 @@ Alguns testes usam a biblioteca de verdade e esperam quatro jogos instalados: **
 
 ## Amigos na cidade (opcional)
 
-Seus amigos da Steam aparecem como hologramas com o avatar e o nome em cima:
+Seus amigos da Steam aparecem como hologramas com o avatar. O nome aparece de perto ou sob a sua mira:
 - **jogando algo da sua biblioteca:** ficam ao lado da porta do prédio daquele jogo;
 - **online sem jogar, ou jogando algo que você não tem:** ficam em volta do chafariz da praça;
 - **offline:** não aparecem.
@@ -115,10 +116,10 @@ A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como 
 | Espaço | Pular |
 | Setas, Enter, Esc | Navegar nos menus (pausa e computador) sem o mouse |
 | Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, controles, amigos). Em casa, também devolve a câmera do computador |
-| E | Interagir: porta (casa e praça), estante (segurar para jogar), mural dos amigos e computador |
+| E | Interagir: porta (casa e praça), estante (segurar para jogar; solte para cancelar), mural dos amigos e computador |
 | Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
 | Shift+Enter (na busca) | Ir direto até a porta do jogo (a tela escurece e você aparece na frente dela; o jogo não abre) |
-| M | Mapa grande da cidade (M ou Esc fecham) |
+| M | Mapa grande da cidade, com legenda (você, casa, metrô, torre e trilha); M ou Esc fecham |
 | Pisar na escada de uma estação "M" | Metrô: escolha o bairro e viaje (setas ou 1 a 9, Enter; Esc fica) |
 | F11 | Tela cheia |
 | F8 | Adiantar o relógio da cidade em 3 horas (para ver a noite) |
@@ -213,10 +214,10 @@ worlds/city/   a cidade: só monta o cenário e posiciona os portais
 
 Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela), virado para a estante e o janelão, e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
 
-- **Estante:** uma caixa por jogo da biblioteca, com a capa. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo, e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
-- **A mesa com três monitores** (no Linux): veja [A mesa](#a-mesa-com-três-monitores-linux). Sem o Linux (ou sem compilar o compositor), os monitores mostram "Sem sinal".
+- **Estante:** uma caixa por jogo da biblioteca, com a capa inteira na frente. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo (solte antes para cancelar), e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
+- **A mesa com três monitores** (no Linux): veja [A mesa](#a-mesa-com-três-monitores-linux). No Windows, os monitores mostram "SÓ NO LINUX", porque a mesa só funciona no Linux (no Linux, o mesmo aviso aparece se o compositor não foi compilado). Com a mesa ligada e nenhum app aberto, mostram "Sem sinal".
 - **Painel do sistema** (na parede norte, acima do computador): a hora, a bateria, o Wi-Fi e o volume do computador, só para ver (não mexe em nada). O que o computador não tem, como a bateria de um desktop, some.
-- **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos no computador".
+- **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos em Esc › Amigos" (no controle, "Menu › Amigos").
 - **Mesa do computador:** três monitores (veja [A mesa](#a-mesa-com-três-monitores-linux)). As configurações (som e vídeo, controles, amigos, **Casa** e **Sistema**) ficam só no menu de pausa (Esc).
 - **Estatísticas:** um quadro na parede sul (à esquerda da porta) com as **horas jogadas**, os **5 mais jogados**, as horas dos **maiores bairros** (na cor de cada um) e o **jogado por último**, com a capa. Conta só os jogos instalados. Sem horas (Steam sem conta logada) ou sem jogos, o quadro explica em vez de mostrar zeros. Atualiza quando você volta de um jogo (a Steam grava as horas com atraso: as da última sessão podem aparecer só na volta seguinte).
 - **Espelho:** na parede sul, à direita da porta. Você se vê nele, com o seu avatar, e o reflexo acompanha o que você faz (só desenha de perto e de frente, para não pesar). **E** no espelho abre o **provador**: 5 visuais prontos e as cores de pele, olhos, cabelo, camiseta e calça. O avatar fica no `config.cfg` (seção `[avatar]`).

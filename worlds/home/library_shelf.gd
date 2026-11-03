@@ -193,7 +193,8 @@ func _on_box_hold(box: ShelfBox, ratio: float) -> void:
 	if _waiting_for_game:
 		return
 	var neon := GameCategories.get_neon_color(GameCategories.get_category_id(box.app_id))
-	ScreenFade.set_door_charge(ratio, GameInfo.game_name(box.app_id), neon)
+	ScreenFade.set_door_charge(ratio, GameInfo.game_name(box.app_id), neon,
+			InputDevice.fill("solte {interact} para cancelar"))
 
 
 func _on_box_opened(box: ShelfBox) -> void:
@@ -303,7 +304,16 @@ class ShelfBox extends Area3D:
 	var shelf: LibraryShelf
 	var app_id: int = 0
 	var _front: MeshInstance3D
+	var _cover: MeshInstance3D
 	var _title: Label3D
+
+	## Tamanho do quad da capa: a imagem INTEIRA, na proporção dela, cabendo
+	## dentro da área útil e centrada. Nunca estica nem corta.
+	static func cover_size(area: Vector2, tex_size: Vector2) -> Vector2:
+		if tex_size.x <= 0.0 or tex_size.y <= 0.0:
+			return area
+		var scale_to_fit := minf(area.x / tex_size.x, area.y / tex_size.y)
+		return tex_size * scale_to_fit
 
 	func _ready() -> void:
 		collision_layer = 4
@@ -319,6 +329,13 @@ class ShelfBox extends Area3D:
 		mesh.size = BOX_SIZE
 		_front.mesh = mesh
 		add_child(_front)
+		# A capa vai num quad próprio na face da frente; a caixa só tem cor escura.
+		_cover = MeshInstance3D.new()
+		_cover.name = "Cover"
+		_cover.mesh = QuadMesh.new()
+		_cover.position = Vector3(0.0, 0.0, BOX_SIZE.z / 2.0 + 0.003)
+		_cover.visible = false
+		_front.add_child(_cover)
 		_title = Label3D.new()
 		_title.font_size = 32
 		_title.pixel_size = 0.0035
@@ -327,23 +344,31 @@ class ShelfBox extends Area3D:
 		_title.position = Vector3(0.0, 0.0, BOX_SIZE.z / 2.0 + 0.005)
 		_title.text = GameInfo.game_name(app_id)
 		_front.add_child(_title)
-		for node: GeometryInstance3D in [_front, _title]:
+		for node: GeometryInstance3D in [_front, _cover, _title]:
 			node.layers = Home.INTERIOR_LAYER_MASK
 		show_art()
 
-	## Põe a capa (se já tivermos); sem capa, a caixa mostra o nome em texto.
+	## Põe a capa (se já tivermos) no quad da frente; sem capa, a caixa mostra
+	## o nome em texto. A caixa nunca recebe a textura: só a cor escura.
 	func show_art() -> void:
-		var material := StandardMaterial3D.new()
-		material.roughness = 0.6
+		var box_material := StandardMaterial3D.new()
+		box_material.roughness = 0.6
+		var neon := GameCategories.get_neon_color(GameCategories.get_category_id(app_id))
+		box_material.albedo_color = neon.darkened(0.6)
+		_front.material_override = box_material
 		var art := GameArt.get_art(app_id)
 		if art != null:
-			material.albedo_texture = art
+			var cover_material := StandardMaterial3D.new()
+			cover_material.roughness = 0.6
+			cover_material.albedo_texture = art
+			_cover.material_override = cover_material
+			(_cover.mesh as QuadMesh).size = cover_size(
+					Vector2(BOX_SIZE.x, BOX_SIZE.y), Vector2(art.get_width(), art.get_height()))
+			_cover.visible = true
 			_title.visible = false
 		else:
-			var neon := GameCategories.get_neon_color(GameCategories.get_category_id(app_id))
-			material.albedo_color = neon.darkened(0.6)
+			_cover.visible = false
 			_title.visible = true
-		_front.material_override = material
 
 	func get_look_info() -> Dictionary:
 		var info := GameInfo.look_info(app_id)

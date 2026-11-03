@@ -34,11 +34,17 @@ func _run() -> void:
 	var portal = city.get_node("Building_%d/GamePortal" % BALATRO)
 	var outside: Vector3 = portal.get_return_transform().origin
 
+	print("\n== Instrução de quem usa ==")
+	fade.set_door_charge(0.3, "Teste", Color.WHITE, "solte E para cancelar")
+	_check("ScreenFade repassa a instrução", door._hint.text == "solte E para cancelar")
+	fade.set_door_charge(0.0)
+
 	print("\n== entrando na porta ==")
 	player.global_position = portal.global_transform * Vector3(0, 0.1, -0.8)
 	await create_timer(0.6).timeout
 	print("   progresso: %.2f | título: %s" % [door.get_progress(), door.get_title()])
 	_check("vinheta + anel aparecem", door.visible and door.get_progress() > 0.2 and door.get_progress() < 0.7)
+	_check("o portal volta à instrução padrão depois da personalizada", door._hint.text == "recue para cancelar")
 	_check("título 'ENTRANDO EM BALATRO'", door.get_title() == "ENTRANDO EM BALATRO")
 	var neon: Color = root.get_node("GameCategories").get_neon_color("cartas")
 	_check("anel na cor do bairro", door._ring.color.is_equal_approx(neon))

@@ -18,3 +18,10 @@ native/bin/
 
 # Python das ferramentas (tools/jev/)
 __pycache__/
+
+# Obsidian (o cofre é docs/): app.json e templates.json vão para o git;
+# o layout das janelas, os plugins, os temas e as imagens coladas ficam só na máquina
+docs/.obsidian/workspace*.json
+docs/.obsidian/plugins/
+docs/.obsidian/themes/
+docs/_anexos/

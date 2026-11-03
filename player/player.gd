@@ -172,6 +172,10 @@ func _ready() -> void:
 	add_child(_world_map)
 	_transit_panel = TransitPanel.new()
 	add_child(_transit_panel)
+	# Com um painel aberto, o HUD sai de baixo dele (Fase 16.2).
+	for panel: Node in [_pause_menu, _game_search, _world_map, _transit_panel]:
+		panel.opened.connect(_update_hud_visibility)
+		panel.closed.connect(_update_hud_visibility)
 
 	_camera_feel = CameraFeel.new()
 	add_child(_camera_feel)
@@ -362,6 +366,14 @@ func is_overlay_open() -> bool:
 			or _transit_panel.is_open() or _focus_screen != null
 
 
+## O ÚNICO lugar que decide se o HUD aparece: fora da abertura, sem foco numa
+## tela 3D e sem painel aberto (menu, busca, mapa, metrô). Quem muda um desses
+## estados chama esta função. Os avisos que chegam com o HUD escondido esperam
+## na fila dele e aparecem quando ele volta.
+func _update_hud_visibility() -> void:
+	_hud.visible = not in_intro and not is_overlay_open()
+
+
 func get_world_map() -> WorldMap:
 	return _world_map
 
@@ -375,7 +387,7 @@ func get_game_search() -> GameSearch:
 func start_intro() -> void:
 	in_intro = true
 	set_physics_process(false)
-	_hud.visible = false
+	_update_hud_visibility()
 
 
 ## Fim da abertura: o jogador ganha os controles e o HUD. Na primeira vez,
@@ -385,7 +397,7 @@ func finish_intro() -> void:
 	set_physics_process(true)
 	if not AppConfig.get_seen_controls_hint():
 		_hud.show_controls_hint()
-	_hud.visible = true
+	_update_hud_visibility()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -487,9 +499,9 @@ func focus_on(screen: Node3D) -> void:
 		return
 	_focus_screen = screen
 	_focus_leaving = false
+	_update_hud_visibility()
 	_reset_interact_hold()
 	velocity = Vector3(0.0, velocity.y, 0.0)
-	_hud.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var window := get_viewport().get_visible_rect().size
 	var pose: Transform3D = screen.get_camera_pose(_camera.fov, window.x / maxf(window.y, 1.0))
@@ -549,7 +561,7 @@ func _end_focus() -> void:
 	_camera.transform = _camera_rest
 	_focus_screen = null
 	_focus_leaving = false
-	_hud.visible = not in_intro
+	_update_hud_visibility()
 	if not HubWindow.is_sleeping:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 

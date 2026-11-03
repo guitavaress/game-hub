@@ -29,6 +29,8 @@ const SECONDS: Dictionary[Kind, float] = {
 const ANIMATION_TIME: float = 0.2
 const SLIDE_PIXELS: float = 12.0
 const EXIT_RISE_PIXELS: float = 6.0
+## Espaço entre as linhas do aviso (rótulo, título e frase), em px.
+const COLUMN_GAP: int = 2
 
 var kind: Kind = Kind.INFO
 var title: String = ""
@@ -68,7 +70,7 @@ func _ready() -> void:
 	add_child(_panel)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
+	column.add_theme_constant_override("separation", COLUMN_GAP)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(column)
 	_shown_ms = Time.get_ticks_msec()
@@ -93,6 +95,21 @@ func _ready() -> void:
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	get_tree().create_timer(get_meta("seconds"), false).timeout.connect(close)
+
+
+## Altura de um aviso COMUM (título + uma linha de frase), tirada do tema: a
+## caixa do painel, as duas linhas e o espaço entre elas. O HUD usa para saber
+## até onde a pilha cheia de avisos chega (e pôr o título do bairro abaixo).
+static func nominal_height() -> float:
+	var theme := HubTheme.get_theme()
+	var panel := theme.get_stylebox("panel", StringName("HubToast" + HubTheme.TOAST_KINDS[Kind.INFO]))
+	return panel.get_minimum_size().y + _line_height(theme, &"HubLead") + COLUMN_GAP \
+			+ _line_height(theme, &"HubBodyLight")
+
+
+## A altura de uma linha de texto numa variação do tema.
+static func _line_height(theme: Theme, variation: StringName) -> float:
+	return theme.get_font("font", variation).get_height(theme.get_font_size("font_size", variation))
 
 
 ## Tira o aviso da tela (sumindo aos poucos).

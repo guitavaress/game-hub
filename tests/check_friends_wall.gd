@@ -40,6 +40,17 @@ func _run() -> void:
 	fs._set_friends(none)
 	_check("mostra o cartão vazio", wall.has_empty_card() and wall.get_friend_names().is_empty())
 
+	var device = root.get_node("InputDevice")
+	device.set_gamepad(false)
+	var empty = wall.get_node("Cards/EmptyCard")
+	_check("mural vazio aponta para Esc › Amigos", empty.get_look_info()["title"] == "Configure os amigos em Esc › Amigos"
+			and empty._instruction.text == "Configure os amigos em Esc › Amigos")
+	device.set_gamepad(true)
+	_check("o mesmo cartão acompanha a troca para controle", empty.get_look_info()["title"] == "Configure os amigos em Menu › Amigos"
+			and empty._instruction.text == "Configure os amigos em Menu › Amigos")
+	device.set_gamepad(false)
+	_check("o texto da placa volta ao teclado", empty._instruction.text == "Configure os amigos em Esc › Amigos")
+
 	print("== Com amigos ==")
 	var friends: Array[SteamFriend] = []
 	friends.assign(fs.parse_players(JSON.parse_string(SUMMARIES_JSON)))
