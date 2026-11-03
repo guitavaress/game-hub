@@ -113,8 +113,10 @@ func get_profile() -> HomeProfile:
 
 # --- Montagem -------------------------------------------------------------------
 
-## Luz de dentro: fundo escuro, luz ambiente quente e fraca (quem ilumina de
-## verdade são as luminárias) e o mesmo "filme" de cor da cidade.
+## Luz de dentro: fundo escuro, luz ambiente fraca (quem ilumina de verdade são
+## as luminárias, em poças quentes; entre elas fica o meio-tom frio do ambiente)
+## e o mesmo "filme" de cor da cidade. O sombreamento dos cantos (SSAO) é mais
+## forte que o padrão: é ele que assenta os móveis no chão.
 func _build_environment() -> void:
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_COLOR
@@ -126,6 +128,8 @@ func _build_environment() -> void:
 	_environment.glow_enabled = true
 	_environment.glow_hdr_threshold = 1.0
 	_environment.ssao_enabled = true
+	_environment.ssao_radius = 1.2
+	_environment.ssao_intensity = 2.5
 	_apply_quality()
 	AppConfig.settings_changed.connect(_on_settings_changed)
 
@@ -190,9 +194,12 @@ func _on_settings_changed(section: String, key: String) -> void:
 
 
 ## A qualidade gráfica vale aqui também. Névoa volumétrica, não: dentro de
-## casa ela só deixa o ar enevoado (e custa caro).
+## casa ela só deixa o ar enevoado (e custa caro). A luz rebatida (SSIL) quem
+## decide é o GraphicsQuality (só na Alta).
 func _apply_quality() -> void:
-	GraphicsQuality.apply_to_environment(_environment, AppConfig.get_quality())
+	var level := AppConfig.get_quality()
+	GraphicsQuality.apply_to_environment(_environment, level)
+	GraphicsQuality.apply_indoor_light(_environment, level)
 	_environment.volumetric_fog_enabled = false
 
 

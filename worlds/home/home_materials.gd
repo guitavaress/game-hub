@@ -49,7 +49,7 @@ static func wood(color: Color, planks: bool = false, roughness: float = 0.5, log
 			material.set_shader_parameter("plank_length", 4.0)
 			material.set_shader_parameter("variation", 0.05)
 		if logs:
-			# Só aqui o parâmetro é posto: o loft continua sem ele (o retrato não muda).
+			# Só as toras põem o parâmetro: a madeira do loft fica com o padrão do shader.
 			material.set_shader_parameter("planks", true)
 			material.set_shader_parameter("plank_width", 0.26)
 			material.set_shader_parameter("plank_length", 30.0)

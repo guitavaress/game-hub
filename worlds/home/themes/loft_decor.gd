@@ -3,25 +3,54 @@ extends HomeDecor
 ## vigas e o canto de estar virado para a janela (tapete, sofá, mesinha e um
 ## abajur de chão). As cores das lâmpadas vêm do perfil; as dos móveis são
 ## deste enfeite.
+##
+## A luz (Fase 17.2) segue as referências do "uau": cada luminária faz uma POÇA
+## quente embaixo dela, e entre as poças fica o meio-tom frio do ambiente. Só as
+## duas luzes do canto de estar (o pendente em cima da mesinha e o abajur) fazem
+## sombra: são as que o olho procura, e sombra custa quadro.
 
 const RUG_SHADER: Shader = preload("res://worlds/home/home_rug.gdshader")
 const FURNITURE_WOOD: Color = Color(0.3, 0.19, 0.11)
 const STEEL_COLOR: Color = Color(0.09, 0.09, 0.1)
-const SOFA_COLOR: Color = Color(0.13, 0.25, 0.3)
+## Sofá de tecido cru (bege acinzentado): pega a luz do abajur, como na referência.
+const SOFA_COLOR: Color = Color(0.42, 0.36, 0.3)
 const CUSHION_COLOR: Color = Color(0.72, 0.42, 0.2)
+## Tapete cinza: a madeira e o tecido ficam com o calor, ele fica neutro.
+const RUG_FIELD: Color = Color(0.2, 0.21, 0.23)
+const RUG_BORDER: Color = Color(0.5, 0.46, 0.4)
+const RUG_ACCENT: Color = Color(0.1, 0.1, 0.12)
+## Os pendentes: (x, z) na viga e se fazem sombra. O do meio fica em cima da
+## mesinha, na frente da janela.
+const PENDANTS: Array[Array] = [
+	[Vector2(-3.5, 0.0), false],
+	[Vector2(0.0, -Home.ROOM_SIZE.z / 3.0), true],
+	[Vector2(3.5, 0.0), false],
+]
+## Abertura do cone do pendente (graus, do eixo à borda) e quanto da força
+## sobra para a luz fraca que acende a cúpula por dentro e o teto em volta.
+const PENDANT_CONE: float = 40.0
+const PENDANT_FILL: float = 0.2
+## O abajur: cor da cúpula acesa (acima de 1 acende o brilho) e força da luz.
+const FLOOR_LAMP_SHADE: Color = Color(1.5, 0.95, 0.5)
+const FLOOR_LAMP_ENERGY: float = 2.4
 
 
 func build() -> void:
-	for spot in [Vector2(-3.0, 0.0), Vector2(1.6, -Home.ROOM_SIZE.z / 3.0), Vector2(3.0, 0.0)]:
-		_add_pendant(Vector3(spot.x, 0.0, spot.y))
+	for pendant in PENDANTS:
+		var spot: Vector2 = pendant[0]
+		_add_pendant(Vector3(spot.x, 0.0, spot.y), pendant[1])
 	_add_rug(Vector3(0.0, 0.0, -2.9), Vector2(3.2, 2.4))
 	_add_sofa(Vector3(0.0, 0.0, -1.9))
 	_add_coffee_table(Vector3(0.0, 0.0, -3.2))
-	_add_floor_lamp(Vector3(-1.6, 0.0, -1.9))
+	# Atrás do braço esquerdo do sofá: acende o encosto (o que se vê ao entrar)
+	# e a sombra do sofá cai para a frente, no tapete.
+	_add_floor_lamp(Vector3(-1.45, 0.0, -1.25))
 
 
-## Pendente: fio, cúpula de metal, lâmpada e a luz.
-func _add_pendant(at: Vector3) -> void:
+## Pendente: fio, cúpula de metal, lâmpada e duas luzes: um cone para baixo
+## (a poça no chão) e uma luz fraca e curta (a cúpula e o teto em volta).
+## Nenhuma peça do pendente faz sombra (a luz está dentro dele).
+func _add_pendant(at: Vector3, shadow: bool) -> void:
 	var bulb_y := Home.ROOM_SIZE.y - 0.95
 	var cord := MeshInstance3D.new()
 	cord.name = "PendantCord"
@@ -31,6 +60,7 @@ func _add_pendant(at: Vector3) -> void:
 	cord_mesh.height = 0.8
 	cord.mesh = cord_mesh
 	cord.material_override = HomeMaterials.matte(Color(0.05, 0.05, 0.05))
+	cord.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	cord.position = Vector3(at.x, Home.ROOM_SIZE.y - 0.4, at.z)
 	add_node(cord)
 	var shade := MeshInstance3D.new()
@@ -41,7 +71,11 @@ func _add_pendant(at: Vector3) -> void:
 	shade_mesh.height = 0.22
 	shade_mesh.cap_bottom = false
 	shade.mesh = shade_mesh
-	shade.material_override = HomeMaterials.metal(Color(0.12, 0.1, 0.08), 0.4)
+	# Dos dois lados: de baixo se vê o lado de dentro da cúpula, aceso.
+	var metal := HomeMaterials.metal(Color(0.12, 0.1, 0.08), 0.4).duplicate() as StandardMaterial3D
+	metal.cull_mode = BaseMaterial3D.CULL_DISABLED
+	shade.material_override = metal
+	shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	shade.position = Vector3(at.x, bulb_y + 0.06, at.z)
 	add_node(shade)
 	var bulb := MeshInstance3D.new()
@@ -51,16 +85,29 @@ func _add_pendant(at: Vector3) -> void:
 	bulb_mesh.height = 0.12
 	bulb.mesh = bulb_mesh
 	bulb.material_override = HomeMaterials.glow(profile.lamp_color, 6.0)
+	bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	bulb.position = Vector3(at.x, bulb_y, at.z)
 	add_node(bulb)
-	var lamp := OmniLight3D.new()
-	lamp.name = "Lamp"
-	lamp.light_color = profile.lamp_color
-	lamp.light_energy = profile.lamp_energy
-	lamp.omni_range = 7.0
-	lamp.omni_attenuation = 1.1
-	lamp.position = Vector3(at.x, bulb_y - 0.1, at.z)
-	add_node(lamp)
+	var cone := SpotLight3D.new()
+	cone.name = "PendantLight"
+	cone.light_color = profile.lamp_color
+	cone.light_energy = profile.lamp_energy
+	cone.spot_range = 5.0
+	cone.spot_angle = PENDANT_CONE
+	cone.spot_angle_attenuation = 1.6  # borda macia
+	cone.shadow_enabled = shadow
+	cone.shadow_blur = 1.5
+	cone.position = Vector3(at.x, bulb_y - 0.04, at.z)
+	cone.rotation.x = -PI / 2.0  # o cone aponta para baixo
+	cone.set_meta("loft_piece", "pendente")  # os testes acham por aqui (nomes repetidos viram "@")
+	add_node(cone)
+	var fill := OmniLight3D.new()
+	fill.name = "Lamp"
+	fill.light_color = profile.lamp_color
+	fill.light_energy = profile.lamp_energy * PENDANT_FILL
+	fill.omni_range = 5.0
+	fill.position = Vector3(at.x, bulb_y + 0.02, at.z)
+	add_node(fill)
 
 
 func _add_rug(center: Vector3, rug_size: Vector2) -> void:
@@ -71,6 +118,9 @@ func _add_rug(center: Vector3, rug_size: Vector2) -> void:
 	rug.mesh = plane
 	var material := ShaderMaterial.new()
 	material.shader = RUG_SHADER
+	material.set_shader_parameter("field_color", RUG_FIELD)
+	material.set_shader_parameter("border_color", RUG_BORDER)
+	material.set_shader_parameter("accent_color", RUG_ACCENT)
 	rug.material_override = material
 	rug.position = center + Vector3(0.0, 0.006, 0.0)
 	add_node(rug)
@@ -79,7 +129,9 @@ func _add_rug(center: Vector3, rug_size: Vector2) -> void:
 ## Sofá de três lugares com a frente para o norte (a janela): assento, encosto,
 ## braços e duas almofadas. Tem colisão (o jogador dá a volta).
 func _add_sofa(center: Vector3) -> void:
-	var cloth := HomeMaterials.fabric(SOFA_COLOR)
+	# A trama mais suave: com a luz rasante do abajur, a padrão parecia reboco.
+	var cloth := HomeMaterials.fabric(SOFA_COLOR).duplicate() as StandardMaterial3D
+	cloth.normal_scale = 0.3
 	var width := 2.2
 	var depth := 0.9
 	var x := center.x
@@ -107,7 +159,8 @@ func _add_coffee_table(center: Vector3) -> void:
 	add_box("Gamepad", Vector3(0.16, 0.03, 0.1), center + Vector3(0.2, 0.425, 0.05), HomeMaterials.matte(Color(0.08, 0.08, 0.09), 0.4), false)
 
 
-## Abajur de chão ao lado do sofá: pé de metal, cúpula de tecido e luz quente.
+## Abajur de chão ao lado do sofá: pé de metal, cúpula de tecido acesa e a
+## luz quente de dentro, que faz sombra (o sofá desenha a sombra no chão).
 func _add_floor_lamp(at: Vector3) -> void:
 	var steel := HomeMaterials.metal(STEEL_COLOR)
 	add_box("FloorLampBase", Vector3(0.3, 0.03, 0.3), at + Vector3(0.0, 0.015, 0.0), steel)
@@ -121,15 +174,22 @@ func _add_floor_lamp(at: Vector3) -> void:
 	mesh.cap_top = false
 	mesh.cap_bottom = false
 	shade.mesh = mesh
-	var cloth := HomeMaterials.glow(Color(1.0, 0.86, 0.66), 0.9).duplicate() as StandardMaterial3D
+	# Sem sombreamento: a luz de dentro não estoura a cúpula em branco; ela
+	# fica âmbar, com o brilho em volta.
+	var cloth := StandardMaterial3D.new()
+	cloth.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cloth.albedo_color = FLOOR_LAMP_SHADE
 	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
 	shade.material_override = cloth
+	shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	shade.position = at + Vector3(0.0, 1.55, 0.0)
 	add_node(shade)
 	var light := OmniLight3D.new()
 	light.name = "FloorLampLight"
 	light.light_color = profile.lamp_color
-	light.light_energy = 0.9
-	light.omni_range = 4.0
+	light.light_energy = FLOOR_LAMP_ENERGY
+	light.omni_range = 6.0
+	light.shadow_enabled = true
+	light.shadow_blur = 1.5
 	light.position = at + Vector3(0.0, 1.5, 0.0)
 	add_node(light)

@@ -84,7 +84,7 @@ A régua é a luminância de 0 a 255 (preto a branco), medida em toda a imagem.
 
 ## O antes (capturas e medida de 2026-11-03)
 **Capturas:** `tools/capturar_pontos.gd`, bairro RPG, 200 jogos falsos, Alta, 13 h e 22 h, em `game-hub-referencias\uau\antes\`.
-- A casa ainda não tem captura: a ferramenta é a 17.1b (trilha B).
+- A casa foi capturada depois, pela ferramenta da 17.1b (veja "A casa: antes e depois da 17.2").
 - Medidas com a mesma régua das referências:
 
 | | Média | Mediana | 95% até | Quase preto | Referência (quase preto) |
@@ -110,6 +110,20 @@ A régua é a luminância de 0 a 255 (preto a branco), medida em toda a imagem.
 | Montanha (trilha e mirante) | 163,0 | 9 ms | 19 ms | 251 |
 
 Montagem da cidade: 6865 ms. Memória de textura: ~1 GB.
+
+## A casa: antes e depois da 17.2
+Loft, 22 h, Alta, 200 jogos falsos, mesma régua. O "depois" está em `game-hub-referencias\uau\depois-17.2\`.
+
+| Ponto | Média (antes → depois) | 95% até | Quase preto |
+|---|---|---|---|
+| nascer | 34 → 40 | 74 → 93 | 38% → 29% |
+| sofá | 41 → 39 | 90 → 100 | 22% → 37% |
+| estante | 28 → 32 | 82 → 116 | 59% → 61% |
+| janela | 35 → 31 | 79 → 74 | 39% → 47% |
+| **Referência (casa)** | **51** | **118** | **24%** |
+
+- O claro e escuro abriu: as poças e as luminárias chegam mais alto, e o meio da sala ficou em meio-tom.
+- No sofá e na janela, o quase preto subiu. É o canto de estar longe das poças e o céu do shader da janela, quase preto. A 17.3 troca a vista; a 17.4 põe objetos.
 
 ## Manifesto de assets candidatos (CC0, Poly Haven, glTF 1k)
 **Nada é baixado sem a permissão do dono**, como manda o AGENTS.md. A pergunta é feita na subetapa que precisar, depois de tentar por código. Os tamanhos são do download de 1k, conferidos pela API do Poly Haven em 2026-11-03. Fica fora: livro decorativo (`decorative_book_set_01`), que não tem glTF.

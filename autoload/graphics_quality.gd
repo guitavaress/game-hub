@@ -12,6 +12,7 @@ extends RefCounted
 ##          com menos detalhe. Para PCs fracos.
 ##
 ## A neblina e o brilho (glow) ficam em todas: são baratos e fazem o clima.
+## Dentro de casa, a Alta liga também a luz rebatida (SSIL, Fase 17.2).
 ## O AppConfig aplica a parte da janela (resolução do 3D, anti-aliasing e o
 ## tamanho da sombra do sol); cada mundo aplica a parte do seu Environment e
 ## do seu sol (e escuta AppConfig.settings_changed).
@@ -31,6 +32,15 @@ static func apply_to_environment(environment: Environment, level: String) -> voi
 	# Névoa volumétrica: só onde o mundo pôs um FogVolume (ex.: névoa baixa do
 	# bairro Terror). Na Leve fica desligada.
 	environment.volumetric_fog_enabled = level != "leve"
+
+
+## A luz rebatida na tela (SSIL, Fase 17.2): a luz quente que bate no chão e
+## nas paredes "rebate" e esquenta o que está perto, como numa sala de verdade.
+## Só na Alta, e por enquanto só dentro de casa (a cidade testa na 17.5).
+static func apply_indoor_light(environment: Environment, level: String) -> void:
+	environment.ssil_enabled = level == "alta"
+	environment.ssil_radius = 4.0
+	environment.ssil_intensity = 1.6
 
 
 ## Na janela: resolução do 3D (o HUD continua nítido: ele não é 3D), o
@@ -124,4 +134,4 @@ static func describe(level: String) -> String:
 			return "Sem reflexos nem sombreamento extra; 3D em 50%, bordas com FXAA e sombra curta. Para PCs fracos."
 		"media":
 			return "Sem os reflexos na tela; bordas lisas com SMAA. Mais leve, quase igual."
-	return "Tudo ligado: reflexos, sombreamento, neblina e bordas lisas (MSAA 2x + SMAA)."
+	return "Tudo ligado: reflexos, sombreamento, luz rebatida em casa, neblina e bordas lisas (MSAA 2x + SMAA)."

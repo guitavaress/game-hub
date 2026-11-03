@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. Em andamento: 17.2 (a casa, trilha A).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. Próxima: 17.3 (a cidade de verdade pela janela).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -119,6 +119,31 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
 - 2026-11-03 (17.1b, merge `fefe6b1`): a trilha B (Sol) entregou `tools/capturar_casa.gd` e `tests/check_capture_home.gd`. O Opus leu o diff; depois do merge, `check_capture_home check_capture_points` deram ok.
   - O "antes" da casa (loft, 13 h e 22 h, Alta, 200 falsos; pontos nascer, janela, sofa e estante) está em `game-hub-referencias\uau\antes\`. A 17.2 já pode começar.
   - Worktree e branch `uau-b` apagados depois do merge.
+
+- 2026-11-03 (17.2): a luz do loft.
+  - **Pendentes:** cada um faz uma poça (um cone para baixo, `SpotLight3D`) e tem uma luz fraca e curta que acende a cúpula e o teto em volta. O do meio foi para cima da mesinha (0; −3), na frente da janela, como na referência; os dos lados, para x = ±3,5. A força está no perfil (`lamp_energy` = 7).
+  - **Sombra só em duas luzes:** o pendente da mesinha e o abajur. Nenhuma peça das luminárias faz sombra (a luz fica dentro delas).
+  - **Abajur:** foi para trás do braço esquerdo do sofá, para acender o encosto (o que se vê ao entrar) e jogar a sombra do sofá no tapete. A cúpula ficou sem sombreamento e âmbar: com a luz de dentro, ela estourava em branco.
+  - **SSIL:** `GraphicsQuality.apply_indoor_light` decide (só na Alta) e só a casa chama. A cidade fica para a 17.5. O SSAO da casa ficou mais forte (raio 1,2; intensidade 2,5).
+    - O SSIL e o SSAO valem também na cabana; ela foi conferida por captura e segue bem (a 17.9 cuida dela).
+  - **Cores do loft** (`loft.tres`): piso mais escuro e encerado, tijolo mais quente, reboco bege mais fundo, teto escuro. O ambiente da noite ficou fraco e azulado (0,32). Sofá bege acinzentado, com a trama mais suave. Tapete cinza.
+    - O `loft.tres` foi editado à mão, só em valores de campos que já existiam (nenhum id mudou).
+  - **Fora da lista do plano:**
+    - `library_shelf.gd` ganhou uma luz de vitrine (fita de LED e duas luzes fracas). Com a sala em poças, a estante tinha ficado com 78% quase preto (antes: 59%).
+    - `home_mirror.gd` ganhou uma arandela. O canto do espelho tinha caído de média 31 para 7.
+    - As duas valem nos dois temas.
+  - **O retrato saiu:** o `casa_atual.json` e também o `tests/home_snapshot.gd` e o `tools/retrato_casa.gd`, que só serviam a ele. O `check_home_profile` ganhou a seção "a luz do loft (17.2)".
+  - **Números (22 h, Alta):**
+    - nascer: média 40, quase preto 29% (antes 34 e 38%; referência 51 e 24%);
+    - sofá: 39 e 37% (antes 41 e 22%);
+    - estante: 32 e 61% (antes 28 e 59%);
+    - janela: 31 e 47% (antes 35 e 39%). A janela pesa: o céu do shader é quase preto, e a 17.3 troca a vista.
+    - Os pontos claros subiram: os 95% chegam a 93–116 (antes, 74–90).
+  - **Medida no desktop:**
+    - a casa segue no teto (165,0 FPS, p99 8 ms, 97 desenhos);
+    - o espelho, também (165,0);
+    - a caminhada ficou em 152,2 (antes 152,8).
+  - **De dia (13 h)** a casa ficou parecida com antes, com as luminárias acesas. Em volta da janela ficou mais escuro (40% quase preto, antes 24%): fica para a 17.9.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
