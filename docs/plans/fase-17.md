@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. **17.3.1 feita:** as placas dos bairros saíram da janela. Próxima: 17.4 (objetos da casa e a sua aprovação da amostra).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. **17.3.1 feita:** as placas dos bairros saíram da janela. **17.4 feita:** sofá, manta, mesinha com caneca e livros, tapete antigo, um canto de leitura com aparador, quadro e palmeira, e mais três plantas, tudo por código; o "depois" está em `game-hub-referencias\uau\depois-17.4\` (com a folha `folha_17.4.png`). **Espera você:** aprovar a amostra (a casa à noite).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -63,7 +63,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Arquivos: `components/window_view/window_view_point.gd`, `components/window_view/window_view.gd`, `worlds/city/district_sign.gd`, `worlds/city/city.gd`, `tests/check_window_view.gd`.
   - Teste: `check_window_view check_landmarks check_gates check_variants check_capture_home`; captura da janela às 13 h e às 22 h em `depois-17.3.1`.
   - Commit: `Fase 17.3.1: placas dos bairros fora da janela`
-- [ ] **17.4 Objetos da casa e aprovação da amostra** (grande se entrar asset · trilha A, Opus · high · revisão: você)
+- [x] **17.4 Objetos da casa e aprovação da amostra** (`b4a68f2`) (grande se entrar asset · trilha A, Opus · high · revisão: você)
   - Faz: o que as referências pedirem e a luz sozinha não resolveu (plantas, livros, manta, objetos de mesa, um tapete melhor). Primeiro por código; modelo CC0 só com a sua permissão (nome, origem, tamanho), com `LICENSE` e crédito no README.
   - **Portão:** você aprova a casa à noite. Se não, volta à 17.2. Aprovada, o plano registra o sistema visual (paleta, luz, densidade) que vale para o resto.
   - Commit: `Fase 17.4: a casa ganha vida` (+ `Assets: <pacote> (CC0)` se houver)
@@ -180,6 +180,29 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
   - o tranco de ~87 ms na primeira foto da janela (uma vez por abertura, junto do aviso "A cidade está pronta") fica aceito. A 17.10 estuda aquecer os shaders da cidade durante a montagem.
   - A janela à noite ainda é escura (59% quase preto): melhora com a noite da cidade (17.5), que também revê o ganho de 2,2 do retrato.
 - 2026-11-03 (17.3.1, `0b9e9ba`): as placas dos bairros ficam na camada de render 18 (`DistrictSign.RENDER_LAYER`; a 19 é a do espelho e a 20 a da casa), e o ponto da cidade esconde essa camada do retrato. Testes ok; a captura das 13 h mostra a montanha e os bairros sem nenhuma placa, e nenhum outro rótulo flutuante aparece na janela.
+
+- 2026-11-03 (17.4, `b4a68f2`): a casa ganha vida, tudo por código (nenhum asset baixado; o orçamento de ~50 MB segue intacto).
+  - **Peças novas reutilizáveis** em `worlds/home/` (valem para a cabana na 17.9):
+    - `HomeShapes` (`home_shapes.gd`): a caixa de cantos redondos e faces estufadas (`soft_box`), o pano caído com dobras (`drape`), o livro e o cano fino. As peças pequenas entram num `Batch`: muitas formas viram uma malha só, com a cor no vértice (um desenho, e não um por peça);
+    - `HomePlants` (`home_plants.gd`): plantas em vaso (palmeira, folha larga, espada, pendente), com folhas finas dos dois lados, nervura em "V" e luz atravessando a folha;
+    - dois shaders: `home_rug_vintage.gdshader` (tapete antigo e gasto, com o pelo em relevo; o da cabana segue o `home_rug.gdshader`) e `home_picture.gdshader` (a gravura de montanhas do quadro);
+    - `HomeMaterials` ganhou `fabric_tinted`, `vertex_colored` e `leaf`. As cores de vértice são tratadas como sRGB (`vertex_color_is_srgb`), para valerem como as do albedo: sem isso, tudo saía desbotado.
+  - **O loft** (`loft_decor.gd`):
+    - **sofá** de verdade: pés de madeira, base, braços e encosto redondos, dois assentos e duas almofadas de encosto estufados, três almofadas soltas (ardósia, creme, terracota). O encosto desce até a base: visto de trás (o lado que se vê ao entrar), é uma peça só;
+    - **manta** de tricô grafite: sai da beira do assento, passa por cima do encosto e cai pelas costas do sofá, porque a câmera de quem entra vê o sofá de trás (na referência ela cai pela frente);
+    - **mesinha** com armação de aço e prateleira (livros e uma caixa de jogo embaixo; caneca, dois livros, duas revistas e o controle em cima);
+    - **tapete** antigo e gasto, com medalhão, cantos ornados e a borda de florzinhas;
+    - **o canto entre a estante e a janela** (o centro da vista de quem nasce): aparador de nogueira com livros em pé, uma pilha deitada, uma esfera de latão, um abajur de mesa e uma planta pendente; o quadro na parede de tijolo; a palmeira grande ao lado da janela. O aparador ocupa o lugar pronto `norte_esquerda`, que nenhuma disposição usa desde que a estante de apps saiu;
+    - mais três plantas: a espada ao lado do sofá, uma folha larga no canto do computador e uma pequena no peitoril.
+  - **A luz é a da 17.2.** Só entrou o abajur do aparador, fraco (0,49) e de queda suave, sem sombra. Abaixo de 0,5 a janela não o reflete, e assim ele não toma o lugar de um pendente no reflexo do vidro (a janela da 17.3 não mudou).
+  - As folhas que passariam da parede ou do vidro são achatadas só nesse eixo (`_keep_inside`): o `check_home` (nada fora da sala) pegou a palmeira, a do canto e a do peitoril.
+  - O nó `SofaSeat` ficou como marcador do assento, para o ponto `sofa` do `capturar_casa.gd` seguir igual.
+  - **Bateria completa: TUDO OK** (87). Numa primeira rodada, o `check_look_card` falhou uma vez ("clique toca quando o alvo muda") e passou duas vezes sozinho: instável, sem ligação com a casa.
+  - **Teste:** o `check_home_profile` ganhou a seção "os objetos do loft (17.4)": as peças existem (sofá, manta, mesinha, tapete, aparador, quadro, 4 plantas e 5 folhagens), as malhas delas ficam na camada 20, e nada tampa a passagem (o nascer, a porta e a frente de cada móvel de todas as disposições do catálogo, mais o computador).
+  - **Números** (22 h, Alta; a régua toda está em `uau-referencias.md`): nascer 38 de média e 39% quase preto; sofá 35 e 48%; estante 36 e 52%; janela 27 e 62%. Quase iguais aos da 17.3.1: os objetos enchem a sala, mas a luz não mudou. O que ainda puxa para o preto é o teto, o canto do computador e a janela à noite (a 17.5).
+  - **Medida no desktop** (`200 alta 22`, com o ComfyUI do dono aberto): casa 165,0 FPS (teto), p99 8 ms, **110 desenhos** (o código de antes, medido na mesma hora: 105; na 17.2: 97); espelho 164,9; montanha 162,7. Caminhada 148,0 e 149,0 FPS em duas medidas (o código de antes, na mesma hora: 149,6; o "antes" da fase: 152,8, −2,5%), p99 13–14 ms. Uma primeira medida deu 134,9 logo depois de várias capturas; repetida duas vezes, não se confirmou.
+  - **Capturas** em `game-hub-referencias\uau\depois-17.4`: os 4 pontos às 13 h e às 22 h, os pontos de perto (`perto\`: frente do sofá, mesinha, o canto e o canto do computador) e a folha `folha_17.4.png` (antes e depois, e a referência 01).
+  - **Se a amostra pedir mais realismo:** as plantas e os livros do Poly Haven do manifesto (`potted_plant_01`, `potted_plant_02`, `book_encyclopedia_set_01`, ~12 MB) trocariam as de código. Nada foi baixado; fica para a sua decisão.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
