@@ -3,10 +3,10 @@
 O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
-- **Fase em andamento:** nenhuma.
-- **Próxima fase:** [O momento uau](ROADMAP.md#1-o-momento-uau) (ganha o número 17 quando começar).
+- **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. Começa pelas suas referências em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
+- **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
-- **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), na branch `fase-16`, esperando o merge na `main` quando você pedir. A [Fase 15](plans/fase-15.md) já está na `main`.
+- **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), já na `main` (PR #2).
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
 
 ## O que falta
@@ -58,9 +58,11 @@ gantt
     Fase 15 Primeiro bioma           :done, f15, 2026-10-17, 2026-11-03
     Fase 16 Leitura                  :done, f16, 2026-11-02, 2026-11-03
 
+    section Uau
+    Fase 17 O momento uau            :active, f17, 2026-11-02, 7d
+
     section Próximas, sem data
-    O momento uau                    :u1, after f16, 7d
-    Mostrar para amigos              :u2, after u1, 7d
+    Mostrar para amigos              :u2, after f17, 7d
     Visitar amigos, V-Sekai          :u3, after u2, 7d
     Biomas baratos, PoC              :u4, after u3, 7d
 ```
