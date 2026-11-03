@@ -10,7 +10,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
 
 ## O que falta
-Lista montada sozinha pelo plugin **Tasks**: junta os `- [ ]` abertos dos planos. Clique no nome do arquivo para abrir. Sem o plugin, aparece só o texto da consulta.
+Lista montada sozinha pelo plugin **Tasks**: junta os `- [ ]` abertos dos planos. Clique no nome do arquivo para abrir. Sem o plugin, aparece só o texto da consulta: para instalar, Configurações › Plugins da comunidade › Procurar › "Tasks" › Instalar e Ativar.
 
 **Nas fases**
 ```tasks
@@ -56,7 +56,7 @@ gantt
 
     section Biomas e leitura
     Fase 15 Primeiro bioma           :done, f15, 2026-10-17, 2026-11-03
-    Fase 16 Leitura                  :active, f16, 2026-11-02, 2026-11-03
+    Fase 16 Leitura                  :done, f16, 2026-11-02, 2026-11-03
 
     section Próximas, sem data
     O momento uau                    :u1, after f16, 7d
