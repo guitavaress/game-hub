@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. Próxima: 17.4 (objetos da casa e a sua aprovação da amostra).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. **17.3.1 feita:** as placas dos bairros saíram da janela. Próxima: 17.4 (objetos da casa e a sua aprovação da amostra).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -58,6 +58,11 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Arquivos: `components/window_view/window_view.gd` (novo), `worlds/home/home_window.gdshader` (amostra o retrato; o procedural fica de reserva), `worlds/home/home.gd` (usa o componente), `worlds/city/city.gd` (põe o ponto no grupo `window_view_point`), `tests/check_window_view.gd` (novo: sem ponto → procedural; com ponto → `UPDATE_ONCE`, sem a camada 20, refeito só na troca de fase do dia; a casa não referencia `worlds/city`).
   - Captura: a janela às 13 h e às 22 h, e o momento em que a cidade acende.
   - Commit: `Fase 17.3: a janela mostra a cidade de verdade`
+- [x] **17.3.1 Placas dos bairros fora da janela** (`0b9e9ba`) (pequena · trilha A, Sonnet subagente · medium) — pedido do dono ao ver a 17.3: de dia, as placas flutuantes dos bairros apareciam na janela como etiquetas de mapa.
+  - Faz: o `WindowViewPoint` ganha `hidden_layers` (o mundo diz o que não entra no retrato); as placas (`DistrictSign`) ficam numa camada própria, que a cidade esconde do retrato. Na rua, nada muda.
+  - Arquivos: `components/window_view/window_view_point.gd`, `components/window_view/window_view.gd`, `worlds/city/district_sign.gd`, `worlds/city/city.gd`, `tests/check_window_view.gd`.
+  - Teste: `check_window_view check_landmarks check_gates check_variants check_capture_home`; captura da janela às 13 h e às 22 h em `depois-17.3.1`.
+  - Commit: `Fase 17.3.1: placas dos bairros fora da janela`
 - [ ] **17.4 Objetos da casa e aprovação da amostra** (grande se entrar asset · trilha A, Opus · high · revisão: você)
   - Faz: o que as referências pedirem e a luz sozinha não resolveu (plantas, livros, manta, objetos de mesa, um tapete melhor). Primeiro por código; modelo CC0 só com a sua permissão (nome, origem, tamanho), com `LICENSE` e crédito no README.
   - **Portão:** você aprova a casa à noite. Se não, volta à 17.2. Aprovada, o plano registra o sistema visual (paleta, luz, densidade) que vale para o resto.
@@ -170,6 +175,11 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
     - De muito de lado, a borda do retrato esticava numa coluna. Agora o ângulo é apertado aos poucos e, fora da lente, o vidro fecha num véu (conferido nas capturas `canto_mesa`, `canto_oeste` e `colado`).
     - Ficou de fora a sugestão de um panorama ou várias vistas para cobrir todos os ângulos: custaria mais retratos, e de raspão o vidro de verdade já reflete mais do que mostra.
   - **Capturas** em `game-hub-referencias\uau\depois-17.3`: os 4 pontos às 13 h e às 22 h, os 3 cantos e a pasta `acende` (a cidade acendendo, de 0 a 4 s, com a folha `folha_acende.png`).
+- 2026-11-03: o dono aprovou a 17.3 com duas decisões:
+  - as placas dos bairros saem da vista da janela agora (17.3.1, antes da 17.4);
+  - o tranco de ~87 ms na primeira foto da janela (uma vez por abertura, junto do aviso "A cidade está pronta") fica aceito. A 17.10 estuda aquecer os shaders da cidade durante a montagem.
+  - A janela à noite ainda é escura (59% quase preto): melhora com a noite da cidade (17.5), que também revê o ganho de 2,2 do retrato.
+- 2026-11-03 (17.3.1, `0b9e9ba`): as placas dos bairros ficam na camada de render 18 (`DistrictSign.RENDER_LAYER`; a 19 é a do espelho e a 20 a da casa), e o ponto da cidade esconde essa camada do retrato. Testes ok; a captura das 13 h mostra a montanha e os bairros sem nenhuma placa, e nenhum outro rótulo flutuante aparece na janela.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
