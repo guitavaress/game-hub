@@ -23,7 +23,7 @@ Steam  →  dados do jogo  →  perfil do mundo  →  gerador  →  Godot  →  
 | Etapa | Para quem | Chega quando |
 |---|---|---|
 | 1 | Para mim | você abre o hub para jogar no dia a dia, no lugar da Steam |
-| 2 | Para mim e os amigos | 2 ou 3 amigos instalam e usam (fase [Mostrar para amigos](#3-mostrar-para-amigos)) |
+| 2 | Para mim e os amigos | 2 ou 3 amigos instalam e usam (fase [Mostrar para amigos](#2-mostrar-para-amigos)) |
 | 3 | Público | um PoC publicado em subreddits específicos. Antes: custos, questões legais e monetização ([Horizonte](#horizonte-sem-compromisso)) |
 
 ### As versões da visão (storyboard V1–V6)
@@ -32,28 +32,18 @@ Steam  →  dados do jogo  →  perfil do mundo  →  gerador  →  Godot  →  
 |---|---|---|
 | **V1** Cidade e categorias | A biblioteca vira uma cidade com bairros | ✅ fases 1–6 |
 | **V2** Mundo pessoal | Casa, avatar e amigos | ✅ fases 9 e 13 |
-| **V3** Mundo dinâmico | O que você joga molda o lugar | 🟡 primeiro bioma na Fase 15; [biomas baratos](#5-biomas-baratos-poc) |
-| **V4** Amigos | Encontrar e visitar os amigos | 🔜 [Visitar amigos (V-Sekai)](#4-visitar-amigos-v-sekai) |
+| **V3** Mundo dinâmico | O que você joga molda o lugar | 🟡 primeiro bioma na Fase 15; [biomas baratos](#4-biomas-baratos-poc) |
+| **V4** Amigos | Encontrar e visitar os amigos | 🔜 [Visitar amigos (V-Sekai)](#3-visitar-amigos-v-sekai) |
 | **V5** Desktop | O hub como ambiente de desktop | ⏸️ mesa com três monitores na Fase 14 (só Linux); [parado](#parados) |
 | **V6** Plataforma | Mundos criados pela comunidade, loja | [Horizonte](#horizonte-sem-compromisso) |
 
 ## Próximas fases
 
-Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 16), com o plano aprovado em `plans/fase-N.md`.
+Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 17), com o plano aprovado em `plans/fase-N.md`.
 
-Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 5 abaixo (biomas), a "Fase 17" é a 4 (amigos) e a "Fase 18" está em [Parados](#parados).
+Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 4 abaixo (biomas), a "Fase 17" é a 3 (amigos) e a "Fase 18" está em [Parados](#parados).
 
-### 1. Leitura
-**Objetivo:** o que já existe passa a se ler bem. É o bloco curto da [revisão de design de 2026-11-02](design/revisao-2026-11-02.md#próximo-passo), que muda rápido o que se vê:
-- capas inteiras na estante;
-- o nome do arco do RPG sem aparecer ao contrário por trás;
-- avisos, título e painéis sem disputar o topo da tela;
-- os nomes dos hologramas contidos na praça;
-- os textos que orientam: cancelar na estante, amigos no mural, estações do metrô, legenda do mapa e a mesa "indisponível" sem jargão no Windows.
-
-**Pronto quando:** os quatro resultados da tabela "Próximo passo" da revisão aparecem nas capturas e no seu teste.
-
-### 2. O momento uau
+### 1. O momento uau
 **Objetivo:** o hub encanta. É onde mora a frustração de hoje:
 - a casa está vazia e pouco aconchegante, e a vista da janela está péssima;
 - a trilha não tem conteúdo, e o mirante está feio;
@@ -66,7 +56,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** a casa, a janela, a trilha e o mirante passam na sua comparação de antes e depois, nas capturas e no jogo.
 
-### 3. Mostrar para amigos
+### 2. Mostrar para amigos
 **Objetivo:** a etapa 2 do produto. Um build que 2 ou 3 amigos instalam e usam.
 
 **Entregas** (o plano decide os detalhes):
@@ -77,7 +67,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** um amigo instala sozinho, abre um jogo pelo hub e conta o que achou.
 
-### 4. Visitar amigos (V-Sekai)
+### 3. Visitar amigos (V-Sekai)
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**, com peças do [V-Sekai](https://github.com/v-sekai) (MIT): avatar VRM, espelho, voz, sala de encontro e ideias de rede. Substitui a "visita sem servidor" de antes.
 
 **Primeira subetapa, um estudo curto.** Atualiza o [estudo de 15/10](design/exploracao-open-source-2026-10-15.md) e responde:
@@ -91,7 +81,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** o plano da fase sai do estudo, com o menor encontro definido.
 
-### 5. Biomas baratos (PoC)
+### 4. Biomas baratos (PoC)
 **Objetivo:** provar o coração da V3 ("o que você joga molda o lugar") sem o custo da montanha.
 
 **Entregas:**
@@ -132,6 +122,7 @@ Nada aqui anda sem uma decisão nova sua.
 | 13 Casa, parte 2 | Loft e cabana, cores, disposições, estatísticas, avatar e espelho | [fase-13](plans/fase-13.md) |
 | 14 O hub no Omarchy | Painel do sistema, autostart, compositor Wayland e a mesa com três monitores (só Linux; em [Parados](#parados)) | [fase-14](plans/fase-14.md) |
 | 15 Primeiro bioma | O RPG na neve, com arcos, pinheiros e uma montanha com trilha e mirante; setores contínuos | [fase-15](plans/fase-15.md) |
+| 16 Leitura | Capas inteiras na estante, arco legível dos dois lados, avisos e título em lugares próprios, nomes da praça só de perto, textos que dizem o que apertar e estações do metrô com o lugar | [fase-16](plans/fase-16.md) |
 | Linux | O hub roda no Linux; a plataforma fica isolada em `autoload/platform/` ([PLATAFORMA](PLATAFORMA.md)) | [fase-linux](plans/fase-linux.md) |
 
 ## Horizonte (sem compromisso)
@@ -155,7 +146,7 @@ Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas 
 - **2026-11-02, revisão da ROADMAP:**
   - o norte é o launcher + o encontro com amigos; o desktop virtual entra em pausa;
   - o produto tem 3 etapas;
-  - a ordem é Leitura → Uau → Amigos → V-Sekai → Biomas baratos;
+  - a ordem é Leitura → Uau → Amigos → V-Sekai → Biomas baratos (Leitura feita na Fase 16);
   - o fluxo de trabalho fica congelado por 3 fases;
   - a cerimônia completa vale só para subetapas grandes, e a revisão cruzada só nos pontos de risco;
   - as conferências pendentes viram um dia só.

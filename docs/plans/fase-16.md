@@ -1,16 +1,16 @@
 # Fase 16: Leitura
 
-**Status:** aprovado em 2026-11-02; em andamento
+**Status:** feita em 2026-11-02, na `fase-16`; o merge na `main` espera o pedido do dono
 **Branch:** `fase-16`, criada da ponta da `fase-15` (`234c37e`). A `main` já tem o bioma (`fa6870e`); a `fase-15` só soma os 8 commits de docs da revisão, que entram na `main` junto com esta fase.
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** capas inteiras na estante; o nome do arco do RPG legível dos dois lados; aviso e título do bairro em lugares separados, e o HUD some quando você abre a busca, o mapa ou o metrô; a praça sem parede de nomes; e textos que dizem a verdade: "solte E" na estante, "Esc › Amigos" no mural, estações com o lugar, legenda no mapa e a mesa do Windows sem jargão.
-- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. 16.4 e 16.5 aprovadas; o fechamento (16.7) espera a sua aprovação.
+- **Agora:** 16.1 e 16.2 aprovadas; 16.3, 16.4 e 16.6 juntadas. fase fechada (16.7): bateria completa ok, capturas dos quatro resultados, README, ROADMAP e `Início.md`. Falta só o merge na `main`, quando você pedir.
 - **Para testar:** cada subetapa traz o próprio checklist; o completo fica no fim.
 - **Decisões que esperam você:** nenhuma. As escolhas de texto e de distância estão em "Decisões de arquitetura".
 
 ## Contexto
-É o bloco curto da [revisão de design de 2026-11-02](../design/revisao-2026-11-02.md#próximo-passo) (itens A1–A5, B1, B2 e C3 pequeno), primeira fase da [ROADMAP nova](../ROADMAP.md#1-leitura). Nada de luz, modelos ou pórticos (são da fase "O momento uau" ou depois). Tudo é correção localizada de UI, texto e de duas cascas 3D, sem tocar em Steam, lançamento ou plataforma.
+É o bloco curto da [revisão de design de 2026-11-02](../design/revisao-2026-11-02.md#próximo-passo) (itens A1–A5, B1, B2 e C3 pequeno), primeira fase da [ROADMAP nova](../ROADMAP.md#feito). Nada de luz, modelos ou pórticos (são da fase "O momento uau" ou depois). Tudo é correção localizada de UI, texto e de duas cascas 3D, sem tocar em Steam, lançamento ou plataforma.
 
 ## Pronto quando
 Os quatro resultados da tabela "Próximo passo" da revisão aparecem nas capturas (fora do repositório) e no seu teste:
@@ -66,7 +66,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
   - Teste: `check_city_map check_planta check_minimap` (legenda só no mapa grande; minimapa igual).
   - Captura: mapa (M) aberto na praça.
   - Commit: `Fase 16.6: legenda e nomes legíveis no mapa`
-- [ ] **16.7 Fechamento** (Opus coordena; docs pelo Haiku, conferidos) — merge da trilha B (diff lido pelo Opus), bateria completa até `TUDO OK`, as capturas dos quatro resultados, README (o que mudou), ROADMAP (Leitura em "Feito", com a fase 16) e `Início.md`. Merge na `main` só quando você pedir.
+- [x] **16.7 Fechamento** (Opus coordena; docs pelo Haiku, conferidos) — merge da trilha B (diff lido pelo Opus), bateria completa até `TUDO OK`, as capturas dos quatro resultados, README (o que mudou), ROADMAP (Leitura em "Feito", com a fase 16) e `Início.md`. Merge na `main` só quando você pedir.
 
 ## Riscos
 - **HUD que não volta** depois de fechar um painel, ou que reaparece na intro: a regra única e o teste de abrir/fechar cada painel pegam cedo.
@@ -95,6 +95,7 @@ Trilha A (Claude, checkout principal) e trilha B (Codex, worktree `worktree/leit
 - 2026-11-02: o dono aprovou a 16.4.
 - 2026-11-02 (16.5, `89b1658`): a distância "a ~X m da praça" é em linha reta até a Central, de 10 em 10 m; os "N jogos perto" usam a mesma medida pelas ruas da criação das estações. O `detail` é escrito depois que todas as estações do bairro existem, então o comentário do `TransitStop` passou a dizer que ele pode vir depois (só o painel lê, ao abrir); o contrato não mudou. Testes ok; captura do painel na Central (200 jogos falsos): as 3 do RPG "perto da praça · 16", "a ~150 m · 18" e "a ~120 m · 23". A ordem no painel era a de criação (não a distância).
 - 2026-11-02: o dono aprovou a 16.5 com um ajuste: as estações de cada bairro ficam em ordem de distância da praça (a mais perto primeiro, e é ela que diz "perto da praça"); o painel e os atalhos 1-9 seguem essa ordem (`e0e770c`, `_sort_metro_stops`; caso novo no `check_metro`). Captura: RPG "perto da praça · 16", "a ~120 m · 23", "a ~150 m · 18".
+- 2026-11-02 (16.7): bateria completa `TUDO OK` (85 testes; `cargo test` pulado no Windows). Capturas dos quatro resultados (fora do repositório, 2560×1440): estante de dia e de noite com as capas inteiras e o nome do arco legível pela frente e pelo verso; aviso e título separados, busca, mapa e metrô sem HUD por trás, título que cede à carga; praça às 13 h e às 22 h sem parede de nomes; e os textos ("solte E", "Esc › Amigos", estações com lugar, legenda do mapa, "SÓ NO LINUX"). Docs pelo Haiku, conferidos pelo Opus: a ROADMAP tirou a Leitura das próximas e renumerou (O momento uau é a 1), com as âncoras consertadas; o README foi corrigido num ponto (no Linux sem o compositor compilado, a mesa também diz "SÓ NO LINUX").
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub no Windows. Na casa, olhe a estante: cada caixa mostra a capa inteira.
