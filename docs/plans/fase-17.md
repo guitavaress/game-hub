@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 feita: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). Próximo: 17.1b (captura da casa, trilha B) e 17.2 (a casa).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. Em andamento: 17.2 (a casa, trilha A).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -45,7 +45,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - **Opus:** lê as imagens e escreve `docs/design/uau-referencias.md` (só texto) com o manifesto de assets candidatos.
   - **"Antes":** capturas com `tools/capturar_pontos.gd` (praça e mirante, 13 h e 22 h, 200 falsos, Alta) e da casa (ferramenta da 17.1b), e a medida `medir_desempenho.gd -- 200 alta 22`. Tudo na pasta temporária da sessão.
   - Commit: `Docs: Fase 17.1, referências do uau`
-- [ ] **17.1b Captura da casa** (pequena · trilha B, Sol · medium, worktree `worktree/uau-b`) — em paralelo com a 17.1.
+- [x] **17.1b Captura da casa** (`1ff46c4`, merge `fefe6b1`) (pequena · trilha B, Sol · medium, worktree `worktree/uau-b`) — em paralelo com a 17.1.
   - Arquivos: `tools/capturar_casa.gd` (novo; mesmos argumentos do `capturar_pontos.gd` mais o tema `loft|cabana`; pontos `nascer`, `janela`, `sofa`, `estante`; recusa pasta dentro do repositório; ganchos `_prepare()`/`_points()` para amostras), `tests/check_capture_home.gd` (novo).
   - Teste: `check_capture_home check_capture_points`.
   - Commit: `Fase 17.1b: captura da casa por pontos`
@@ -116,6 +116,9 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
 - 2026-11-03 (17.1): as capturas do "antes" ficam em `game-hub-referencias\uau\antes\`, fora do repositório, e não na pasta temporária. Da 17.2 à 17.8 todas comparam com elas.
   - A casa fica sem "antes" até a 17.1b. Por isso a 17.2 não começa antes da 17.1b.
   - As metas da 17.5 (quase preto < 35%) e da 17.6 (abrir a faixa de claro e escuro) estão em `uau-referencias.md`.
+- 2026-11-03 (17.1b, merge `fefe6b1`): a trilha B (Sol) entregou `tools/capturar_casa.gd` e `tests/check_capture_home.gd`. O Opus leu o diff; depois do merge, `check_capture_home check_capture_points` deram ok.
+  - O "antes" da casa (loft, 13 h e 22 h, Alta, 200 falsos; pontos nascer, janela, sofa e estante) está em `game-hub-referencias\uau\antes\`. A 17.2 já pode começar.
+  - Worktree e branch `uau-b` apagados depois do merge.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
