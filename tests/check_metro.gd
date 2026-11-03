@@ -164,6 +164,22 @@ func _check_names_and_details(stops: Array, by_color: Dictionary, categories: No
 			for stop in by_color[neon]:
 				print("   ", stop.stop_name, " | ", stop.detail)
 	_check("a soma dos \"jogos perto\" de cada bairro = as portas dele (erros: %d)" % wrong, wrong == 0)
+	# Ordem: dentro do bairro, a mais perto da praça (Central) vem primeiro e é
+	# a "perto da praça"; o painel e os atalhos 1-9 seguem o "order".
+	var plaza := Vector2(stops[0].position.x, stops[0].position.z)
+	var out_of_order := 0
+	for neon: Color in by_color:
+		var line: Array = by_color[neon].duplicate()
+		line.sort_custom(func(a, b) -> bool: return a.order < b.order)
+		if not line[0].detail.begins_with("perto da praça"):
+			out_of_order += 1
+		for k in range(1, line.size()):
+			var before := Vector2(line[k - 1].position.x, line[k - 1].position.z).distance_to(plaza)
+			var after := Vector2(line[k].position.x, line[k].position.z).distance_to(plaza)
+			if after < before:
+				out_of_order += 1
+				print("   fora de ordem: ", line[k].stop_name, " | ", line[k].detail)
+	_check("estações do bairro em ordem crescente de distância da praça (erros: %d)" % out_of_order, out_of_order == 0)
 
 
 ## A boca de cada estação não encosta em nada sólido nem em poste, placa,
