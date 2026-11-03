@@ -97,6 +97,7 @@ func _run() -> void:
 	app.set_quality("leve")
 	await process_frame
 	_check("na Leve, desliga", not environment.ssil_enabled)
+	_check_loft_objects(home)
 	home.queue_free()
 	await process_frame
 
@@ -127,6 +128,88 @@ func _run() -> void:
 	restored.close()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
+
+
+## Os objetos do loft (17.4): as peças existem, tudo fica na camada da casa e
+## nada tampa a passagem (o nascer, a porta e a frente de cada móvel de todas
+## as disposições do catálogo).
+func _check_loft_objects(home: Node3D) -> void:
+	print("== os objetos do loft (17.4) ==")
+	var pieces: Dictionary[String, Array] = {}
+	for child in home.get_children():
+		if child is Node3D and child.has_meta("loft_piece") and not child is Light3D:
+			var kind: String = child.get_meta("loft_piece")
+			if not pieces.has(kind):
+				pieces[kind] = []
+			pieces[kind].append(child)
+	var counts := {}
+	for kind in pieces:
+		counts[kind] = pieces[kind].size()
+	print("    peças: ", counts)
+	_check("sofá, mesinha, tapete, aparador, quadro e 4 plantas", counts.get("sofa", 0) == 1 and counts.get("mesinha", 0) == 1
+			and counts.get("tapete", 0) == 1 and counts.get("aparador", 0) == 1 and counts.get("quadro", 0) == 1
+			and counts.get("planta", 0) == 4)
+	_check("a manta está no sofá", home.find_child("SofaThrow", true, false) != null
+			and (home.find_child("SofaThrow", true, false) as Node).get_meta("loft_piece", "") == "manta")
+	var leaves := home.find_children("PlantLeaves", "MeshInstance3D", true, false)
+	_check("5 plantas com folhas (a pendente do aparador conta) (%d)" % leaves.size(), leaves.size() == 5
+			and leaves.all(func(m: MeshInstance3D) -> bool: return m.mesh != null and m.mesh.get_faces().size() > 300))
+	_check("a captura do sofá acha o assento", home.get_node_or_null("SofaSeat") != null)
+
+	var outside: Array[String] = []
+	var drawn := 0
+	for kind in pieces:
+		for piece: Node3D in pieces[kind]:
+			var parts := piece.find_children("*", "GeometryInstance3D", true, false)
+			if piece is GeometryInstance3D:
+				parts.append(piece)
+			for node in parts:
+				drawn += 1
+				if (node as GeometryInstance3D).layers != int(home.get("INTERIOR_LAYER_MASK")):
+					outside.append(String(node.name))
+	_check("as %d malhas dos objetos ficam na camada 20 (o sol do mundo não as acende) %s" % [drawn, str(outside.slice(0, 5))],
+			drawn > 20 and outside.is_empty())
+
+	# A passagem, no chão (x, z) da casa.
+	var zones: Array[Rect2] = []
+	var spawn_spot: Vector3 = home.get("SPAWN_SPOT")
+	var room: Vector3 = home.get("ROOM_SIZE")
+	var spawn := Vector2(spawn_spot.x, spawn_spot.z)
+	zones.append(Rect2(spawn - Vector2(0.5, 0.5), Vector2(1.0, 1.0)))
+	zones.append(Rect2(Vector2(-0.7, 2.8), Vector2(1.4, room.z / 2.0 - 2.8)))  # a porta da rua
+	var anchors := {String(home.get("COMPUTER_ANCHOR")): true}
+	for layout in Profiles.home_catalog().layouts:
+		for id in layout.placements:
+			anchors[layout.placements[id]] = true
+	for anchor in anchors:
+		# Na frente do móvel: 2,4 m de largura, de 0,3 a 1,8 m da parede.
+		var place: Transform3D = home.get_anchor_transform(anchor)
+		var a := place * Vector3(-1.2, 0.0, 0.3)
+		var b := place * Vector3(1.2, 0.0, 1.8)
+		zones.append(Rect2(Vector2(minf(a.x, b.x), minf(a.z, b.z)), Vector2(absf(a.x - b.x), absf(a.z - b.z))))
+	var blocking: Array[String] = []
+	for kind in pieces:
+		if kind == "tapete":
+			continue  # o tapete é chão
+		for piece: Node3D in pieces[kind]:
+			var bounds := _floor_bounds(home, piece)
+			for zone in zones:
+				if bounds.intersects(zone):
+					blocking.append("%s em %s" % [piece.name, zone])
+	_check("nada tampa a passagem (%d zonas) %s" % [zones.size(), str(blocking)], zones.size() >= 6 and blocking.is_empty())
+
+
+## A área no chão (x, z, nas coordenadas da casa) que um objeto ocupa.
+func _floor_bounds(home: Node3D, piece: Node3D) -> Rect2:
+	var result := Rect2()
+	var first := true
+	for node in piece.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		var box: AABB = home.global_transform.affine_inverse() * mesh.global_transform * mesh.get_aabb()
+		var flat := Rect2(Vector2(box.position.x, box.position.z), Vector2(box.size.x, box.size.z))
+		result = flat if first else result.merge(flat)
+		first = false
+	return result
 
 
 ## A cabana: o perfil e a casa montada com ele.

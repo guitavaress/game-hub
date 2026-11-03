@@ -125,6 +125,20 @@ Loft, 22 h, Alta, 200 jogos falsos, mesma régua. O "depois" está em `game-hub-
 - O claro e escuro abriu: as poças e as luminárias chegam mais alto, e o meio da sala ficou em meio-tom.
 - No sofá e na janela, o quase preto subiu. É o canto de estar longe das poças e o céu do shader da janela, quase preto. A 17.3 troca a vista; a 17.4 põe objetos.
 
+## A casa: os objetos da 17.4
+Loft, 22 h, Alta, 200 jogos falsos, mesma régua (medida de novo nas imagens, por isso a 17.3.1 difere um pouco da tabela acima). O "depois" está em `game-hub-referencias\uau\depois-17.4\`, com os pontos de perto em `perto\` e a folha `folha_17.4.png`.
+
+| Ponto | Média (17.3.1 → 17.4) | 95% até | Quase preto |
+|---|---|---|---|
+| nascer | 38 → 38 | 86 → 87 | 38% → 39% |
+| sofá | 35 → 35 | 90 → 91 | 50% → 48% |
+| estante | 33 → 36 | 116 → 118 | 61% → 52% |
+| janela | 26 → 27 | 70 → 73 | 63% → 62% |
+| **Referência (casa)** | **51** | **122** | **26%** |
+
+- Os objetos quase não mexem na régua: eles enchem a sala, mas a luz é a mesma da 17.2. O quase preto que sobra está no teto, no canto do computador e na janela à noite (a cidade escura, que é da 17.5).
+- Nada foi baixado: tudo é código (`HomeShapes`, `HomePlants`, dois shaders novos).
+
 ## Manifesto de assets candidatos (CC0, Poly Haven, glTF 1k)
 **Nada é baixado sem a permissão do dono**, como manda o AGENTS.md. A pergunta é feita na subetapa que precisar, depois de tentar por código. Os tamanhos são do download de 1k, conferidos pela API do Poly Haven em 2026-11-03. Fica fora: livro decorativo (`decorative_book_set_01`), que não tem glTF.
 

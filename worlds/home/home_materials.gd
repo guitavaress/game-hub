@@ -108,6 +108,51 @@ static func metal(color: Color, roughness: float = 0.45) -> StandardMaterial3D:
 	return _cache[key]
 
 
+## Tecido com a cor de cada vértice (Fase 17.4): várias almofadas de cores
+## diferentes numa malha só (HomeShapes.Batch). "two_sided" para o pano fino
+## (a manta), que se vê dos dois lados.
+static func fabric_tinted(two_sided: bool = false) -> StandardMaterial3D:
+	var key := "fabric_tinted|%s" % two_sided
+	if not _cache.has(key):
+		var material := fabric(Color.WHITE).duplicate() as StandardMaterial3D
+		material.vertex_color_use_as_albedo = true
+		material.vertex_color_is_srgb = true  # as cores são escritas como as do albedo
+		if two_sided:
+			material.cull_mode = BaseMaterial3D.CULL_DISABLED
+			material.uv1_scale = Vector3.ONE * 11.0  # a trama do tricô, mais miúda
+		_cache[key] = material
+	return _cache[key]
+
+
+## Cor de cada vértice, fosca ou lisa (cerâmica, livros, objetos pequenos).
+static func vertex_colored(roughness: float = 0.7, metallic: float = 0.0) -> StandardMaterial3D:
+	var key := "vertex|%.2f|%.2f" % [roughness, metallic]
+	if not _cache.has(key):
+		var material := StandardMaterial3D.new()
+		material.vertex_color_use_as_albedo = true
+		material.vertex_color_is_srgb = true
+		material.roughness = roughness
+		material.metallic = metallic
+		_cache[key] = material
+	return _cache[key]
+
+
+## Folha de planta: a cor de cada vértice, dos dois lados, e um pouco da luz
+## atravessando a folha (backlight) quando a lâmpada fica atrás dela.
+static func leaf() -> StandardMaterial3D:
+	var key := "leaf"
+	if not _cache.has(key):
+		var material := StandardMaterial3D.new()
+		material.vertex_color_use_as_albedo = true
+		material.vertex_color_is_srgb = true
+		material.roughness = 0.55
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		material.backlight_enabled = true
+		material.backlight = Color(0.18, 0.26, 0.06)
+		_cache[key] = material
+	return _cache[key]
+
+
 ## Cor fosca simples.
 static func matte(color: Color, roughness: float = 0.8) -> StandardMaterial3D:
 	var key := "matte|%s|%.2f" % [color.to_html(), roughness]
