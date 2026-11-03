@@ -25,8 +25,10 @@ extends Node
 ## view_mix e view_tan_half_fov (veja worlds/home/home_window.gdshader). Um
 ## shader sem view_texture (a floresta da cabana) deixa o componente parado.
 ##
-## Quem usa diz quais camadas a câmera do retrato não vê (hidden_layers): a
-## casa passa a camada dela, para não aparecer no retrato do mundo.
+## A câmera do retrato não vê duas listas de camadas: as de quem usa a janela
+## (hidden_layers: a casa passa a camada dela, para não aparecer no retrato do
+## mundo) e as do ponto de vista (WindowViewPoint.hidden_layers: o que o mundo
+## não quer no retrato, como letreiros que só valem para quem anda na rua).
 
 ## Um retrato novo ficou pronto (o primeiro ou o de uma fase nova do dia).
 signal portrait_ready
@@ -216,6 +218,8 @@ func _capture(point: Node3D) -> void:
 	_camera.near = NEAR
 	_camera.far = FAR
 	_camera.cull_mask &= ~hidden_layers
+	if point is WindowViewPoint:
+		_camera.cull_mask &= ~(point as WindowViewPoint).hidden_layers
 	_camera.transform = point.global_transform
 	_viewport.add_child(_camera)
 	_camera.current = true

@@ -1127,6 +1127,8 @@ func _add_window_view_point(half: float) -> void:
 	var point := WindowViewPoint.new()
 	point.name = "WindowViewPoint"
 	point.zoom = WINDOW_VIEW_ZOOM
+	# As placas flutuantes dos bairros ficam fora do retrato (na rua seguem iguais).
+	point.hidden_layers = DistrictSign.RENDER_LAYER_MASK
 	# Girar em Y leva o -Z (a frente da câmera) para "toward"; depois desce.
 	var yaw := atan2(-toward.x, -toward.y)
 	point.basis = Basis.from_euler(Vector3(deg_to_rad(WINDOW_VIEW_PITCH_DEGREES), yaw, 0.0))

@@ -9,6 +9,8 @@ extends SceneTree
 ##     nunca a cada aviso de hora; sem ponto, volta a vista de reserva, mesmo
 ##     se o ponto sair no meio de uma captura;
 ##   - o shader da floresta (cabana) não usa o retrato;
+##   - as camadas escondidas pelo ponto (WindowViewPoint.hidden_layers) também
+##     somem da câmera do retrato, junto com a da casa;
 ##   - na cidade: um ponto só, posto quando ela fica pronta, alto e virado para
 ##     a montanha; a casa tira um retrato só;
 ##   - nenhum arquivo de worlds/home nem de components cita worlds/city.
@@ -20,6 +22,8 @@ const CITY_SHADER := "res://worlds/home/home_window.gdshader"
 const FOREST_SHADER := "res://worlds/home/home_window_forest.gdshader"
 ## A camada da casa (Home.INTERIOR_LAYER = 20).
 const HOME_LAYER_MASK: int = 1 << 19
+## Uma camada que o MUNDO esconde do retrato (aqui a 18, como as placas da cidade).
+const WORLD_HIDDEN_MASK: int = 1 << 17
 
 var failures := 0
 ## O que o teste viu no momento em que o quadro do retrato entrou na cena.
@@ -73,6 +77,7 @@ func _check_component() -> void:
 	print("== com ponto ==")
 	var point = load(POINT_SCRIPT).new()
 	point.zoom = 1.2
+	point.hidden_layers = WORLD_HIDDEN_MASK
 	point.position = Vector3(0.0, 60.0, 150.0)
 	world.add_child(point)
 	await _frames(3)
@@ -82,6 +87,8 @@ func _check_component() -> void:
 		_check("o quadro do retrato desenha uma vez só (UPDATE_ONCE)", first["mode"] == SubViewport.UPDATE_ONCE)
 		_check("o quadro divide o mundo da cena", first["shares_world"])
 		_check("a câmera do retrato não vê a camada da casa", first["mask"] & HOME_LAYER_MASK == 0 and first["mask"] != 0)
+		_check("a câmera do retrato não vê as camadas que o ponto esconde (e segue sem a da casa)",
+				first["mask"] & WORLD_HIDDEN_MASK == 0 and first["mask"] & HOME_LAYER_MASK == 0 and first["mask"] & 1 == 1)
 		_check("a câmera fica no ponto e fecha a lente com o zoom",
 				first["origin"].is_equal_approx(point.global_position) and first["fov"] < view.FOV_X_DEGREES)
 	_check("depois do retrato, o quadro é desfeito", _portrait_viewports(view) == 0)
@@ -186,6 +193,7 @@ func _check_city() -> void:
 	if points.size() == 1:
 		var point: Node3D = points[0]
 		_check("o ponto fica alto, acima dos letreiros dos bairros", point.global_position.y >= 30.0)
+		_check("o ponto esconde a camada das placas dos bairros", point.hidden_layers == DistrictSign.RENDER_LAYER_MASK)
 		var trails := get_nodes_in_group(&"mountain_trail")
 		if not trails.is_empty():
 			var tower: Vector3 = trails[0].tower_spot()
@@ -201,8 +209,27 @@ func _check_city() -> void:
 	home.set_night(0.02)
 	await _frames(3)
 	_check("a casa refaz o retrato só na troca de fase", view.capture_count == 2)
+	_check_sign_layers(city)
 	city.queue_free()
 	await _frames(3)
+
+
+## Toda a geometria de uma placa de bairro fica só na camada das placas.
+func _check_sign_layers(city: Node) -> void:
+	var signs := city.find_children("DistrictSign_*", "Node3D", false, false)
+	var meshes := 0
+	var all_on_layer := true
+	for district_sign in signs:
+		for node in district_sign.get_children():
+			if node is GeometryInstance3D:
+				meshes += 1
+				if (node as GeometryInstance3D).layers != DistrictSign.RENDER_LAYER_MASK:
+					all_on_layer = false
+	_check("há placas de bairro, cada uma com placa, filete e nome (3 peças)", not signs.is_empty() and meshes == signs.size() * 3)
+	_check("toda a geometria das placas fica só na camada das placas",
+			all_on_layer and DistrictSign.RENDER_LAYER_MASK == 1 << 17)
+	_check("a camada das placas não é a da casa nem a do espelho",
+			DistrictSign.RENDER_LAYER_MASK & (HOME_LAYER_MASK | (1 << 18)) == 0)
 
 
 # --- A regra 1 ------------------------------------------------------------------

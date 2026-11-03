@@ -18,6 +18,11 @@ const PLATE_HEIGHT: float = 3.0
 const PLATE_DEPTH: float = 0.15
 const PLATE_COLOR: Color = Color("16181D")
 const STRIP_HEIGHT: float = 0.12
+## Camada de render das placas (a 18). Só elas ficam aqui: assim a janela da casa
+## consegue tirá-las do retrato da cidade, e na rua (câmera e luzes veem todas as
+## camadas, menos a da casa e a do espelho) elas continuam iguais.
+const RENDER_LAYER: int = 18
+const RENDER_LAYER_MASK: int = 1 << (RENDER_LAYER - 1)
 
 var _label: Label3D
 var _strip_material: StandardMaterial3D
@@ -41,6 +46,7 @@ func setup(text: String, neon: Color, text_height: float = TEXT_HEIGHT) -> void:
 	metal.roughness = 0.4
 	plate.material_override = metal
 	plate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	plate.layers = RENDER_LAYER_MASK
 	add_child(plate)
 
 	# Filete de néon na borda de baixo, na frente da placa.
@@ -54,6 +60,7 @@ func setup(text: String, neon: Color, text_height: float = TEXT_HEIGHT) -> void:
 	_strip_material.emission = neon
 	strip.material_override = _strip_material
 	strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	strip.layers = RENDER_LAYER_MASK
 	strip.position = Vector3(0.0, -plate_size.y / 2.0 + STRIP_HEIGHT / 2.0, plate_size.z / 2.0 + 0.02)
 	add_child(strip)
 
@@ -64,6 +71,7 @@ func setup(text: String, neon: Color, text_height: float = TEXT_HEIGHT) -> void:
 	_label.font_size = FONT_SIZE
 	_label.pixel_size = pixel_size
 	_label.outline_size = 0
+	_label.layers = RENDER_LAYER_MASK
 	_label.position = Vector3(0.0, STRIP_HEIGHT / 2.0, plate_size.z / 2.0 + 0.03)
 	add_child(_label)
 

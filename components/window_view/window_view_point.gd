@@ -14,6 +14,10 @@ extends Marker3D
 ## Aproximação da vista (1 = como a olho nu; 1,2 = tudo 20% maior na janela,
 ## como uma lente mais fechada). Quem escolhe o enquadramento é o mundo.
 @export_range(1.0, 3.0) var zoom: float = 1.0
+## Camadas de render que o MUNDO não quer no retrato (máscara de bits). Serve
+## para o que só faz sentido para quem anda na rua, como letreiros flutuantes
+## que, vistos de longe pela janela, parecem etiquetas de mapa. Na rua, nada muda.
+@export_flags_3d_render var hidden_layers: int = 0
 
 
 func _enter_tree() -> void:
