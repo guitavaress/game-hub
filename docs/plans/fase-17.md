@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. Próxima: 17.3 (a cidade de verdade pela janela).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. Próxima: 17.4 (objetos da casa e a sua aprovação da amostra).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -54,7 +54,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Arquivos: `worlds/home/home.gd`, `worlds/home/themes/loft_decor.gd`, `profiles/homes/loft.tres`, `autoload/graphics_quality.gd` (SSIL), `tests/check_home_profile.gd`, `tests/fixtures/casa_atual.json` (sai).
   - Teste: bateria completa; captura antes/depois da casa às 22 h; `MEDIDA_CASA` no desktop.
   - Commit: `Fase 17.2: a casa com luz quente e contraste`
-- [ ] **17.3 A cidade de verdade pela janela** (grande · trilha A, Opus · high · revisão: Astra, `/codex:adversarial-review`, porque cria um contrato entre a casa e o mundo e um shader novo)
+- [x] **17.3 A cidade de verdade pela janela** (`e0c497e`) (grande · trilha A, Opus · high · revisão: Astra, `/codex:adversarial-review`, porque cria um contrato entre a casa e o mundo e um shader novo)
   - Arquivos: `components/window_view/window_view.gd` (novo), `worlds/home/home_window.gdshader` (amostra o retrato; o procedural fica de reserva), `worlds/home/home.gd` (usa o componente), `worlds/city/city.gd` (põe o ponto no grupo `window_view_point`), `tests/check_window_view.gd` (novo: sem ponto → procedural; com ponto → `UPDATE_ONCE`, sem a camada 20, refeito só na troca de fase do dia; a casa não referencia `worlds/city`).
   - Captura: a janela às 13 h e às 22 h, e o momento em que a cidade acende.
   - Commit: `Fase 17.3: a janela mostra a cidade de verdade`
@@ -145,6 +145,31 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
     - a caminhada ficou em 152,2 (antes 152,8).
   - **De dia (13 h)** a casa ficou parecida com antes, com as luminárias acesas. Em volta da janela ficou mais escuro (40% quase preto, antes 24%): fica para a 17.9.
 - 2026-11-03: o dono aprovou a 17.2, sabendo que a diferença ainda é modesta: a janela (17.3) e os objetos (17.4) são o que mais pesa contra a referência. Os `.uid` da 17.1b entraram em `4ce7a2d`.
+
+- 2026-11-03 (17.3): a janela mostra a cidade de verdade.
+  - **O contrato:** `components/window_view/` tem o `WindowView` (tira o retrato) e o `WindowViewPoint` (o ponto que o mundo oferece, no grupo `window_view_point`). O ponto avisa as janelas pelo grupo `window_view`, no fim do quadro. A casa usa o `WindowView` e não cita `worlds/city`; o `check_window_view` confere a pasta da casa e a dos componentes.
+  - **O ponto da cidade:** do lado oposto ao da montanha (mira a torre do mirante), a 0,92 do raio da cidade e a 0,4 do raio de altura (70 m com 200 jogos), descendo 5°, com zoom 1,2. Escolhido por capturas: mais baixo, os letreiros dos bairros tampavam a vista; assim, a montanha e o céu ficam no terço de cima da janela. Sem montanha, olha para o norte.
+  - **O retrato:** lente de 100° numa imagem 2:1 (2048 × 1024 na Alta, 1536 × 768 na Média, 1024 × 512 na Leve), com o mesmo MSAA da tela, para os shaders compilados servirem aos dois (`GraphicsQuality.apply_to_window_view`). O SubViewport é desfeito depois de cada retrato, e a imagem vem da placa sem travar (`texture_get_data_async`): a cópia comum custava ~18 ms.
+  - **As fases do dia:** dia abaixo de 0,25 de "noite", pôr do sol até 0,85, noite daí para cima. Na troca, o retrato velho se funde no novo em 1,5 s.
+  - **A entrada (3,5 s):** à noite, a vista de reserva se apaga e a cidade acende, as luzes (néon, janelas) antes do resto; de dia, troca simples. Sem isso, a cidade de verdade (mais escura que a reserva) parecia "apagar".
+  - **O vidro:** véu frio, reflexo quente da sala (mais forte de lado) e as 4 lâmpadas mais perto da janela refletidas, acompanhando quem anda. Olhando de raspão, fora da lente do retrato, o vidro fecha num véu escuro.
+  - **Ganho do retrato à noite: 2,2.** A cidade à noite ainda é quase preta, e sem ganho a janela virava um quadro preto. **A 17.5 precisa rever esse ganho** quando clarear a noite da cidade.
+  - **Fora da lista do plano:** `autoload/graphics_quality.gd` (o tamanho e as bordas do retrato) e `tools/capturar_casa.gd` (espera a janela assentar antes de fotografar, senão a captura sai no meio do fade).
+  - **Os letreiros dos bairros** giram para a câmera do jogador; no retrato eles saem no ângulo do momento da foto (de frente, de dia, na captura). Fica assim: letreiros estão fora do escopo (B4).
+  - **Números** (Alta, 200 jogos; média, 95% até e quase preto):
+    - 13 h, o vidro: 138, 184 e 6% → 142, 195 e 6%. A montanha nevada e os bairros aparecem; o resto da sala não mudou.
+    - 22 h, o vidro: 42, 174 e 8% → 29, 58 e 58%. A reserva era uma parede de janelas acesas; a cidade de verdade à noite é escura (é a C1, da 17.5). O ponto janela inteiro: 32, 77 e 43% → 28, 74 e 59%.
+  - **Medida no desktop** (`200 alta 22`): caminhada 151,8 FPS (antes 152,8; −0,7%), p99 11 ms; casa e espelho no teto (165,0); montanha 162,8. Montagem: pior quadro 88 ms, como antes.
+  - **O quadro do retrato:**
+    - o primeiro, logo depois da cidade pronta, leva **~87 ms** (antes da 17.3, esse quadro levava ~37 ms). Em troca, o primeiro quadro na rua caiu de ~35 ms para ~8 ms;
+    - é o primeiro desenho da cidade, que antes acontecia ao sair pela porta, escondido no fade. Medido: não é o tamanho da imagem (128 × 64 custa igual), nem o MSAA, nem os efeitos de tela. Diluir em fatias deu dois trancos (~60 e ~48 ms) e foi descartado;
+    - **pendência para o dono:** é um tranco visível, uma vez por abertura, junto do aviso "A cidade está pronta" (que já tem quadros de 89, 47 e 23 ms). Aceitar, ou estudar na 17.10 aquecer os shaders da cidade durante a montagem;
+    - na troca de fase do dia: um quadro de ~13 ms.
+  - **Revisão do Astra** (`/codex:adversarial-review`, "needs-attention"): dois achados médios, os dois corrigidos.
+    - O ponto saindo no meio de uma captura fazia o retrato velho voltar. Agora uma "geração" invalida a captura, e o teste cobre.
+    - De muito de lado, a borda do retrato esticava numa coluna. Agora o ângulo é apertado aos poucos e, fora da lente, o vidro fecha num véu (conferido nas capturas `canto_mesa`, `canto_oeste` e `colado`).
+    - Ficou de fora a sugestão de um panorama ou várias vistas para cobrir todos os ângulos: custaria mais retratos, e de raspão o vidro de verdade já reflete mais do que mostra.
+  - **Capturas** em `game-hub-referencias\uau\depois-17.3`: os 4 pontos às 13 h e às 22 h, os 3 cantos e a pasta `acende` (a cidade acendendo, de 0 a 4 s, com a folha `folha_acende.png`).
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
