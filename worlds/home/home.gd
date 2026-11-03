@@ -20,6 +20,11 @@ extends Node3D
 ## INTERIOR_LAYER. O mundo tira essa camada do sol dele (light_cull_mask),
 ## para o sol não atravessar o telhado.
 ##
+## A vista da janela (Fase 17.3): um WindowView (components/window_view/) tira
+## um retrato do mundo de um ponto que o próprio mundo oferece (grupo
+## window_view_point), sem a camada da casa. A casa não sabe que mundo é esse;
+## sem ponto, a janela mostra a vista de reserva do shader.
+##
 ## Convenção: a origem fica no chão, no meio da sala. O norte (-Z) é a parede
 ## da janela; a porta da rua fica na parede sul (+Z).
 
@@ -38,6 +43,8 @@ const SPAWN_TURN_DEGREES: float = 35.0
 ## O janelão na parede norte (largura, altura) e a altura do meio dele.
 const WINDOW_SIZE: Vector2 = Vector2(5.2, 2.4)
 const WINDOW_CENTER_Y: float = 1.65
+## Quantas lâmpadas da sala aparecem refletidas no vidro (o shader aceita 4).
+const WINDOW_REFLECTED_LAMPS: int = 4
 
 ## O tema da casa (cores, materiais, luz, enfeite).
 var _profile: HomeProfile
@@ -51,6 +58,9 @@ var _neon_override: Color = Color(0, 0, 0, 0)
 var _environment: Environment
 var _front_door: TravelDoor
 var _window_material: ShaderMaterial
+var _window_glass: MeshInstance3D
+## O retrato do mundo para a janela (Fase 17.3).
+var _window_view: WindowView
 var _daylight: SpotLight3D
 ## 0 = dia, 1 = noite (a cidade avisa pelo grupo city_night).
 var _night: float = 1.0
@@ -63,11 +73,13 @@ func _ready() -> void:
 	add_to_group("city_night")
 	_read_choices()
 	_build_environment()
+	_build_window_view()
 	_build_front_door()
 	_build_shell()
 	_build_furniture()
 	_build_indoor_area()
 	_put_on_interior_layer(self)
+	_reflect_lamps_in_window()
 
 
 ## Onde (e para onde virado) o jogador aparece ao entrar em casa.
@@ -94,6 +106,8 @@ func set_night(night: float) -> void:
 	_night = clampf(night, 0.0, 1.0)
 	if _window_material != null:
 		_window_material.set_shader_parameter("night", _night)
+	if _window_view != null:
+		_window_view.set_night(_night)  # na troca de fase do dia, o retrato é refeito
 	if _daylight != null:
 		_daylight.light_energy = _profile.daylight_energy * (1.0 - _night)
 		_daylight.visible = _night < 0.98
@@ -104,6 +118,11 @@ func set_night(night: float) -> void:
 
 func get_night() -> float:
 	return _night
+
+
+## O retrato do mundo que a janela mostra (Fase 17.3).
+func get_window_view() -> WindowView:
+	return _window_view
 
 
 ## O tema de agora.
@@ -166,12 +185,14 @@ func _apply_choices() -> void:
 			node.queue_free()
 	_shell_nodes.clear()
 	_window_material = null
+	_window_glass = null
 	_daylight = null
 	_apply_profile_to_environment()
 	_build_shell()
 	for node in _shell_nodes:
 		_put_on_interior_layer(node)
 	_place_furniture()
+	_reflect_lamps_in_window()
 	if _system_panel != null:
 		_system_panel.set_accent(_neon_color())
 	set_night(_night)
@@ -263,6 +284,8 @@ func _build_window() -> void:
 	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	glass.position = Vector3(0.0, WINDOW_CENTER_Y, inner_z + 0.01)
 	add_child(glass)
+	_window_glass = glass
+	_window_view.set_material(_window_material)  # o tema da floresta não usa o retrato
 
 	var steel := _material_of(_profile.window_frame)
 	var half := WINDOW_SIZE / 2.0
@@ -289,6 +312,43 @@ func _build_window() -> void:
 	_daylight.rotation = Vector3(deg_to_rad(-30.0), 0.0, 0.0)  # para dentro (sul) e para baixo
 	add_child(_daylight)
 	set_night(_night)
+
+
+## O retrato do mundo para a janela: não faz parte da casca (fica entre as
+## trocas de tema, e o material novo recebe o retrato de agora). A câmera do
+## retrato não vê a camada da casa.
+func _build_window_view() -> void:
+	_window_view = WindowView.new()
+	_window_view.name = "WindowPortrait"
+	_window_view.hidden_layers = INTERIOR_LAYER_MASK
+	add_child(_window_view)
+
+
+## As lâmpadas da sala refletidas no vidro: as WINDOW_REFLECTED_LAMPS luzes mais
+## perto da janela (sem a luz do dia, que entra por ela), no espaço do vidro.
+## Uma luminária com duas luzes no mesmo lugar conta uma vez só.
+func _reflect_lamps_in_window() -> void:
+	if _window_material == null or _window_glass == null:
+		return
+	var lamps: Array[Vector3] = []
+	for light: Node in find_children("*", "Light3D", true, false):
+		var lamp := light as Light3D
+		if lamp == _daylight or not lamp.visible or lamp.light_energy < 0.5:
+			continue
+		var spot := _window_glass.to_local(lamp.global_position)
+		if spot.z <= 0.2:
+			continue  # atrás do vidro (ou encostada nele)
+		var repeated := false
+		for other in lamps:
+			repeated = repeated or other.distance_to(spot) < 0.5
+		if not repeated:
+			lamps.append(spot)
+	lamps.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.length() < b.length())
+	var packed := PackedVector4Array()
+	for i in WINDOW_REFLECTED_LAMPS:
+		packed.append(Vector4(lamps[i].x, lamps[i].y, lamps[i].z, 1.0) if i < lamps.size() else Vector4.ZERO)
+	_window_material.set_shader_parameter("reflection_lights", packed)
+	_window_material.set_shader_parameter("reflection_light_color", _profile.lamp_color)
 
 
 ## Porta da rua, na parede sul, com a frente para dentro da sala (de onde o

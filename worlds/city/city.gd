@@ -68,6 +68,19 @@ const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
 ## pouco à frente dela, olhando para o norte.
 const HOME_DOOR_SPOT: Vector3 = Vector3(6.0, 0.0, 12.2)
 const HOME_DOOR_ARRIVAL: Vector3 = Vector3(6.0, 0.1, 10.0)
+## A VISTA DA JANELA DA CASA (Fase 17.3): a cidade oferece um ponto de vista
+## (WindowViewPoint) do lado oposto ao da montanha, alto (acima dos letreiros
+## dos bairros, que de baixo tampam tudo), olhando a praça com a torre do
+## relógio, os néons dos bairros e, atrás, a montanha com a trilha e o mirante.
+## Sem montanha, olha para o norte. As distâncias são frações do raio da cidade
+## (o tamanho dela muda com a biblioteca), com um mínimo. A câmera desce um
+## pouco (o horizonte fica no quarto de cima da janela) e aproxima um pouco.
+const WINDOW_VIEW_REACH: float = 0.92
+const WINDOW_VIEW_HEIGHT: float = 0.4
+const WINDOW_VIEW_MIN_REACH: float = 70.0
+const WINDOW_VIEW_MIN_HEIGHT: float = 30.0
+const WINDOW_VIEW_PITCH_DEGREES: float = -5.0
+const WINDOW_VIEW_ZOOM: float = 1.2
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -224,6 +237,8 @@ func _ready() -> void:
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
 		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
+	# A cidade está pronta para ser vista: a janela da casa tira o retrato.
+	_add_window_view_point(half)
 	_is_ready = true
 	city_ready.emit()
 	# Uma troca de qualidade feita durante a montagem foi ignorada: confere agora.
@@ -1096,6 +1111,27 @@ func _build_home() -> void:
 
 func get_home() -> Home:
 	return _home
+
+
+## O ponto de vista da janela da casa (veja WINDOW_VIEW_REACH). Entra só com a
+## cidade pronta: até lá, a janela fica com a vista de reserva.
+func _add_window_view_point(half: float) -> void:
+	var toward := Vector2(0.0, -1.0)  # sem montanha: para o norte
+	var terrain := get_node_or_null("BackdropTerrain_%s" % _backdrop_district) as BackdropTerrain
+	if terrain != null:
+		var tower := terrain.tower_spot()
+		if Vector2(tower.x, tower.z).length() > 1.0:
+			toward = Vector2(tower.x, tower.z).normalized()
+	var reach := maxf(half * WINDOW_VIEW_REACH, WINDOW_VIEW_MIN_REACH)
+	var height := maxf(half * WINDOW_VIEW_HEIGHT, WINDOW_VIEW_MIN_HEIGHT)
+	var point := WindowViewPoint.new()
+	point.name = "WindowViewPoint"
+	point.zoom = WINDOW_VIEW_ZOOM
+	# Girar em Y leva o -Z (a frente da câmera) para "toward"; depois desce.
+	var yaw := atan2(-toward.x, -toward.y)
+	point.basis = Basis.from_euler(Vector3(deg_to_rad(WINDOW_VIEW_PITCH_DEGREES), yaw, 0.0))
+	point.position = Vector3(-toward.x * reach, height, -toward.y * reach)
+	add_child(point)
 
 
 func get_home_door() -> TravelDoor:

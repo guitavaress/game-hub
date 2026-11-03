@@ -24,6 +24,7 @@ const SIZE: Vector2i = Vector2i(1600, 900)
 const EYE_HEIGHT: float = 1.7
 ## Capas, sombras e exposição assentam depois de cada troca de hora ou lugar.
 const SETTLE_FRAMES: int = 90
+const WINDOW_WAIT_SECONDS: float = 8.0
 
 var _original_settings: Dictionary = {}
 
@@ -107,6 +108,7 @@ func _run() -> void:
 	var failed: bool = false
 	for hour: float in hours:
 		_set_hour(day_night, hour)
+		await _wait_window_view(home)
 		for point: Dictionary in points:
 			var eye: Vector3 = point["eye"]
 			var target: Vector3 = point["target"]
@@ -198,6 +200,19 @@ func _points(home: Node3D) -> Array[Dictionary]:
 
 
 ## Mesmo caminho do capturar_pontos: o relógio avisa a casa via city_night.
+## A vista da janela (Fase 17.3) tira o retrato quando a cidade fica pronta e
+## na troca de fase do dia, e o retrato entra com fade: espera ele assentar
+## (no máximo WINDOW_WAIT_SECONDS), para a captura não sair no meio do fade.
+func _wait_window_view(home: Node) -> void:
+	var view: Node = home.call("get_window_view") if home.has_method("get_window_view") else null
+	if view == null:
+		return
+	var started: int = Time.get_ticks_msec()
+	await process_frame
+	while not bool(view.call("is_settled")) and Time.get_ticks_msec() - started < WINDOW_WAIT_SECONDS * 1000.0:
+		await process_frame
+
+
 func _set_hour(day_night: Node, hour: float) -> void:
 	day_night.set("hour_offset", 0.0)
 	day_night.set("hour_offset", hour - float(day_night.call("current_hour")))
