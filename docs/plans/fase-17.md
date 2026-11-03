@@ -49,7 +49,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Arquivos: `tools/capturar_casa.gd` (novo; mesmos argumentos do `capturar_pontos.gd` mais o tema `loft|cabana`; pontos `nascer`, `janela`, `sofa`, `estante`; recusa pasta dentro do repositório; ganchos `_prepare()`/`_points()` para amostras), `tests/check_capture_home.gd` (novo).
   - Teste: `check_capture_home check_capture_points`.
   - Commit: `Fase 17.1b: captura da casa por pontos`
-- [ ] **17.2 A casa aconchegante, com o que existe** (grande · trilha A, Opus, sessão nova · high · revisão: você, pelas capturas)
+- [x] **17.2 A casa aconchegante, com o que existe** (`5be6c4a`) (grande · trilha A, Opus, sessão nova · high · revisão: você, pelas capturas)
   - Faz: luz em poças quentes (pendentes, abajur, néon), sombras nas luzes principais, SSIL na Alta, contraste de claro e escuro na sala; materiais e cores do loft ajustados pelas referências; tira o retrato fixo do `check_home_profile`.
   - Arquivos: `worlds/home/home.gd`, `worlds/home/themes/loft_decor.gd`, `profiles/homes/loft.tres`, `autoload/graphics_quality.gd` (SSIL), `tests/check_home_profile.gd`, `tests/fixtures/casa_atual.json` (sai).
   - Teste: bateria completa; captura antes/depois da casa às 22 h; `MEDIDA_CASA` no desktop.
