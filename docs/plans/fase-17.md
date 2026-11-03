@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.0 feita (branch e plano). 17.1: você gera de 3 a 5 referências em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
+- **Agora:** 17.1 feita: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). Próximo: 17.1b (captura da casa, trilha B) e 17.2 (a casa).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** aprovar a amostra (17.4); os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -40,7 +40,7 @@ O que o código tem hoje (exploração de 2026-11-02):
 Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, plano). Trilha B (Codex, worktree próprio, só os arquivos listados). Se a cota do ChatGPT acabar, o Sonnet faz as da B na trilha A.
 
 - [x] **17.0 Plano e branch** (só de docs · Opus) — a branch `fase-17` (veja o topo), este arquivo em `docs/plans/fase-17.md` e `Início.md` apontando para ele. Commit: `Docs: plano da Fase 17 (O momento uau)`
-- [ ] **17.1 Referências e o "antes"** (só de docs + capturas · você e o Opus · medium, sessão do coordenador)
+- [x] **17.1 Referências e o "antes"** (só de docs + capturas · você e o Opus · medium, sessão do coordenador)
   - **Você:** de 3 a 5 imagens em `C:\Projetos\game-hub-referencias\uau\` (`01_casa_noite`, `02_vista_janela`, `03_trilha_noite`, `04_mirante_noite`, `05_praca_noite` ou `05_cidade_dia`) e um `notas.txt` com uma frase por imagem: "gosto disso por causa de ___".
   - **Opus:** lê as imagens e escreve `docs/design/uau-referencias.md` (só texto) com o manifesto de assets candidatos.
   - **"Antes":** capturas com `tools/capturar_pontos.gd` (praça e mirante, 13 h e 22 h, 200 falsos, Alta) e da casa (ferramenta da 17.1b), e a medida `medir_desempenho.gd -- 200 alta 22`. Tudo na pasta temporária da sessão.
@@ -109,6 +109,13 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
 ## Decisões tomadas durante a fase
 - 2026-11-02: plano aprovado pelo dono (17.0). A `fase-17` saiu direto da `origin/main` (`c74d6ae`), sem passar pela `main` local, porque o `docs/.obsidian/app.json` alterado no checkout impedia trocar para ela; a `main` local foi só adiantada até a `origin/main`, e a `fase-17` não segue nenhuma branch remota.
 - 2026-11-02: amostra = a casa à noite com a janela; conteúdo da trilha e do mirante = cenário e a sua biblioteca juntos (respostas do dono no planejamento).
+- 2026-11-03 (17.1): as referências foram geradas pelo Opus no ComfyUI local, pela API (sem a interface).
+  - Modelo: o FLUX 3 Image Klein. Venceu o Z-Image Turbo, já instalado, numa comparação de 20 imagens.
+  - Para isso, o ComfyUI do dono foi atualizado (há branch de backup) e o Klein foi baixado (~11 GB, fora do repositório).
+  - O dono escolheu as cinco sugestões.
+- 2026-11-03 (17.1): as capturas do "antes" ficam em `game-hub-referencias\uau\antes\`, fora do repositório, e não na pasta temporária. Da 17.2 à 17.8 todas comparam com elas.
+  - A casa fica sem "antes" até a 17.1b. Por isso a 17.2 não começa antes da 17.1b.
+  - As metas da 17.5 (quase preto < 35%) e da 17.6 (abrir a faixa de claro e escuro) estão em `uau-referencias.md`.
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
