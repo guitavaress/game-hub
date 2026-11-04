@@ -48,7 +48,7 @@ A régua é a luminância de 0 a 255 (preto a branco), medida em toda a imagem.
 - **Reflexo no chão molhado** só fora de casa. Ele dobra a luz dos postes e do néon sem acrescentar fontes.
 
 ### Densidade e materiais
-- **Casa:** tudo encostado nas paredes, com o meio livre: estante cheia, sofá com manta e almofadas, mesa de centro com caneca e livros, 3–4 plantas, tapete. Parede de tijolo à vista, chão de madeira encerado (seco), tecido fosco.
+- **Casa:** cantos cheios e passagens livres (17.4b; antes, "tudo encostado nas paredes, com o meio livre"): o canto de estar é um grupo no canto, com o sofá encostado e visto de frente; estante cheia, sofá com manta e almofadas, mesa de centro com caneca e livros, 3–4 plantas, tapete. Parede de tijolo à vista, chão de madeira encerado (seco), tecido fosco.
 - **Fora:** madeira escura e gasta, pedra, neve azulada; os metais com brilho (luneta de latão).
 - **Leitura de longe:** marcos altos e acesos (torres), caminhos marcados por fileiras de luz (lanternas da trilha, postes da praça).
 
