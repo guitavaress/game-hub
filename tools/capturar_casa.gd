@@ -92,6 +92,9 @@ func _run() -> void:
 	var camera: Camera3D = Camera3D.new()
 	camera.fov = player_camera.fov
 	camera.far = player_camera.far
+	# Como a do jogador: sem o corpo que só o espelho enxerga (17.4b; perto do
+	# espelho, a captura saía de dentro da cabeça dele).
+	camera.cull_mask = player_camera.cull_mask
 	camera.environment = home.call("get_environment")
 	frame.add_child(camera)
 	camera.make_current()
@@ -99,6 +102,7 @@ func _run() -> void:
 	var twin: Camera3D = Camera3D.new()
 	twin.fov = camera.fov
 	twin.far = camera.far
+	twin.cull_mask = camera.cull_mask
 	twin.environment = camera.environment
 	city.add_child(twin)
 	twin.make_current()
@@ -176,7 +180,7 @@ func _points(home: Node3D) -> Array[Dictionary]:
 	var spawn: Transform3D = home.call("get_spawn_transform")
 	var eye: Vector3 = spawn.origin + home.global_basis.y * (EYE_HEIGHT - home.to_local(spawn.origin).y)
 	var points: Array[Dictionary] = [{"name": "nascer", "eye": eye, "target": eye - spawn.basis.z}]
-	var window: Vector3 = Vector3(0.0, float(home.get("WINDOW_CENTER_Y")), -room.z / 2.0)
+	var window: Vector3 = Vector3(float(home.get("WINDOW_CENTER_X")), float(home.get("WINDOW_CENTER_Y")), -room.z / 2.0)
 	# Um terço da profundidade atual dá 3 m e enquadra toda a janela.
 	points.append({"name": "janela", "eye": home.to_global(window + Vector3.BACK * (room.z / 3.0)),
 		"target": home.to_global(window + Vector3.BACK * float(home.get("WALL_THICKNESS")))})

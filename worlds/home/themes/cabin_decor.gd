@@ -1,23 +1,35 @@
 extends HomeDecor
-## O enfeite da CABANA (Fase 13.12): a lareira de pedra no canto sudoeste, com
-## fogo que tremula, duas poltronas de tecido viradas para ela sobre um tapete,
-## lampiões de ferro pendurados nas vigas e um vaso com um arbusto no canto
-## noroeste. Nada é baixado: a pedra é a PavingStones070 (ambientCG) que o
-## projeto já tem, o arbusto é do Kenney Nature Kit e o fogo é um shader.
+## O enfeite da CABANA (Fase 13.12): a lareira de pedra, com fogo que tremula,
+## duas poltronas de tecido viradas para ela sobre um tapete, lampiões de ferro
+## pendurados nas vigas e um vaso com um arbusto. Nada é baixado: a pedra é a
+## PavingStones070 (ambientCG) que o projeto já tem, o arbusto é do Kenney
+## Nature Kit e o fogo é um shader.
 ##
-## As peças não tampam nenhum lugar pronto dos móveis (Home.ANCHORS), nem a
-## porta, nem a janela: a lareira fica na parede oeste, entre o lugar "oeste"
-## (até z = 2) e o "sul_esquerda" (a partir de z = 4,2). Cada peça grande é um
-## nó com a marca "cabin_piece" (o teste acha por ela, e não pelo nome).
+## Desde a sala de 9 x 7 m (Fase 17.4b), a lareira fica no canto de estar da
+## parede norte (Home.LIVING_CORNER_WIDTH, o mesmo canto do sofá no loft), com
+## o vaso no canto: as paredes oeste e leste são dos móveis. As
+## peças não tampam os móveis de nenhuma disposição, nem a porta, nem a janela.
+## Cada peça grande é um nó com a marca "cabin_piece" (o teste acha por ela).
+## O tratamento da cabana (o aconchego) é da 17.9; aqui ela só cabe.
 
 const RUG_SHADER: Shader = preload("res://worlds/home/home_rug.gdshader")
 const BUSH_SCENE: PackedScene = preload("res://assets/kenney/nature-kit/plant_bush.glb")
 const CRACKLE_SOUND: AudioStream = preload("res://assets/generated/fire_crackle.wav")
 
-## A lareira: encostada na parede oeste, com o meio em z = FIREPLACE_Z.
-const FIREPLACE_Z: float = 3.1
+## O vaso: largura do arbusto, no canto noroeste (a PIECE_GAP das paredes).
+const PLANT_WIDTH: float = 0.7
+const PIECE_GAP: float = 0.05
+const PLANT_SPOT: Vector2 = Vector2(-Home.ROOM_SIZE.x / 2.0 + PIECE_GAP + PLANT_WIDTH / 2.0,
+		-Home.ROOM_SIZE.z / 2.0 + PIECE_GAP + PLANT_WIDTH / 2.0)
+## A lareira: encostada na parede norte, ao lado do vaso (o consolo é 0,2 m
+## mais largo que ela). As poltronas ficam a ARMCHAIR_FROM_WALL da parede e a
+## ARMCHAIR_SPREAD do meio dela, para os lados: longe da parede oeste, que é
+## dos móveis.
 const FIREPLACE_WIDTH: float = 1.8
 const FIREPLACE_DEPTH: float = 0.7
+const FIREPLACE_X: float = PLANT_SPOT.x + PLANT_WIDTH / 2.0 + PIECE_GAP + (FIREPLACE_WIDTH + 0.2) / 2.0
+const ARMCHAIR_FROM_WALL: float = 1.5
+const ARMCHAIR_SPREAD: float = 0.55
 ## Altura do degrau de pedra onde fica o fogo.
 const FIRE_FLOOR: float = 0.3
 const STONE_COLOR: Color = Color(0.78, 0.74, 0.7)
@@ -61,16 +73,18 @@ static var _flame_shader: Shader
 
 
 func build() -> void:
-	_add_fireplace()
-	_add_rug(Vector3(-4.55, 0.0, FIREPLACE_Z), Vector2(1.7, 2.5))
+	var wall_z := -Home.ROOM_SIZE.z / 2.0
+	_add_fireplace(Vector3(FIREPLACE_X, 0.0, wall_z))
+	_add_rug(Vector3(FIREPLACE_X, 0.0, wall_z + ARMCHAIR_FROM_WALL - 0.05), Vector2(2.5, 1.7))
 	# As poltronas olham para a frente da lareira, viradas uma para a outra
 	# (assim o fogo fica à vista entre elas).
-	var fire := Vector3(-5.0, 0.0, FIREPLACE_Z)
-	_add_armchair(Vector3(-4.5, 0.0, 2.55), fire, true)
-	_add_armchair(Vector3(-4.5, 0.0, 3.65), fire, false)
-	for spot in [Vector2(-3.0, 0.0), Vector2(3.0, 0.0), Vector2(0.0, -Home.ROOM_SIZE.z / 3.0)]:
+	var fire := Vector3(FIREPLACE_X, 0.0, wall_z + 0.5)
+	_add_armchair(Vector3(FIREPLACE_X - ARMCHAIR_SPREAD, 0.0, wall_z + ARMCHAIR_FROM_WALL), fire, true)
+	_add_armchair(Vector3(FIREPLACE_X + ARMCHAIR_SPREAD, 0.0, wall_z + ARMCHAIR_FROM_WALL), fire, false)
+	for spot in [Vector2(-Home.ROOM_SIZE.x / 3.0, 0.0), Vector2(Home.ROOM_SIZE.x / 3.0, 0.0),
+			Vector2(Home.WINDOW_CENTER_X, Home.BEAM_Z[0])]:
 		_add_hanging_lantern(Vector3(spot.x, 0.0, spot.y))
-	_add_plant(Vector3(-5.5, 0.0, -3.65))
+	_add_plant(Vector3(PLANT_SPOT.x, 0.0, PLANT_SPOT.y))
 
 
 ## Um nó-pai para as peças de um móvel, com a marca do teste.
@@ -91,9 +105,10 @@ func _box(parent: Node3D, box_name: String, box_size: Vector3, center: Vector3, 
 ## Lareira de pedra: dois pilares, a verga, o fundo de fuligem, a lenha em
 ## brasa com o fogo, a grade de ferro (sólida: ninguém entra no fogo), o
 ## consolo de madeira com um lampião e a chaminé até o teto. Uma luz laranja
-## tremula junto com o fogo, e a lenha estala baixinho.
-func _add_fireplace() -> void:
-	var fireplace := _piece("Fireplace", "lareira", Vector3(-Home.ROOM_SIZE.x / 2.0, 0.0, FIREPLACE_Z))
+## tremula junto com o fogo, e a lenha estala baixinho. "at" é o meio da
+## lareira, na parede norte; o nó gira para o x dele apontar para a sala (+z).
+func _add_fireplace(at: Vector3) -> void:
+	var fireplace := _piece("Fireplace", "lareira", at, -PI / 2.0)
 	var stone := HomeMaterials.pbr("PavingStones070", 0.8, STONE_COLOR)
 	var soot := HomeMaterials.matte(SOOT_COLOR, 1.0)
 	var w := FIREPLACE_WIDTH
@@ -232,7 +247,7 @@ func _add_armchair(at: Vector3, look_at: Vector3, throw: bool) -> void:
 
 ## Lampião pendurado numa viga: corrente, corpo de ferro com vidro aceso e a luz.
 func _add_hanging_lantern(at: Vector3) -> void:
-	var beam_bottom := Home.ROOM_SIZE.y - 0.22
+	var beam_bottom := Home.ROOM_SIZE.y - Home.BEAM_SIZE.y
 	var lantern := _piece("Lantern", "lampiao", Vector3(at.x, beam_bottom - 0.75, at.z))
 	var chain := MeshInstance3D.new()
 	chain.name = "LanternChain"
@@ -298,7 +313,7 @@ func _add_plant(at: Vector3) -> void:
 	var bush := BUSH_SCENE.instantiate() as Node3D
 	bush.name = "PlantBush"
 	plant.add_child(bush)
-	# O modelo vem noutro tamanho: mede e ajusta a largura para ~0,8 m.
+	# O modelo vem noutro tamanho: mede e ajusta a largura para PLANT_WIDTH.
 	var bounds := AABB()
 	var first := true
 	for node in bush.find_children("*", "MeshInstance3D", true, false):
@@ -308,7 +323,7 @@ func _add_plant(at: Vector3) -> void:
 		first = false
 	var widest := maxf(bounds.size.x, bounds.size.z)
 	if widest > 0.001:
-		bush.scale = Vector3.ONE * (0.8 / widest)
+		bush.scale = Vector3.ONE * (PLANT_WIDTH / widest)
 	bush.position = Vector3(0.0, 0.38 - bounds.position.y * bush.scale.y, 0.0)
 
 

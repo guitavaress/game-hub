@@ -16,6 +16,14 @@ extends HomeDecor
 ## plantas pela sala. Tudo por código (HomeShapes, HomePlants), sem nada
 ## baixado, e fora dos lugares prontos dos móveis (Home.ANCHORS), da porta e da
 ## passagem. Cada objeto é um nó com a marca "loft_piece" (o teste acha por ela).
+##
+## A sala do tamanho certo (Fase 17.4b): CANTOS CHEIOS E PASSAGENS LIVRES. O
+## canto de estar é um grupo no canto noroeste (Home.LIVING_CORNER_WIDTH): o
+## sofá encostado na parede norte, de frente para a sala (quem nasce o vê de
+## frente), com o abajur e uma planta no canto de um lado e a palmeira do
+## outro; o tapete grande pega o sofá e a mesinha, e o pendente desce baixo
+## sobre ela. O quadro fica em cima do sofá, e o aparador, embaixo da janela.
+## Tudo sai do tamanho da sala: nenhuma posição solta.
 
 const RUG_SHADER: Shader = preload("res://worlds/home/home_rug_vintage.gdshader")
 const PICTURE_SHADER: Shader = preload("res://worlds/home/home_picture.gdshader")
@@ -55,60 +63,99 @@ const POT_DARK: Color = Color(0.13, 0.13, 0.14)
 const POT_LIGHT: Color = Color(0.6, 0.57, 0.52)
 const FRAME_COLOR: Color = Color(0.05, 0.05, 0.05)
 const PICTURE_MAT: Color = Color(0.8, 0.78, 0.72)
-## O aparador: meio em x (encostado na parede norte, entre o canto e a janela)
-## e o tamanho (largura, altura, profundidade). A palmeira fica entre ele e a
-## janela, em (x, z).
-const SIDEBOARD_X: float = -4.85
+## O canto de estar, de oeste para leste na parede norte: do canto ao pé do
+## abajur, do abajur ao sofá, e a folga do sofá até a parede (atrás dele).
+const LAMP_CORNER_GAP: float = 0.3
+const SOFA_LAMP_GAP: float = 0.3
+const SOFA_WALL_GAP: float = 0.06
+## Do sofá até a mesinha, e o tamanho do tampo (largura, profundidade).
+const TABLE_GAP: float = 0.4
+const TABLE_SIZE: Vector2 = Vector2(1.15, 0.6)
+## O meio do sofá (x, z) e o da mesinha, na frente dele.
+const SOFA_SPOT: Vector2 = Vector2(-Home.ROOM_SIZE.x / 2.0 + LAMP_CORNER_GAP + SOFA_LAMP_GAP + SOFA_SIZE.x / 2.0,
+		-Home.ROOM_SIZE.z / 2.0 + SOFA_WALL_GAP + SOFA_SIZE.z / 2.0)
+const TABLE_Z: float = SOFA_SPOT.y + SOFA_SIZE.z / 2.0 + TABLE_GAP + TABLE_SIZE.y / 2.0
+## O abajur de pé, colado no braço do sofá (do lado do canto), e a planta de
+## folha larga no canto, atrás dele.
+const FLOOR_LAMP_SPOT: Vector2 = Vector2(-Home.ROOM_SIZE.x / 2.0 + LAMP_CORNER_GAP, SOFA_SPOT.y + 0.18)
+const CORNER_PLANT_SPOT: Vector2 = Vector2(-Home.ROOM_SIZE.x / 2.0 + LAMP_CORNER_GAP, -Home.ROOM_SIZE.z / 2.0 + 0.25)
+## A palmeira, do outro lado do sofá (na beira da janela).
+const PALM_SPOT: Vector2 = Vector2(SOFA_SPOT.x + SOFA_SIZE.x / 2.0 + 0.3, -Home.ROOM_SIZE.z / 2.0 + 0.35)
+## O tapete (largura, profundidade): pega o abajur, o sofá e a mesinha. A borda
+## de trás fica a RUG_WALL_GAP da parede.
+const RUG_SIZE: Vector2 = Vector2(3.2, 2.9)
+const RUG_WALL_GAP: float = 0.22
+## O pufe de tricô, na quina da mesinha que dá para a sala: o grupo avança um
+## pouco na sala, sem tampar a passagem (tamanho: lado, altura).
+const POUF_SIZE: Vector2 = Vector2(0.52, 0.4)
+const POUF_SPOT: Vector2 = Vector2(SOFA_SPOT.x + TABLE_SIZE.x / 2.0 + 0.25, TABLE_Z + TABLE_SIZE.y / 2.0 + 0.4)
+const POUF_COLOR: Color = Color(0.46, 0.3, 0.2)
+## O quadro, em cima do sofá (altura do meio).
+const PICTURE_Y: float = 1.5
+## O aparador, embaixo da janela (largura, altura, profundidade). As coisas em
+## cima dele ficam na metade da frente (SIDEBOARD_ITEMS_Z, do meio): o peitoril
+## da janela avança por cima da metade de trás.
 const SIDEBOARD_SIZE: Vector3 = Vector3(1.7, 0.62, 0.42)
-const PALM_SPOT: Vector2 = Vector2(-3.3, -4.05)
+const SIDEBOARD_ITEMS_Z: float = 0.1
 ## O abajur de mesa: fraco e curto (abaixo de 0,5 a janela não o reflete; ele
 ## fica fora do vidro).
 const TABLE_LAMP_ENERGY: float = 0.49
-## Os pendentes: (x, z) na viga e se fazem sombra. O do meio fica em cima da
-## mesinha, na frente da janela.
+## Os pendentes: (x, z), se fazem sombra e a altura da lâmpada. O do canto de
+## estar desce baixo, em cima da mesinha; os outros dois ficam a PENDANT_DROP
+## do teto, um na frente da estante (oeste) e outro no meio-leste.
+const PENDANT_DROP: float = 0.8
+const LIVING_PENDANT_Y: float = 1.85
 const PENDANTS: Array[Array] = [
-	[Vector2(-3.5, 0.0), false],
-	[Vector2(0.0, -Home.ROOM_SIZE.z / 3.0), true],
-	[Vector2(3.5, 0.0), false],
+	[Vector2(SOFA_SPOT.x, TABLE_Z), true, LIVING_PENDANT_Y],
+	[Vector2(-Home.ROOM_SIZE.x / 4.0, Home.ROOM_SIZE.z / 6.0), false, Home.ROOM_SIZE.y - PENDANT_DROP],
+	[Vector2(Home.ROOM_SIZE.x / 4.0, 0.0), false, Home.ROOM_SIZE.y - PENDANT_DROP],
 ]
 ## Abertura do cone do pendente (graus, do eixo à borda) e quanto da força
 ## sobra para a luz fraca que acende a cúpula por dentro e o teto em volta.
 const PENDANT_CONE: float = 40.0
-const PENDANT_FILL: float = 0.2
+const PENDANT_FILL: float = 0.35
+const PENDANT_FILL_RANGE: float = 4.0
 ## O abajur: cor da cúpula acesa (acima de 1 acende o brilho) e força da luz.
 const FLOOR_LAMP_SHADE: Color = Color(1.5, 0.95, 0.5)
 const FLOOR_LAMP_ENERGY: float = 2.4
+const FLOOR_LAMP_RANGE: float = 5.0
 
 
 func build() -> void:
 	for pendant in PENDANTS:
 		var spot: Vector2 = pendant[0]
-		_add_pendant(Vector3(spot.x, 0.0, spot.y), pendant[1])
-	_add_rug(Vector3(0.0, 0.0, -2.9), Vector2(3.2, 2.4))
-	_add_sofa(Vector3(0.0, 0.0, -1.9))
-	_add_coffee_table(Vector3(0.0, 0.0, -3.2))
-	# Atrás do braço esquerdo do sofá: acende o encosto (o que se vê ao entrar)
-	# e a sombra do sofá cai para a frente, no tapete.
-	_add_floor_lamp(Vector3(-1.45, 0.0, -1.25))
-	_add_reading_corner()
+		_add_pendant(Vector3(spot.x, 0.0, spot.y), pendant[1], pendant[2])
+	var inner_z := -Home.ROOM_SIZE.z / 2.0
+	_add_rug(Vector3(SOFA_SPOT.x, 0.0, inner_z + RUG_WALL_GAP + RUG_SIZE.y / 2.0), RUG_SIZE)
+	# O sofá olha para o sul (para dentro da sala): meia volta.
+	_add_sofa(Vector3(SOFA_SPOT.x, 0.0, SOFA_SPOT.y), PI)
+	_add_coffee_table(Vector3(SOFA_SPOT.x, 0.0, TABLE_Z))
+	_add_pouf(Vector3(POUF_SPOT.x, 0.0, POUF_SPOT.y))
+	# Colado no braço do lado do canto: acende o sofá de lado, e a sombra dele
+	# cai no tapete, para o leste.
+	_add_floor_lamp(Vector3(FLOOR_LAMP_SPOT.x, 0.0, FLOOR_LAMP_SPOT.y))
+	_add_picture(Vector3(SOFA_SPOT.x, PICTURE_Y, inner_z))
+	_add_sideboard(Vector3(Home.WINDOW_CENTER_X, 0.0, inner_z + SIDEBOARD_SIZE.z / 2.0 + 0.02))
 	_add_plants()
 
 
 ## Pendente: fio, cúpula de metal, lâmpada e duas luzes: um cone para baixo
 ## (a poça no chão) e uma luz fraca e curta (a cúpula e o teto em volta).
 ## Nenhuma peça do pendente faz sombra (a luz está dentro dele).
-func _add_pendant(at: Vector3, shadow: bool) -> void:
-	var bulb_y := Home.ROOM_SIZE.y - 0.95
+func _add_pendant(at: Vector3, shadow: bool, bulb_y: float) -> void:
+	# O fio vai do teto até o alto da cúpula.
+	var cord_top := Home.ROOM_SIZE.y
+	var cord_bottom := bulb_y + 0.17
 	var cord := MeshInstance3D.new()
 	cord.name = "PendantCord"
 	var cord_mesh := CylinderMesh.new()
 	cord_mesh.top_radius = 0.008
 	cord_mesh.bottom_radius = 0.008
-	cord_mesh.height = 0.8
+	cord_mesh.height = cord_top - cord_bottom
 	cord.mesh = cord_mesh
 	cord.material_override = HomeMaterials.matte(Color(0.05, 0.05, 0.05))
 	cord.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	cord.position = Vector3(at.x, Home.ROOM_SIZE.y - 0.4, at.z)
+	cord.position = Vector3(at.x, (cord_top + cord_bottom) / 2.0, at.z)
 	add_node(cord)
 	var shade := MeshInstance3D.new()
 	shade.name = "PendantShade"
@@ -139,7 +186,7 @@ func _add_pendant(at: Vector3, shadow: bool) -> void:
 	cone.name = "PendantLight"
 	cone.light_color = profile.lamp_color
 	cone.light_energy = profile.lamp_energy
-	cone.spot_range = 5.0
+	cone.spot_range = bulb_y + 1.5
 	cone.spot_angle = PENDANT_CONE
 	cone.spot_angle_attenuation = 1.6  # borda macia
 	cone.shadow_enabled = shadow
@@ -152,7 +199,7 @@ func _add_pendant(at: Vector3, shadow: bool) -> void:
 	fill.name = "Lamp"
 	fill.light_color = profile.lamp_color
 	fill.light_energy = profile.lamp_energy * PENDANT_FILL
-	fill.omni_range = 5.0
+	fill.omni_range = PENDANT_FILL_RANGE
 	fill.position = Vector3(at.x, bulb_y + 0.02, at.z)
 	add_node(fill)
 
@@ -216,13 +263,13 @@ func _add_rug(center: Vector3, rug_size: Vector2) -> void:
 	add_node(rug)
 
 
-## Sofá de três lugares com a frente para o norte (a janela), como um sofá de
-## verdade: pés de madeira, base, braços e encosto de cantos redondos, dois
-## assentos e duas almofadas de encosto estufados, três almofadas soltas e a
-## manta jogada. O estofado é uma malha só (um desenho); as almofadas soltas,
+## Sofá de três lugares, como um sofá de verdade: pés de madeira, base, braços
+## e encosto de cantos redondos, dois assentos e duas almofadas de encosto
+## estufados, três almofadas soltas e a manta jogada. A frente é o -Z do nó
+## ("yaw" gira). O estofado é uma malha só (um desenho); as almofadas soltas,
 ## outra (cada uma com a sua cor). Tem colisão (o jogador dá a volta).
-func _add_sofa(center: Vector3) -> void:
-	var sofa := _piece("Sofa", "sofa", center)
+func _add_sofa(center: Vector3, yaw: float) -> void:
+	var sofa := _piece("Sofa", "sofa", center, yaw)
 	var w := SOFA_SIZE.x
 	var d := SOFA_SIZE.z
 	var body := HomeShapes.Batch.new()
@@ -230,7 +277,7 @@ func _add_sofa(center: Vector3) -> void:
 	for side in [-1.0, 1.0]:
 		body.add_mesh(HomeShapes.soft_box(Vector3(0.22, 0.52, d), 0.08, Vector3(0.012, 0.0, 0.0)),
 				_at(side * (w / 2.0 - 0.11), SOFA_LEG + 0.26, 0.0), Color.WHITE)
-	# O encosto desce até a base: visto de trás (de onde se entra), é uma peça só.
+	# O encosto desce até a base: visto de trás, é uma peça só.
 	body.add_mesh(HomeShapes.soft_box(Vector3(w - 0.04, 0.74, 0.22), 0.07), _at(0.0, SOFA_LEG + 0.37, d / 2.0 - 0.11), Color.WHITE)
 	for side in [-1.0, 1.0]:
 		# Os assentos e as almofadas do encosto (estas inclinadas para trás).
@@ -266,22 +313,21 @@ func _add_sofa(center: Vector3) -> void:
 	# O assento: a captura do canto de estar mira aqui (tools/capturar_casa.gd).
 	var seat := Node3D.new()
 	seat.name = "SofaSeat"
-	seat.position = center + Vector3(0.0, 0.36, -0.07)
+	seat.position = center + Basis(Vector3.UP, yaw) * Vector3(0.0, 0.36, -0.07)
 	add_node(seat)
 
 
-## A manta de tricô jogada no sofá: sai da beira do assento, sobe pela almofada
-## do encosto, passa por cima dele e cai pelas costas do sofá (o lado que se vê
-## ao entrar), com as dobras crescendo. Fica um pouco à esquerda do meio, entre
-## as almofadas.
+## A manta de tricô jogada no sofá, como na referência: sai de cima do encosto,
+## desce pela almofada dele, atravessa o assento e cai pela frente (o lado que
+## se vê ao entrar, desde a 17.4b), com as dobras crescendo. Fica um pouco fora
+## do meio, entre as almofadas.
 func _add_throw(sofa: Node3D) -> void:
 	var x := -0.14
 	# O meio da manta, de trás para a frente, em (z, y) do sofá (a frente é -z).
 	var line: Array[Vector2] = [
-		Vector2(-0.475, 0.38), Vector2(-0.46, 0.47), Vector2(-0.38, 0.512), Vector2(-0.2, 0.518),
-		Vector2(-0.04, 0.535), Vector2(0.005, 0.7), Vector2(0.08, 0.925), Vector2(0.2, 0.968),
-		Vector2(0.3, 0.935), Vector2(0.41, 0.875), Vector2(0.478, 0.79), Vector2(0.485, 0.6),
-		Vector2(0.49, 0.42), Vector2(0.5, 0.27),
+		Vector2(0.33, 0.93), Vector2(0.2, 0.968), Vector2(0.08, 0.925), Vector2(0.005, 0.7),
+		Vector2(-0.04, 0.535), Vector2(-0.2, 0.518), Vector2(-0.38, 0.512), Vector2(-0.46, 0.47),
+		Vector2(-0.478, 0.38), Vector2(-0.486, 0.27), Vector2(-0.492, 0.16),
 	]
 	var path := PackedVector3Array()
 	for i in line.size():
@@ -365,13 +411,21 @@ func _add_coffee_table(center: Vector3) -> void:
 	_mesh(table, "TableGloss", glossy.commit(), HomeMaterials.vertex_colored(0.28))
 
 
-## O canto entre a estante e a janela (livre em todas as disposições): um
-## aparador baixo de madeira com livros, uma esfera de latão e um abajur de
-## mesa, o quadro na parede de tijolo em cima, a palmeira grande ao lado da
-## janela e uma planta pendente caindo do aparador.
-func _add_reading_corner() -> void:
-	var inner_z := -Home.ROOM_SIZE.z / 2.0
-	var at := Vector3(SIDEBOARD_X, 0.0, inner_z + SIDEBOARD_SIZE.z / 2.0 + 0.02)
+## O pufe: um cubo de tricô estufado, um pouco girado (largado ali), com colisão.
+func _add_pouf(at: Vector3) -> void:
+	var pouf := _piece("Pouf", "pufe", at, 0.35)
+	var side := POUF_SIZE.x
+	var height := POUF_SIZE.y
+	var knit := HomeMaterials.fabric(POUF_COLOR).duplicate() as StandardMaterial3D
+	knit.normal_scale = 0.6
+	_mesh(pouf, "PoufBody", HomeShapes.soft_box(Vector3(side, height, side), 0.11, Vector3(0.03, 0.025, 0.03)), knit,
+			_at(0.0, height / 2.0, 0.0))
+	_solid(pouf, Vector3(side, height, side), Vector3(0.0, height / 2.0, 0.0))
+
+
+## O aparador baixo de madeira embaixo da janela, com livros, uma esfera de
+## latão, um abajur de mesa e uma planta pendente caindo dele.
+func _add_sideboard(at: Vector3) -> void:
 	var board := _piece("Sideboard", "aparador", at)
 	var w := SIDEBOARD_SIZE.x
 	var h := SIDEBOARD_SIZE.y
@@ -413,12 +467,12 @@ func _add_reading_corner() -> void:
 	for i in heights.size():
 		var thick := 0.028 + 0.012 * float((i * 7) % 3) / 2.0
 		var lean := 0.0 if i < heights.size() - 1 else 0.32
-		var place := _at(x + thick / 2.0 + (0.09 if lean != 0.0 else 0.0), h, -0.02, Vector3(0.0, 0.0, lean))
+		var place := _at(x + thick / 2.0 + (0.09 if lean != 0.0 else 0.0), h, SIDEBOARD_ITEMS_Z, Vector3(0.0, 0.0, lean))
 		HomeShapes.book(books, Vector3(thick, heights[i], 0.16), place, BOOK_COLORS[i % BOOK_COLORS.size()])
 		x += thick + 0.003
 	for i in 3:
 		var size := Vector3(0.035, 0.26 - i * 0.025, 0.19 - i * 0.015)
-		HomeShapes.book(books, size, _at(-0.1, h + i * 0.035 + 0.0175, 0.0, Vector3(0.0, 0.15 - i * 0.2, PI / 2.0)),
+		HomeShapes.book(books, size, _at(-0.1, h + i * 0.035 + 0.0175, SIDEBOARD_ITEMS_Z, Vector3(0.0, 0.15 - i * 0.2, PI / 2.0)),
 				BOOK_COLORS[(i + 2) % BOOK_COLORS.size()])
 	_mesh(board, "SideboardBooks", books.commit(), HomeMaterials.vertex_colored(0.65))
 	var ball := SphereMesh.new()
@@ -426,17 +480,12 @@ func _add_reading_corner() -> void:
 	ball.height = 0.08
 	ball.radial_segments = 16
 	ball.rings = 8
-	_mesh(board, "SideboardBrassBall", ball, HomeMaterials.metal(BRASS_COLOR, 0.25), _at(-0.23, h + 0.105 + 0.04, 0.0))
-	_add_table_lamp(board, Vector3(0.2, h, -0.04))
-	var trailing := HomePlants.make("pendente", 0.45, 0.075, 0.13, POT_LIGHT, 7, false, Vector3.BACK, d / 2.0 + 0.02)
-	trailing.position = Vector3(w / 2.0 - 0.17, h, 0.04)
+	_mesh(board, "SideboardBrassBall", ball, HomeMaterials.metal(BRASS_COLOR, 0.25), _at(-0.23, h + 0.105 + 0.04, SIDEBOARD_ITEMS_Z))
+	_add_table_lamp(board, Vector3(0.2, h, SIDEBOARD_ITEMS_Z - 0.02))
+	var trailing := HomePlants.make("pendente", 0.45, 0.075, 0.13, POT_LIGHT, 7, false, Vector3.BACK,
+			d / 2.0 - SIDEBOARD_ITEMS_Z + 0.02)
+	trailing.position = Vector3(w / 2.0 - 0.17, h, SIDEBOARD_ITEMS_Z)
 	board.add_child(trailing)
-
-	_add_picture(Vector3(SIDEBOARD_X, 1.62, inner_z))
-	var palm := HomePlants.make("palmeira", 1.75, 0.2, 0.38, POT_DARK, 11)
-	palm.position = Vector3(PALM_SPOT.x, 0.0, PALM_SPOT.y)
-	_piece("PalmPlant", "planta", Vector3.ZERO).add_child(palm)
-	_keep_inside(palm)
 
 
 ## Abajur de mesa no aparador: base de cerâmica, cúpula acesa e uma luz fraca e
@@ -504,19 +553,26 @@ func _add_picture(at: Vector3) -> void:
 		(child as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## As outras plantas: uma folha larga no canto do computador, uma espada ao lado
-## do sofá e uma pequena no peitoril da janela.
+## As plantas: a palmeira grande do outro lado do sofá (na beira da janela),
+## uma folha larga no canto atrás do abajur, uma espada entre o aparador e a
+## mesa do computador e uma pequena no peitoril.
 func _add_plants() -> void:
+	var palm := HomePlants.make("palmeira", 1.75, 0.2, 0.38, POT_DARK, 11)
+	palm.position = Vector3(PALM_SPOT.x, 0.0, PALM_SPOT.y)
+	_piece("PalmPlant", "planta", Vector3.ZERO).add_child(palm)
+	_keep_inside(palm)
 	var corner := HomePlants.make("costela", 1.15, 0.2, 0.34, POT_DARK, 23)
-	corner.position = Vector3(5.45, 0.0, -3.95)
+	corner.position = Vector3(CORNER_PLANT_SPOT.x, 0.0, CORNER_PLANT_SPOT.y)
 	_piece("CornerPlant", "planta", Vector3.ZERO).add_child(corner)
 	_keep_inside(corner)
+	var inner_z := -Home.ROOM_SIZE.z / 2.0
 	var sword := HomePlants.make("espada", 0.85, 0.13, 0.3, POT_LIGHT, 5)
-	sword.position = Vector3(1.55, 0.0, -1.55)
+	var sideboard_end := Home.WINDOW_CENTER_X + SIDEBOARD_SIZE.x / 2.0
+	sword.position = Vector3((sideboard_end + Home.WINDOW_RIGHT) / 2.0, 0.0, inner_z + 0.28)
 	_piece("SofaPlant", "planta", Vector3.ZERO).add_child(sword)
-	var sill_y := Home.WINDOW_CENTER_Y - Home.WINDOW_SIZE.y / 2.0
+	_keep_inside(sword)
 	var sill := HomePlants.make("costela", 0.34, 0.075, 0.11, POT_LIGHT, 31, false)
-	sill.position = Vector3(-1.75, sill_y, -Home.ROOM_SIZE.z / 2.0 + 0.12)
+	sill.position = Vector3(Home.WINDOW_LEFT + 0.5, Home.WINDOW_SILL_Y, inner_z + 0.12)
 	_piece("SillPlant", "planta", Vector3.ZERO).add_child(sill)
 	_keep_inside(sill)
 
@@ -550,7 +606,7 @@ func _add_floor_lamp(at: Vector3) -> void:
 	light.name = "FloorLampLight"
 	light.light_color = profile.lamp_color
 	light.light_energy = FLOOR_LAMP_ENERGY
-	light.omni_range = 6.0
+	light.omni_range = FLOOR_LAMP_RANGE
 	light.shadow_enabled = true
 	light.shadow_blur = 1.5
 	light.position = at + Vector3(0.0, 1.5, 0.0)

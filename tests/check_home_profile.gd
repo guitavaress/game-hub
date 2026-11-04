@@ -80,8 +80,13 @@ func _run() -> void:
 	var down := cones.filter(func(l: Node) -> bool: return l is SpotLight3D and (l as Node3D).global_basis.z.dot(Vector3.UP) > 0.99)
 	_check("três pendentes, cada um com um cone para baixo (%d)" % cones.size(), cones.size() == 3 and down.size() == 3)
 	var shadowed := cones.filter(func(l: Node) -> bool: return (l as SpotLight3D).shadow_enabled)
-	_check("só um pendente faz sombra, o do canto de estar", shadowed.size() == 1
-			and absf((shadowed[0] as Node3D).position.x) < 0.5 and (shadowed[0] as Node3D).position.z < -2.0)
+	# O do canto de estar: em cima da mesinha (17.4b: o canto saiu do meio da sala).
+	var table: Node3D = home.find_child("CoffeeTable", false, false)
+	var over := Vector2.INF
+	if shadowed.size() == 1 and table != null:
+		var lamp := (shadowed[0] as Node3D).position
+		over = Vector2(lamp.x - table.position.x, lamp.z - table.position.z)
+	_check("só um pendente faz sombra, o do canto de estar (em cima da mesinha)", over.length() < 0.3)
 	var floor_lamp: OmniLight3D = home.find_child("FloorLampLight", true, false)
 	_check("o abajur faz sombra", floor_lamp != null and floor_lamp.shadow_enabled)
 	var lamp_shade: GeometryInstance3D = home.find_child("FloorLampShade", true, false)
@@ -176,7 +181,10 @@ func _check_loft_objects(home: Node3D) -> void:
 	var room: Vector3 = home.get("ROOM_SIZE")
 	var spawn := Vector2(spawn_spot.x, spawn_spot.z)
 	zones.append(Rect2(spawn - Vector2(0.5, 0.5), Vector2(1.0, 1.0)))
-	zones.append(Rect2(Vector2(-0.7, 2.8), Vector2(1.4, room.z / 2.0 - 2.8)))  # a porta da rua
+	# A porta da rua: o batente e mais 5 cm de cada lado, da parede até 1,7 m para dentro.
+	var door: Vector3 = home.to_local(home.get_front_door().global_position)
+	var door_width: float = float(home.get("DOOR_WIDTH")) + 0.1
+	zones.append(Rect2(Vector2(door.x - door_width / 2.0, room.z / 2.0 - 1.7), Vector2(door_width, 1.7)))
 	var anchors := {String(home.get("COMPUTER_ANCHOR")): true}
 	for layout in Profiles.home_catalog().layouts:
 		for id in layout.placements:

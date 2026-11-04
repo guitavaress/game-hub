@@ -14,9 +14,11 @@ extends Node3D
 ## Convenção: a origem fica no chão, encostada na parede, e a FRENTE (+Z)
 ## aponta para dentro da sala.
 
-## Tamanho da placa (largura, altura) e altura do centro (acima do monitor).
+## Tamanho da placa (largura, altura) e a altura padrão do centro (acima do
+## monitor). Quem monta o painel pode trocar a altura em center_y antes de pô-lo
+## na árvore (a casa o põe entre o monitor e o teto).
 const PANEL_SIZE: Vector2 = Vector2(1.7, 1.3)
-const CENTER_Y: float = 2.4
+const CENTER_Y: float = 2.2
 ## Altura (m) entre uma linha e a próxima.
 const ROW_STEP: float = 0.19
 ## Altura (relativa ao centro da placa) da primeira linha de status.
@@ -33,6 +35,8 @@ const MAX_NAME: int = 16
 const WEEKDAYS: Array[String] = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"]
 const MONTHS: Array[String] = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 
+## A altura do centro da placa (do chão), lida ao montar.
+var center_y: float = CENTER_Y
 ## Quem diz a hora: Callable() -> Dictionary (como Time.get_datetime_dict_from_system).
 ## Os testes trocam por uma hora de mentira.
 var clock: Callable = func() -> Dictionary: return Time.get_datetime_dict_from_system()
@@ -164,14 +168,14 @@ func _build_frame() -> void:
 			node.queue_free()
 	_frame_nodes.clear()
 	var half := PANEL_SIZE / 2.0
-	_frame_nodes.append(_box("Board", Vector3(PANEL_SIZE.x, PANEL_SIZE.y, 0.04), Vector3(0.0, CENTER_Y, 0.02),
+	_frame_nodes.append(_box("Board", Vector3(PANEL_SIZE.x, PANEL_SIZE.y, 0.04), Vector3(0.0, center_y, 0.02),
 			HomeMaterials.matte(BOARD_COLOR, 0.7)))
 	var glow := HomeMaterials.glow(_accent, 2.5)
 	var edge := 0.02
 	for y in [-half.y, half.y]:
-		_frame_nodes.append(_box("EdgeH", Vector3(PANEL_SIZE.x + edge, edge, 0.05), Vector3(0.0, CENTER_Y + y, 0.025), glow))
+		_frame_nodes.append(_box("EdgeH", Vector3(PANEL_SIZE.x + edge, edge, 0.05), Vector3(0.0, center_y + y, 0.025), glow))
 	for x in [-half.x, half.x]:
-		_frame_nodes.append(_box("EdgeV", Vector3(edge, PANEL_SIZE.y, 0.05), Vector3(x, CENTER_Y, 0.025), glow))
+		_frame_nodes.append(_box("EdgeV", Vector3(edge, PANEL_SIZE.y, 0.05), Vector3(x, center_y, 0.025), glow))
 
 
 ## Uma linha: o ícone à esquerda (para a bateria, um medidor cheio até o %;
@@ -195,7 +199,7 @@ func _add_row(row_id: String, text: String, y: float, color: Color, battery_perc
 
 ## Posição na placa (x, y relativos ao centro) em coordenadas do painel.
 func _at(spot: Vector2) -> Vector3:
-	return Vector3(spot.x, CENTER_Y + spot.y, 0.045)
+	return Vector3(spot.x, center_y + spot.y, 0.045)
 
 
 func _make_label(label_name: String, text: String, size: int, color: Color, spot: Vector2,
