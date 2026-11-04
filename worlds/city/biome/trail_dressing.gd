@@ -5,7 +5,7 @@ extends Node3D
 ##     a entrada da trilha fica aberta), para ninguém sair da parte pisável;
 ##   - estacas de cerca com uma corda, na linha das paredes, para o limite se
 ##     ver;
-##   - lampiões baixos a cada ~15 m, alternando os lados, acesos à noite
+##   - lampiões baixos a cada ~9 m, alternando os lados, acesos à noite
 ##     (grupo "city_night", como os postes);
 ##   - na entrada (o vão da mureta), dois pilares de pedra e a placa
 ##     "Trilha do Mirante" virada para a cidade.
@@ -37,8 +37,8 @@ const ROPE_HEIGHT: float = 0.85
 const ROPE_THICKNESS: float = 0.04
 const WOOD_COLOR: Color = Color("3A2A1E")
 const ROPE_COLOR: Color = Color("6B5A45")
-## Lampiões: a cada 15 m, a partir do 6º metro, um pouco para dentro da parede.
-const LAMP_SPACING: int = 15
+## Lampiões: a cada 9 m, a partir do 6º metro, um pouco para dentro da parede.
+const LAMP_SPACING: int = 9
 const LAMP_FIRST: int = 6
 const LAMP_INSET: float = 0.25
 const LAMP_POST: Vector3 = Vector3(0.12, 0.8, 0.12)
@@ -63,11 +63,27 @@ const STONE_COLOR: Color = Color(0.55, 0.56, 0.6)
 var _lamp_lights: Array[OmniLight3D] = []
 var _glass: StandardMaterial3D
 var _labels: Array[Label3D] = []
+var _field: Heightfield
+var _trail: MountainTrail
+var _banners: Array[TrailBanner] = []
+var _art_queue: Array[TrailBanner] = []
+var _campfire: Campfire
+
+## A margem tem só 0,5 m: peças compridas acompanham a trilha, sem alargá-la.
+const CONTENT_DEPTH: float = 0.34
+const CONTENT_MARGIN: float = 0.06
+const BANNER_SPACING: int = 3
+const STOP_SHARES: Array[float] = [0.20, 0.43, 0.65, 0.84]
+const STOP_KINDS: Array[String] = ["campfire", "cairn", "frozen_fall", "bench"]
+const STOP_LENGTHS: Array[float] = [3.0, 2.8, 3.2, 2.0]
 
 
 ## Monta tudo para a trilha. "stone" é o material dos pilares (null = cinza).
 func setup(field: Heightfield, trail: MountainTrail, stone: Material = null) -> void:
 	name = "TrailDressing"
+	_field = field
+	_trail = trail
+	set_process(false)
 	add_to_group("city_night")
 	var lines := wall_lines(field, trail)
 	# A plataforma do mirante (15.10) tem guarda-corpo próprio: a parede dela
@@ -80,7 +96,166 @@ func setup(field: Heightfield, trail: MountainTrail, stone: Material = null) -> 
 	_add_fence(field, lines)
 	_add_lamps(field, trail)
 	_add_gate(trail, stone if stone != null else CityDecor.make_material(STONE_COLOR))
+	_add_stops(field, trail)
 	set_night(0.0)
+
+
+## Recebe a mesma Array de SteamGame de district["games"], depois de setup.
+## Horas vêm da biblioteca; as contas recebem uma cópia, sem alterar a lista.
+## Sobe do menos ao mais jogado. Se a biblioteca exceder os lugares seguros,
+## expõe os mais jogados que couberem, mantendo pelo menos 3 m entre mastros.
+func set_games(games: Array) -> void:
+	_art_queue.clear()
+	for banner in _banners:
+		remove_child(banner)
+		banner.queue_free()
+	_banners.clear()
+	set_process(false)
+	if _trail == null or games.is_empty():
+		return
+	var entries: Array[Dictionary] = []
+	var library: Node = get_tree().root.get_node("SteamLibrary")
+	for game: SteamGame in games:
+		entries.append({"app_id": game.app_id, "name": game.name,
+				"minutes": library.get_playtime_minutes(game.app_id)})
+	for placement in banner_spots(_field, _trail, entries):
+		var banner := TrailBanner.new()
+		banner.transform = placement["transform"]
+		add_child(banner)
+		banner.setup(placement["game"])
+		_banners.append(banner)
+		_art_queue.append(banner)
+	# get_art lê a capa; preload_world_art só carrega hero/logo, não capas.
+	# Uma leitura por quadro evita uma rajada de disco ao receber a biblioteca.
+	set_process(not _art_queue.is_empty())
+
+
+func _process(_delta: float) -> void:
+	if not _art_queue.is_empty():
+		var banner: TrailBanner = _art_queue.pop_front()
+		banner.request_art()
+	set_process(not _art_queue.is_empty())
+
+
+## Ordenação pura: horas desconhecidas (-1) antes das conhecidas; empate por ID.
+static func ordered_games(games: Array[Dictionary]) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var seen: Dictionary[int, bool] = {}
+	for game in games:
+		var id: int = int(game.get("app_id", 0))
+		if id <= 0 or seen.has(id):
+			continue
+		seen[id] = true
+		result.append(game.duplicate())
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if int(a["minutes"]) != int(b["minutes"]):
+			return int(a["minutes"]) < int(b["minutes"])
+		return int(a["app_id"]) < int(b["app_id"]))
+	return result
+
+
+## Cada parada tem transform, size, index e kind. Procura uma reta perto da
+## fração desejada; não força uma peça numa curva em que ela não cabe.
+static func stop_spots(field: Heightfield, trail: MountainTrail) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if not trail.valid:
+		return result
+	var lamps := lamp_spots(field, trail)
+	for k in STOP_KINDS.size():
+		var wanted := roundi((trail.points.size() - 1) * STOP_SHARES[k])
+		var size := Vector2(STOP_LENGTHS[k], CONTENT_DEPTH)
+		var found: Dictionary = {}
+		for offset in range(0, 25):
+			for direction: int in [1, -1]:
+				var index := wanted + offset * direction
+				for side: float in [1.0, -1.0]:
+					var spot := _content_spot(field, trail, index, side, size)
+					if not spot.is_empty() and _away_from_lamps(spot, lamps):
+						found = spot
+						break
+				if not found.is_empty():
+					break
+			if not found.is_empty():
+				break
+		if not found.is_empty():
+			found["kind"] = STOP_KINDS[k]
+			result.append(found)
+	return result
+
+
+## Distribui os jogos pela subida inteira, sem ocupar paradas ou lampiões.
+static func banner_spots(field: Heightfield, trail: MountainTrail, games: Array[Dictionary]) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if games.is_empty() or not trail.valid:
+		return result
+	var stops := stop_spots(field, trail)
+	var lamps := lamp_spots(field, trail)
+	var slots: Array[Dictionary] = []
+	for index in range(14, trail.points.size() - 14, BANNER_SPACING):
+		var reserved := false
+		for stop in stops:
+			if absi(index - int(stop["index"])) < 5:
+				reserved = true
+		if reserved:
+			continue
+		var preferred := 1.0 if slots.size() % 2 == 0 else -1.0
+		for side: float in [preferred, -preferred]:
+			var spot := _content_spot(field, trail, index, side, TrailBanner.FOOTPRINT)
+			if not spot.is_empty() and _away_from_lamps(spot, lamps):
+				slots.append(spot)
+				break
+	var ordered := ordered_games(games)
+	var count := mini(ordered.size(), slots.size())
+	for i in count:
+		var slot_index := roundi(float(i) * (slots.size() - 1) / maxf(count - 1, 1.0))
+		if count == 1:
+			slot_index = slots.size() - 1
+		var spot := slots[slot_index].duplicate()
+		spot["game"] = ordered[ordered.size() - count + i]
+		result.append(spot)
+	return result
+
+
+## Retângulo inteiro amostrado, não só o centro: protege também as curvas.
+## Local X acompanha a trilha; +Z olha para o caminho (frente das peças).
+static func _content_spot(field: Heightfield, trail: MountainTrail, index: int, side: float, size: Vector2) -> Dictionary:
+	if index < 10 or index >= trail.points.size() - 10:
+		return {}
+	var tangent := (trail.points[index + 1] - trail.points[index - 1]).normalized()
+	var outward := Vector2(-tangent.y, tangent.x) * side
+	var middle := trail.points[index] + outward * (field.trail_width / 2.0 + WALL_OFFSET) / 2.0
+	if middle.distance_to(trail.lookout_center) < field.lookout_radius + 3.0:
+		return {}
+	var basis := Basis.looking_at(Vector3(outward.x, 0.0, outward.y))
+	var transform := Transform3D(basis, Vector3(middle.x, field.surface_at(middle), middle.y))
+	var spot := {"transform": transform, "size": size, "index": index}
+	for point in footprint_points(spot):
+		var distance := trail.closest(point).x
+		if distance < field.trail_width / 2.0 + CONTENT_MARGIN or distance > WALL_OFFSET - CONTENT_MARGIN:
+			return {}
+	return spot
+
+
+static func footprint_points(spot: Dictionary) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var size: Vector2 = spot["size"]
+	var transform: Transform3D = spot["transform"]
+	var steps := ceili(size.x / 0.15)
+	for i in range(steps + 1):
+		for z: float in [-size.y / 2.0, 0.0, size.y / 2.0]:
+			var p := transform * Vector3(lerpf(-size.x / 2.0, size.x / 2.0, float(i) / steps), 0.0, z)
+			points.append(Vector2(p.x, p.z))
+	return points
+
+
+static func _away_from_lamps(spot: Dictionary, lamps: PackedVector2Array) -> bool:
+	var transform: Transform3D = spot["transform"]
+	var size: Vector2 = spot["size"]
+	for lamp in lamps:
+		var local := transform.affine_inverse() * Vector3(lamp.x, transform.origin.y, lamp.y)
+		if absf(local.x) < size.x / 2.0 + 0.3 and absf(local.z) < size.y / 2.0 + 0.3:
+			return false
+	return true
 
 
 ## As linhas das paredes, no chão: x e z do mundo e, em y, a altura da trilha
@@ -174,6 +349,8 @@ func set_night(night: float) -> void:
 		light.visible = on > 0.01
 	if _glass != null:
 		_glass.emission_energy_multiplier = LAMP_GLOW * on
+	if _campfire != null:
+		_campfire.set_night(night)
 	var glow := lerpf(1.0, 1.6, night)
 	for label in _labels:
 		label.modulate = Color(LAMP_COLOR.r * glow, LAMP_COLOR.g * glow, LAMP_COLOR.b * glow)
@@ -190,6 +367,206 @@ func get_sign_text() -> String:
 
 
 # --- Peças ----------------------------------------------------------------------
+
+## Quatro conjuntos pequenos, pousados na margem; a faixa central fica livre.
+func _add_stops(field: Heightfield, trail: MountainTrail) -> void:
+	var stone := CityDecor.pbr_material("Rock058", 0.7, Color("89939D"))
+	var wood := HomeMaterials.wood(Color("58402E"), false, 0.85)
+	for spot in stop_spots(field, trail):
+		var stop := Node3D.new()
+		stop.name = "TrailStop_%s" % spot["kind"]
+		stop.transform = spot["transform"]
+		stop.set_meta("trail_stop", spot["kind"])
+		add_child(stop)
+		match String(spot["kind"]):
+			"campfire":
+				_add_bench(stop, -0.6, 1.5, wood, stone)
+				_add_campfire(stop, 1.10, stone, wood)
+			"cairn":
+				_add_bench(stop, -0.7, 1.2, wood, stone)
+				for level in 7:
+					var width := lerpf(0.64, 0.16, float(level) / 6.0)
+					_rock(stop, Vector3(0.82 + sin(level * 2.0) * 0.035, 0.10 + level * 0.20, 0.0),
+							Vector3(width, 0.24, CONTENT_DEPTH * (1.0 - level * 0.07)), stone)
+			"frozen_fall":
+				_add_frozen_fall(stop, stone)
+			"bench":
+				_add_bench(stop, 0.0, 1.9, wood, stone)
+
+
+func _add_bench(parent: Node3D, x: float, length: float, wood: Material, stone: Material) -> void:
+	# Pernas enterradas: a rampa não deixa o banco flutuando no lado mais baixo.
+	for side: float in [-1.0, 1.0]:
+		_piece(parent, "BenchFoot", _box(Vector3(0.18, 0.85, 0.28)),
+				Vector3(x + side * (length / 2.0 - 0.2), 0.06, 0.0), stone)
+	for z: float in [-0.085, 0.085]:
+		_piece(parent, "Seat", _box(Vector3(length, 0.09, 0.16)), Vector3(x, 0.48, z), wood)
+	_piece(parent, "Back", _box(Vector3(length, 0.20, 0.06)), Vector3(x, 0.84, -0.13), wood)
+	for side: float in [-1.0, 1.0]:
+		_piece(parent, "BackPost", _box(Vector3(0.06, 0.55, 0.06)),
+				Vector3(x + side * (length / 2.0 - 0.2), 0.67, -0.13), wood)
+
+
+func _add_campfire(parent: Node3D, x: float, stone: Material, wood: Material) -> void:
+	_campfire = Campfire.new()
+	_campfire.name = "Campfire"
+	_campfire.position.x = x
+	parent.add_child(_campfire)
+	_campfire.add_to_group("city_night")
+	# Fogo pequeno de beira de caminho: anel oval, toras e brasas, sem partículas.
+	for k in 10:
+		var angle := TAU * k / 10.0
+		_rock(_campfire, Vector3(cos(angle) * 0.23, 0.04, sin(angle) * 0.115),
+				Vector3(0.13, 0.16, 0.10), stone)
+	for z: float in [-0.07, 0.07]:
+		var log_mesh := CylinderMesh.new()
+		log_mesh.top_radius = 0.045
+		log_mesh.bottom_radius = 0.055
+		log_mesh.height = 0.42
+		log_mesh.radial_segments = 12
+		var log := _piece(_campfire, "Log", log_mesh, Vector3(0.0, 0.12, z), wood)
+		log.rotation.z = PI / 2.0
+	_campfire.embers = StandardMaterial3D.new()
+	_campfire.embers.albedo_color = Color("4A2517")
+	_campfire.embers.emission_enabled = true
+	_campfire.embers.emission = Color("E08040")
+	_rock(_campfire, Vector3(0.0, 0.10, 0.0), Vector3(0.35, 0.08, 0.19), _campfire.embers)
+	_campfire.flames = Node3D.new()
+	_campfire.flames.name = "Flames"
+	_campfire.add_child(_campfire.flames)
+	# Línguas curvas de chama, com transparência suave, em uma única malha.
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for tongue in 7:
+		var x0 := (tongue - 3) * 0.045
+		var height := 0.27 + 0.14 * (0.5 + 0.5 * sin(tongue * 3.7))
+		for level in 6:
+			for corner: Vector2i in [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1),
+					Vector2i(0, 0), Vector2i(1, 1), Vector2i(1, 0)]:
+				var t := float(level + corner.y) / 6.0
+				var width := (1.0 - t) * 0.045
+				surface.set_color(Color(1.0, lerpf(0.64, 0.20, t), 0.08, (1.0 - t) * 0.85))
+				surface.add_vertex(Vector3(x0 + sin(t * 5.0 + tongue) * t * 0.03 + (corner.x * 2 - 1) * width,
+						0.15 + t * height, sin(tongue * 2.0) * 0.045))
+	var flame_material := StandardMaterial3D.new()
+	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flame_material.vertex_color_use_as_albedo = true
+	flame_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flame_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_piece(_campfire.flames, "Fire", surface.commit(), Vector3.ZERO, flame_material)
+	_campfire.light = OmniLight3D.new()
+	_campfire.light.name = "Firelight"
+	_campfire.light.position.y = 0.6
+	_campfire.light.light_color = LAMP_COLOR
+	_campfire.light.omni_range = LAMP_RANGE
+	_campfire.light.shadow_enabled = false
+	_campfire.light.distance_fade_enabled = true
+	_campfire.light.distance_fade_begin = LAMP_FADE_BEGIN
+	_campfire.light.distance_fade_length = LAMP_FADE_LENGTH
+	_campfire.add_child(_campfire.light)
+
+
+func _add_frozen_fall(parent: Node3D, stone: Material) -> void:
+	# Uma cortina contínua, com sulcos verticais e uma borda de neve. Gelo
+	# opaco evita refração e a ordenação cara de várias camadas transparentes.
+	var ice := CityDecor.pbr_material("Snow010A", 0.5, Color("ACC9DA")).duplicate() as StandardMaterial3D
+	ice.roughness_texture = null
+	ice.roughness = 0.23
+	ice.normal_scale = 0.12
+	var snow := CityDecor.pbr_material("Snow010A", 0.6, Color("C0CCD6"))
+	for k in 9:
+		var x := -1.40 + k * 0.35
+		var height := _ice_height(x)
+		_piece(parent, "RockLedge", _box(Vector3(0.38, height + 0.30, 0.16)),
+				Vector3(x, height / 2.0 - 0.18, -0.075), stone)
+	var curtain := SurfaceTool.new()
+	curtain.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cap := SurfaceTool.new()
+	cap.begin(Mesh.PRIMITIVE_TRIANGLES)
+	const COLUMNS: int = 64
+	const ROWS: int = 20
+	for column in COLUMNS:
+		for row in ROWS:
+			for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1),
+					Vector2i(0, 0), Vector2i(1, 1), Vector2i(0, 1)]:
+				var u := float(column + corner.x) / COLUMNS
+				var v := float(row + corner.y) / ROWS
+				var x := lerpf(-1.48, 1.48, u)
+				var ridge := sin(x * 41.0) * 0.014 + sin(x * 19.0) * 0.019
+				var z := 0.08 + ridge + sin(v * 9.0 + x) * 0.018
+				curtain.set_uv(Vector2(u * 3.0, v * 3.0))
+				curtain.add_vertex(Vector3(x, lerpf(_ice_height(x), -0.18, v), z))
+		for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1),
+				Vector2i(0, 0), Vector2i(1, 1), Vector2i(0, 1)]:
+			var x := lerpf(-1.52, 1.52, float(column + corner.x) / COLUMNS)
+			cap.set_uv(Vector2(x, corner.y))
+			cap.add_vertex(Vector3(x, _ice_height(x) + 0.015 - corner.y * 0.08,
+					lerpf(-0.16, 0.14, float(corner.y))))
+	curtain.generate_normals()
+	curtain.generate_tangents()
+	cap.generate_normals()
+	_piece(parent, "FrozenCurtain", curtain.commit(), Vector3.ZERO, ice)
+	_piece(parent, "SnowLip", cap.commit(), Vector3.ZERO, snow)
+	for k in 11:
+		var x := -1.3 + k * 0.26
+		var length := 0.18 + 0.30 * (0.5 + 0.5 * sin(k * 2.7))
+		var icicle := CylinderMesh.new()
+		icicle.top_radius = 0.036
+		icicle.bottom_radius = 0.005
+		icicle.height = length
+		icicle.radial_segments = 10
+		_piece(parent, "Icicle", icicle, Vector3(x, _ice_height(x) - length / 2.0, 0.125), ice)
+		_rock(parent, Vector3(x, -0.03, 0.0), Vector3(0.32, 0.15, 0.30), snow)
+
+
+static func _ice_height(x: float) -> float:
+	return 2.20 + 0.55 * cos(x * 0.8) + 0.10 * sin(x * 3.7)
+
+
+func _rock(parent: Node3D, center: Vector3, size: Vector3, material: Material) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	mesh.radial_segments = 16
+	mesh.rings = 8
+	# Pequenas irregularidades tiram a aparência de esferas empilhadas, sem
+	# sair do volume reservado. A textura triplanar continua na escala real.
+	var arrays := mesh.surface_get_arrays(0)
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	for i in vertices.size():
+		var p := vertices[i]
+		vertices[i] *= 0.90 + 0.10 * sin(p.x * 17.0 + p.y * 11.0 + p.z * 23.0)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	var irregular := ArrayMesh.new()
+	irregular.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var rock := _piece(parent, "Stone", irregular, center, material)
+	rock.scale = size
+
+
+func _piece(parent: Node3D, node_name: String, mesh: Mesh, center: Vector3, material: Material) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = center
+	instance.material_override = material
+	instance.visibility_range_end = 140.0
+	parent.add_child(instance)
+	return instance
+
+
+## A fogueira participa do mesmo contrato dos lampiões, inclusive quando o
+## mundo atualiza todo o grupo city_night depois de reconstruir o terreno.
+class Campfire extends Node3D:
+	var light: OmniLight3D
+	var embers: StandardMaterial3D
+	var flames: Node3D
+
+	func set_night(night: float) -> void:
+		var on := smoothstep(0.3, 0.8, night)
+		light.light_energy = 2.8 * on
+		light.visible = on > 0.01
+		embers.emission_energy_multiplier = 3.0 * on
+		flames.visible = on > 0.01
 
 ## As paredes: um corpo só, com os quadriláteros verticais de todas as linhas.
 func _add_walls(field: Heightfield, lines: Array[PackedVector3Array]) -> void:
