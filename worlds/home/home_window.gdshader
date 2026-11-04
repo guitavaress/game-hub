@@ -45,9 +45,11 @@ uniform vec2 view_tan_half_fov = vec2(1.19, 0.6);
 // Brilho do retrato. O retrato já vem com o "filme" de cor do mundo, e o da
 // casa passa por cima: o ganho devolve o que ele escurece.
 uniform float view_gain = 1.25;
-// À noite o retrato vem escuro (a cidade à noite ainda é quase preta): mais
-// ganho, para a vista ler como cidade e não como um quadro preto.
-uniform float view_night_gain = 2.2;
+// À noite o retrato vem mais escuro: um pouco mais de ganho, para a vista ler
+// como cidade e não como um quadro preto. Era 2,2 quando a cidade à noite era
+// quase preta (17.3); com a noite que se lê (17.5), 2,2 deixava a neve da
+// montanha com cara de dia.
+uniform float view_night_gain = 1.6;
 // As luzes mais fortes do retrato (néon, janelas acesas) passam do branco e
 // acendem o brilho (glow) da casa: a partir de que claridade, e quanto.
 uniform float view_glow_from = 0.55;

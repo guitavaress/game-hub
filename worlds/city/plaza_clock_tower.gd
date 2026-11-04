@@ -4,7 +4,12 @@ extends Node3D
 ## Uma coluna de concreto sai do meio do chafariz; no alto, uma cabeça com
 ## quatro mostradores de néon (ponteiros de hora e minuto) e uma coroa que
 ## acende à noite. Marca a hora da CIDADE (DayNight.current_hour()), uma vez
-## por segundo. Só a coluna tem colisão. Nenhuma luz: só emissão.
+## por segundo. Só a coluna tem colisão.
+##
+## A luz própria da noite (Fase 17.5): quatro holofotes baixos no chão, em
+## volta do chafariz, iluminam a torre de baixo para cima (o marco se lê de
+## longe), e uma luz no meio do chafariz acende a água e faz a poça de luz da
+## praça. De dia ficam apagados (e invisíveis: não custam nada). Sem sombra.
 ##
 ## Uso: crie, ponha "day_night" e adicione à cena. set_hour() força uma hora
 ## (os testes usam).
@@ -20,6 +25,26 @@ const DIAL_RADIUS: float = 1.15
 const NEON_COLOR: Color = Color("DDEBFF")
 const CROWN_HEIGHT: float = 0.7
 
+## Os holofotes: luz âmbar (a "luz quente" do sistema visual), a que distância
+## do centro ficam (o chafariz tem 2 m de raio) e para que altura apontam.
+const UPLIGHT_COLOR: Color = Color("FFC48A")
+const UPLIGHT_ENERGY: float = 16.0
+const UPLIGHT_RANGE: float = 24.0
+const UPLIGHT_ANGLE: float = 26.0  # graus
+const UPLIGHT_DISTANCE: float = 3.4
+const UPLIGHT_AIM_HEIGHT: float = 14.0
+## A luz do chafariz: dentro da coluna, acima da água. Sem sombra, ela passa
+## pela coluna e acende a bacia e o chão em volta (a coluna não: as faces dela
+## olham para fora).
+const FOUNTAIN_LIGHT_COLOR: Color = Color("FFD9AE")
+const FOUNTAIN_LIGHT_ENERGY: float = 2.5
+const FOUNTAIN_LIGHT_RANGE: float = 11.0
+const FOUNTAIN_LIGHT_HEIGHT: float = 1.4
+## As lâmpadas na água do chafariz (oito, em roda) e a força delas à noite.
+const POOL_LAMPS: int = 8
+const POOL_LAMP_RADIUS: float = 1.2
+const POOL_LAMP_GLOW: float = 4.0
+
 ## O relógio da cidade (quem manda na hora). Sem ele, a torre fica na última hora.
 var day_night: DayNight
 
@@ -27,6 +52,10 @@ var _hour_pivots: Array[Node3D] = []
 var _minute_pivots: Array[Node3D] = []
 var _neon_material: StandardMaterial3D
 var _hour: float = 0.0
+## As luzes da noite (holofotes e chafariz) e o vidro que brilha nelas.
+var _night_lights: Array[Light3D] = []
+var _night_energies: Array[float] = []
+var _lamp_material: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -38,6 +67,7 @@ func _ready() -> void:
 	_build_column()
 	_build_head()
 	_build_crown()
+	_build_night_lights()
 	set_night(0.0)
 
 	var timer := Timer.new()
@@ -78,6 +108,16 @@ func get_minute_angle() -> float:
 func set_night(night: float) -> void:
 	if _neon_material != null:
 		_neon_material.emission_energy_multiplier = CityDecor.neon_energy(night)
+	for i in _night_lights.size():
+		_night_lights[i].light_energy = _night_energies[i] * night
+		_night_lights[i].visible = night > 0.01
+	if _lamp_material != null:
+		_lamp_material.emission_energy_multiplier = POOL_LAMP_GLOW * night
+
+
+## As luzes da noite que estão acesas agora (os testes usam).
+func get_night_lights() -> Array[Light3D]:
+	return _night_lights
 
 
 func _tick() -> void:
@@ -159,6 +199,63 @@ func _build_crown() -> void:
 	var top_y := base_y + 0.3 + CROWN_HEIGHT
 	var spire_height := HEIGHT - top_y
 	_add_box(Vector3(0.0, top_y + spire_height / 2.0, 0.0), Vector3(0.18, spire_height, 0.18), _neon_material)
+
+
+func _build_night_lights() -> void:
+	_lamp_material = StandardMaterial3D.new()
+	_lamp_material.albedo_color = Color(0.1, 0.09, 0.08)
+	_lamp_material.emission_enabled = true
+	_lamp_material.emission = UPLIGHT_COLOR
+	var metal := CityDecor.make_material(Color("1A1D22"))
+	# Holofotes: um de frente para cada mostrador, num pé baixo de metal.
+	for i in 4:
+		var side := Vector3(sin(i * PI / 2.0), 0.0, cos(i * PI / 2.0))
+		var base := side * UPLIGHT_DISTANCE
+		var housing := _add_box(base + Vector3(0.0, 0.1, 0.0), Vector3(0.36, 0.2, 0.36), metal)
+		housing.name = "UplightBase%d" % i
+		housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var lens := _add_box(base + Vector3(0.0, 0.205, 0.0), Vector3(0.28, 0.01, 0.28), _lamp_material)
+		lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var spot := SpotLight3D.new()
+		spot.name = "Uplight%d" % i
+		spot.light_color = UPLIGHT_COLOR
+		spot.spot_range = UPLIGHT_RANGE
+		spot.spot_angle = UPLIGHT_ANGLE
+		spot.spot_attenuation = 0.6
+		spot.shadow_enabled = false
+		# O spot ilumina para o -Z dele: aponta do pé para a torre, lá em cima.
+		spot.transform = Transform3D(Basis.IDENTITY, base + Vector3(0.0, 0.25, 0.0)) \
+				.looking_at(Vector3(0.0, UPLIGHT_AIM_HEIGHT, 0.0), -side)
+		add_child(spot)
+		_add_night_light(spot, UPLIGHT_ENERGY)
+	# A luz do chafariz e as lâmpadas na água, em roda da coluna.
+	var glow := OmniLight3D.new()
+	glow.name = "FountainLight"
+	glow.light_color = FOUNTAIN_LIGHT_COLOR
+	glow.omni_range = FOUNTAIN_LIGHT_RANGE
+	glow.omni_attenuation = 1.2
+	glow.shadow_enabled = false
+	glow.position = Vector3(0.0, FOUNTAIN_LIGHT_HEIGHT, 0.0)
+	add_child(glow)
+	_add_night_light(glow, FOUNTAIN_LIGHT_ENERGY)
+	for i in POOL_LAMPS:
+		var angle := (i + 0.5) * TAU / POOL_LAMPS
+		var lamp := MeshInstance3D.new()
+		var lamp_mesh := CylinderMesh.new()
+		lamp_mesh.top_radius = 0.09
+		lamp_mesh.bottom_radius = 0.09
+		lamp_mesh.height = 0.02
+		lamp.mesh = lamp_mesh
+		lamp.position = Vector3(sin(angle), 0.0, cos(angle)) * POOL_LAMP_RADIUS + Vector3(0.0, 0.5, 0.0)
+		lamp.material_override = _lamp_material
+		lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(lamp)
+
+
+func _add_night_light(light: Light3D, energy: float) -> void:
+	light.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
+	_night_lights.append(light)
+	_night_energies.append(energy)
 
 
 # --- Peças ---------------------------------------------------------------------

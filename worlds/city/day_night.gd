@@ -37,7 +37,7 @@ const SUNSET_SUN_COLOR: Color = Color("FF9A5C")
 const MOON_COLOR: Color = Color(0.55, 0.65, 1.0)
 const DAY_SUN_ENERGY: float = 1.0
 const SUNSET_SUN_ENERGY: float = 1.2
-const MOON_ENERGY: float = 0.25
+const MOON_ENERGY: float = 0.45
 ## Opacidade das sombras: suaves de dia, longas e marcadas no pôr do sol.
 const DAY_SHADOW_OPACITY: float = 0.4
 const SUNSET_SHADOW_OPACITY: float = 0.8
@@ -52,14 +52,32 @@ const NIGHT_SKY_ENERGY: float = 0.45
 ## Neblina: leve de dia, quente no pôr do sol, densa e azulada à noite.
 const DAY_FOG_DENSITY: float = 0.0015
 const SUNSET_FOG_DENSITY: float = 0.002
-const NIGHT_FOG_DENSITY: float = 0.006
+const NIGHT_FOG_DENSITY: float = 0.005
 const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
 const SUNSET_FOG_COLOR: Color = Color("E8A07A")
-const NIGHT_FOG_COLOR: Color = Color("080A12")
+## A neblina da noite é azul-marinho, e não quase preta (Fase 17.5): o que fica
+## longe some num azul frio, e as silhuetas (montanha, prédios) se leem contra
+## o céu. É a "base fria" do sistema visual (docs/design/uau-referencias.md).
+const NIGHT_FOG_COLOR: Color = Color("1E2C3A")
+## Quanto a neblina tinge o céu: de dia pouco; à noite mais, para o céu ser um
+## azul-noite e não um preto (as estrelas continuam aparecendo).
+const DAY_FOG_SKY_AFFECT: float = 0.15
+const NIGHT_FOG_SKY_AFFECT: float = 0.35
 ## Luz ambiente à noite. No Sky3D o céu noturno é quase preto (ele não tem a
 ## foto clara da noite), então a luz ambiente compensa.
-const NIGHT_AMBIENT: float = 0.2
-const SKY3D_NIGHT_AMBIENT: float = 0.9
+const NIGHT_AMBIENT: float = 0.3
+const SKY3D_NIGHT_AMBIENT: float = 1.1
+## O luar (Fase 17.5): uma luz fraca e fria, do alto, sem sombra, que só existe
+## à noite. No Sky3D a lua segue o céu de verdade (fase e hora em que nasce), e
+## em muitas noites ela está abaixo do horizonte: sem o luar, a neve e o chão
+## ficariam pretos. Quando a lua do Sky3D está no céu, o luar diminui o tanto
+## que ela já ilumina (a soma fica parecida). No céu de fotos, a "lua" é o
+## próprio sol da cena (MOON_ENERGY), e o luar não é usado.
+const MOONLIGHT_COLOR: Color = Color(0.62, 0.72, 0.95)
+const MOONLIGHT_ENERGY: float = 0.4
+## De onde vem o luar: a mesma lua do céu de fotos (50° de altura).
+const MOONLIGHT_ELEVATION_DEG: float = 50.0
+const MOONLIGHT_YAW_DEG: float = 30.0
 
 var _fog_weights: Vector3 = Vector3(1.0, 0.0, 0.0)
 var _fog_overlay_weight: float = 0.0
@@ -86,6 +104,9 @@ var sky_material: ShaderMaterial
 var sun: DirectionalLight3D
 ## O céu do addon Sky3D, quando é ele o céu (aí sky_material e sun ficam vazios).
 var sky3d: Sky3D
+## O luar (veja MOONLIGHT_ENERGY): a cidade cria junto com o Sky3D e põe aqui.
+## Este relógio só regula a força e a direção.
+var moonlight: DirectionalLight3D
 
 ## Horas somadas ao relógio do PC com F8.
 var hour_offset: float = 0.0
@@ -168,6 +189,7 @@ func update_now() -> void:
 		sky3d.current_time = hour
 	else:
 		_apply_photo_sky(hour, daylight, sunset, elevation, sun_yaw, weights)
+	_apply_moonlight(night_weight)
 
 	# Exposição, neblina, luz ambiente e brilho (glow).
 	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
@@ -176,6 +198,7 @@ func update_now() -> void:
 	var night_ambient := SKY3D_NIGHT_AMBIENT if sky3d != null else NIGHT_AMBIENT
 	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight)
 	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
+	environment.fog_sky_affect = lerpf(DAY_FOG_SKY_AFFECT, NIGHT_FOG_SKY_AFFECT, night_weight)
 
 	if absf(night - _night) > 0.005:
 		_night = night
@@ -203,6 +226,21 @@ func _apply_photo_sky(hour: float, daylight: float, sunset: float, elevation: fl
 	sun.light_color = MOON_COLOR.lerp(DAY_SUN_COLOR.lerp(SUNSET_SUN_COLOR, sunset), daylight)
 	sun.light_energy = lerpf(MOON_ENERGY, lerpf(DAY_SUN_ENERGY, SUNSET_SUN_ENERGY, sunset), daylight)
 	sun.shadow_opacity = _mix3(weights, DAY_SHADOW_OPACITY, SUNSET_SHADOW_OPACITY, NIGHT_SHADOW_OPACITY)
+
+
+## O luar: acende com a noite (o mesmo peso das estrelas) e desconta a lua do
+## Sky3D, se ela estiver no céu. Apagado, fica invisível (não custa nada).
+func _apply_moonlight(night_weight: float) -> void:
+	if moonlight == null:
+		return
+	var real_moon := 0.0
+	if sky3d != null and sky3d.moon != null:
+		real_moon = sky3d.moon.light_energy
+	var energy := maxf(MOONLIGHT_ENERGY * night_weight - real_moon, 0.0)
+	moonlight.light_energy = energy
+	moonlight.light_color = MOONLIGHT_COLOR
+	moonlight.rotation = Vector3(-deg_to_rad(MOONLIGHT_ELEVATION_DEG), deg_to_rad(MOONLIGHT_YAW_DEG), 0.0)
+	moonlight.visible = energy > 0.001
 
 
 ## Mistura sobre a névoa do relógio, sem multiplicar o resultado anterior.

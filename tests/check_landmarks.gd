@@ -49,6 +49,23 @@ func _run() -> void:
 	var pivot := tower.get_node("Dial0").get_child(-2) as Node3D  # pivô das horas
 	_check("o mostrador gira de verdade", pivot != null and absf(pivot.rotation.z) > 0.1)
 
+	# A luz própria da noite (17.5): holofotes de baixo para cima e o chafariz.
+	var night_lights: Array = tower.get_night_lights()
+	var uplights := night_lights.filter(func(l: Light3D) -> bool: return l is SpotLight3D)
+	tower.set_night(1.0)
+	_check("à noite, quatro holofotes e a luz do chafariz acesos (%d luzes)" % night_lights.size(),
+			uplights.size() == 4 and night_lights.size() == 5
+			and night_lights.all(func(l: Light3D) -> bool: return l.visible and l.light_energy > 0.5))
+	_check("os holofotes apontam para cima, para a torre",
+			uplights.all(func(l: SpotLight3D) -> bool: return l.global_basis.z.y < -0.8))
+	var quiet := true
+	for light: Light3D in night_lights:
+		quiet = quiet and not light.shadow_enabled and light.light_cull_mask & (1 << 19) == 0
+	_check("nenhuma luz da torre faz sombra nem entra em casa", quiet)
+	tower.set_night(0.0)
+	_check("de dia, as luzes da torre ficam apagadas",
+			night_lights.all(func(l: Light3D) -> bool: return not l.visible))
+
 	var landmarks: Array = []
 	for map in get_nodes_in_group("world_map"):
 		landmarks.append_array(map.get_map_data()["landmarks"])

@@ -129,6 +129,8 @@ var _photo_sky: Sky
 ## O céu do addon Sky3D (opção Céu = "sky3d"): ele é o WorldEnvironment e tem
 ## sol e lua próprios.
 var _sky3d: Sky3D
+## O luar que acompanha o Sky3D (veja DayNight.MOONLIGHT_ENERGY).
+var _moonlight: DirectionalLight3D
 ## A casa do jogador e a porta "Casa" da praça.
 var _home: Home
 var _home_door: TravelDoor
@@ -954,7 +956,7 @@ func _build_environment() -> void:
 	env.ssao_enabled = true      # sombrinhas nos cantos: dá "peso" aos objetos
 	env.ssr_enabled = true       # reflexos na tela: vidro e asfalto molhado
 	env.fog_enabled = true       # neblina leve (o DayNight ajusta a densidade)
-	env.fog_sky_affect = 0.15
+	env.fog_sky_affect = 0.15  # o DayNight sobe à noite (céu azul-noite)
 	# Névoa volumétrica: densidade 0 no ar; só aparece dentro de FogVolumes
 	# (ex.: névoa baixa do bairro Terror). O céu e as luzes iluminam ela.
 	env.volumetric_fog_density = 0.0
@@ -976,16 +978,18 @@ func _build_environment() -> void:
 ## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).
 ## O Environment é o mesmo nos dois: neblina, efeitos e qualidade não mudam.
 func _apply_sky(mode: String) -> void:
-	for old: Node in [_world_env, _sun, _sky3d]:
+	for old: Node in [_world_env, _sun, _sky3d, _moonlight]:
 		if old != null:
 			remove_child(old)  # sai já, para não haver dois céus num quadro
 			old.queue_free()
 	_world_env = null
 	_sun = null
 	_sky3d = null
+	_moonlight = null
 	_day_night.sky_material = null
 	_day_night.sun = null
 	_day_night.sky3d = null
+	_day_night.moonlight = null
 
 	if mode == "sky3d":
 		_environment.sky = null  # vazio: o Sky3D cria o céu dele
@@ -1003,6 +1007,16 @@ func _apply_sky(mode: String) -> void:
 		_set_sky3d_place(_sky3d.tod)
 		for light in _sky_lights():
 			_setup_sky_light(light)
+		# O luar (Fase 17.5): a lua do Sky3D segue o céu de verdade e muitas
+		# noites está abaixo do horizonte; o DayNight regula esta luz para a
+		# noite nunca ficar sem lua. Sem sombra: é barata.
+		_moonlight = DirectionalLight3D.new()
+		_moonlight.name = "Moonlight"
+		_moonlight.shadow_enabled = false
+		_moonlight.visible = false
+		_setup_sky_light(_moonlight)
+		add_child(_moonlight)
+		_day_night.moonlight = _moonlight
 		_day_night.sky3d = _sky3d
 	else:
 		_environment.sky = _photo_sky
