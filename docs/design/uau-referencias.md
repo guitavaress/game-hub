@@ -139,6 +139,20 @@ Loft, 22 h, Alta, 200 jogos falsos, mesma régua (medida de novo nas imagens, po
 - Os objetos quase não mexem na régua: eles enchem a sala, mas a luz é a mesma da 17.2. O quase preto que sobra está no teto, no canto do computador e na janela à noite (a cidade escura, que é da 17.5).
 - Nada foi baixado: tudo é código (`HomeShapes`, `HomePlants`, dois shaders novos).
 
+## A cidade à noite: depois da 17.5
+Bairro RPG, 22 h, Alta, céu Sky3D, 200 jogos falsos, mesma régua. O "depois" está em `game-hub-referencias\uau\depois-17.5\`, com a folha `folha_17.5.png` (antes, depois e referência).
+
+| Ponto | Média (antes → depois) | 95% até | Quase preto | Referência (quase preto) |
+|---|---|---|---|---|
+| Praça | 14 → 48 | 54 → 143 | 92% → 35% | 22% |
+| Pórtico | 34 → 47 | 131 → 143 | 52% → 28% | — |
+| Mirante | 17 → 46 | 30 → 93 | 76% → 26% | 20% |
+| Janela da casa | 37 → 40 | 110 → 111 | 51% → 40% | 23% |
+
+- O que mudou: o luar (a lua do Sky3D segue o céu de verdade e muitas noites está abaixo do horizonte), a névoa azul-marinho, o céu azul-noite e a luz própria da torre e do chafariz.
+- A neve do mirante pega o luar e virou o meio-tom azulado das referências. A noite continua escura na média (~47), com o céu azul-noite e as estrelas.
+- O que ainda falta contra as referências: os pontos quentes de perto (fogueira e lanternas no mirante, a 17.8) e o chão molhado refletindo as luzes na praça.
+
 ## Manifesto de assets candidatos (CC0, Poly Haven, glTF 1k)
 **Nada é baixado sem a permissão do dono**, como manda o AGENTS.md. A pergunta é feita na subetapa que precisar, depois de tentar por código. Os tamanhos são do download de 1k, conferidos pela API do Poly Haven em 2026-11-03. Fica fora: livro decorativo (`decorative_book_set_01`), que não tem glTF.
 

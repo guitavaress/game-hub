@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver:** uma casa aconchegante à noite, com luz quente, objetos e a **cidade de verdade** pela janela, acendendo quando fica pronta. Uma praça e um mirante que se leem à noite, e um dia com contraste. Uma trilha com lugares para parar e com os seus jogos de RPG no caminho, até um mirante que recompensa a subida.
-- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. **17.3.1 feita:** as placas dos bairros saíram da janela. **17.4 feita:** sofá, manta, mesinha com caneca e livros, tapete antigo, um canto de leitura com aparador, quadro e palmeira, e mais três plantas, tudo por código; o "depois" está em `game-hub-referencias\uau\depois-17.4\` (com a folha `folha_17.4.png`). **17.4b feita:** a sala encolheu para 9 × 7 m com teto de 3,0 m (a cabana junto); o sofá virou um canto de estar no canto noroeste, de frente para quem nasce, e a porta da rua foi para perto do canto sudeste; o "depois" está em `game-hub-referencias\uau\depois-17.4b\` (com a folha `folha_17.4b.png`). **Amostra aprovada (2026-11-04).** Em andamento, em paralelo: 17.5 (a noite da cidade, trilha A) e 17.7 (a trilha com conteúdo, trilha B).
+- **Agora:** 17.1 e 17.1b feitas: as 5 referências estão em `C:\Projetos\game-hub-referencias\uau\`, e o que cada uma ensina, em [uau-referencias.md](../design/uau-referencias.md). O "antes" da casa já está em `game-hub-referencias\uau\antes\`. **17.2 feita:** a casa à noite com poças de luz quente e sombras; o "depois" está em `game-hub-referencias\uau\depois-17.2\`. **17.3 feita:** a janela mostra a cidade de verdade, que acende quando fica pronta; o "depois" está em `game-hub-referencias\uau\depois-17.3\`. **17.3.1 feita:** as placas dos bairros saíram da janela. **17.4 feita:** sofá, manta, mesinha com caneca e livros, tapete antigo, um canto de leitura com aparador, quadro e palmeira, e mais três plantas, tudo por código; o "depois" está em `game-hub-referencias\uau\depois-17.4\` (com a folha `folha_17.4.png`). **17.4b feita:** a sala encolheu para 9 × 7 m com teto de 3,0 m (a cabana junto); o sofá virou um canto de estar no canto noroeste, de frente para quem nasce, e a porta da rua foi para perto do canto sudeste; o "depois" está em `game-hub-referencias\uau\depois-17.4b\` (com a folha `folha_17.4b.png`). **Amostra aprovada (2026-11-04).** **17.5 feita:** a praça, o pórtico e o mirante se leem à noite (o luar, a névoa azul-marinho, os holofotes da torre e o chafariz aceso), e a janela da casa mostra a montanha ao luar; o "depois" está em `game-hub-referencias\uau\depois-17.5\` (com a folha `folha_17.5.png`). Em andamento: 17.7 (a trilha com conteúdo, trilha B).
 - **Ordem:** referências → **amostra = a casa à noite com a janela** (você aprova) → luz da cidade → trilha e mirante → casa de dia e cabana.
 - **Para testar:** cada subetapa traz capturas de antes e depois e o próprio checklist.
 - **Decisões que esperam você:** os assets CC0 que a amostra pedir (nome, origem e tamanho antes de baixar).
@@ -73,7 +73,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Captura: os 4 pontos às 22 h e às 13 h em `depois-17.4b`, lado a lado com a 17.4 e a referência 01; a cabana às 22 h, para ver que coube.
   - **Portão:** a aprovação da amostra passa para cá.
   - Commit: `Fase 17.4b: a sala do tamanho certo`
-- [ ] **17.5 A noite da cidade** (grande · trilha A, Opus, sessão nova · high · revisão: você, pelas capturas)
+- [x] **17.5 A noite da cidade** (`6ff1e30`) (grande · trilha A, Opus, sessão nova · high · revisão: você, pelas capturas)
   - Faz (C1): noite legível sem deixar de ser noite. Névoa e ambiente noturnos menos pretos, luz própria na torre do relógio e no centro da praça, a lua e a neve no mirante. Teste rápido de SSIL na Alta na cidade, com medida; fica só se couber na meta.
   - Arquivos: `worlds/city/day_night.gd`, `worlds/city/city.gd` (ambiente), `worlds/city/plaza_clock_tower.gd`, `worlds/city/city_decor.gd` (praça), `profiles/biomes/montanha.tres` se preciso.
   - Teste: bateria completa (atenção a `check_daynight`, `check_night_life`, `check_biome_atmosphere`, `check_sky3d`, `check_graphics_quality`); medida no desktop.
@@ -227,6 +227,30 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
   - **Capturas** em `game-hub-referencias\uau\depois-17.4b`: os 4 pontos às 13 h e às 22 h, a cabana às 22 h, os pontos de perto (`perto\`: frente do sofá, mesinha, a janela com o aparador, o canto do computador e a sala vista da porta) e a folha `folha_17.4b.png` (17.4, 17.4b e a referência 01).
   - **Fica de fora:** vista da porta, o meio-sul da sala (o caminho da porta até tudo) ainda é chão livre; ele é a passagem. Se o dono achar vazio, a próxima peça seria um tapete de entrada ou um banco junto da porta.
 - 2026-11-04: o dono aprovou a amostra (a casa à noite, depois da 17.4b). Vale para o resto da fase o sistema visual registrado na 17.4 e na 17.4b: paleta de base fria com madeira e tecido quentes e pouco néon; luz em poças quentes com meio-tom frio entre elas; densidade em cantos cheios e passagens livres. Disparadas juntas a 17.5 (trilha A, Opus) e a 17.7 (trilha B, Astra, worktree `uau-b2`). Na 17.7, o `TrailDressing.setup` é chamado pelo `BackdropTerrain`, e não pelo `city.gd`: a B entrega uma função para receber a lista de jogos, e a A liga a lista (pelo `get_dressing()`) no merge.
+
+- 2026-11-04 (17.5): a noite da cidade se lê.
+  - **A causa do preto:** no Sky3D (o céu que você usa), a lua segue o céu de verdade. Às 22 h de hoje ela estava abaixo do horizonte (minguante), e a luz da lua era zero; a luz ambiente vinha quase toda do céu preto.
+  - **O luar:** uma luz direcional fraca e fria (0,4), do alto (50°) e sem sombra. A cidade cria junto com o Sky3D, e o `DayNight` regula: acende com a noite e desconta a lua do Sky3D quando ela está no céu. No céu de fotos, a "lua" (o sol da cena) foi de 0,25 para 0,45.
+  - **Névoa e ambiente da noite** (constantes do `DayNight`): névoa azul-marinho `#1E2C3A` (era `#080A12`) e um pouco menos densa (0,005; era 0,006); o céu pega mais da névoa à noite (`fog_sky_affect` 0,35; de dia segue 0,15); ambiente 1,1 no Sky3D (era 0,9) e 0,3 no de fotos (era 0,2).
+  - **A torre e o chafariz:** quatro holofotes âmbar no chão, a 3,4 m do centro, apontados para a torre; uma luz no meio do chafariz e oito lâmpadas na água. Sem sombra e apagados de dia.
+  - Nenhum bairro precisou de luz própria: nenhum campo novo no `DistrictProfile`.
+  - **Fora da lista do plano:**
+    - `skyline.gd`: o horizonte à noite virou azul-marinho. Com o céu mais azul, o preto virava um recorte de papelão.
+    - `home_window.gdshader`: o ganho do retrato à noite foi de 2,2 para 1,6. Com a cidade legível, 2,2 deixava a neve da montanha com cara de dia.
+    - `tools/capturar_pontos.gd`: espera 3,5 s depois de mudar a hora, porque o Sky3D leva 3 s para trocar a luz do céu. O "antes" refeito com a espera quase não mudou (praça 88%).
+    - Testes: `check_sky3d` (o luar) e `check_landmarks` (as luzes da torre).
+  - **Números** (22 h, Alta, Sky3D, 200 falsos; média, 95% até e quase preto; a régua toda em `uau-referencias.md`):
+    - praça: 14, 54 e 92% → 48, 143 e 35% (referência 05: 53, 140 e 22%);
+    - pórtico: 34, 131 e 52% → 47, 143 e 28%;
+    - mirante: 17, 30 e 76% → 46, 93 e 26% (referência 04: 51, 127 e 20%);
+    - a meta (quase preto abaixo de 35%, 95% perto de 100) foi batida nos três, a praça no limite. O que sobra de quase preto na praça é o céu, que ocupa metade do enquadramento;
+    - no céu de fotos: praça 16%, pórtico 20% e mirante 31%;
+    - a janela da casa: 37, 110 e 51% → 40, 111 e 40%. Aparecem a montanha nevada ao luar e a cidade.
+  - **SSIL na cidade:** testado e descartado. A caminhada caiu 10% (234,9 → 211,3 FPS, sem VSync) e a montanha 14%, e a régua não mudou (praça 48,1 → 48,2).
+  - **Medida no desktop:**
+    - com VSync, tudo travou em ~60 FPS, o código de antes e o novo (até a casa, que fica no teto de 165). A tela não apresentava a 165 Hz: a sessão estava sem o dono, sem outra Godot medindo, e a GPU parada (0%), com o ComfyUI (8 GB carregados) e o NVIDIA Broadcast abertos;
+    - medido então sem VSync (`--disable-vsync`), antes (`e362e97`) e depois na mesma hora: caminhada 236,8 → 234,9 FPS (−0,8%), p99 12 → 12 ms; casa 320,0 → 317,7; espelho 360,1 → 358,9; montanha 318,8 → 316,0;
+    - **pendente:** confirmar com VSync, com você no PC, contra os 152,8 do começo da fase (a queda relativa de 0,8% indica ~151,6).
 
 ## Checklist de teste manual (fim da fase)
 1. Abra o hub à noite (pausa › Noite). Na casa: luz quente, sombras, objetos; pela janela, a cidade de verdade acende quando fica pronta.
