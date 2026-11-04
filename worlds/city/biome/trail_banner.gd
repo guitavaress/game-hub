@@ -7,29 +7,37 @@ const FOOTPRINT: Vector2 = Vector2(1.3, 0.20)
 const CLOTH_SIZE: Vector2 = Vector2(0.94, 1.41)
 const CLOTH_BOTTOM: float = 1.12
 const CLOTH_COLOR: Color = Color("654836")
+## Cada estandarte sobe um pouco mais ou menos (0 a 0,45 m, pela ID do jogo):
+## de longe, a fileira não vira uma régua.
+const LIFT_STEP: float = 0.15
+const LIFT_STEPS: int = 4
 
 var app_id: int = 0
 var minutes: int = -1
 var _cloth: StandardMaterial3D
 var _game_art: Node
 static var _cloth_geometry: ArrayMesh
+## O verso do tecido, liso e igual em todos: sem ele, quem olha por trás via
+## a capa espelhada.
+static var _cloth_back: StandardMaterial3D
 
 
 func setup(game: Dictionary) -> void:
 	app_id = int(game["app_id"])
 	minutes = int(game["minutes"])
 	name = "TrailBanner_%d" % app_id
+	var lift := lift_of(app_id)
 	var wood := HomeMaterials.wood(Color("493426"), false, 0.85)
-	_piece("Mast", Vector3(0.10, 3.0, 0.10), Vector3(-0.57, 1.35, 0.0), wood)
-	_piece("Crossbar", Vector3(1.3, 0.065, 0.065), Vector3(0.0, 2.60, 0.0), wood)
+	_piece("Mast", Vector3(0.10, 3.0 + lift, 0.10), Vector3(-0.57, 1.35 + lift / 2.0, 0.0), wood)
+	_piece("Crossbar", Vector3(1.3, 0.065, 0.065), Vector3(0.0, 2.60 + lift, 0.0), wood)
 	var metal := HomeMaterials.metal(Color("66513A"), 0.6)
 	for x: float in [-0.39, 0.39]:
-		_piece("Tie", Vector3(0.04, 0.15, 0.085), Vector3(x, 2.57, 0.0), metal)
-	_piece("Hem", Vector3(0.96, 0.045, 0.065), Vector3(0.0, CLOTH_BOTTOM, 0.0), wood)
+		_piece("Tie", Vector3(0.04, 0.15, 0.085), Vector3(x, 2.57 + lift, 0.0), metal)
+	_piece("Hem", Vector3(0.96, 0.045, 0.065), Vector3(0.0, CLOTH_BOTTOM + lift, 0.0), wood)
 	_cloth = StandardMaterial3D.new()
 	_cloth.albedo_color = CLOTH_COLOR
 	_cloth.roughness = 0.95
-	_cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_cloth.cull_mode = BaseMaterial3D.CULL_BACK
 	_cloth.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	var cloth := MeshInstance3D.new()
 	cloth.name = "Cloth"
@@ -37,10 +45,30 @@ func setup(game: Dictionary) -> void:
 		_cloth_geometry = _cloth_mesh()
 	cloth.mesh = _cloth_geometry
 	cloth.material_override = _cloth
+	cloth.position.y = lift
 	cloth.visibility_range_end = 120.0
+	cloth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED  # tecido fino: sombra dos dois lados
 	add_child(cloth)
+	if _cloth_back == null:
+		_cloth_back = StandardMaterial3D.new()
+		_cloth_back.albedo_color = CLOTH_COLOR
+		_cloth_back.roughness = 0.95
+		_cloth_back.cull_mode = BaseMaterial3D.CULL_FRONT
+	var back := MeshInstance3D.new()
+	back.name = "ClothBack"
+	back.mesh = _cloth_geometry
+	back.material_override = _cloth_back
+	back.position.y = lift
+	back.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # a frente já faz a sombra
+	back.visibility_range_end = 120.0
+	add_child(back)
 	_game_art = get_tree().root.get_node("GameArt")
 	_game_art.art_ready.connect(_on_art_ready)
+
+
+## Quanto o estandarte deste jogo sobe (sempre o mesmo para o mesmo jogo).
+static func lift_of(id: int) -> float:
+	return LIFT_STEP * (absi(hash(id)) % LIFT_STEPS)
 
 
 func request_art() -> void:

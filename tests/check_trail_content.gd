@@ -71,6 +71,14 @@ func _check_layout(field: Heightfield, trail: MountainTrail, rows: Array[Diction
 					if p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)) < 0.025:
 						avoids_walls = false
 	_check("volumes fora dos 3 m pisáveis e dentro das paredes", safe)
+	# A fogueira e a queda congelada passam da cerca: o lado de fora delas não
+	# pode encostar em outra perna da trilha nem ir longe demais.
+	var outside_ok: bool = true
+	for stop: Dictionary in stops:
+		for p: Vector2 in _script.outer_points(stop):
+			var distance := trail.closest(p).x
+			outside_ok = outside_ok and distance > _script.WALL_OFFSET and distance <= _script.OUTER_REACH
+	_check("o lado de fora das paradas fica livre de outras pernas", outside_ok)
 	_check("volumes não tocam os segmentos reais das paredes", avoids_walls)
 	var many: Array[Dictionary] = []
 	for i in 500:
@@ -96,9 +104,10 @@ func _check_nodes(field: Heightfield, trail: MountainTrail, rows: Array[Dictiona
 		_check("grupo acende fogo à noite", light.visible and light.light_energy > 0.0)
 		call_group("city_night", "set_night", 0.0)
 		_check("grupo apaga fogo de dia", not light.visible and not fire.get_node("Flames").visible)
-		_check("fogo apaga de longe como lampiões", light.distance_fade_enabled
+		_check("fogo apaga de longe como lampiões, e a sombra dele antes", light.distance_fade_enabled
 				and light.distance_fade_begin == _script.LAMP_FADE_BEGIN
-				and light.distance_fade_length == _script.LAMP_FADE_LENGTH and not light.shadow_enabled)
+				and light.distance_fade_length == _script.LAMP_FADE_LENGTH
+				and light.shadow_enabled and light.distance_fade_shadow < light.distance_fade_begin)
 	var games: Array[SteamGame] = []
 	var minutes: Dictionary = {}
 	for row in rows:
@@ -135,8 +144,11 @@ func _check_nodes(field: Heightfield, trail: MountainTrail, rows: Array[Dictiona
 	var meshes_safe: bool = true
 	for node: Node in dressing.get_children():
 		if node.has_meta("trail_stop") or String(node.name).begins_with("TrailBanner_"):
-			meshes_safe = _meshes_in_margin(node, trail, field.trail_width / 2.0) and meshes_safe
-	_check("malhas reais também cabem fora da passagem e dentro da cerca", meshes_safe)
+			# As paradas de fora vão além da cerca, até OUTER_REACH; as outras, até a cerca.
+			var outside: bool = _script.OUTER_AREAS.has(node.get_meta("trail_stop", ""))
+			var reach: float = _script.OUTER_REACH if outside else _script.WALL_OFFSET
+			meshes_safe = _meshes_in_margin(node, trail, field.trail_width / 2.0, reach) and meshes_safe
+	_check("malhas reais também cabem fora da passagem (e as da margem, dentro da cerca)", meshes_safe)
 	dressing.set_games(games)
 	_check("nova lista substitui os estandartes", _banner_nodes(dressing).size() == 4)
 	dressing.set_games([])
@@ -147,7 +159,7 @@ func _check_nodes(field: Heightfield, trail: MountainTrail, rows: Array[Dictiona
 	await process_frame
 
 
-func _meshes_in_margin(node: Node, trail: MountainTrail, inner: float) -> bool:
+func _meshes_in_margin(node: Node, trail: MountainTrail, inner: float, reach: float) -> bool:
 	var safe: bool = true
 	if node is MeshInstance3D:
 		var mesh: MeshInstance3D = node
@@ -155,11 +167,11 @@ func _meshes_in_margin(node: Node, trail: MountainTrail, inner: float) -> bool:
 		for i in 8:
 			var p := mesh.global_transform * bounds.get_endpoint(i)
 			var distance := trail.closest(Vector2(p.x, p.z)).x
-			if distance < inner or distance > _script.WALL_OFFSET:
+			if distance < inner or distance > reach:
 				print("   fora: %s (%.3f m)" % [mesh.get_path(), distance])
 				safe = false
 	for child in node.get_children():
-		safe = _meshes_in_margin(child, trail, inner) and safe
+		safe = _meshes_in_margin(child, trail, inner, reach) and safe
 	return safe
 
 

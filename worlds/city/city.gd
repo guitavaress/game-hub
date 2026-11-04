@@ -156,6 +156,9 @@ var _backdrop_district: String = ""
 var _backdrop_half: float = 0.0
 var _backdrop_cell: float = 0.0
 var _backdrop_rebuilding: bool = false
+## Os jogos do bairro da montanha (os SteamGame de district["games"]): viram
+## os estandartes da trilha (17.7), na montagem e quando a montanha é refeita.
+var _backdrop_games: Array = []
 
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
@@ -360,6 +363,8 @@ func _rebuild_backdrop() -> void:
 		fresh.visible = false
 		while fresh.build_next():
 			await get_tree().process_frame
+		# Os estandartes entram ainda escondidos, para a troca ser num quadro só.
+		fresh.get_dressing().set_games(_backdrop_games)
 		# A montagem é a mesma de antes, então o nome e o lugar não mudam.
 		remove_child(old)
 		old.queue_free()
@@ -550,6 +555,9 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 		_backdrop_cell = terrain.cell_meters
 		while terrain.build_next():
 			await _keep_frame_light()
+		# A trilha só existe depois da montagem: aí entram os seus jogos.
+		_backdrop_games = district["games"]
+		terrain.get_dressing().set_games(_backdrop_games)
 		for zone in terrain.get_zone_rects():
 			_map.add_zone_rect(district["id"], zone)
 		_map.add_landmark("trilha", TrailDressing.SIGN_TEXT, terrain.trail.start,

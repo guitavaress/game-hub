@@ -75,7 +75,31 @@ const CONTENT_MARGIN: float = 0.06
 const BANNER_SPACING: int = 3
 const STOP_SHARES: Array[float] = [0.20, 0.43, 0.65, 0.84]
 const STOP_KINDS: Array[String] = ["campfire", "cairn", "frozen_fall", "bench"]
-const STOP_LENGTHS: Array[float] = [3.0, 2.8, 3.2, 2.0]
+const STOP_LENGTHS: Array[float] = [3.4, 2.8, 3.2, 2.0]
+## A fogueira e a queda congelada (polimento da 17.7) passam da cerca: ficam
+## no lado de fora, onde não se pisa, e se veem de perto. Em coordenadas da
+## parada (x ao longo da trilha, z positivo para o caminho; z = 0 é o meio da
+## margem, a 1,75 m do meio da trilha), a área que cada uma ocupa lá fora.
+const OUTER_AREAS: Dictionary = {
+	"campfire": Rect2(-1.9, -3.5, 3.8, 3.1),
+	"frozen_fall": Rect2(-2.3, -4.3, 4.6, 3.9),
+}
+## Nenhuma peça de fora chega mais longe que isto do meio da trilha.
+const OUTER_REACH: float = 6.6
+## A fogueira: o meio dela (z da parada, ~3,35 m do meio da trilha) e o
+## terraço de pedra que nivela o chão em volta (raio).
+const CAMP_CENTER_Z: float = -1.6
+const PAD_RADIUS: float = 1.7
+## Bancos em volta do fogo: a distância do meio e o comprimento.
+const CAMP_BENCH_RADIUS: float = 1.15
+const CAMP_BENCH_LENGTH: float = 1.25
+## A queda congelada: o pé (no chão, junto da cerca) e a frente do rochedo.
+const FALL_FOOT_Z: float = -0.45
+const FALL_LIP_Z: float = -1.8
+## O barranco que a queda pede: o chão sobe isto na frente do rochedo.
+const FALL_BANK_RISE: float = 1.6
+## Quantas colunas de gelo descem (finas e grossas, longas e curtas).
+const FALL_COLUMNS: int = 13
 
 
 ## Monta tudo para a trilha. "stone" é o material dos pilares (null = cinza).
@@ -164,23 +188,85 @@ static func stop_spots(field: Heightfield, trail: MountainTrail) -> Array[Dictio
 	for k in STOP_KINDS.size():
 		var wanted := roundi((trail.points.size() - 1) * STOP_SHARES[k])
 		var size := Vector2(STOP_LENGTHS[k], CONTENT_DEPTH)
+		var kind := STOP_KINDS[k]
 		var found: Dictionary = {}
-		for offset in range(0, 25):
-			for direction: int in [1, -1]:
-				var index := wanted + offset * direction
-				for side: float in [1.0, -1.0]:
-					var spot := _content_spot(field, trail, index, side, size)
-					if not spot.is_empty() and _away_from_lamps(spot, lamps):
+		# Primeiro um lugar do jeito que a parada pede (o barranco, o chão
+		# suave); sem ele, qualquer lugar com o lado de fora livre.
+		for picky: bool in [true, false]:
+			for offset in range(0, 25):
+				for direction: int in [1, -1]:
+					var index := wanted + offset * direction
+					for side: float in [1.0, -1.0]:
+						var spot := _content_spot(field, trail, index, side, size)
+						if spot.is_empty() or not _away_from_lamps(spot, lamps):
+							continue
+						spot["kind"] = kind
+						if not _outside_clear(field, trail, spot):
+							continue
+						if picky and not _suits(field, spot):
+							continue
 						found = spot
+						break
+					if not found.is_empty():
 						break
 				if not found.is_empty():
 					break
 			if not found.is_empty():
 				break
 		if not found.is_empty():
-			found["kind"] = STOP_KINDS[k]
 			result.append(found)
 	return result
+
+
+## Os pontos (x e z do mundo) da área de fora de uma parada; vazio se ela
+## fica toda na margem.
+static func outer_points(spot: Dictionary) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	if not OUTER_AREAS.has(spot.get("kind", "")):
+		return points
+	var area: Rect2 = OUTER_AREAS[spot["kind"]]
+	var transform: Transform3D = spot["transform"]
+	var columns := ceili(area.size.x / 0.4)
+	var rows := ceili(area.size.y / 0.4)
+	for i in columns + 1:
+		for j in rows + 1:
+			var local := area.position + area.size * Vector2(float(i) / columns, float(j) / rows)
+			var p := transform * Vector3(local.x, 0.0, local.y)
+			points.append(Vector2(p.x, p.z))
+	return points
+
+
+## O lado de fora não encosta em outra perna da trilha nem no mirante.
+static func _outside_clear(field: Heightfield, trail: MountainTrail, spot: Dictionary) -> bool:
+	for p in outer_points(spot):
+		var distance := trail.closest(p).x
+		if distance < WALL_OFFSET + CONTENT_MARGIN or distance > OUTER_REACH:
+			return false
+		if p.distance_to(trail.lookout_center) < field.lookout_radius + 3.0:
+			return false
+	return true
+
+
+## A fogueira quer um chão que desça pouco (o terraço nivela até ~1,4 m); a
+## queda congelada quer um barranco que suba atrás dela.
+static func _suits(field: Heightfield, spot: Dictionary) -> bool:
+	match String(spot["kind"]):
+		"campfire":
+			var far := rise_at(field, spot, Vector2(0.0, CAMP_CENTER_Z - PAD_RADIUS))
+			var sides := absf(rise_at(field, spot, Vector2(PAD_RADIUS, CAMP_CENTER_Z))
+					- rise_at(field, spot, Vector2(-PAD_RADIUS, CAMP_CENTER_Z)))
+			return far > -1.4 and far < 0.3 and sides < 0.9
+		"frozen_fall":
+			return rise_at(field, spot, Vector2(0.0, FALL_LIP_Z)) > FALL_BANK_RISE
+	return true
+
+
+## Quanto o chão sobe (ou desce) num ponto da parada (x, z locais), contado
+## da altura da parada.
+static func rise_at(field: Heightfield, spot: Dictionary, local: Vector2) -> float:
+	var transform: Transform3D = spot["transform"]
+	var p := transform * Vector3(local.x, 0.0, local.y)
+	return field.surface_at(Vector2(p.x, p.z)) - transform.origin.y
 
 
 ## Distribui os jogos pela subida inteira, sem ocupar paradas ou lampiões.
@@ -368,7 +454,9 @@ func get_sign_text() -> String:
 
 # --- Peças ----------------------------------------------------------------------
 
-## Quatro conjuntos pequenos, pousados na margem; a faixa central fica livre.
+## As quatro paradas. O monte de pedras e o banco ficam na margem (a faixa
+## de 0,5 m entre a trilha e a cerca); a fogueira e a queda congelada passam
+## da cerca, para terem tamanho sem estreitar o caminho.
 func _add_stops(field: Heightfield, trail: MountainTrail) -> void:
 	var stone := CityDecor.pbr_material("Rock058", 0.7, Color("89939D"))
 	var wood := HomeMaterials.wood(Color("58402E"), false, 0.85)
@@ -380,16 +468,12 @@ func _add_stops(field: Heightfield, trail: MountainTrail) -> void:
 		add_child(stop)
 		match String(spot["kind"]):
 			"campfire":
-				_add_bench(stop, -0.6, 1.5, wood, stone)
-				_add_campfire(stop, 1.10, stone, wood)
+				_add_camp(stop, field, spot, HomeMaterials.wood(Color("44382E"), false, 0.9))
 			"cairn":
 				_add_bench(stop, -0.7, 1.2, wood, stone)
-				for level in 7:
-					var width := lerpf(0.64, 0.16, float(level) / 6.0)
-					_rock(stop, Vector3(0.82 + sin(level * 2.0) * 0.035, 0.10 + level * 0.20, 0.0),
-							Vector3(width, 0.24, CONTENT_DEPTH * (1.0 - level * 0.07)), stone)
+				_add_cairn(stop, Vector3(0.82, 0.0, 0.0))
 			"frozen_fall":
-				_add_frozen_fall(stop, stone)
+				_add_frozen_fall(stop, field, spot)
 			"bench":
 				_add_bench(stop, 0.0, 1.9, wood, stone)
 
@@ -407,140 +491,229 @@ func _add_bench(parent: Node3D, x: float, length: float, wood: Material, stone: 
 				Vector3(x + side * (length / 2.0 - 0.2), 0.67, -0.13), wood)
 
 
-func _add_campfire(parent: Node3D, x: float, stone: Material, wood: Material) -> void:
+## A fogueira do caminho, logo depois da cerca: um terraço de pedra seca
+## nivela o chão da encosta, e em cima dele ficam o fogo e três bancos em
+## volta, abertos para a trilha (quem passa vê o fogo de frente).
+func _add_camp(stop: Node3D, field: Heightfield, spot: Dictionary, wood: Material) -> void:
+	var batch := TrailProps.Batch.new()
+	var center := Vector2(0.0, CAMP_CENTER_Z)
+	# O chão do terraço: a altura do chão na borda de perto (junto da cerca).
+	var top := 0.0
+	for x: float in [-1.0, 0.0, 1.0]:
+		top += rise_at(field, spot, Vector2(x, center.y + PAD_RADIUS * 0.85)) / 3.0
+	top += 0.05
+	var lowest := top
+	for k in 24:
+		var p := center + Heightfield.direction_of(TAU * k / 24.0) * PAD_RADIUS
+		lowest = minf(lowest, rise_at(field, spot, p))
+	# O corpo do terraço (pedra) e a neve batida em cima.
+	var rough_stone := CityDecor.pbr_material("Rock058", 1.1, Color("7E8892"))
+	var body_height := top - lowest + 0.5
+	batch.add(TrailProps.cylinder(PAD_RADIUS + 0.08, PAD_RADIUS, body_height, 28),
+			Transform3D(Basis.IDENTITY, Vector3(center.x, top - 0.03 - body_height / 2.0, center.y)), rough_stone)
+	var snow := CityDecor.pbr_material("Snow010A", 0.6, Color("ADB8C3"))
+	batch.add(TrailProps.cylinder(PAD_RADIUS - 0.04, PAD_RADIUS - 0.1, 0.06, 28),
+			Transform3D(Basis.IDENTITY, Vector3(center.x, top - 0.03, center.y)), snow)
+	# A mureta de pedra seca: pedras grandes onde o chão desce, pequenas onde
+	# ele quase encosta; nenhuma do lado da trilha (o caminho fica livre).
+	for k in 20:
+		var angle := TAU * k / 20.0
+		var direction := Heightfield.direction_of(angle)
+		if direction.y > 0.55:
+			# O lado de perto, junto da cerca: um meio-fio baixo, por dentro da borda.
+			var curb := center + direction * (PAD_RADIUS - 0.18)
+			batch.add(TrailProps.rock(Vector3(0.42, 0.2, 0.26), 90 + k, 0.5),
+					Transform3D(Basis(Vector3.UP, -angle + PI / 2.0), Vector3(curb.x, top - 0.02, curb.y)), rough_stone)
+			continue
+		var p := center + direction * (PAD_RADIUS + 0.05)
+		var drop := top - rise_at(field, spot, p)
+		var bottom := top - drop - 0.25 if drop > 0.12 else top - 0.12
+		var height := drop + 0.45 if drop > 0.12 else 0.3
+		var size := Vector3(0.62 + 0.12 * sin(k * 2.7), height / 0.82, 0.5)
+		batch.add(TrailProps.rock(size, 90 + k, 0.6),
+				Transform3D(Basis(Vector3.UP, -angle + PI / 2.0), Vector3(p.x, bottom + 0.32 * size.y, p.y)), rough_stone)
+	# Três bancos em volta do fogo (o lado da trilha fica aberto).
+	for angle: float in [-PI / 2.0, PI * 0.12, PI * 0.88]:
+		var direction := Heightfield.direction_of(angle)
+		var place := center + direction * CAMP_BENCH_RADIUS
+		# O banco olha para o fogo: o encosto fica do lado de fora.
+		var basis := Basis.looking_at(Vector3(direction.x, 0.0, direction.y))
+		_bench_into(batch, Transform3D(basis, Vector3(place.x, top - 0.03, place.y)),
+				CAMP_BENCH_LENGTH, wood)
+	batch.build(stop, "Camp", 140.0)
 	_campfire = Campfire.new()
-	_campfire.name = "Campfire"
-	_campfire.position.x = x
-	parent.add_child(_campfire)
-	_campfire.add_to_group("city_night")
-	# Fogo pequeno de beira de caminho: anel oval, toras e brasas, sem partículas.
-	for k in 10:
-		var angle := TAU * k / 10.0
-		_rock(_campfire, Vector3(cos(angle) * 0.23, 0.04, sin(angle) * 0.115),
-				Vector3(0.13, 0.16, 0.10), stone)
-	for z: float in [-0.07, 0.07]:
-		var log_mesh := CylinderMesh.new()
-		log_mesh.top_radius = 0.045
-		log_mesh.bottom_radius = 0.055
-		log_mesh.height = 0.42
-		log_mesh.radial_segments = 12
-		var log := _piece(_campfire, "Log", log_mesh, Vector3(0.0, 0.12, z), wood)
-		log.rotation.z = PI / 2.0
-	_campfire.embers = StandardMaterial3D.new()
-	_campfire.embers.albedo_color = Color("4A2517")
-	_campfire.embers.emission_enabled = true
-	_campfire.embers.emission = Color("E08040")
-	_rock(_campfire, Vector3(0.0, 0.10, 0.0), Vector3(0.35, 0.08, 0.19), _campfire.embers)
-	_campfire.flames = Node3D.new()
-	_campfire.flames.name = "Flames"
-	_campfire.add_child(_campfire.flames)
-	# Línguas curvas de chama, com transparência suave, em uma única malha.
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for tongue in 7:
-		var x0 := (tongue - 3) * 0.045
-		var height := 0.27 + 0.14 * (0.5 + 0.5 * sin(tongue * 3.7))
-		for level in 6:
-			for corner: Vector2i in [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1),
-					Vector2i(0, 0), Vector2i(1, 1), Vector2i(1, 0)]:
-				var t := float(level + corner.y) / 6.0
-				var width := (1.0 - t) * 0.045
-				surface.set_color(Color(1.0, lerpf(0.64, 0.20, t), 0.08, (1.0 - t) * 0.85))
-				surface.add_vertex(Vector3(x0 + sin(t * 5.0 + tongue) * t * 0.03 + (corner.x * 2 - 1) * width,
-						0.15 + t * height, sin(tongue * 2.0) * 0.045))
-	var flame_material := StandardMaterial3D.new()
-	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flame_material.vertex_color_use_as_albedo = true
-	flame_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	flame_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_piece(_campfire.flames, "Fire", surface.commit(), Vector3.ZERO, flame_material)
-	_campfire.light = OmniLight3D.new()
-	_campfire.light.name = "Firelight"
-	_campfire.light.position.y = 0.6
-	_campfire.light.light_color = LAMP_COLOR
-	_campfire.light.omni_range = LAMP_RANGE
-	_campfire.light.shadow_enabled = false
-	_campfire.light.distance_fade_enabled = true
-	_campfire.light.distance_fade_begin = LAMP_FADE_BEGIN
-	_campfire.light.distance_fade_length = LAMP_FADE_LENGTH
-	_campfire.add_child(_campfire.light)
+	_campfire.position = Vector3(center.x, top - 0.03, center.y)
+	stop.add_child(_campfire)
+	_campfire.build(rough_stone, HomeMaterials.wood(Color("3F2C20"), false, 0.9),
+			LAMP_FADE_BEGIN, LAMP_FADE_LENGTH)
 
 
-func _add_frozen_fall(parent: Node3D, stone: Material) -> void:
-	# Uma cortina contínua, com sulcos verticais e uma borda de neve. Gelo
-	# opaco evita refração e a ordenação cara de várias camadas transparentes.
-	var ice := CityDecor.pbr_material("Snow010A", 0.5, Color("ACC9DA")).duplicate() as StandardMaterial3D
-	ice.roughness_texture = null
-	ice.roughness = 0.23
-	ice.normal_scale = 0.12
+## O monte de pedras: lajes chatas empilhadas, cada uma menor e um pouco
+## torta, como as que os caminhantes deixam. Cabe na margem (fundura).
+func _add_cairn(stop: Node3D, at: Vector3) -> void:
+	var batch := TrailProps.Batch.new()
+	var stone := CityDecor.pbr_material("Rock058", 0.6, Color("A3ABB2"))
+	var y := at.y - 0.04
+	for level in 8:
+		var share := float(level) / 7.0
+		var width := lerpf(0.66, 0.17, share)
+		var height := lerpf(0.16, 0.11, share)
+		var size := Vector3(width, height / 0.82, minf(CONTENT_DEPTH - 0.02, width * 0.85))
+		var place := at + Vector3(0.03 * sin(level * 2.3), y + 0.32 * size.y, 0.015 * cos(level * 1.7))
+		batch.add(TrailProps.rock(size, 200 + level, 0.3),
+				Transform3D(Basis(Vector3.UP, 0.12 * sin(level * 3.1)) * Basis(Vector3.BACK, 0.05 * sin(level * 1.9)), place), stone)
+		y += height * 0.92
+	batch.build(stop, "Cairn", 140.0)
+
+
+## Um banco de tábuas com encosto, de pernas de madeira, no chão do lugar
+## dado; o assento olha para +Z do lugar e o encosto fica no -Z.
+static func _bench_into(batch: TrailProps.Batch, place: Transform3D, length: float, wood: Material) -> void:
+	for side: float in [-1.0, 1.0]:
+		var x := side * (length / 2.0 - 0.16)
+		batch.add(TrailProps.box(Vector3(0.1, 0.46, 0.34)), place * Transform3D(Basis.IDENTITY, Vector3(x, 0.21, 0.0)), wood)
+		batch.add(TrailProps.box(Vector3(0.08, 0.5, 0.07)), place * Transform3D(Basis.IDENTITY, Vector3(x, 0.66, -0.16)), wood)
+	for z: float in [-0.09, 0.09]:
+		batch.add(TrailProps.box(Vector3(length, 0.06, 0.16)), place * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.46, z)), wood)
+	for y: float in [0.68, 0.86]:
+		batch.add(TrailProps.box(Vector3(length, 0.12, 0.04)),
+				place * Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0.0, y, -0.19)), wood)
+
+
+## A queda d'água congelada, encostada no barranco do lado de fora: um
+## rochedo atrás (a borda de onde o gelo cai), colunas de gelo grossas que
+## descem pela encosta e se alargam embaixo, pingentes na borda e um pé de
+## gelo e neve acumulado no chão, junto da cerca.
+func _add_frozen_fall(stop: Node3D, field: Heightfield, spot: Dictionary) -> void:
+	var batch := TrailProps.Batch.new()
+	var ice := _ice_material()
 	var snow := CityDecor.pbr_material("Snow010A", 0.6, Color("C0CCD6"))
-	for k in 9:
-		var x := -1.40 + k * 0.35
-		var height := _ice_height(x)
-		_piece(parent, "RockLedge", _box(Vector3(0.38, height + 0.30, 0.16)),
-				Vector3(x, height / 2.0 - 0.18, -0.075), stone)
-	var curtain := SurfaceTool.new()
-	curtain.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var cap := SurfaceTool.new()
-	cap.begin(Mesh.PRIMITIVE_TRIANGLES)
-	const COLUMNS: int = 64
-	const ROWS: int = 20
-	for column in COLUMNS:
-		for row in ROWS:
-			for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1),
-					Vector2i(0, 0), Vector2i(1, 1), Vector2i(0, 1)]:
-				var u := float(column + corner.x) / COLUMNS
-				var v := float(row + corner.y) / ROWS
-				var x := lerpf(-1.48, 1.48, u)
-				var ridge := sin(x * 41.0) * 0.014 + sin(x * 19.0) * 0.019
-				var z := 0.08 + ridge + sin(v * 9.0 + x) * 0.018
-				curtain.set_uv(Vector2(u * 3.0, v * 3.0))
-				curtain.add_vertex(Vector3(x, lerpf(_ice_height(x), -0.18, v), z))
-		for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1),
-				Vector2i(0, 0), Vector2i(1, 1), Vector2i(0, 1)]:
-			var x := lerpf(-1.52, 1.52, float(column + corner.x) / COLUMNS)
-			cap.set_uv(Vector2(x, corner.y))
-			cap.add_vertex(Vector3(x, _ice_height(x) + 0.015 - corner.y * 0.08,
-					lerpf(-0.16, 0.14, float(corner.y))))
-	curtain.generate_normals()
-	curtain.generate_tangents()
-	cap.generate_normals()
-	_piece(parent, "FrozenCurtain", curtain.commit(), Vector3.ZERO, ice)
-	_piece(parent, "SnowLip", cap.commit(), Vector3.ZERO, snow)
-	for k in 11:
-		var x := -1.3 + k * 0.26
-		var length := 0.18 + 0.30 * (0.5 + 0.5 * sin(k * 2.7))
-		var icicle := CylinderMesh.new()
-		icicle.top_radius = 0.036
-		icicle.bottom_radius = 0.005
-		icicle.height = length
-		icicle.radial_segments = 10
-		_piece(parent, "Icicle", icicle, Vector3(x, _ice_height(x) - length / 2.0, 0.125), ice)
-		_rock(parent, Vector3(x, -0.03, 0.0), Vector3(0.32, 0.15, 0.30), snow)
+	var rock := CityDecor.pbr_material("Rock058", 1.6, Color("7A858F"))
+	var foot := rise_at(field, spot, Vector2(0.0, FALL_FOOT_Z))
+	var bank := rise_at(field, spot, Vector2(0.0, FALL_LIP_Z))
+	# A borda do gelo: acima do barranco e alta o bastante para ser uma queda.
+	var lip := maxf(bank + 1.4, foot + 3.0)
+	# O rochedo: um bloco no meio, dois dos lados e um mais alto atrás.
+	# [x, z, largura, fundura, topo acima da borda]
+	var boulders: Array[Array] = [[0.0, FALL_LIP_Z - 0.8, 2.4, 1.7, 0.35],
+			[-1.75, FALL_LIP_Z - 0.35, 1.4, 1.3, 0.05], [1.6, FALL_LIP_Z - 0.65, 1.6, 1.4, 0.0],
+			[0.5, FALL_LIP_Z - 1.7, 2.5, 1.6, 1.1]]
+	for k in boulders.size():
+		var b: Array = boulders[k]
+		var ground := rise_at(field, spot, Vector2(b[0], b[1]))
+		var bottom := minf(ground, foot) - 0.6
+		var height: float = lip + float(b[4]) - bottom
+		var size := Vector3(b[2], height / 0.82, b[3])
+		batch.add(TrailProps.rock(size, 120 + k, 0.55),
+				Transform3D(Basis(Vector3.UP, 0.25 * sin(k * 2.1)), Vector3(b[0], bottom + 0.32 * size.y, b[1])), rock)
+	# A laje da borda, por cima do rochedo e um pouco para a frente: o gelo
+	# nasce embaixo dela.
+	batch.add(TrailProps.rock(Vector3(3.3, 0.75, 1.4), 128, 0.5),
+			Transform3D(Basis(Vector3.UP, 0.08), Vector3(0.1, lip + 0.12, FALL_LIP_Z - 0.35)), rock)
+	# As colunas de gelo: caem da borda e seguem a encosta até o pé.
+	var ice_surface := SurfaceTool.new()
+	ice_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in FALL_COLUMNS:
+		var x := -1.25 + k * 2.5 / (FALL_COLUMNS - 1) + 0.06 * sin(k * 4.1)
+		# As mais curtas param no meio da encosta, afinando como um pingente.
+		var reach := 1.0 if k % 3 != 1 else 0.6 + 0.25 * (0.5 + 0.5 * sin(k * 1.3))
+		_ice_column(ice_surface, field, spot, x, lip - 0.05 - 0.2 * absf(x), foot, k, reach)
+	ice_surface.index()
+	ice_surface.generate_tangents()
+	batch.add(ice_surface.commit(), Transform3D.IDENTITY, ice)
+	# Pingentes na borda do rochedo, dos lados da queda.
+	for k in 10:
+		var x := -1.85 + k * 0.41
+		if absf(x) < 1.0 and k % 3 != 0:
+			continue
+		var length := 0.35 + 0.6 * (0.5 + 0.5 * sin(k * 2.7))
+		var top := lip - 0.02
+		batch.add(TrailProps.cylinder(0.006, 0.05, length, 8),
+				Transform3D(Basis.IDENTITY, Vector3(x, top - length / 2.0, FALL_LIP_Z + 0.22)), ice)
+	# O pé: gelo acumulado e neve em volta, no chão junto da cerca.
+	for k in 3:
+		var x := -0.75 + k * 0.75
+		var ground := rise_at(field, spot, Vector2(x, FALL_FOOT_Z - 0.2))
+		batch.add(TrailProps.rock(Vector3(1.5, 0.72, 1.15), 140 + k, 0.3),
+				Transform3D(Basis(Vector3.UP, 0.3 * sin(k * 2.0)), Vector3(x, ground - 0.12, FALL_FOOT_Z - 0.2)), ice)
+	for x: float in [-1.75, 1.75]:
+		var ground := rise_at(field, spot, Vector2(x, FALL_FOOT_Z - 0.4))
+		batch.add(TrailProps.rock(Vector3(1.3, 0.34, 1.0), 150 + int(x), 0.25),
+				Transform3D(Basis.IDENTITY, Vector3(x, ground - 0.12, FALL_FOOT_Z - 0.45)), snow)
+	batch.build(stop, "Fall", 140.0)
 
 
-static func _ice_height(x: float) -> float:
-	return 2.20 + 0.55 * cos(x * 0.8) + 0.10 * sin(x * 3.7)
+## Uma coluna de gelo: um tubo irregular que cai quase reto da borda e depois
+## escorre pela encosta, mais grosso embaixo (o gelo se acumula).
+func _ice_column(surface: SurfaceTool, field: Heightfield, spot: Dictionary, x: float, top: float,
+		foot: float, seed: int, reach: float) -> void:
+	const RINGS: int = 18
+	const SEGMENTS: int = 10
+	var base := 0.07 + 0.09 * (0.5 + 0.5 * sin(seed * 2.6 + 1.0))
+	var centers: Array[Vector3] = []
+	var radii: Array[float] = []
+	for i in RINGS:
+		var t := float(i) / (RINGS - 1) * reach
+		var radius := base * (0.6 + 1.1 * t) * (1.0 + 0.2 * sin(t * (13.0 + seed) + seed * 2.3))
+		if reach < 1.0:
+			radius *= maxf(1.0 - smoothstep(reach - 0.25, reach, t), 0.04)
+		else:
+			radius *= 1.0 - 0.5 * smoothstep(0.88, 1.0, t)  # a ponta some dentro do pé
+		var z := lerpf(FALL_LIP_Z + 0.25, FALL_FOOT_Z - 0.3, smoothstep(0.15, 1.0, t))
+		var ground := rise_at(field, spot, Vector2(x, z))
+		var y := maxf(lerpf(top, foot + 0.1, t), ground + radius * 0.55)
+		centers.append(Vector3(x + 0.04 * sin(t * 6.0 + seed), y, z))
+		radii.append(radius)
+	var rings: Array[PackedVector3Array] = []
+	var normals: Array[PackedVector3Array] = []
+	for i in RINGS:
+		var tangent := (centers[mini(i + 1, RINGS - 1)] - centers[maxi(i - 1, 0)]).normalized()
+		var up := tangent.cross(Vector3.RIGHT).normalized()
+		var side := up.cross(tangent).normalized()
+		var ring := PackedVector3Array()
+		var ring_normals := PackedVector3Array()
+		for s in SEGMENTS:
+			var a := TAU * s / SEGMENTS
+			var n := (side * cos(a) + up * sin(a)).normalized()
+			ring.append(centers[i] + n * radii[i])
+			ring_normals.append(n)
+		rings.append(ring)
+		normals.append(ring_normals)
+	for i in RINGS - 1:
+		for s in SEGMENTS:
+			var s2 := (s + 1) % SEGMENTS
+			# A Godot desenha a frente no sentido horário.
+			for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 1), Vector2i(1, 0),
+					Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+				var ring_index := i + corner.y
+				var segment := s if corner.x == 0 else s2
+				surface.set_normal(normals[ring_index][segment])
+				surface.set_uv(Vector2(float(s + corner.x) / SEGMENTS, float(ring_index) / RINGS))
+				surface.add_vertex(rings[ring_index][segment])
 
 
-func _rock(parent: Node3D, center: Vector3, size: Vector3, material: Material) -> void:
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.5
-	mesh.height = 1.0
-	mesh.radial_segments = 16
-	mesh.rings = 8
-	# Pequenas irregularidades tiram a aparência de esferas empilhadas, sem
-	# sair do volume reservado. A textura triplanar continua na escala real.
-	var arrays := mesh.surface_get_arrays(0)
-	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	for i in vertices.size():
-		var p := vertices[i]
-		vertices[i] *= 0.90 + 0.10 * sin(p.x * 17.0 + p.y * 11.0 + p.z * 23.0)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	var irregular := ArrayMesh.new()
-	irregular.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var rock := _piece(parent, "Stone", irregular, center, material)
-	rock.scale = size
+## O gelo: claro, liso e brilhante, com um relevo fino de geada (a normal da
+## neve) e uma borda que acende contra a luz. Opaco: sem ordenar transparência.
+static var _ice: StandardMaterial3D
+
+static func _ice_material() -> StandardMaterial3D:
+	if _ice == null:
+		_ice = StandardMaterial3D.new()
+		_ice.albedo_color = Color("9DC3D8")
+		_ice.roughness = 0.14
+		_ice.metallic_specular = 0.8
+		_ice.clearcoat_enabled = true
+		_ice.clearcoat = 0.6
+		_ice.clearcoat_roughness = 0.08
+		_ice.normal_enabled = true
+		_ice.normal_texture = CityDecor.pbr_textures("Snow010A")["normal"]
+		_ice.normal_scale = 0.5
+		_ice.uv1_triplanar = true
+		_ice.uv1_scale = Vector3.ONE / 1.4
+		_ice.rim_enabled = true
+		_ice.rim = 0.35
+		_ice.rim_tint = 0.75
+	return _ice
 
 
 func _piece(parent: Node3D, node_name: String, mesh: Mesh, center: Vector3, material: Material) -> MeshInstance3D:
@@ -553,20 +726,6 @@ func _piece(parent: Node3D, node_name: String, mesh: Mesh, center: Vector3, mate
 	parent.add_child(instance)
 	return instance
 
-
-## A fogueira participa do mesmo contrato dos lampiões, inclusive quando o
-## mundo atualiza todo o grupo city_night depois de reconstruir o terreno.
-class Campfire extends Node3D:
-	var light: OmniLight3D
-	var embers: StandardMaterial3D
-	var flames: Node3D
-
-	func set_night(night: float) -> void:
-		var on := smoothstep(0.3, 0.8, night)
-		light.light_energy = 2.8 * on
-		light.visible = on > 0.01
-		embers.emission_energy_multiplier = 3.0 * on
-		flames.visible = on > 0.01
 
 ## As paredes: um corpo só, com os quadriláteros verticais de todas as linhas.
 func _add_walls(field: Heightfield, lines: Array[PackedVector3Array]) -> void:
