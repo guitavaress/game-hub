@@ -181,10 +181,13 @@ func _check_models(dressing: Node3D) -> void:
 			and embers.emission_texture != null)
 	var bench_mesh := TrailModels.mesh("benches", "bench_camp")
 	var bench_arrays := bench_mesh.surface_get_arrays(0)
-	_check("os bancos usam a madeira da casa, com o veio no UV e a cor dos vértices",
+	# 17.8: a madeira dos modelos é a Wood049 (com o relevo e o veio pelo UV).
+	var wood := TrailModels.wood(Color.BROWN)
+	_check("os bancos usam a madeira Wood049, com o veio no UV e a cor dos vértices",
 			bench_arrays[Mesh.ARRAY_TEX_UV] != null and bench_arrays[Mesh.ARRAY_COLOR] != null
 			and bench_mesh.surface_get_material(0) is BaseMaterial3D
-			and TrailModels.wood(Color.BROWN).get_shader_parameter("grain_from_uv") == true)
+			and wood.albedo_texture != null and wood.albedo_texture.resource_path.contains("Wood049")
+			and wood.normal_enabled and wood.vertex_color_use_as_albedo and not wood.uv1_triplanar)
 	var fire: Node3D = dressing.get_node_or_null("TrailStop_campfire/Campfire")
 	_check("a fogueira fica no meio do terraço, como na 17.7", fire != null
 			and is_zero_approx(fire.position.x) and is_equal_approx(fire.position.z, _script.CAMP_CENTER_Z))
@@ -210,7 +213,9 @@ func _check_models(dressing: Node3D) -> void:
 			if child is MeshInstance3D:
 				var box := (child as MeshInstance3D).get_aabb()
 				var material := (child as MeshInstance3D).material_override
-				if material is ShaderMaterial:
+				# O banco é o que tem a madeira (a Wood049 desde a 17.8).
+				var tex: Texture2D = (material as BaseMaterial3D).albedo_texture if material is BaseMaterial3D else null
+				if tex != null and tex.resource_path.contains("Wood049"):
 					sides = sides and box.get_center().x < 0.0 and box.size.x > 1.1
 				else:
 					sides = sides and box.get_center().x > 0.5

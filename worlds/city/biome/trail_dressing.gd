@@ -117,7 +117,13 @@ func setup(field: Heightfield, trail: MountainTrail, stone: Material = null) -> 
 	if deck.size() >= 2:
 		walls.append(deck)
 	_add_walls(field, walls)
-	_add_fence(field, lines)
+	# Os arcos do anel do mirante ganham o guarda-corpo de madeira (17.8,
+	# LookoutDeck); as estacas e a corda ficam só nos lados da trilha.
+	var sides: Array[PackedVector3Array] = []
+	for line in lines:
+		if not is_ring_line(field, trail, line):
+			sides.append(line)
+	_add_fence(field, sides)
 	_add_lamps(field, trail)
 	_add_gate(trail, stone if stone != null else CityDecor.make_material(STONE_COLOR))
 	_add_stops(field, trail)
@@ -136,6 +142,9 @@ func set_games(games: Array) -> void:
 	_banners.clear()
 	set_process(false)
 	if _trail == null or games.is_empty():
+		var empty := _deck()
+		if empty != null:
+			empty.set_highlight({})
 		return
 	var entries: Array[Dictionary] = []
 	var library: Node = get_tree().root.get_node("SteamLibrary")
@@ -149,6 +158,11 @@ func set_games(games: Array) -> void:
 		banner.setup(placement["game"])
 		_banners.append(banner)
 		_art_queue.append(banner)
+	# O mais jogado (o último na ordem de horas) fica em destaque no mirante (17.8).
+	var deck := _deck()
+	if deck != null:
+		var ordered := ordered_games(entries)
+		deck.set_highlight(ordered[ordered.size() - 1] if not ordered.is_empty() else {})
 	# get_art lê a capa; preload_world_art só carrega hero/logo, não capas.
 	# Uma leitura por quadro evita uma rajada de disco ao receber a biblioteca.
 	set_process(not _art_queue.is_empty())
@@ -437,9 +451,28 @@ func set_night(night: float) -> void:
 		_glass.emission_energy_multiplier = LAMP_GLOW * on
 	if _campfire != null:
 		_campfire.set_night(night)
+	# O mirante (17.8) acende junto: as lanternas e a fogueira dele.
+	var deck := _deck()
+	if deck != null:
+		deck.set_night(night)
 	var glow := lerpf(1.0, 1.6, night)
 	for label in _labels:
 		label.modulate = Color(LAMP_COLOR.r * glow, LAMP_COLOR.g * glow, LAMP_COLOR.b * glow)
+
+
+## O mirante (LookoutDeck), irmão deste nó na montanha; null sem ele.
+func _deck() -> LookoutDeck:
+	var parent := get_parent()
+	return parent.get_node_or_null("LookoutDeck") as LookoutDeck if parent != null else null
+
+
+## Uma linha das paredes é um arco do anel do mirante (e não um lado da trilha)?
+static func is_ring_line(field: Heightfield, trail: MountainTrail, line: PackedVector3Array) -> bool:
+	var radius := field.lookout_radius + RING_GAP
+	for p in line:
+		if absf(Vector2(p.x, p.z).distance_to(trail.lookout_center) - radius) > 0.05:
+			return false
+	return true
 
 
 ## Os lampiões (para os testes).
@@ -464,8 +497,8 @@ const CAIRN_BENCH_X: float = -0.7
 ## altura, logo abaixo das lajes da borda (que ficam 0,075 m abaixo do chão).
 const COURSE_HEIGHT: float = 1.0
 const COURSE_TOP: float = -0.075
-## A madeira dos bancos (a da casa, home_wood.gdshader): escura e gasta.
-const BENCH_WOOD: Color = Color("5A4232")
+## A madeira dos bancos (a Wood049 desde a 17.8, tingida): escura e gasta.
+const BENCH_WOOD: Color = Color(0.52, 0.44, 0.38)
 ## As pernas dos bancos da margem descem até aqui abaixo do pé (benches.glb).
 const BENCH_LEG_REACH: float = 0.4
 
