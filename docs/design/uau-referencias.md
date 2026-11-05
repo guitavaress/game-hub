@@ -153,6 +153,23 @@ Bairro RPG, 22 h, Alta, céu Sky3D, 200 jogos falsos, mesma régua. O "depois" e
 - A neve do mirante pega o luar e virou o meio-tom azulado das referências. A noite continua escura na média (~47), com o céu azul-noite e as estrelas.
 - O que ainda falta contra as referências: os pontos quentes de perto (fogueira e lanternas no mirante, a 17.8) e o chão molhado refletindo as luzes na praça.
 
+## O dia: depois da 17.6
+13 h, Alta, céu Sky3D, 200 jogos falsos, mesma régua (faixa = dos 5% mais escuros aos 95%). O "antes" é o código de `ea2074d`, tirado na mesma sessão. Tudo em `game-hub-referencias\uau\depois-17.6\` (o antes em `antes\`), com a folha `folha_17.6.png`.
+
+| Ponto | Média (antes → depois) | 5% | 95% até | Faixa | Estourado (> 245) |
+|---|---|---|---|---|---|
+| RPG do alto | 157 → 180 | 93 → 93 | 185 → 213 | 92 → 120 | 0% |
+| RPG pórtico | 105 → 120 | 53 → 46 | 192 → 212 | 139 → 166 | 0% |
+| Ação do alto | 102 → 114 | 58 → 47 | 142 → 174 | 84 → 127 | 0% |
+| Ação pórtico | 88 → 100 | 27 → 19 | 183 → 203 | 156 → 184 | 0% |
+| Esportes do alto | 124 → 140 | 52 → 42 | 185 → 213 | 133 → 171 | 0% |
+| Esportes pórtico | 71 → 80 | 28 → 19 | 128 → 153 | 100 → 134 | 0% |
+| Janela da casa | 66 → 74 | 4 → 5 | 183 → 217 | 179 → 212 | 0% |
+
+- **A meta da 17.6 foi batida:** a faixa abriu de 27 a 43 pontos em todos os pontos, as sombras desceram e os claros subiram, sem nada estourar no branco.
+- O que mudou: o sol mais forte e um pouco quente, menos luz do céu nas sombras, a curva do tonemap mais em "S", cores um pouco mais vivas e menos neblina de dia. Nenhum bairro precisou de luz própria.
+- **A noite não mudou:** as 22 h dos três bairros saem iguais ao antes; o que difere é só onde os hologramas dos amigos se mexeram.
+
 ## Manifesto de assets candidatos (CC0, Poly Haven, glTF 1k)
 **Nada é baixado sem a permissão do dono**, como manda o AGENTS.md. A pergunta é feita na subetapa que precisar, depois de tentar por código. Os tamanhos são do download de 1k, conferidos pela API do Poly Haven em 2026-11-03. Fica fora: livro decorativo (`decorative_book_set_01`), que não tem glTF.
 
