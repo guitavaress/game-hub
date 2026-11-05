@@ -100,6 +100,13 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cof
 - Só **CC0** (Kenney, Poly Haven, ambientCG, Quaternius...), com o `LICENSE` na pasta e o crédito no README.
 - **Antes de baixar, peça permissão** dizendo o nome do arquivo, a origem e o tamanho.
 - Arquivos-fonte pesados (ex.: modelo glTF de centenas de MB) ficam **fora do repositório**. Entra só o que o jogo usa (ex.: o atlas gerado).
+- **Modelos: o Blender é o caminho de modelagem** (dono, 2026-11-04, depois do teste da 17.7.1). As regras:
+  - **O Blender faz a forma; a Godot faz o resto.** Onde cada peça fica, o que depende de dados (capas, tamanho da sala, biblioteca), luzes, chamas e shaders continuam em código. O Blender só gera malhas.
+  - **Um script refazível por modelo** em `tools/blender/` (as peças comuns em `comum.py`), sem `.blend` no repositório. O `.glb` vai para `assets/models/<grupo>/`, e entra junto o `.import` que a Godot gerar.
+  - **Materiais compartilhados:** uma malha por material, com o nome dele (`stone`, `wood`...), para a Godot juntar as peças num desenho por material. As texturas PBR do projeto servem a todos, e nada de textura nova por modelo sem necessidade.
+  - **Orçamento:** cerca de 300 KB por peça pequena e 800 KB por peça grande, com a malha reduzida só onde a forma não muda. **A qualidade vem antes:** se reduzir piorar a forma visível, o orçamento cede, e isso fica registrado no plano.
+  - **Plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
+  - Fora do Blender, até virar fase própria: os prédios da cidade e o terreno.
 
 ## Addons (código de terceiros)
 Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-2026-10-13.md).
