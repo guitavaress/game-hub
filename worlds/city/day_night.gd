@@ -8,7 +8,8 @@ extends Node
 ## (0 = dia, 1 = noite), e a cidade acende os postes, as janelas etc.
 ##
 ##   - 06:00 a 07:00: amanhecer (sol baixo e alaranjado)
-##   - 07:00 a 17:30: dia (exposição -0,3 EV, sombras suaves)
+##   - 07:00 a 17:30: dia (sol forte e quente, sombras marcadas, cores vivas;
+##     Fase 17.6)
 ##   - 17:30 a 19:00: pôr do sol (sol #FF9A5C, neblina quente, +0,2 EV);
 ##     as janelas acendem uma a uma até 18h30 e os postes às 18h
 ##   - 19:00 a 05:30: noite (luz fraca e azulada da "lua", neblina densa)
@@ -32,25 +33,29 @@ const FIXED_NIGHT_HOUR: float = 22.0
 
 ## Os três "climas" do dia. Cada valor da cena é uma mistura dos três,
 ## com os mesmos pesos que misturam as fotos do céu.
-const DAY_SUN_COLOR: Color = Color("FFF4E5")
+const DAY_SUN_COLOR: Color = Color("FFEFD9")
 const SUNSET_SUN_COLOR: Color = Color("FF9A5C")
 const MOON_COLOR: Color = Color(0.55, 0.65, 1.0)
-const DAY_SUN_ENERGY: float = 1.0
+const DAY_SUN_ENERGY: float = 1.5
 const SUNSET_SUN_ENERGY: float = 1.2
 const MOON_ENERGY: float = 0.45
-## Opacidade das sombras: suaves de dia, longas e marcadas no pôr do sol.
-const DAY_SHADOW_OPACITY: float = 0.4
+## O sol do Sky3D de dia (Fase 17.6): mais forte que o padrão (1,0), para a
+## face que pega sol se destacar da face na sombra. Só no dia (veja update_now).
+const SKY3D_SUN_ENERGY: float = 1.5
+## Opacidade das sombras: marcadas de dia (Fase 17.6; eram 0,4 e o dia ficava
+## chapado), longas e marcadas no pôr do sol.
+const DAY_SHADOW_OPACITY: float = 0.8
 const SUNSET_SHADOW_OPACITY: float = 0.8
 const NIGHT_SHADOW_OPACITY: float = 0.5
-## Exposição da câmera, em "EV" (+1 = dobro de luz): o dia estava lavado.
-const DAY_EXPOSURE_EV: float = -0.3
+## Exposição da câmera, em "EV" (+1 = dobro de luz).
+const DAY_EXPOSURE_EV: float = 0.25
 const SUNSET_EXPOSURE_EV: float = 0.2
 const NIGHT_EXPOSURE_EV: float = 0.0
 ## Brilho do céu de dia e de noite (a foto da noite já é escura).
 const DAY_SKY_ENERGY: float = 1.0
 const NIGHT_SKY_ENERGY: float = 0.45
 ## Neblina: leve de dia, quente no pôr do sol, densa e azulada à noite.
-const DAY_FOG_DENSITY: float = 0.0015
+const DAY_FOG_DENSITY: float = 0.0009
 const SUNSET_FOG_DENSITY: float = 0.002
 const NIGHT_FOG_DENSITY: float = 0.005
 const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
@@ -67,6 +72,17 @@ const NIGHT_FOG_SKY_AFFECT: float = 0.35
 ## foto clara da noite), então a luz ambiente compensa.
 const NIGHT_AMBIENT: float = 0.3
 const SKY3D_NIGHT_AMBIENT: float = 1.1
+## O dia com contraste (Fase 17.6, a C2 da revisão). O dia era um cinza claro
+## sem brancos nem sombras fundas: a luz do céu enchia as sombras, a neblina
+## lavava o fundo e o AgX achatava os claros. Estes valores valem só no "dia"
+## (o peso do dia do céu): o pôr do sol e a noite (17.5) não mudam.
+##   - luz ambiente: menos luz do céu, e a sombra fica mais funda;
+##   - contraste do AgX: a curva do tonemap mais em "S" (o padrão é 1,25);
+##   - saturação: as cores dos bairros aparecem (o AgX desbota).
+const DAY_AMBIENT: float = 0.45
+const DAY_AGX_CONTRAST: float = 1.55
+const NIGHT_AGX_CONTRAST: float = 1.25
+const DAY_SATURATION: float = 1.2
 ## O luar (Fase 17.5): uma luz fraca e fria, do alto, sem sombra, que só existe
 ## à noite. No Sky3D a lua segue o céu de verdade (fase e hora em que nasce), e
 ## em muitas noites ela está abaixo do horizonte: sem o luar, a neve e o chão
@@ -187,6 +203,10 @@ func update_now() -> void:
 	if sky3d != null:
 		# O Sky3D calcula o sol, a lua e as estrelas pela hora e pela data.
 		sky3d.current_time = hour
+		# Só no dia: no pôr do sol o sol do Sky3D segue com a força padrão.
+		sky3d.sun_energy = lerpf(1.0, SKY3D_SUN_ENERGY, day_weight)
+		if sky3d.sky != null:
+			sky3d.sky.sun_light_color = Color.WHITE.lerp(DAY_SUN_COLOR, day_weight)
 	else:
 		_apply_photo_sky(hour, daylight, sunset, elevation, sun_yaw, weights)
 	_apply_moonlight(night_weight)
@@ -196,7 +216,8 @@ func update_now() -> void:
 	_fog_weights = weights
 	_apply_fog()
 	var night_ambient := SKY3D_NIGHT_AMBIENT if sky3d != null else NIGHT_AMBIENT
-	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight)
+	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight) * lerpf(1.0, DAY_AMBIENT, day_weight)
+	_apply_day_contrast(day_weight)
 	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
 	environment.fog_sky_affect = lerpf(DAY_FOG_SKY_AFFECT, NIGHT_FOG_SKY_AFFECT, night_weight)
 
@@ -226,6 +247,16 @@ func _apply_photo_sky(hour: float, daylight: float, sunset: float, elevation: fl
 	sun.light_color = MOON_COLOR.lerp(DAY_SUN_COLOR.lerp(SUNSET_SUN_COLOR, sunset), daylight)
 	sun.light_energy = lerpf(MOON_ENERGY, lerpf(DAY_SUN_ENERGY, SUNSET_SUN_ENERGY, sunset), daylight)
 	sun.shadow_opacity = _mix3(weights, DAY_SHADOW_OPACITY, SUNSET_SHADOW_OPACITY, NIGHT_SHADOW_OPACITY)
+
+
+## O contraste e a saturação do dia (veja DAY_AGX_CONTRAST). Fora do dia, os
+## valores padrão (saturação 1,0 não muda a cor). O ajuste fica sempre ligado:
+## ligar e desligar troca a variante do shader do tonemap, e a troca no meio do
+## pôr do sol podia dar um tranco.
+func _apply_day_contrast(day_weight: float) -> void:
+	environment.tonemap_agx_contrast = lerpf(NIGHT_AGX_CONTRAST, DAY_AGX_CONTRAST, day_weight)
+	environment.adjustment_enabled = true
+	environment.adjustment_saturation = lerpf(1.0, DAY_SATURATION, day_weight)
 
 
 ## O luar: acende com a noite (o mesmo peso das estrelas) e desconta a lua do
