@@ -31,6 +31,8 @@ from mathutils import Matrix, Vector, noise
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PASTA_MODELOS = os.path.join(REPO, "assets", "models", "trail")
+# Cada grupo de modelos tem a sua pasta em assets/models/ (17.8: "lookout", o mirante).
+PASTA_GRUPOS = os.path.join(REPO, "assets", "models")
 
 # A cor dos vértices vai para o glTF em 16 bits, de 0 a 1. Os tons das pedras
 # passam de 1 (mais claros que a textura da Godot): por isso a cor é gravada
@@ -51,10 +53,10 @@ def argumentos():
     return []
 
 
-def saida(nome):
-    """Onde o .glb vai: o 1º argumento, ou assets/models/trail/<nome>.glb."""
+def saida(nome, grupo="trail"):
+    """Onde o .glb vai: o 1º argumento, ou assets/models/<grupo>/<nome>.glb."""
     args = argumentos()
-    caminho = args[0] if args else os.path.join(PASTA_MODELOS, nome + ".glb")
+    caminho = args[0] if args else os.path.join(PASTA_GRUPOS, grupo, nome + ".glb")
     os.makedirs(os.path.dirname(os.path.abspath(caminho)), exist_ok=True)
     return os.path.abspath(caminho)
 
@@ -278,8 +280,10 @@ def _veio(bm, medula, tipo_de, desvio_longo=0.0):
             canto[gb].uv = (p.z - medula[1], tipo)
 
 
-def tabua(comprimento, largura, espessura, semente, chanfro=0.006, torto=0.004, medula=None):
-    """Uma tábua (x = comprimento, y = largura, z = espessura), centrada."""
+def tabua(comprimento, largura, espessura, semente, chanfro=0.006, torto=0.004, medula=None, passo=0.32):
+    """Uma tábua (x = comprimento, y = largura, z = espessura), centrada.
+    "passo": a cada quanto a tábua ganha um corte para poder empenar (17.8:
+    as do piso do deque usam passos longos, para terem menos vértices)."""
     rnd = random.Random(semente)
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
@@ -287,7 +291,7 @@ def tabua(comprimento, largura, espessura, semente, chanfro=0.006, torto=0.004, 
     bmesh.ops.bevel(bm, geom=bm.edges[:], offset=chanfro, offset_type='OFFSET', segments=2,
                     profile=0.5, affect='EDGES', clamp_overlap=True)
     # Cortes ao longo para a tábua poder empenar um pouco.
-    passos = max(1, int(comprimento / 0.32))
+    passos = max(1, int(comprimento / passo))
     for k in range(1, passos):
         x = -comprimento / 2.0 + comprimento * k / passos
         geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
@@ -303,6 +307,95 @@ def tabua(comprimento, largura, espessura, semente, chanfro=0.006, torto=0.004, 
     if medula is None:
         medula = (rnd.uniform(-0.25, 0.25), -rnd.uniform(0.12, 0.35))
     _veio(bm, medula, lambda f: TOPO if abs(f.normal.x) > 0.8 else LISO, rnd.uniform(0, 5))
+    return bm
+
+
+def orientar(bm, direcao, largura=None, centro=(0.0, 0.0, 0.0)):
+    """Gira uma peça feita ao longo do x (y = largura, z = espessura) para o x
+    apontar em "direcao" e o y ficar o mais perto possível de "largura" (no
+    Blender); depois a leva até "centro". Sem "largura", a peça fica deitada
+    (o y na horizontal); de pé (x vertical), o y fica no y do Blender."""
+    x = Vector(direcao).normalized()
+    if largura is None:
+        largura = Vector((0.0, 0.0, 1.0)).cross(x) if abs(x.z) < 0.95 else Vector((0.0, 1.0, 0.0))
+    largura = Vector(largura)
+    y = (largura - x * x.dot(largura)).normalized()
+    z = x.cross(y)
+    m = Matrix((x, y, z)).transposed().to_4x4()
+    m.translation = Vector(centro)
+    bmesh.ops.transform(bm, matrix=m, verts=bm.verts[:])
+    bm.normal_update()
+    return bm
+
+
+def tabua_entre(a, b, largura, espessura, semente, lado=None, **opcoes):
+    """Uma tábua de "a" até "b" (posições do Blender), com a largura virada
+    para "lado" (veja orientar). O veio corre de a até b."""
+    a, b = Vector(a), Vector(b)
+    bm = tabua((b - a).length, largura, espessura, semente, **opcoes)
+    return orientar(bm, b - a, lado, (a + b) / 2.0)
+
+
+# --- Metal ---------------------------------------------------------------------
+
+def caixa(tamanho, centro=(0.0, 0.0, 0.0), chanfro=0.003):
+    """Uma caixa com as quinas chanfradas (ferro, latão), sem veio."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.scale(bm, vec=tamanho, verts=bm.verts[:])
+    if chanfro > 0.0:
+        bmesh.ops.bevel(bm, geom=bm.edges[:], offset=chanfro, offset_type='OFFSET', segments=1,
+                        profile=0.5, affect='EDGES', clamp_overlap=True)
+    bmesh.ops.translate(bm, verts=bm.verts[:], vec=centro)
+    bm.normal_update()
+    return bm
+
+
+def cilindro(raio_baixo, raio_cima, altura, lados=24, chanfro=0.0, suave=True):
+    """Um cilindro (ou cone) em pé no z, centrado na origem."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=lados,
+                          radius1=raio_baixo, radius2=raio_cima, depth=altura)
+    if chanfro > 0.0:
+        bmesh.ops.bevel(bm, geom=[e for e in bm.edges if e.calc_face_angle(0.0) > math.radians(50)],
+                        offset=chanfro, offset_type='OFFSET', segments=2, profile=0.5,
+                        affect='EDGES', clamp_overlap=True)
+    for f in bm.faces:
+        # As tampas ficam chapadas; o lado, liso.
+        f.smooth = suave and abs(f.normal.z) < 0.9
+    bm.normal_update()
+    return bm
+
+
+def tubo(perfil, lados=32, eixo=None, centro=(0.0, 0.0, 0.0)):
+    """Uma peça torneada (latão): "perfil" = [(z, raio), ...] de baixo para
+    cima, girado em volta do z; depois apontado para "eixo" (o z vira o eixo)."""
+    bm = bmesh.new()
+    aneis = []
+    for z, r in perfil:
+        anel = []
+        for k in range(lados):
+            a = math.tau * k / lados
+            anel.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, z)))
+        aneis.append(anel)
+    for i in range(len(aneis) - 1):
+        for k in range(lados):
+            k2 = (k + 1) % lados
+            bm.faces.new((aneis[i][k], aneis[i][k2], aneis[i + 1][k2], aneis[i + 1][k]))
+    bm.faces.new(list(reversed(aneis[0])))
+    bm.faces.new(aneis[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    for f in bm.faces:
+        f.smooth = len(f.verts) == 4
+    if eixo is not None:
+        z = Vector(eixo).normalized()
+        x = Vector((1.0, 0.0, 0.0)) if abs(z.x) < 0.9 else Vector((0.0, 1.0, 0.0))
+        x = (x - z * z.dot(x)).normalized()
+        y = z.cross(x)
+        m = Matrix((x, y, z)).transposed().to_4x4()
+        bmesh.ops.transform(bm, matrix=m, verts=bm.verts[:])
+    bmesh.ops.translate(bm, verts=bm.verts[:], vec=centro)
+    bm.normal_update()
     return bm
 
 
