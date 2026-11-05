@@ -249,7 +249,15 @@ func _check_limits(city: Node, terrain: Node, points: PackedVector3Array) -> voi
 			ring_total >= 16 and ring_ok == ring_total)
 	_check("e aberto onde a trilha chega", entry_free)
 
-	var lines: Array = script.wall_lines(field, trail)
+	# 17.8: os arcos do anel do mirante ganham o guarda-corpo de madeira
+	# (LookoutDeck); as estacas ficam nos dois lados da trilha.
+	var lines: Array[PackedVector3Array] = []
+	var ring_arcs := 0
+	for line: PackedVector3Array in script.wall_lines(field, trail):
+		if script.is_ring_line(field, trail, line):
+			ring_arcs += 1
+		else:
+			lines.append(line)
 	var stake_lines: Array = script.stake_lines(lines)
 	var stakes := 0
 	var off_line := 0
@@ -265,7 +273,10 @@ func _check_limits(city: Node, terrain: Node, points: PackedVector3Array) -> voi
 	_check("as estacas são as das cercas (uma MultiMesh)", multimesh.instance_count == stakes)
 	_check("e ficam na linha das paredes", stakes > trail.length() * 2.0 / script.STAKE_SPACING * 0.8 and off_line == 0)
 	# O anel do mirante vira dois arcos: abre na trilha e na plataforma (que tem guarda-corpo próprio).
-	_check("são quatro cercas: os dois lados e os dois arcos do mirante", stake_lines.size() == 4)
+	_check("são duas cercas (os lados da trilha) e dois arcos no mirante", stake_lines.size() == 2 and ring_arcs == 2)
+	var rails: Array = _deck.ring_rails(field, trail)
+	_check("cada arco do anel tem o guarda-corpo de madeira (17.8)", rails.size() == ring_arcs
+			and terrain.get_deck().get_node_or_null("Railing0") != null)
 
 
 ## 15.10: a plataforma de madeira na beirada do mirante virada para a praça.
@@ -302,9 +313,13 @@ func _check_deck(terrain: Node, tower: Node3D) -> void:
 	var level := 0
 	var over_air := 0
 	var along := radius
+	# 17.8: a luneta fica na ponta (os raios em cima dela não contam).
+	var scope: Node3D = deck.get_telescope() if deck.has_method("get_telescope") else null
 	while along <= tip - 0.3:
 		for lateral: float in [-1.6, -0.8, 0.0, 0.8, 1.6]:
 			var p := trail.lookout_center + direction * along + side * lateral
+			if scope != null and p.distance_to(Vector2(scope.global_position.x, scope.global_position.z)) < 0.6:
+				continue
 			var hit := _ray_down(p, top + 2.0)
 			rays += 1
 			if hit.is_empty():
@@ -358,20 +373,14 @@ func _check_deck(terrain: Node, tower: Node3D) -> void:
 	_check("do meio do disco até a ponta, passando ao lado do banco, o caminho é livre (%.0f%%)" % (free_share * 100.0),
 			free_share > 0.999)
 
-	var bench: Node3D = deck.get_node_or_null("Bench")
-	_check("o banco existe, com colisão", bench != null and bench.get_node_or_null("BenchBody") != null)
-	if bench != null:
-		var bench_spot := Vector2(bench.global_position.x, bench.global_position.z)
-		var facing := -Vector2(bench.global_basis.z.x, bench.global_basis.z.z)
-		_check("o banco fica no disco, virado para a abertura (e a praça)",
-				bench_spot.distance_to(trail.lookout_center) < radius and facing.dot(direction) > 0.99)
+	# 17.8: o banco do disco deu lugar ao abrigo e à fogueira (check_lookout).
 
 	# A torre fica atrás, longe da plataforma e do banco; a vista fica na ponta.
 	var tower_spot := Vector2(tower.global_position.x, tower.global_position.z)
 	var tower_along := (tower_spot - trail.lookout_center).dot(direction)
 	var tower_reach: float = tower.footprint().size.x / sqrt(2.0)  # do meio ao canto
-	_check("a torre fica do outro lado do disco, longe do banco e da plataforma",
-			tower_along + tower_reach < radius - _deck.BENCH_BACK - 1.0)
+	_check("a torre fica do outro lado do disco, longe da plataforma",
+			tower_along + tower_reach < radius - _deck.ROOT_INSET - 1.0)
 	var view: Vector3 = terrain.view_world()
 	var view_along := (Vector2(view.x, view.z) - trail.lookout_center).dot(direction)
 	var view_side := (Vector2(view.x, view.z) - trail.lookout_center).dot(side)

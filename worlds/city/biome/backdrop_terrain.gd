@@ -112,11 +112,15 @@ func build_next() -> bool:
 	if _next == _coords.size():
 		_next += 1
 		_add_collision()
+		# O mirante (17.8): planeja agora e monta um pedaço por chamada.
 		var deck := LookoutDeck.new()
-		if deck.setup(field, trail):
-			add_child(deck)
-		else:
-			deck.free()  # sem lugar para a plataforma: o mirante fica só com o disco
+		deck.setup(field, trail)
+		add_child(deck)
+		return true
+	var building := get_deck()
+	if building != null and building.build_next():
+		return true
+	if get_dressing() == null:
 		var dressing := TrailDressing.new()
 		add_child(dressing)
 		dressing.setup(field, trail, stone_material)
