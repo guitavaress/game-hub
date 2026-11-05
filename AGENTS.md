@@ -69,8 +69,9 @@ worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, pla
   biome/           o bioma na cidade (BiomeBuilder: chão, enfeites, névoa) e a montanha (BackdropTerrain, sobre o núcleo da 15.8)
 tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual;
-               jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev
-assets/        só CC0, com LICENSE em cada pasta de origem
+               jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev;
+               blender/: os scripts do Blender (GPL-3.0) que geram os .glb da trilha em assets/models/trail/
+assets/        só CC0, com LICENSE em cada pasta de origem; models/trail/: os .glb gerados por tools/blender/ (nossos, MIT)
 addons/        addons de terceiros, com LICENSE: debug_menu (F3) e sky_3d (opção de céu); regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa

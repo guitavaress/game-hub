@@ -278,6 +278,7 @@ Para isso, cada bairro passou a ocupar uma **fatia** da praça até a borda da c
 - **Menu de depuração (F3):** [Debug Menu](https://github.com/godot-extended-libraries/godot-debug-menu) v1.2.0, de Calinou, licença **MIT** (`addons/debug_menu/LICENSE.md`). F3 alterna entre FPS, tempos de quadro e hardware.
 - **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
 - O estalo da lareira da cabana (`fire_crackle.wav`) também é gerado pelo mesmo script, CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
+- **A fogueira, o terraço de pedra, os bancos e o monte de pedras da trilha** (Fase 17.7.1) são modelos feitos no [Blender](https://www.blender.org) só por script, por [`tools/blender/`](tools/blender/README.md) (os scripts são GPL-3.0, porque usam a API do Blender; os `.glb` gerados, em `assets/models/trail/`, são nossos, MIT). Nada baixado: a textura da lenha e da brasa é assada no próprio Blender, e os bancos usam a madeira feita por código da casa.
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 
 ## Licença

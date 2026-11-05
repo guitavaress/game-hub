@@ -453,13 +453,26 @@ func get_sign_text() -> String:
 
 
 # --- Peças ----------------------------------------------------------------------
+# A fogueira, o terraço, os bancos e o monte de pedras são modelos do Blender
+# (17.7.1; tools/blender/, em assets/models/trail/). A queda congelada segue
+# feita por código.
+
+## Onde fica o monte de pedras na parada dele (o banco curto fica do outro lado).
+const CAIRN_AT: Vector3 = Vector3(0.82, 0.0, 0.0)
+const CAIRN_BENCH_X: float = -0.7
+## Um andar do muro do terraço (camp_terrace.glb, "stone_course"): 1 m de
+## altura, logo abaixo das lajes da borda (que ficam 0,075 m abaixo do chão).
+const COURSE_HEIGHT: float = 1.0
+const COURSE_TOP: float = -0.075
+## A madeira dos bancos (a da casa, home_wood.gdshader): escura e gasta.
+const BENCH_WOOD: Color = Color("5A4232")
+## As pernas dos bancos da margem descem até aqui abaixo do pé (benches.glb).
+const BENCH_LEG_REACH: float = 0.4
 
 ## As quatro paradas. O monte de pedras e o banco ficam na margem (a faixa
 ## de 0,5 m entre a trilha e a cerca); a fogueira e a queda congelada passam
 ## da cerca, para terem tamanho sem estreitar o caminho.
 func _add_stops(field: Heightfield, trail: MountainTrail) -> void:
-	var stone := CityDecor.pbr_material("Rock058", 0.7, Color("89939D"))
-	var wood := HomeMaterials.wood(Color("58402E"), false, 0.85)
 	for spot in stop_spots(field, trail):
 		var stop := Node3D.new()
 		stop.name = "TrailStop_%s" % spot["kind"]
@@ -468,33 +481,38 @@ func _add_stops(field: Heightfield, trail: MountainTrail) -> void:
 		add_child(stop)
 		match String(spot["kind"]):
 			"campfire":
-				_add_camp(stop, field, spot, HomeMaterials.wood(Color("44382E"), false, 0.9))
+				_add_camp(stop, field, spot)
 			"cairn":
-				_add_bench(stop, -0.7, 1.2, wood, stone)
-				_add_cairn(stop, Vector3(0.82, 0.0, 0.0))
+				_add_rest(stop, field, spot, "bench_short", CAIRN_BENCH_X, true)
 			"frozen_fall":
 				_add_frozen_fall(stop, field, spot)
 			"bench":
-				_add_bench(stop, 0.0, 1.9, wood, stone)
+				_add_rest(stop, field, spot, "bench_long", 0.0, false)
 
 
-func _add_bench(parent: Node3D, x: float, length: float, wood: Material, stone: Material) -> void:
-	# Pernas enterradas: a rampa não deixa o banco flutuando no lado mais baixo.
-	for side: float in [-1.0, 1.0]:
-		_piece(parent, "BenchFoot", _box(Vector3(0.18, 0.85, 0.28)),
-				Vector3(x + side * (length / 2.0 - 0.2), 0.06, 0.0), stone)
-	for z: float in [-0.085, 0.085]:
-		_piece(parent, "Seat", _box(Vector3(length, 0.09, 0.16)), Vector3(x, 0.48, z), wood)
-	_piece(parent, "Back", _box(Vector3(length, 0.20, 0.06)), Vector3(x, 0.84, -0.13), wood)
-	for side: float in [-1.0, 1.0]:
-		_piece(parent, "BackPost", _box(Vector3(0.06, 0.55, 0.06)),
-				Vector3(x + side * (length / 2.0 - 0.2), 0.67, -0.13), wood)
+## Um banco da margem e, na parada do monte de pedras, o monte ao lado.
+## O banco fica nivelado e assenta na ponta mais alta da rampa; na mais
+## baixa, as pernas descem (até BENCH_LEG_REACH abaixo do pé).
+func _add_rest(stop: Node3D, field: Heightfield, spot: Dictionary, bench: String, bench_x: float,
+		with_cairn: bool) -> void:
+	var batch := TrailProps.Batch.new()
+	var length := TrailModels.mesh("benches", bench).get_aabb().size.x
+	var lift := bench_lift(rise_at(field, spot, Vector2(bench_x - length / 2.0 + 0.2, 0.0)),
+			rise_at(field, spot, Vector2(bench_x + length / 2.0 - 0.2, 0.0)))
+	batch.add(TrailModels.mesh("benches", bench), Transform3D(Basis.IDENTITY, Vector3(bench_x, lift, 0.0)),
+			TrailModels.wood(BENCH_WOOD))
+	if with_cairn:
+		# O monte de pedras: lajes chatas empilhadas, com neve em cima de cada uma.
+		var place := Transform3D(Basis.IDENTITY, CAIRN_AT)
+		batch.add(TrailModels.mesh("cairn", "stone"), place, TrailModels.vertex_tinted("Rock058", 0.6, Color("A3ABB2")))
+		batch.add(TrailModels.mesh("cairn", "snow"), place, TrailModels.vertex_tinted("Snow010A", 0.6, Color("C0CCD6")))
+	batch.build(stop, "Cairn" if with_cairn else "Bench", 140.0)
 
 
 ## A fogueira do caminho, logo depois da cerca: um terraço de pedra seca
 ## nivela o chão da encosta, e em cima dele ficam o fogo e três bancos em
 ## volta, abertos para a trilha (quem passa vê o fogo de frente).
-func _add_camp(stop: Node3D, field: Heightfield, spot: Dictionary, wood: Material) -> void:
+func _add_camp(stop: Node3D, field: Heightfield, spot: Dictionary) -> void:
 	var batch := TrailProps.Batch.new()
 	var center := Vector2(0.0, CAMP_CENTER_Z)
 	# O chão do terraço: a altura do chão na borda de perto (junto da cerca).
@@ -506,78 +524,42 @@ func _add_camp(stop: Node3D, field: Heightfield, spot: Dictionary, wood: Materia
 	for k in 24:
 		var p := center + Heightfield.direction_of(TAU * k / 24.0) * PAD_RADIUS
 		lowest = minf(lowest, rise_at(field, spot, p))
-	# O corpo do terraço (pedra) e a neve batida em cima.
-	var rough_stone := CityDecor.pbr_material("Rock058", 1.1, Color("7E8892"))
-	var body_height := top - lowest + 0.5
-	batch.add(TrailProps.cylinder(PAD_RADIUS + 0.08, PAD_RADIUS, body_height, 28),
-			Transform3D(Basis.IDENTITY, Vector3(center.x, top - 0.03 - body_height / 2.0, center.y)), rough_stone)
-	var snow := CityDecor.pbr_material("Snow010A", 0.6, Color("ADB8C3"))
-	batch.add(TrailProps.cylinder(PAD_RADIUS - 0.04, PAD_RADIUS - 0.1, 0.06, 28),
-			Transform3D(Basis.IDENTITY, Vector3(center.x, top - 0.03, center.y)), snow)
-	# A mureta de pedra seca: pedras grandes onde o chão desce, pequenas onde
-	# ele quase encosta; nenhuma do lado da trilha (o caminho fica livre).
-	for k in 20:
-		var angle := TAU * k / 20.0
-		var direction := Heightfield.direction_of(angle)
-		if direction.y > 0.55:
-			# O lado de perto, junto da cerca: um meio-fio baixo, por dentro da borda.
-			var curb := center + direction * (PAD_RADIUS - 0.18)
-			batch.add(TrailProps.rock(Vector3(0.42, 0.2, 0.26), 90 + k, 0.5),
-					Transform3D(Basis(Vector3.UP, -angle + PI / 2.0), Vector3(curb.x, top - 0.02, curb.y)), rough_stone)
-			continue
-		var p := center + direction * (PAD_RADIUS + 0.05)
-		var drop := top - rise_at(field, spot, p)
-		var bottom := top - drop - 0.25 if drop > 0.12 else top - 0.12
-		var height := drop + 0.45 if drop > 0.12 else 0.3
-		var size := Vector3(0.62 + 0.12 * sin(k * 2.7), height / 0.82, 0.5)
-		batch.add(TrailProps.rock(size, 90 + k, 0.6),
-				Transform3D(Basis(Vector3.UP, -angle + PI / 2.0), Vector3(p.x, bottom + 0.32 * size.y, p.y)), rough_stone)
+	var stone := TrailModels.vertex_tinted("Rock058", 1.1, Color("7E8892"))
+	var floor_place := Transform3D(Basis.IDENTITY, Vector3(center.x, top, center.y))
+	batch.add(TrailModels.mesh("camp_terrace", "snow"), floor_place,
+			TrailModels.vertex_tinted("Snow010A", 0.6, Color("ADB8C3")))
+	batch.add(TrailModels.mesh("camp_terrace", "stone_top"), floor_place, stone)
+	# O muro desce até abaixo do ponto mais baixo da encosta: um andar a cada
+	# metro, cada um girado para as pedras não se repetirem.
+	var course := TrailModels.mesh("camp_terrace", "stone_course")
+	for k in camp_courses(top, lowest):
+		batch.add(course, floor_place * Transform3D(Basis(Vector3.UP, 0.9 * k), Vector3.DOWN * COURSE_HEIGHT * k), stone)
 	# Três bancos em volta do fogo (o lado da trilha fica aberto).
+	var bench := TrailModels.mesh("benches", "bench_camp")
+	var wood := TrailModels.wood(BENCH_WOOD)
 	for angle: float in [-PI / 2.0, PI * 0.12, PI * 0.88]:
 		var direction := Heightfield.direction_of(angle)
 		var place := center + direction * CAMP_BENCH_RADIUS
 		# O banco olha para o fogo: o encosto fica do lado de fora.
 		var basis := Basis.looking_at(Vector3(direction.x, 0.0, direction.y))
-		_bench_into(batch, Transform3D(basis, Vector3(place.x, top - 0.03, place.y)),
-				CAMP_BENCH_LENGTH, wood)
+		batch.add(bench, Transform3D(basis, Vector3(place.x, top - 0.01, place.y)), wood)
 	batch.build(stop, "Camp", 140.0)
 	_campfire = Campfire.new()
-	_campfire.position = Vector3(center.x, top - 0.03, center.y)
+	_campfire.position = Vector3(center.x, top, center.y)
 	stop.add_child(_campfire)
-	_campfire.build(rough_stone, HomeMaterials.wood(Color("3F2C20"), false, 0.9),
-			LAMP_FADE_BEGIN, LAMP_FADE_LENGTH)
+	_campfire.build(stone, LAMP_FADE_BEGIN, LAMP_FADE_LENGTH)
 
 
-## O monte de pedras: lajes chatas empilhadas, cada uma menor e um pouco
-## torta, como as que os caminhantes deixam. Cabe na margem (fundura).
-func _add_cairn(stop: Node3D, at: Vector3) -> void:
-	var batch := TrailProps.Batch.new()
-	var stone := CityDecor.pbr_material("Rock058", 0.6, Color("A3ABB2"))
-	var y := at.y - 0.04
-	for level in 8:
-		var share := float(level) / 7.0
-		var width := lerpf(0.66, 0.17, share)
-		var height := lerpf(0.16, 0.11, share)
-		var size := Vector3(width, height / 0.82, minf(CONTENT_DEPTH - 0.02, width * 0.85))
-		var place := at + Vector3(0.03 * sin(level * 2.3), y + 0.32 * size.y, 0.015 * cos(level * 1.7))
-		batch.add(TrailProps.rock(size, 200 + level, 0.3),
-				Transform3D(Basis(Vector3.UP, 0.12 * sin(level * 3.1)) * Basis(Vector3.BACK, 0.05 * sin(level * 1.9)), place), stone)
-		y += height * 0.92
-	batch.build(stop, "Cairn", 140.0)
+## A altura do pé do banco da margem, entre as alturas do chão nas duas
+## pontas: a mais alta, sem deixar as pernas da mais baixa no ar.
+static func bench_lift(rise_a: float, rise_b: float) -> float:
+	return minf(maxf(rise_a, rise_b) - 0.02, minf(rise_a, rise_b) + BENCH_LEG_REACH - 0.05)
 
 
-## Um banco de tábuas com encosto, de pernas de madeira, no chão do lugar
-## dado; o assento olha para +Z do lugar e o encosto fica no -Z.
-static func _bench_into(batch: TrailProps.Batch, place: Transform3D, length: float, wood: Material) -> void:
-	for side: float in [-1.0, 1.0]:
-		var x := side * (length / 2.0 - 0.16)
-		batch.add(TrailProps.box(Vector3(0.1, 0.46, 0.34)), place * Transform3D(Basis.IDENTITY, Vector3(x, 0.21, 0.0)), wood)
-		batch.add(TrailProps.box(Vector3(0.08, 0.5, 0.07)), place * Transform3D(Basis.IDENTITY, Vector3(x, 0.66, -0.16)), wood)
-	for z: float in [-0.09, 0.09]:
-		batch.add(TrailProps.box(Vector3(length, 0.06, 0.16)), place * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.46, z)), wood)
-	for y: float in [0.68, 0.86]:
-		batch.add(TrailProps.box(Vector3(length, 0.12, 0.04)),
-				place * Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0.0, y, -0.19)), wood)
+## Quantos andares de muro o terraço pede: o de baixo passa 0,3 m do ponto
+## mais baixo do chão em volta.
+static func camp_courses(top: float, lowest: float) -> int:
+	return maxi(1, ceili((top - lowest + 0.3 + COURSE_TOP) / COURSE_HEIGHT))
 
 
 ## A queda d'água congelada, encostada no barranco do lado de fora: um
@@ -714,17 +696,6 @@ static func _ice_material() -> StandardMaterial3D:
 		_ice.rim = 0.35
 		_ice.rim_tint = 0.75
 	return _ice
-
-
-func _piece(parent: Node3D, node_name: String, mesh: Mesh, center: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.position = center
-	instance.material_override = material
-	instance.visibility_range_end = 140.0
-	parent.add_child(instance)
-	return instance
 
 
 ## As paredes: um corpo só, com os quadriláteros verticais de todas as linhas.
