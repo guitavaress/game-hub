@@ -128,7 +128,7 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 **Fluxo congelado (dono, 2026-11-02):** este fluxo (Claude Code + Codex + Orca) não muda por 3 fases. Isso quer dizer: nenhuma ferramenta, orquestrador ou modelo novo (o Paperclip fica fora). Cada troca custava sessões só de documentação.
 - **Exceção: o REA** (engenharia reversa: MCP `rea` + skill `reverse-engineer-anything`), instalado pelo dono para o estudo do V-Sekai. Ele fica **só no desenvolvimento**, nunca no hub.
 - **Exceção: o Blender** (dono, 2026-11-04), a partir do teste da 17.7.1.
-  - É a versão LTS, instalada pelo winget (`BlenderFoundation.Blender`; hoje a 5.2.3, em `C:Program FilesBlender FoundationBlender 5.2`), fora do repositório e só no desktop.
+  - É a versão LTS, instalada pelo winget (`BlenderFoundation.Blender`; hoje a 5.2.3, em `C:\Program Files\Blender Foundation\Blender 5.2\`), fora do repositório e só no desktop.
   - Os agentes geram modelos por scripts Python rodados sem janela (`blender --background --python`) e exportam em `.glb`. O Blender fica **só no desenvolvimento**, nunca no hub.
   - Sem o MCP do Blender: os scripts deixam cada modelo refazível.
   - Licença: a API Python do Blender é GPL. Por isso os scripts ficam em `tools/blender/`, com o `LICENSE` GPL-3.0 da pasta. Os `.glb` gerados são nossos, como o resto do repositório (MIT).

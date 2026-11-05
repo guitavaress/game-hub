@@ -90,7 +90,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Teste: `check_trail_content check_mountain_trail check_biome check_terrain`; captura da subida às 13 h e às 22 h.
   - Commit: `Fase 17.7: a trilha com paradas e com os seus jogos`
 - [ ] **17.7.1 Teste do Blender** (grande · trilha A, Opus, sessão nova · high · worktree `worktree/blender` saído da `fase-17` · revisão: você, pelas capturas) — pedido do dono ao ver a 17.7: as peças de primitivas por código ficam com cara de bloco.
-  - Faz: o Blender 5.2 LTS portátil em `C:\Blender\` (fora do repositório, só no desktop). Um script em `tools/blender/` roda sem janela (`--background --python`) e gera a fogueira e as pedras da trilha em `.glb`; a Godot importa, e a captura compara com a fogueira de código da 17.7. Medida no desktop.
+  - Faz: o Blender 5.2.3 LTS, instalado pelo winget em `C:\Program Files\Blender Foundation\Blender 5.2\` (fora do repositório, só no desktop). Um script em `tools/blender/` roda sem janela (`--background --python`) e gera a fogueira e as pedras da trilha em `.glb`; a Godot importa, e a captura compara com a fogueira de código da 17.7. Medida no desktop.
   - Decide: se o Blender entra na 17.8 (abrigo, fogueira, lanternas, luneta) e na 17.9 (sofá e plantas da casa).
   - Licença: os `.glb` são nossos; os scripts usam a API do Blender (GPL) e ficam em `tools/blender/` com o `LICENSE` GPL-3.0 da pasta (veja o AGENTS.md).
   - Arquivos: `tools/blender/` (novo), os `.glb` numa pasta nova em `assets/`, `worlds/city/biome/campfire.gd` e `trail_dressing.gd` (usar o modelo), `tests/check_trail_content.gd`.
