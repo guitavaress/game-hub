@@ -149,6 +149,7 @@ func _check_nodes(field: Heightfield, trail: MountainTrail, rows: Array[Dictiona
 			var reach: float = _script.OUTER_REACH if outside else _script.WALL_OFFSET
 			meshes_safe = _meshes_in_margin(node, trail, field.trail_width / 2.0, reach) and meshes_safe
 	_check("malhas reais também cabem fora da passagem (e as da margem, dentro da cerca)", meshes_safe)
+	_check_models(dressing)
 	dressing.set_games(games)
 	_check("nova lista substitui os estandartes", _banner_nodes(dressing).size() == 4)
 	dressing.set_games([])
@@ -157,6 +158,77 @@ func _check_nodes(field: Heightfield, trail: MountainTrail, rows: Array[Dictiona
 			and is_instance_valid(fire) and not dressing.is_processing())
 	dressing.queue_free()
 	await process_frame
+
+
+## 17.7.1: a fogueira, o terraço, os bancos e o monte de pedras vêm dos .glb
+## do Blender, no lugar onde a 17.7 punha as peças, e nada trava o caminho.
+func _check_models(dressing: Node3D) -> void:
+	var parts := {"campfire": ["stone", "ash", "wood", "embers"],
+		"camp_terrace": ["snow", "stone_top", "stone_course"],
+		"benches": ["bench_camp", "bench_long", "bench_short"], "cairn": ["stone", "snow"]}
+	var loaded := true
+	for file: String in parts:
+		for part: String in parts[file]:
+			var mesh := TrailModels.mesh(file, part)
+			if mesh == null or mesh.get_surface_count() != 1 or mesh.surface_get_array_len(0) == 0:
+				print("   faltou: %s/%s" % [file, part])
+				loaded = false
+	_check("os modelos do Blender carregam (uma malha por material)", loaded)
+	var logs := TrailModels.own_material("campfire", "wood") as BaseMaterial3D
+	var embers := TrailModels.own_material("campfire", "embers") as BaseMaterial3D
+	_check("lenha e brasa trazem a textura assada (e a brasa, o brilho)", logs != null
+			and logs.albedo_texture != null and logs.normal_enabled and embers != null
+			and embers.emission_texture != null)
+	var bench_mesh := TrailModels.mesh("benches", "bench_camp")
+	var bench_arrays := bench_mesh.surface_get_arrays(0)
+	_check("os bancos usam a madeira da casa, com o veio no UV e a cor dos vértices",
+			bench_arrays[Mesh.ARRAY_TEX_UV] != null and bench_arrays[Mesh.ARRAY_COLOR] != null
+			and bench_mesh.surface_get_material(0) is BaseMaterial3D
+			and TrailModels.wood(Color.BROWN).get_shader_parameter("grain_from_uv") == true)
+	var fire: Node3D = dressing.get_node_or_null("TrailStop_campfire/Campfire")
+	_check("a fogueira fica no meio do terraço, como na 17.7", fire != null
+			and is_zero_approx(fire.position.x) and is_equal_approx(fire.position.z, _script.CAMP_CENTER_Z))
+	# Poucos desenhos: um por material em cada parada.
+	var draws := {"TrailStop_campfire": 3, "TrailStop_campfire/Campfire": 4, "TrailStop_cairn": 3, "TrailStop_bench": 1}
+	var few := true
+	for path: String in draws:
+		var node := dressing.get_node_or_null(path)
+		var count := 0
+		if node != null:
+			for child in node.get_children():
+				if child is MeshInstance3D:
+					count += 1
+		if node == null or count != draws[path]:
+			print("   %s: %d desenhos (esperado %d)" % [path, count, draws[path]])
+			few = false
+	_check("cada parada desenha um por material (fogueira, terraço, monte e banco)", few)
+	# O monte e o banco curto, um de cada lado da parada, como na 17.7.
+	var cairn_stop := dressing.get_node_or_null("TrailStop_cairn")
+	var sides := cairn_stop != null
+	if cairn_stop != null:
+		for child in cairn_stop.get_children():
+			if child is MeshInstance3D:
+				var box := (child as MeshInstance3D).get_aabb()
+				var material := (child as MeshInstance3D).material_override
+				if material is ShaderMaterial:
+					sides = sides and box.get_center().x < 0.0 and box.size.x > 1.1
+				else:
+					sides = sides and box.get_center().x > 0.5
+	_check("o monte de pedras de um lado e o banco curto do outro", sides)
+	# Nada de corpo físico nas paradas: elas não travam o caminho.
+	var bodies := 0
+	for child in dressing.get_children():
+		if child.has_meta("trail_stop"):
+			bodies += child.find_children("*", "PhysicsBody3D", true, false).size()
+	_check("as paradas não têm corpo físico (só as paredes da trilha seguram)", bodies == 0)
+	_check("o muro do terraço desce um andar a cada metro de encosta", _script.camp_courses(0.0, 0.0) == 1
+			and _script.camp_courses(0.0, -0.8) == 2 and _script.camp_courses(0.0, -1.6) == 2
+			and _script.camp_courses(0.0, -1.8) == 3)
+	# O banco da margem assenta na ponta mais alta da rampa, sem deixar as
+	# pernas da mais baixa no ar.
+	_check("o banco da margem assenta na ponta alta, com as pernas no chão na baixa",
+			is_equal_approx(_script.bench_lift(0.1, -0.1), 0.08)
+			and _script.bench_lift(0.6, 0.0) <= _script.BENCH_LEG_REACH)
 
 
 func _meshes_in_margin(node: Node, trail: MountainTrail, inner: float, reach: float) -> bool:

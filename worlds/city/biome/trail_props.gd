@@ -1,7 +1,9 @@
 class_name TrailProps
 ## Peças da trilha da montanha (Fase 17.7), sem nó: pedras irregulares prontas
-## e a junção de muitas peças numa malha só por material (um desenho por
-## material, em vez de um por pedra).
+## (as da queda congelada; a fogueira, os bancos e o monte de pedras são
+## modelos do Blender desde a 17.7.1, em TrailModels) e a junção de muitas
+## peças numa malha só por material (um desenho por material, em vez de um
+## por peça).
 
 ## A ondulação das pedras: um ruído só para todas, com a semente de cada uma.
 static var _noise: FastNoiseLite
@@ -40,13 +42,6 @@ static func rock(size: Vector3, seed: int, angular: float = 0.35) -> ArrayMesh:
 	return surface.commit()
 
 
-## Um tronco (cilindro) de "from" a "to", com o raio dado.
-static func log_transform(from: Vector3, to: Vector3) -> Transform3D:
-	var axis := (to - from).normalized()
-	var basis := Basis(Quaternion(Vector3.UP, axis)) if absf(axis.dot(Vector3.UP)) < 0.999 else Basis.IDENTITY
-	return Transform3D(basis, (from + to) / 2.0)
-
-
 static func cylinder(radius_bottom: float, radius_top: float, height: float, segments: int = 10) -> CylinderMesh:
 	var mesh := CylinderMesh.new()
 	mesh.bottom_radius = radius_bottom
@@ -54,12 +49,6 @@ static func cylinder(radius_bottom: float, radius_top: float, height: float, seg
 	mesh.height = height
 	mesh.radial_segments = segments
 	mesh.rings = 1
-	return mesh
-
-
-static func box(size: Vector3) -> BoxMesh:
-	var mesh := BoxMesh.new()
-	mesh.size = size
 	return mesh
 
 
