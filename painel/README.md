@@ -53,4 +53,10 @@ As fontes (Space Grotesk e Inter) vêm do Google Fonts; sem internet, o painel u
 
 ## Créditos
 - **Identidade visual:** o `game-hub-brand-kit/` (cores, logo e fontes). `public/logo.png` é o logo original reduzido a 512 px; `public/simbolo.svg` é o símbolo flat.
-- **Impeccable** (skill de design só deste painel, em `.claude/skills/impeccable/`): © Paul Bakaus, [Apache-2.0](.claude/skills/impeccable/LICENSE), de https://github.com/pbakaus/impeccable (commit `687bc38`, skill 4.8.0). Instalada à mão: sem o hook e sem o lançador do programa.
+- **Impeccable** (skill de design só deste painel, em `.claude/skills/impeccable/`): © Paul Bakaus, [Apache-2.0](.claude/skills/impeccable/LICENSE), de https://github.com/pbakaus/impeccable (commit `687bc38`, skill 4.8.0). Também vêm dela os agentes revisores em `.claude/agents/impeccable-*.md` e os hooks em `.claude/settings.json` (o detector de design roda depois de cada edição de UI).
+
+## Usar a Impeccable
+- **Abra o Claude Code dentro de `painel/`** (ex.: `cd painel` e depois `claude`). Só assim a skill, os agentes e os hooks carregam; aberta na raiz do projeto, a sessão não enxerga nada disso.
+- O que a skill sabe do produto está em `PRODUCT.md` (quem usa, para quê, o que é obrigatório do brand kit). O sistema visual vai para o `DESIGN.md`, que a própria skill escreve no fim de um redesenho.
+- O motor (`impeccable.exe` 0.1.18, ~20 MB, do GitHub do projeto) é baixado sozinho na primeira vez, com o checksum conferido, e fica em `%USERPROFILE%\.impeccable\`, fora do repositório. A telemetria dele está desligada (`impeccable telemetry off`).
+- Os arquivos que a skill cria em `.impeccable/` (surfaces, design.json, config) vão para o git; as pastas de trabalho dela (`questions/`, `mocks/`, `review/`) se ignoram sozinhas.

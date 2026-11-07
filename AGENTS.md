@@ -78,7 +78,8 @@ native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExten
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cofre do Obsidian do dono (painel em Início.md)
   ideias/        caixa de entrada de ideias. Ideia aqui NÃO é tarefa: só vira trabalho quando entra na ROADMAP como fase
 painel/        o painel visual do cofre (React + Motion, no Docker; http://localhost:4170). Só lê docs/ e o git;
-               não faz parte do hub. Tem a própria skill de design (painel/.claude/skills/impeccable, Apache-2.0)
+               não faz parte do hub. Tem a própria skill de design (painel/.claude/skills/impeccable, Apache-2.0),
+               com agentes e hooks em painel/.claude/: para usá-la, abra a sessão dentro de painel/
 .claude/skills/  skills locais (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 
