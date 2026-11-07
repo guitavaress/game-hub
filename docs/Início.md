@@ -2,6 +2,8 @@
 
 O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
+**Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
+
 ## Agora
 - **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. Começa pelas suas referências em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
 - **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).

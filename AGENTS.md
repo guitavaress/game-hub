@@ -77,6 +77,8 @@ native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExten
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cofre do Obsidian do dono (painel em Início.md)
   ideias/        caixa de entrada de ideias. Ideia aqui NÃO é tarefa: só vira trabalho quando entra na ROADMAP como fase
+painel/        o painel visual do cofre (React + Motion, no Docker; http://localhost:4170). Só lê docs/ e o git;
+               não faz parte do hub. Tem a própria skill de design (painel/.claude/skills/impeccable, Apache-2.0)
 .claude/skills/  skills locais (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 
@@ -140,6 +142,7 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
   - Os agentes geram modelos por scripts Python rodados sem janela (`blender --background --python`) e exportam em `.glb`. O Blender fica **só no desenvolvimento**, nunca no hub.
   - Sem o MCP do Blender: os scripts deixam cada modelo refazível.
   - Licença: a API Python do Blender é GPL. Por isso os scripts ficam em `tools/blender/`, com o `LICENSE` GPL-3.0 da pasta. Os `.glb` gerados são nossos, como o resto do repositório (MIT).
+- **Exceção: o painel do cofre** (dono, 2026-11-07): Docker, React, Motion e a skill Impeccable, **só em `painel/`**, nunca no hub. Detalhes em [painel/README.md](painel/README.md).
 - A base do estudo é ler o código aberto do V-Sekai. A própria skill do REA manda pular o REA quando há código-fonte.
 - O REA entra só no que existe apenas compilado ou em execução (ex.: observar um build do V-Sekai rodando).
 - **Nunca** num programa fechado cujos termos proíbam engenharia reversa (ex.: o VRChat, que serve só como referência de função, visto de fora).
