@@ -1,13 +1,16 @@
 // Um número que corre até o valor novo (na abertura e quando o cofre muda).
 
-import { useEffect, useRef } from 'react';
-import { animate, useInView, useReducedMotion } from 'motion/react';
+import { useContext, useEffect, useRef } from 'react';
+import { animate, MotionConfigContext, useInView, useReducedMotion } from 'motion/react';
 
 export default function Contador({ valor }) {
   const ref = useRef(null);
   const anterior = useRef(0);
   const visivel = useInView(ref, { once: true });
-  const reduzir = useReducedMotion();
+  const reduzirSistema = useReducedMotion();
+  const { reducedMotion } = useContext(MotionConfigContext);
+  // O animate imperativo também obedece ao botão do painel.
+  const reduzir = reducedMotion === 'always' || (reducedMotion !== 'never' && reduzirSistema);
 
   useEffect(() => {
     const el = ref.current;

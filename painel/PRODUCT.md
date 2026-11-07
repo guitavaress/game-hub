@@ -13,7 +13,7 @@ Um usuário só: o dono do Game Hub. Ele tem conhecimento básico de programaç�
 Mostrar o cofre `docs/` (o Obsidian do projeto) e o git como um painel visual. A pergunta que ele tem que responder em 3 segundos é **"quanto o projeto andou?"**: fases feitas, a fase atual, a linha do tempo e o ritmo de commits. Depois disso, ele serve para ler os documentos e decidir. Dá certo quando o dono abre, entende o progresso sem procurar e encontra o texto que precisa para a próxima decisão.
 
 ## Positioning
-Não é um gerenciador de tarefas genérico: é o próprio cofre de um projeto real, lido ao vivo dos arquivos `.md` e do git, sem cadastro e sem banco. O progresso vem do que os agentes marcam (`[x]` nos planos, commits). O projeto é um launcher em forma de cidade 3D, e o painel pode usar essa imagem (cada fase um prédio, cada subetapa feita uma janela acesa), que nenhum outro painel tem.
+Não é um gerenciador de tarefas genérico: é o próprio cofre de um projeto real, lido ao vivo dos arquivos `.md` e do git, sem cadastro e sem banco. O progresso vem do que os agentes marcam (`[x]` nos planos, commits). O projeto é um launcher em forma de cidade 3D, mas a cidade **não** é a forma do painel (dono, 2026-11-07): prédios e janelas acesas ficam, no máximo, como detalhe, e o progresso se mostra pelos próprios dados (fases, subetapas, linha do tempo, ritmo).
 
 ## Operating Context
 - Os agentes editam `docs/` e fazem commits enquanto o dono trabalha. O painel confere os arquivos e o git a cada 2 s e avisa o que mudou.
@@ -32,6 +32,8 @@ Não é um gerenciador de tarefas genérico: é o próprio cofre de um projeto r
 ## Brand Commitments
 - **Obrigatórios** (dono, 2026-11-07): o nome "Game Hub", o logo (`public/logo.png`, `public/simbolo.svg`) e **a paleta de cores** do brand kit (`game-hub-brand-kit/design-tokens.css`: void `#07121E`, navy `#0D1C2E`, surface `#132D49`, blue `#1269B7`, electric `#168EEA`, cyan `#24BAF5`, glow `#67E8F9`, paper `#F6FAFE`).
 - **Livres** (dono, 2026-11-07): a tipografia, o layout, a composição e o estilo. O resto do brand kit (Space Grotesk, raios, grade de fundo, brilhos) não obriga nada.
+- **Do painel atual, fica** (dono, 2026-11-07): o nível de acabamento e de animação, e o tema escuro como padrão. A barra lateral e a página única são livres.
+- **Recusados** (dono, 2026-11-07): prédios no centro do visual, cara de painel genérico (fileira de cartões com números), neon e brilho demais, texto espremido em cartão.
 
 ## Evidence on Hand
 Só dados reais do cofre e do git: as fases e as subetapas dos planos, o ROADMAP, o gantt do `Início.md`, as ideias e os commits. Nenhum número de progresso, data ou prazo pode ser inventado. Quando um dado falta (ex.: uma fase sem plano), o painel mostra que falta.

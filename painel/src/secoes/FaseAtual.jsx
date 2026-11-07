@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import Md from '../pecas/Md.jsx';
 import Icone from '../pecas/Icone.jsx';
-import { seguirMouse } from '../util.js';
 
 const facil = [0.16, 1, 0.3, 1];
 
@@ -31,7 +30,7 @@ export default function FaseAtual({ atual, abrir, mudou }) {
       </div>
 
       <div className="fase-grade">
-        <ol className={`trilha superficie ${mudou(atual.arquivo) ? 'mudou' : ''}`} aria-label={`Subetapas da Fase ${atual.numero}`}>
+        <ol className={`trilha ${mudou(atual.arquivo) ? 'mudou' : ''}`} aria-label={`Subetapas da Fase ${atual.numero}`}>
           <span className="trilha-linha" aria-hidden="true" />
           <motion.span
             className="trilha-feita"
@@ -76,7 +75,7 @@ export default function FaseAtual({ atual, abrir, mudou }) {
           })}
         </ol>
 
-        <aside className="dono superficie luz" onPointerMove={seguirMouse}>
+        <aside className="dono">
           <h3>Para o dono</h3>
           <div className="progresso">
             <div className="progresso-barra" aria-hidden="true">

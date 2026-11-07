@@ -1,4 +1,4 @@
-// O painel inteiro: a barra lateral, as seções, o leitor, a busca e os avisos ao vivo.
+// O painel inteiro: a barra de cima, as seções, o leitor, a busca e os avisos ao vivo.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'motion/react';
@@ -18,17 +18,17 @@ import Documentos from './secoes/Documentos.jsx';
 import { lerPreferencia, salvarPreferencia, tempoRelativo } from './util.js';
 
 const SECOES = [
-  { id: 'agora', nome: 'Agora', icone: 'agora' },
-  { id: 'fase', nome: 'Fase atual', icone: 'fase' },
-  { id: 'rumo', nome: 'Rumo', icone: 'rumo' },
-  { id: 'tempo', nome: 'Linha do tempo', icone: 'tempo' },
-  { id: 'falta', nome: 'O que falta', icone: 'falta', conta: (d) => d.tarefas.length },
-  { id: 'ideias', nome: 'Ideias', icone: 'ideia', conta: (d) => d.ideias.length },
-  { id: 'atividade', nome: 'Atividade', icone: 'atividade' },
-  { id: 'docs', nome: 'Documentos', icone: 'docs', conta: (d) => d.docs.length },
+  { id: 'agora', nome: 'Agora' },
+  { id: 'fase', nome: (atual) => (atual ? `Fase ${atual.numero}` : 'Fase atual') },
+  { id: 'rumo', nome: 'Rumo' },
+  { id: 'tempo', nome: 'Linha do tempo' },
+  { id: 'falta', nome: 'O que falta', conta: (d) => d.tarefas.length },
+  { id: 'ideias', nome: 'Ideias', conta: (d) => d.ideias.length },
+  { id: 'atividade', nome: 'Atividade' },
+  { id: 'docs', nome: 'Documentos', conta: (d) => d.docs.length },
 ];
 
-// Qual seção está no meio da tela (para acender o item da barra lateral).
+// Qual seção está no meio da tela (para acender o item da barra de cima).
 function useSecaoVisivel(pronto) {
   const [atual, setAtual] = useState('agora');
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function App() {
   const fecharLeitor = useCallback(() => setLeitor(null), []);
   const fecharPaleta = useCallback(() => setPaleta(false), []);
 
-  // Ctrl+K (ou /) abre a busca
+  // Ctrl+K (ou /) abre a busca; Esc fecha o menu do celular
   useEffect(() => {
     const tecla = (e) => {
       const digitando = /input|textarea|select/i.test(document.activeElement?.tagName || '');
@@ -127,6 +127,8 @@ export default function App() {
       } else if (e.key === '/' && !digitando && !leitor) {
         e.preventDefault();
         setPaleta(true);
+      } else if (e.key === 'Escape') {
+        setMenu(false);
       }
     };
     window.addEventListener('keydown', tecla);
@@ -139,10 +141,8 @@ export default function App() {
   if (!dados) {
     return (
       <div className="carregando" role="status">
-        <div>
-          <img src="/logo.png" alt="" />
-          <p>{erro ? `Não consegui ler o cofre (${erro}). O servidor do painel está rodando?` : 'Abrindo o cofre…'}</p>
-        </div>
+        <img src="/logo.png" alt="" />
+        <p>{erro ? `Não consegui ler o cofre (${erro}). O servidor do painel está rodando?` : 'Abrindo o cofre…'}</p>
       </div>
     );
   }
@@ -150,107 +150,116 @@ export default function App() {
   const textoConexao =
     conexao === 'ao-vivo' ? (
       <>
-        <b>Ao vivo</b> · lido {tempoRelativo(dados.geradoEm)}
+        <b>Ao vivo</b>
+        <span className="some-estreito"> · lido {tempoRelativo(dados.geradoEm)}</span>
       </>
     ) : conexao === 'offline' ? (
       <>
-        <b>Sem conexão</b> · tentando de novo
+        <b>Sem conexão</b>
+        <span className="some-estreito"> · tentando de novo</span>
       </>
     ) : (
       <>Conectando…</>
     );
 
-  const botoes = (
-    <div className="ferramentas">
-      <button className="botao cresce" onClick={() => setPaleta(true)} aria-label="Buscar nos documentos (Ctrl+K)">
-        <Icone nome="busca" /> <span className="texto-busca">Buscar</span> <kbd>Ctrl K</kbd>
-      </button>
-      <button
-        className="botao icone"
-        onClick={() => setTema((t) => (t === 'dark' ? 'light' : 'dark'))}
-        aria-label={tema === 'dark' ? 'Usar o tema claro' : 'Usar o tema escuro'}
-        title={tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span key={tema} style={{ display: 'grid' }} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
-            <Icone nome={tema === 'dark' ? 'sol' : 'lua'} />
-          </motion.span>
-        </AnimatePresence>
-      </button>
-      <button
-        className="botao icone"
-        onClick={() => setMovimento((m) => (m === 'on' ? 'off' : 'on'))}
-        aria-pressed={movimento === 'off'}
-        aria-label={movimento === 'on' ? 'Desligar as animações' : 'Ligar as animações'}
-        title={movimento === 'on' ? 'Desligar as animações' : 'Ligar as animações'}
-      >
-        <Icone nome={movimento === 'on' ? 'movimento' : 'parado'} />
-      </button>
-    </div>
+  const nomeSecao = (s) => (typeof s.nome === 'function' ? s.nome(atual) : s.nome);
+  const itensNav = (id) => (
+    <ul className="nav">
+      {SECOES.map((s) => (
+        <li key={s.id}>
+          <a href={`#${s.id}`} aria-current={secao === s.id ? 'true' : undefined} onClick={() => setMenu(false)}>
+            {nomeSecao(s)}
+            {s.conta && <span className="conta">{s.conta(dados)}</span>}
+            {secao === s.id && <motion.span className="marcador" layoutId={id} transition={{ type: 'spring', stiffness: 460, damping: 40 }} />}
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 
   return (
     <MotionConfig reducedMotion={movimento === 'off' ? 'always' : 'user'}>
-      <div className="casca">
-        <header className="topo-movel">
-          <a className="marca" href="#agora">
-            <img src="/logo.png" alt="" />
-            <span>
-              <strong>Game Hub</strong>
-            </span>
-          </a>
-          <div className="ferramentas">
-            <button className="botao icone" onClick={() => setPaleta(true)} aria-label="Buscar nos documentos">
-              <Icone nome="busca" />
-            </button>
-            <button className="botao icone" onClick={() => setMenu((m) => !m)} aria-label="Menu" aria-expanded={menu}>
-              <Icone nome={menu ? 'fechar' : 'menu'} />
-            </button>
-          </div>
-        </header>
-
-        <nav className="lateral" data-aberta={menu} aria-label="Seções do painel">
+      <a className="pular" href="#conteudo" inert={!!(leitor || paleta)}>
+        Pular para o conteúdo
+      </a>
+      <header className="topo" inert={!!(leitor || paleta)}>
+        <div className="topo-dentro">
           <a className="marca" href="#agora" onClick={() => setMenu(false)}>
-            <img src="/logo.png" alt="" />
-            <span>
-              <strong>Game Hub</strong>
-              <small>O cofre do projeto</small>
-            </span>
+            <img src="/simbolo.svg" alt="" width="28" height="28" />
+            <span>Game Hub</span>
           </a>
-          <LayoutGroup id="nav">
-            <ul className="nav">
-              {SECOES.map((s) => (
-                <li key={s.id}>
-                  <a href={`#${s.id}`} aria-current={secao === s.id} onClick={() => setMenu(false)}>
-                    {secao === s.id && <motion.span className="marcador" layoutId="marcador-nav" transition={{ type: 'spring', stiffness: 420, damping: 36 }} />}
-                    <Icone nome={s.icone} />
-                    {s.nome}
-                    {s.conta && <span className="conta">{s.conta(dados)}</span>}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </LayoutGroup>
-          <div className="lateral-pe">
+          <nav className="nav-larga" aria-label="Seções do painel">
+            {itensNav('marcador-nav')}
+          </nav>
+          <div className="ferramentas">
+            <button className="busca" onClick={() => setPaleta(true)} aria-label="Buscar nos documentos (Ctrl+K)">
+              <Icone nome="busca" />
+              <span className="busca-texto">Buscar</span>
+              <kbd>Ctrl K</kbd>
+            </button>
+            <button
+              className="botao-icone"
+              onClick={() => setTema((t) => (t === 'dark' ? 'light' : 'dark'))}
+              aria-label={tema === 'dark' ? 'Usar o tema claro' : 'Usar o tema escuro'}
+              title={tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span key={tema} style={{ display: 'grid' }} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <Icone nome={tema === 'dark' ? 'sol' : 'lua'} />
+                </motion.span>
+              </AnimatePresence>
+            </button>
+            <button
+              className="botao-icone"
+              onClick={() => setMovimento((m) => (m === 'on' ? 'off' : 'on'))}
+              aria-pressed={movimento === 'off'}
+              aria-label={movimento === 'on' ? 'Desligar as animações' : 'Ligar as animações'}
+              title={movimento === 'on' ? 'Desligar as animações' : 'Ligar as animações'}
+            >
+              <Icone nome={movimento === 'on' ? 'movimento' : 'parado'} />
+            </button>
             <div className="ao-vivo" role="status">
               <span className="pulso" data-estado={conexao} aria-hidden="true" />
               <span>{textoConexao}</span>
             </div>
-            {botoes}
+            <button className="botao-icone menu-botao" onClick={() => setMenu((m) => !m)} aria-label="Seções" aria-expanded={menu} aria-controls="menu-movel">
+              <Icone nome={menu ? 'fechar' : 'menu'} />
+            </button>
           </div>
-        </nav>
+        </div>
+        <AnimatePresence>
+          {menu && (
+            <motion.nav
+              id="menu-movel"
+              className="menu-movel"
+              aria-label="Seções do painel"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {itensNav('marcador-movel')}
+            </motion.nav>
+          )}
+        </AnimatePresence>
+      </header>
 
-        <main className="conteudo">
-          <Agora dados={dados} atual={atual} abrir={abrir} />
-          <FaseAtual atual={atual} abrir={abrir} mudou={mudou} />
-          <Rumo roadmap={dados.roadmap} atual={atual} abrir={abrir} />
-          <LinhaDoTempo gantt={dados.inicio.gantt} fases={dados.fases} abrir={abrir} />
-          <OQueFalta tarefas={dados.tarefas} docs={dados.docs} abrir={abrir} mudou={mudou} />
-          <Ideias ideias={dados.ideias} abrir={abrir} mudou={mudou} />
-          <Atividade git={dados.git} novos={novosCommits} />
-          <Documentos docs={dados.docs} abrir={abrir} mudou={mudou} />
-        </main>
-      </div>
+      <main className="conteudo" id="conteudo" inert={!!(leitor || paleta)}>
+        <Agora dados={dados} atual={atual} abrir={abrir} mudou={mudou} />
+        <FaseAtual atual={atual} abrir={abrir} mudou={mudou} />
+        <Rumo roadmap={dados.roadmap} atual={atual} abrir={abrir} />
+        <LinhaDoTempo gantt={dados.inicio.gantt} fases={dados.fases} abrir={abrir} />
+        <OQueFalta tarefas={dados.tarefas} docs={dados.docs} abrir={abrir} mudou={mudou} />
+        <Ideias ideias={dados.ideias} abrir={abrir} mudou={mudou} />
+        <Atividade git={dados.git} novos={novosCommits} />
+        <Documentos docs={dados.docs} abrir={abrir} mudou={mudou} />
+        <footer className="rodape">
+          <img src="/simbolo.svg" alt="" width="20" height="20" />
+          <span>
+            Game Hub · o cofre do projeto, lido de <code>docs/</code> e do git. O painel só lê.
+          </span>
+        </footer>
+      </main>
 
       <AnimatePresence>
         {leitor && docAberto && <Leitor key="leitor" doc={docAberto} ancora={leitor.ancora} abrir={abrir} fechar={fecharLeitor} />}

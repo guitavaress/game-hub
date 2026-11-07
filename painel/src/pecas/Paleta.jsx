@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icone from './Icone.jsx';
 import { slug } from '../util.js';
+import useDialogo from './useDialogo.js';
 
 const semAcento = (s) =>
   s
@@ -29,10 +30,9 @@ export default function Paleta({ docs, abrir, fechar }) {
   const [sel, setSel] = useState(0);
   const campo = useRef(null);
   const lista = useRef(null);
+  const dialogo = useRef(null);
 
-  useEffect(() => {
-    campo.current?.focus();
-  }, []);
+  useDialogo(dialogo, campo, fechar);
 
   const resultados = useMemo(() => {
     const t = semAcento(termo.trim());
@@ -79,8 +79,6 @@ export default function Paleta({ docs, abrir, fechar }) {
       e.preventDefault();
       const r = resultados[sel];
       abrir(r.doc.arquivo, r.ancora);
-    } else if (e.key === 'Escape') {
-      fechar();
     }
   };
 
@@ -88,6 +86,7 @@ export default function Paleta({ docs, abrir, fechar }) {
     <>
       <motion.div className="paleta-veu" onClick={fechar} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
       <motion.div
+        ref={dialogo}
         className="paleta"
         role="dialog"
         aria-modal="true"

@@ -6,22 +6,14 @@ import { motion } from 'motion/react';
 import Icone from './Icone.jsx';
 import Md from './Md.jsx';
 import { linkObsidian, slug, tempoRelativo } from '../util.js';
+import useDialogo from './useDialogo.js';
 
 export default function Leitor({ doc, ancora, abrir, fechar }) {
   const corpo = useRef(null);
   const botaoFechar = useRef(null);
+  const dialogo = useRef(null);
 
-  // Esc fecha; o foco vai para o botão de fechar e volta ao fechar.
-  useEffect(() => {
-    const antes = document.activeElement;
-    botaoFechar.current?.focus({ preventScroll: true });
-    const tecla = (e) => e.key === 'Escape' && fechar();
-    window.addEventListener('keydown', tecla);
-    return () => {
-      window.removeEventListener('keydown', tecla);
-      if (antes && antes.focus) antes.focus({ preventScroll: true });
-    };
-  }, [fechar]);
+  useDialogo(dialogo, botaoFechar, fechar);
 
   // Vai até a âncora (#titulo) e acende o trecho por um instante.
   useEffect(() => {
@@ -55,6 +47,7 @@ export default function Leitor({ doc, ancora, abrir, fechar }) {
     <>
       <motion.div className="veu" onClick={fechar} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.18 } }} />
       <motion.aside
+        ref={dialogo}
         className="leitor"
         role="dialog"
         aria-modal="true"

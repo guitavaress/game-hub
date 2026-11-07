@@ -17,10 +17,11 @@ Depois abra **http://localhost:4170**. O painel volta sozinho quando o Docker ab
 
 ## O que ele faz
 - **Ao vivo:** a cada 2 s o servidor confere os `.md` e o git. Quando algo muda (um `[x]` marcado, uma ideia nova, um commit), aparece um aviso e o que mudou acende.
-- **A cidade:** cada fase da linha do tempo do `Início.md` é um prédio, e cada janela acesa é uma subetapa feita. A próxima janela pisca.
+- **A visão V1–V6:** seis versões do produto com ilustrações e os estados do ROADMAP. As futuras ficam dessaturadas; a abertura mostra as três etapas do produto, a fase em andamento, a próxima subetapa e o ritmo de commits.
 - **Leitor:** clique em qualquer fase, tarefa, ideia ou documento. Os links entre notas abrem dentro do painel, e "Abrir no Obsidian" abre a nota no cofre.
 - **Busca:** `Ctrl+K` ou `/`.
-- **Tema claro/escuro e animações:** os botões no pé da barra lateral. O painel também respeita o "reduzir movimento" do sistema.
+- **Tema claro/escuro e animações:** os botões na barra superior. O painel também respeita o "reduzir movimento" do sistema, inclusive nos contadores. Em telas menores, o botão “Seções” abre a navegação.
+- **Teclado nos diálogos:** Tab e Shift+Tab ficam na busca ou no leitor; Esc fecha e devolve o foco ao controle anterior.
 
 ## Como funciona
 | Parte | Onde |
@@ -49,14 +50,17 @@ Versões fixadas no `package.json` (e no `package-lock.json`):
 
 Entre os pacotes indiretos da compilação, o `caniuse-lite` é CC-BY-4.0. Ele não vai para o site.
 
-As fontes (Space Grotesk e Inter) vêm do Google Fonts; sem internet, o painel usa a Segoe UI.
+As fontes Sora (títulos), Manrope (interface) e Literata (leitura) vêm do Google Fonts; sem internet, o painel usa Segoe UI/system-ui e Georgia no leitor.
 
 ## Créditos
-- **Identidade visual:** o `game-hub-brand-kit/` (cores, logo e fontes). `public/logo.png` é o logo original reduzido a 512 px; `public/simbolo.svg` é o símbolo flat.
+- **Identidade visual:** o `game-hub-brand-kit/` (cores e logo). `public/logo.png` é o logo original reduzido a 512 px; `public/simbolo.svg` é o símbolo flat. A tipografia do painel foi escolhida no redesenho.
+- **Ilustrações:** sete imagens geradas no ComfyUI local (modelo `flux3-image-klein-int8-convrot`), em `public/visao/`. Cada WebP tem um arquivo `.webp.json` com o prompt e a origem. São ilustrações da visão, não capturas do hub nem capas de jogos.
 - **Impeccable** (skill de design só deste painel, em `.claude/skills/impeccable/`): © Paul Bakaus, [Apache-2.0](.claude/skills/impeccable/LICENSE), de https://github.com/pbakaus/impeccable (commit `687bc38`, skill 4.8.0). Também vêm dela os agentes revisores em `.claude/agents/impeccable-*.md` e os hooks em `.claude/settings.json` (o detector de design roda depois de cada edição de UI).
 
 ## Usar a Impeccable
 - **Abra o Claude Code dentro de `painel/`** (ex.: `cd painel` e depois `claude`). Só assim a skill, os agentes e os hooks carregam; aberta na raiz do projeto, a sessão não enxerga nada disso.
-- O que a skill sabe do produto está em `PRODUCT.md` (quem usa, para quê, o que é obrigatório do brand kit). O sistema visual vai para o `DESIGN.md`, que a própria skill escreve no fim de um redesenho.
+- O que a skill sabe do produto está em `PRODUCT.md` (quem usa, para quê, o que é obrigatório do brand kit). O sistema visual está em [DESIGN.md](DESIGN.md), com componentes e extensões em `.impeccable/design.json`; a composição específica está em `.impeccable/surfaces/src-app-jsx.md`.
 - O motor (`impeccable.exe` 0.1.18, ~20 MB, do GitHub do projeto) é baixado sozinho na primeira vez, com o checksum conferido, e fica em `%USERPROFILE%\.impeccable\`, fora do repositório. A telemetria dele está desligada (`impeccable telemetry off`).
 - Os arquivos que a skill cria em `.impeccable/` (surfaces, design.json, config) vão para o git; as pastas de trabalho dela (`questions/`, `mocks/`, `review/`) se ignoram sozinhas.
+
+O fechamento do redesenho V1–V6, as verificações no navegador e o teste manual estão em [REVISAO-VISUAL.md](REVISAO-VISUAL.md).

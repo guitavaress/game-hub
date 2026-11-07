@@ -268,7 +268,52 @@ export function lerRoadmap(texto) {
   });
   const decisoes = itensDeLista(secao(texto, 'Decisões registradas'));
 
-  return { produto, versoes, proximas, parados, feito, horizonte, decisoes };
+  return { visao: lerVisao(texto), produto, versoes, proximas, parados, feito, horizonte, decisoes };
+}
+
+// A seção "Visão" do ROADMAP, antes do primeiro "###": a frase, os pilares,
+// o parágrafo do "uau" e o fluxo do bloco de código (Steam → … → Game Hub).
+function lerVisao(texto) {
+  const bloco = secao(texto, 'Visão').split(/^### /m)[0];
+  const semCodigo = bloco.replace(/```[\s\S]*?```/g, '');
+  const paragrafos = semCodigo
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p && !p.startsWith('- '));
+  const pilares = itensDeLista(semCodigo).map((item) => {
+    const m = item.match(/^\*\*([^*]+?):?\*\*:?\s*(.*)$/);
+    return m ? { titulo: m[1].replace(/:$/, ''), texto: m[2] } : { titulo: '', texto: item };
+  });
+  const codigo = (bloco.match(/```[^\n]*\n([\s\S]*?)```/) || [, ''])[1];
+  return { frase: paragrafos[0] || '', uau: paragrafos[1] || '', pilares, fluxo: lerFluxo(codigo) };
+}
+
+// O desenho em texto do fluxo: a 1ª linha tem os passos separados por "→";
+// as linhas de baixo têm notas "(...)" alinhadas embaixo de cada passo.
+function lerFluxo(codigo) {
+  const linhas = codigo.split('\n').filter((l) => l.trim());
+  if (!linhas.length || !linhas[0].includes('→')) return [];
+  const passos = [];
+  const re = /[^→]+/g;
+  let m;
+  while ((m = re.exec(linhas[0]))) {
+    const nome = m[0].trim();
+    if (nome) passos.push({ nome, coluna: m.index + m[0].indexOf(nome), nota: '' });
+  }
+  const abre = linhas[1] ? [...linhas[1].matchAll(/\(/g)].map((x) => x.index) : [];
+  abre.forEach((col, i) => {
+    const fim = abre[i + 1] ?? Infinity;
+    const nota = linhas
+      .slice(1)
+      .map((l) => l.slice(col, fim).trim())
+      .join(' ')
+      .replace(/^\(|\)$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const dono = [...passos].reverse().find((p) => p.coluna <= col + 2);
+    if (dono && nota) dono.nota = nota;
+  });
+  return passos.map(({ nome, nota }) => ({ nome, nota }));
 }
 
 // ---------- Início.md (Agora e a linha do tempo) ----------

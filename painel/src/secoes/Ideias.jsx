@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 import Md from '../pecas/Md.jsx';
-import { dataCurta, seguirMouse } from '../util.js';
+import { dataCurta } from '../util.js';
 
 const COLUNAS = [
   { id: 'crua', nome: 'Crua' },
@@ -61,8 +61,7 @@ export default function Ideias({ ideias, abrir, mudou }) {
                       key={i.arquivo}
                       layout
                       layoutId={`ideia-${i.arquivo}`}
-                      className={`ideia luz ${mudou(i.arquivo) ? 'mudou' : ''}`}
-                      onPointerMove={seguirMouse}
+                      className={`ideia ${mudou(i.arquivo) ? 'mudou' : ''}`}
                       onClick={() => abrir(i.arquivo)}
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}

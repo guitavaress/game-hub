@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Game Hub · Cofre</title>
-    <meta name="description" content="O painel do cofre do Game Hub: fase atual, rumo, linha do tempo, ideias e documentos, ao vivo." />
+    <meta name="description" content="O painel do cofre do Game Hub: a visão V1–V6, a fase atual, o rumo, a linha do tempo, as ideias e os documentos, ao vivo." />
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/simbolo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
     <script>
@@ -18,7 +18,7 @@
       try {
         var t = localStorage.getItem('painel-tema');
         if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-        else if (window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.dataset.theme = 'light';
+
         if (localStorage.getItem('painel-movimento') === 'off') document.documentElement.dataset.motion = 'off';
       } catch (e) {}
     </script>

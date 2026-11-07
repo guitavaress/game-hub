@@ -46,6 +46,17 @@ test('lê o ROADMAP: versões, próximas fases, parados e feito', () => {
   assert.ok(horizonte.some((h) => h.titulo));
 });
 
+test('lê a visão do ROADMAP: frase, pilares e o fluxo', () => {
+  const { visao } = cofre.roadmap;
+  assert.match(visao.frase, /launcher/);
+  assert.equal(visao.pilares.length, 3);
+  assert.ok(visao.pilares.every((p) => p.titulo && p.texto));
+  const nomes = visao.fluxo.map((p) => p.nome);
+  assert.equal(nomes[0], 'Steam');
+  assert.equal(nomes.at(-1), 'Game Hub');
+  assert.ok(visao.fluxo.find((p) => p.nome === 'perfil do mundo').nota.includes('bioma'));
+});
+
 test('a linha do tempo do Início vira barras com datas', () => {
   const g = cofre.inicio.gantt;
   assert.ok(g.length >= 15);
