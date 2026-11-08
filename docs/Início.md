@@ -5,9 +5,9 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 **Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
 
 ## Agora
-- **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
-  - **Última subetapa feita:** 17.10, parte 1, as três pendências da 17.8: a torre do RPG agora é de pedra (com cornija em degraus e portal nas duas faces), a madeira do deque ficou acinzentada e fosca e a cinza da fogueira escureceu e encolheu; esperando a sua aprovação. Antes, a 17.9.2 (o acabamento da cabana), aprovada em 2026-11-08.
-  - **Próxima:** a 17.10, partes 2 e 3 (o estudo do aquecimento dos shaders da cidade e o fechamento da fase).
+- **Fase em aprovação:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`: **implementada**, falta a sua aprovação e o merge na `main`. As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
+  - **Última subetapa feita:** 17.10, as três partes (2026-11-08). As pendências da 17.8: a torre do RPG agora é de pedra (com cornija em degraus e portal nas duas faces), a madeira do deque ficou acinzentada e fosca e a cinza da fogueira escureceu e encolheu. O estudo do tranco de ~87 ms: é compilação de shader uma vez por abertura, e a decisão foi aceitar (os números estão no plano). O fechamento: bateria `TUDO OK`, medida no desktop (200 jogos, Alta: 144,8 FPS na caminhada, p99 13 ms) e a folha `folha_17.10.png`. Antes, a 17.9.2 (o acabamento da cabana), aprovada em 2026-11-08.
+  - **Próxima:** a sua aprovação da Fase 17 (as capturas e a folha) e, depois, o merge na `main`.
 - **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), já na `main` (PR #2).
