@@ -56,6 +56,8 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** a casa, a janela, a trilha e o mirante passam na sua comparação de antes e depois, nas capturas e no jogo.
 
+**Andamento:** é a [Fase 17](plans/fase-17.md), em curso. Feitas e aprovadas: as referências, a casa à noite com a janela (a amostra), a luz da cidade de dia e de noite, a trilha com as paradas, os modelos do Blender, o mirante como destino e a luz de dia na casa (17.9.1, 2026-11-08). Em andamento: o acabamento da cabana (17.9.2). Falta o fechamento (17.10).
+
 ### 2. Mostrar para amigos
 **Objetivo:** a etapa 2 do produto. Um build que 2 ou 3 amigos instalam e usam.
 

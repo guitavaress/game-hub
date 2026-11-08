@@ -5,7 +5,9 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 **Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
 
 ## Agora
-- **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. Começa pelas suas referências em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
+- **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
+  - **Última subetapa feita:** 17.9.1, a luz de dia na casa (o sol entra pela janela com sombra, nos dois temas; a noite não mudou), aprovada em 2026-11-08. Junto, a 17.9.1b: a poltrona e a lareira da cabana feitas no Blender (entram na casa na 17.9.2).
+  - **Em andamento:** 17.9.2, o acabamento da cabana (os modelos no lugar das caixas, o âmbar perto do fogo, a montanha vista do nível do chão). Depois, a 17.10 fecha a fase.
 - **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), já na `main` (PR #2).
