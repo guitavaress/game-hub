@@ -8,7 +8,9 @@ extends SceneTree
 ##   - o retrato é refeito só na troca de fase do dia (dia, pôr do sol, noite),
 ##     nunca a cada aviso de hora; sem ponto, volta a vista de reserva, mesmo
 ##     se o ponto sair no meio de uma captura;
-##   - o shader da floresta (cabana) não usa o retrato;
+##   - o shader da floresta não usa o retrato;
+##   - o enquadramento de quem usa a janela (17.9.2, set_framing): a lente fecha
+##     com o zoom e o olhar sobe, do mesmo ponto; sem mudança, nada é refeito;
 ##   - as camadas escondidas pelo ponto (WindowViewPoint.hidden_layers) também
 ##     somem da câmera do retrato, junto com a da casa;
 ##   - na cidade: um ponto só, posto quando ela fica pronta, alto e virado para
@@ -121,7 +123,29 @@ func _check_component() -> void:
 	_check("cada retrato teve o próprio quadro, sempre em UPDATE_ONCE",
 			_seen.size() == 3 and _seen.all(func(seen: Dictionary) -> bool: return seen["mode"] == SubViewport.UPDATE_ONCE))
 
-	print("== sem ponto de novo, e a cabana ==")
+	print("== o enquadramento de quem usa a janela (17.9.2) ==")
+	var plain: Dictionary = _seen[0]
+	var before: int = view.capture_count
+	view.set_framing(1.0, 0.0)
+	await _frames(3)
+	_check("o enquadramento de sempre (1 e 0°): nada é refeito", view.capture_count == before)
+	view.set_framing(1.8, 3.0)
+	await _frames(3)
+	var framed: Dictionary = _seen[_seen.size() - 1]
+	_check("enquadramento novo: o retrato é refeito uma vez", view.capture_count == before + 1 and _seen.size() == before + 1)
+	var plain_half := tan(deg_to_rad(float(plain["fov"])) / 2.0)
+	var framed_half := tan(deg_to_rad(float(framed["fov"])) / 2.0)
+	_check("a lente fecha com o zoom do ponto vezes o da janela (%.3f / %.3f)" % [framed_half, plain_half],
+			absf(framed_half * 1.8 - plain_half) < 0.001)
+	var up := rad_to_deg(asin(clampf((framed["forward"] as Vector3).y, -1.0, 1.0))) 			- rad_to_deg(asin(clampf((plain["forward"] as Vector3).y, -1.0, 1.0)))
+	_check("o olhar sobe 3° do mesmo ponto (%.2f°)" % up,
+			absf(up - 3.0) < 0.05 and (framed["origin"] as Vector3).is_equal_approx(plain["origin"]))
+	view.set_framing(1.0, 0.0)
+	await _frames(3)
+	_check("de volta ao de sempre: refeito, com a lente do ponto", view.capture_count == before + 2
+			and is_equal_approx(float(_seen[_seen.size() - 1]["fov"]), float(plain["fov"])))
+
+	print("== sem ponto de novo, e a floresta ==")
 	# Uma captura começa (troca de fase) e o ponto sai no meio dela.
 	var captures: int = view.capture_count
 	view.set_night(1.0)
@@ -159,6 +183,7 @@ func _on_view_child(node: Node) -> void:
 		"mask": camera.cull_mask if camera != null else 0,
 		"origin": camera.transform.origin if camera != null else Vector3.INF,
 		"fov": camera.fov if camera != null else 999.0,
+		"forward": -camera.transform.basis.z if camera != null else Vector3.ZERO,
 	})
 
 

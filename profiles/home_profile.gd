@@ -54,6 +54,12 @@ extends Resource
 @export_group("Janela")
 ## Shader da vista (recebe o "night" de 0 a 1).
 @export_file("*.gdshader") var window_shader: String = ""
+## O enquadramento da vista de verdade (Fase 17.9.2; só vale num shader que
+## usa o retrato do mundo): quanto a janela aproxima, além do que o mundo
+## oferece (1 = igual), e quantos graus ela levanta o olhar. A cabana fica no
+## nível do chão: mais montanha e céu, menos cidade vista de cima.
+@export_range(1.0, 3.0, 0.05) var window_view_zoom: float = 1.0
+@export_range(-30.0, 30.0, 0.5) var window_view_pitch_degrees: float = 0.0
 ## Moldura da janela e peitoril.
 @export var window_frame: HomeSurface
 @export var window_sill: HomeSurface

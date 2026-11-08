@@ -6,8 +6,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
 - **Fase em andamento:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`. As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
-  - **Última subetapa feita:** 17.9.1, a luz de dia na casa (o sol entra pela janela com sombra, nos dois temas; a noite não mudou), aprovada em 2026-11-08. Junto, a 17.9.1b: a poltrona e a lareira da cabana feitas no Blender (entram na casa na 17.9.2).
-  - **Em andamento:** 17.9.2, o acabamento da cabana (os modelos no lugar das caixas, o âmbar perto do fogo, a montanha vista do nível do chão). Depois, a 17.10 fecha a fase.
+  - **Última subetapa feita:** 17.9.2, o acabamento da cabana (a poltrona e a lareira do Blender, o fogo com sombra, o âmbar perto do fogo e dos lampiões, o toco, a lenha e a manta, e a montanha na janela como do nível do chão), esperando a sua aprovação. Antes, a 17.9.1 (a luz de dia na casa), aprovada em 2026-11-08.
+  - **Próxima:** a 17.10, que fecha a fase.
 - **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), já na `main` (PR #2).

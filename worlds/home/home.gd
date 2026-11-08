@@ -428,6 +428,8 @@ func _build_window() -> void:
 	add_child(glass)
 	_window_glass = glass
 	_window_view.set_material(_window_material)  # o tema da floresta não usa o retrato
+	# O enquadramento do tema (17.9.2): a cabana olha mais para cima e mais perto.
+	_window_view.set_framing(_profile.window_view_zoom, _profile.window_view_pitch_degrees)
 
 	var steel := _material_of(_profile.window_frame)
 	var half := WINDOW_SIZE / 2.0

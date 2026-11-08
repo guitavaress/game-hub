@@ -443,9 +443,9 @@ func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
 	print("== A cabana: o enfeite não tampa nada ==")
 	var pieces: Array[Node3D] = []
 	for child in home.get_children():
-		if child.has_meta("cabin_piece") and child.get_meta("cabin_piece") in ["lareira", "poltrona", "vaso"]:
+		if child.has_meta("cabin_piece") and child.get_meta("cabin_piece") in ["lareira", "poltrona", "vaso", "mesinha", "lenha"]:
 			pieces.append(child)
-	_check("lareira, duas poltronas e o vaso (%d peças)" % pieces.size(), pieces.size() == 4)
+	_check("lareira, duas poltronas, o vaso, o toco e a lenha (%d peças)" % pieces.size(), pieces.size() == 6)
 	var blocked: Array[String] = []
 	var desk_box := _bounds(home.get_node("ComputerDesk"), home)
 	for piece in pieces:

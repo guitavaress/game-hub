@@ -6,13 +6,13 @@
 [sub_resource type="Resource" id="Resource_vsvlj"]
 script = ExtResource("1_3t613")
 kind = "wood"
-color = Color(0.28, 0.17, 0.1, 1)
+color = Color(0.22, 0.15, 0.1, 1)
 roughness = 0.75
 
 [sub_resource type="Resource" id="Resource_lf4o2"]
 script = ExtResource("1_3t613")
 kind = "wood"
-color = Color(0.36, 0.24, 0.15, 1)
+color = Color(0.3, 0.22, 0.16, 1)
 roughness = 0.7
 planks = true
 
@@ -37,7 +37,7 @@ roughness = 0.55
 [sub_resource type="Resource" id="Resource_57daf"]
 script = ExtResource("1_3t613")
 kind = "wood"
-color = Color(0.44, 0.29, 0.17, 1)
+color = Color(0.4, 0.3, 0.22, 1)
 roughness = 0.75
 planks = true
 logs = true
@@ -45,7 +45,7 @@ logs = true
 [sub_resource type="Resource" id="Resource_6ienc"]
 script = ExtResource("1_3t613")
 kind = "wood"
-color = Color(0.25, 0.15, 0.09, 1)
+color = Color(0.23, 0.16, 0.11, 1)
 roughness = 0.55
 planks = true
 
@@ -58,7 +58,7 @@ roughness = 0.7
 [sub_resource type="Resource" id="Resource_etrtx"]
 script = ExtResource("1_3t613")
 kind = "wood"
-color = Color(0.44, 0.29, 0.17, 1)
+color = Color(0.4, 0.3, 0.22, 1)
 roughness = 0.75
 planks = true
 logs = true
@@ -87,10 +87,10 @@ walls = SubResource("Resource_etrtx")
 skirting = SubResource("Resource_law4d")
 beams = SubResource("Resource_vsvlj")
 lamp_color = Color(1, 0.68, 0.38, 1)
-lamp_energy = 1.6
+lamp_energy = 2.4
 background_color = Color(0.01, 0.012, 0.01, 1)
-ambient_night_color = Color(0.5, 0.36, 0.26, 1)
-ambient_night_energy = 0.34
+ambient_night_color = Color(0.3, 0.34, 0.44, 1)
+ambient_night_energy = 0.45
 ambient_day_color = Color(0.62, 0.64, 0.66, 1)
 ambient_day_energy = 1.1
 daylight_color = Color(0.86, 0.9, 0.98, 1)
@@ -99,7 +99,9 @@ sun_color = Color(1, 0.95, 0.86, 1)
 sun_energy = 8.0
 sun_bounce = 0.4
 lamp_day_scale = 0.5
-window_shader = "res://worlds/home/home_window_forest.gdshader"
+window_shader = "res://worlds/home/home_window.gdshader"
+window_view_zoom = 1.8
+window_view_pitch_degrees = 3.0
 window_frame = SubResource("Resource_vk1we")
 window_sill = SubResource("Resource_6l5nw")
 door = SubResource("Resource_qqm38")
@@ -107,5 +109,5 @@ door_frame = SubResource("Resource_5t5ca")
 door_handle = SubResource("Resource_seje8")
 neon_color = Color(1, 0.6, 0.22, 1)
 neon_energy = 1.8
-neon_light_energy = 0.22
+neon_light_energy = 0.14
 decor_script = "res://worlds/home/themes/cabin_decor.gd"

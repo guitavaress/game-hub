@@ -65,6 +65,13 @@ enum Phase { NONE = -1, DAY, DUSK, NIGHT }
 var hidden_layers: int = 0
 ## Quantos retratos já foram tirados (os testes conferem).
 var capture_count: int = 0
+## O ENQUADRAMENTO de quem usa a janela (Fase 17.9.2), por cima do que o ponto
+## oferece: "frame_zoom" aproxima mais (1 = o do ponto) e "frame_pitch_degrees"
+## levanta o olhar (graus; positivo = para cima). Do mesmo ponto, uma janela
+## pode mostrar mais céu e montanha e menos chão (a cabana, que fica no nível
+## do chão). Quem muda é set_framing (refaz o retrato).
+var frame_zoom: float = 1.0
+var frame_pitch_degrees: float = 0.0
 
 var _material: ShaderMaterial
 ## O shader da janela usa a vista (tem view_texture)?
@@ -107,6 +114,18 @@ func set_material(material: ShaderMaterial) -> void:
 	_active = material != null and uses_view(material.shader)
 	_apply_to_material()
 	_refresh()
+
+
+## O enquadramento de quem usa a janela (veja frame_zoom). Mudou: o retrato é
+## refeito com a lente nova.
+func set_framing(zoom: float, pitch_degrees: float) -> void:
+	zoom = maxf(zoom, 1.0)
+	if is_equal_approx(zoom, frame_zoom) and is_equal_approx(pitch_degrees, frame_pitch_degrees):
+		return
+	frame_zoom = zoom
+	frame_pitch_degrees = pitch_degrees
+	if _texture != null or _capturing:
+		_refresh(true)
 
 
 ## A hora lá fora (0 = dia, 1 = noite). Só a troca de fase refaz o retrato.
@@ -214,13 +233,15 @@ func _capture(point: Node3D) -> void:
 	_camera = Camera3D.new()
 	_camera.keep_aspect = Camera3D.KEEP_WIDTH  # a abertura é a de um lado ao outro
 	var zoom := maxf(float(point.get("zoom")), 1.0) if point is WindowViewPoint else 1.0
+	zoom *= frame_zoom
 	_camera.fov = rad_to_deg(2.0 * atan(tan(deg_to_rad(FOV_X_DEGREES) / 2.0) / zoom))
 	_camera.near = NEAR
 	_camera.far = FAR
 	_camera.cull_mask &= ~hidden_layers
 	if point is WindowViewPoint:
 		_camera.cull_mask &= ~(point as WindowViewPoint).hidden_layers
-	_camera.transform = point.global_transform
+	# O olhar levantado gira em volta do lado da câmera (o x dela).
+	_camera.transform = point.global_transform * Transform3D(Basis(Vector3.RIGHT, deg_to_rad(frame_pitch_degrees)), Vector3.ZERO)
 	_viewport.add_child(_camera)
 	_camera.current = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

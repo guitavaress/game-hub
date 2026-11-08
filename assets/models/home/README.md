@@ -40,6 +40,10 @@ Origem na parede, no centro da largura e no chão: **parede X=0, frente +X, cent
 
 Os materiais do GLB são marcadores de integração e dão uma visualização básica sem texturas. A prévia Blender aplica as texturas **depois** da exportação. Licença/créditos das PBR: `assets/ambientcg/LICENSE.txt` e README da mesma pasta. Nenhuma textura faltante bloqueia a integração; a Rock058 produz uma pedra escura e veio aparente, a avaliar sob a iluminação final da cabana.
 
+## Na casa (17.9.2)
+
+O leitor é `worlds/home/home_models.gd` (`HomeModels`): abre cada `.glb` uma vez, guarda as malhas e põe cada uma num `MeshInstance3D` com o material da casa (um desenho por material; as duas poltronas dividem as mesmas malhas). Os tons finais estão em `worlds/home/themes/cabin_decor.gd`: a pedra ficou cinza-fria (a Rock058 com um tom quente acendia os veios em laranja sob o fogo), a madeira das poltronas mais escura e o tecido de lã crua. A chaminé de código usa a PavingStones070 de pé (a Rock058 lisa numa caixa daquele tamanho virava um rochedo só).
+
 ## Conferência manual
 
 1. Abra `poltrona_frente.png` e `poltrona_tres_quartos.png` em `C:/Projetos/game-hub-referencias/uau/depois-17.9.1b/`: o assento fica livre, com encosto atrás, madeira aparente e costuras assentadas no tecido.

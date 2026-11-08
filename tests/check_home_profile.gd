@@ -13,6 +13,11 @@ extends SceneTree
 ## sombra (a parede tem um vão de verdade), o chão o rebate para cima e as
 ## luminárias ficam mais fracas; à noite tudo volta ao que era. A cabana monta
 ## com as duas vistas da janela (a floresta e o retrato do mundo).
+## Fase 17.9.2: o acabamento da cabana. A poltrona e a lareira são os modelos do
+## Blender (um desenho por material, a mesma malha nas duas poltronas, nada das
+## caixas de antes), as colisões continuam, o fogo faz sombra, o canto de estar
+## ganhou o toco e a lenha, e a vista padrão é o retrato do mundo enquadrado
+## (mais perto e mais para cima). O loft segue com o enquadramento de sempre.
 ## Guarda o config.cfg e devolve no fim.
 
 const CONFIG: String = "user://config.cfg"
@@ -70,6 +75,8 @@ func _run() -> void:
 	_check("só as paredes comuns são pintáveis", loft.walls.paintable and not loft.floor.paintable
 			and not loft.feature_wall.paintable and not loft.ceiling.paintable)
 	_check("o shader da janela existe", ResourceLoader.exists(loft.window_shader))
+	_check("a vista do loft com o enquadramento de sempre (17.9.2: zoom 1, 0°)",
+			loft.window_view_zoom == 1.0 and loft.window_view_pitch_degrees == 0.0)
 	_check("marca de passos de madeira", loft.footstep == "wood")
 	_check("lâmpada quente (mais vermelho que azul)", loft.lamp_color.r > loft.lamp_color.b * 1.8 and loft.lamp_energy > 0.0)
 	_check("a sombra da noite puxa para o azul e é mais fraca que a do dia", loft.ambient_night_color.b > loft.ambient_night_color.r
@@ -242,7 +249,7 @@ func _check_cabin() -> void:
 	_check("piso, teto e vigas de madeira", cabin.floor.kind == "wood" and cabin.floor.planks
 			and cabin.ceiling.kind == "wood" and cabin.beams.kind == "wood")
 	var window_shader: Shader = load(cabin.window_shader)
-	_check("a vista de floresta tem o \"night\"", window_shader != null
+	_check("a vista da cabana tem o \"night\"", window_shader != null
 			and window_shader.get_shader_uniform_list().any(func(u: Dictionary) -> bool: return u["name"] == "night"))
 	_check("néon âmbar mais fraco que o do loft", cabin.neon_energy > 0.0
 			and cabin.neon_energy < Profiles.home("loft").neon_energy and cabin.neon_color.r > cabin.neon_color.b)
@@ -261,12 +268,19 @@ func _check_cabin() -> void:
 			var kind: String = child.get_meta("cabin_piece")
 			kinds[kind] = int(kinds.get(kind, 0)) + 1
 	print("    peças: ", kinds)
-	_check("lareira, 2 poltronas, tapete, 3 lampiões e o vaso", kinds == {"lareira": 1, "tapete": 1, "poltrona": 2, "lampiao": 3, "vaso": 1})
+	_check("lareira, 2 poltronas, tapete, 3 lampiões, o vaso, o toco e a lenha",
+			kinds == {"lareira": 1, "tapete": 1, "poltrona": 2, "lampiao": 3, "vaso": 1, "mesinha": 1, "lenha": 1})
 	var walls: MeshInstance3D = home.get_node("WallWest")
 	var wall_material := walls.material_override as ShaderMaterial
 	_check("as paredes são toras (log_round = 1)", wall_material != null and wall_material.get_shader_parameter("log_round") == 1.0)
 	var glass: MeshInstance3D = home.get_node("WindowView")
-	_check("a janela mostra a floresta", (glass.material_override as ShaderMaterial).shader == window_shader)
+	_check("a janela mostra o retrato do mundo (17.9.2)", (glass.material_override as ShaderMaterial).shader == window_shader
+			and load("res://components/window_view/window_view.gd").uses_view(window_shader))
+	var view: Node = home.get_window_view()
+	_check("a vista da cabana vem enquadrada: mais perto e olhando para cima (zoom %.2f, %.1f°)"
+			% [view.frame_zoom, view.frame_pitch_degrees], view.frame_zoom > 1.0 and view.frame_pitch_degrees > 0.0
+			and view.frame_zoom == cabin.window_view_zoom and view.frame_pitch_degrees == cabin.window_view_pitch_degrees)
+	_check_cabin_finish(home)
 	var fire: OmniLight3D = home.find_child("FireLight", true, false)
 	var energies := {}
 	for i in 8:
@@ -381,7 +395,72 @@ func _check_cabin_views(cabin: HomeProfile) -> void:
 		home.queue_free()
 		await process_frame
 	cabin.window_shader = original
-	_check("o perfil da cabana segue com a floresta", cabin.window_shader.ends_with("home_window_forest.gdshader"))
+	_check("o perfil da cabana segue com o retrato", cabin.window_shader == portrait)
+
+
+## O acabamento da cabana (17.9.2), na casa montada com ela.
+func _check_cabin_finish(home: Node3D) -> void:
+	print("== o acabamento da cabana (17.9.2) ==")
+	var fireplace: Node3D = home.find_child("Fireplace", false, false)
+	var chairs: Array[Node3D] = []
+	for child in home.get_children():
+		if child.get_meta("cabin_piece", "") == "poltrona":
+			chairs.append(child)
+	var parts := {}  # nó -> [as partes dos modelos]
+	for piece: Node3D in [fireplace] + chairs:
+		var found := []
+		var materials := {}
+		for node in piece.find_children("*", "MeshInstance3D", true, false):
+			if node.has_meta("home_model"):
+				found.append(String(node.get_meta("home_model")))
+				materials[(node as MeshInstance3D).material_override] = true
+		found.sort()
+		parts[piece] = [found, materials.size()]
+	_check("a lareira é o modelo: pedra, madeira, fuligem e ferro, um desenho por material",
+			fireplace != null and parts[fireplace][0] == ["fireplace/iron", "fireplace/soot", "fireplace/stone", "fireplace/wood"]
+			and parts[fireplace][1] == 4)
+	_check("as duas poltronas são o modelo: madeira e tecido, um desenho por material",
+			chairs.size() == 2 and chairs.all(func(c: Node3D) -> bool:
+				return parts[c][0] == ["armchair/fabric", "armchair/wood"] and parts[c][1] == 2))
+	var meshes := {}
+	for chair in chairs:
+		for node in chair.find_children("*", "MeshInstance3D", true, false):
+			if node.has_meta("home_model"):
+				meshes[(node as MeshInstance3D).mesh] = true
+	_check("as duas poltronas usam as mesmas malhas (lidas uma vez)", meshes.size() == 2)
+	# Nada das primitivas de antes: as caixas da lareira, da grade e da poltrona.
+	var old := ["FireplacePillar", "FireplaceBase", "FireplaceLintel", "FireplaceBack", "FireplaceFloor", "Hearth", "Mantel",
+			"FireScreenTop", "FireScreenBar", "ArmchairBase", "ArmchairSeat", "ArmchairBack", "ArmchairArm", "ArmchairFoot"]
+	var drawn: Array[String] = []
+	for piece: Node3D in [fireplace] + chairs:
+		for node in piece.find_children("*", "MeshInstance3D", true, false):
+			# Nomes repetidos viram "@Nome@123": compara só o nome de base.
+			var base := String(node.name).trim_prefix("@").get_slice("@", 0).rstrip("0123456789")
+			if base in old:
+				drawn.append(String(node.name))
+	_check("nenhuma caixa de antes desenhada por cima dos modelos %s" % str(drawn), drawn.is_empty())
+	# As colisões continuam: pilares, degrau, verga, consolo e chaminé; base e encosto.
+	var bodies := func(piece: Node3D) -> int: return piece.find_children("*", "StaticBody3D", true, false).size()
+	_check("a lareira segue sólida (pilares, degrau, verga, consolo e chaminé: %d)" % bodies.call(fireplace),
+			bodies.call(fireplace) == 6)
+	_check("cada poltrona segue sólida (base e encosto)", chairs.all(func(c: Node3D) -> bool: return bodies.call(c) == 2))
+	var chimney: MeshInstance3D = fireplace.find_child("Chimney", false, false)
+	_check("a chaminé acompanha a altura da sala", chimney != null
+			and is_equal_approx(chimney.global_position.y + (chimney.mesh as BoxMesh).size.y / 2.0, home.ROOM_SIZE.y))
+	var fire: OmniLight3D = home.find_child("FireLight", true, false)
+	_check("o fogo faz sombra (as poltronas no tapete)", fire.shadow_enabled)
+	_check("o fogo e o lampião seguem na boca e no consolo", fire.get_parent() == fireplace
+			and fireplace.find_child("LanternGlass", false, false) != null)
+	var candle: OmniLight3D = home.find_child("CandleLight", true, false)
+	_check("a vela do toco é fraca e curta, sem sombra (não aparece no vidro)", candle != null
+			and candle.light_energy < 0.5 and candle.omni_range < 2.0 and not candle.shadow_enabled)
+	# Os modelos usam a cor dos vértices com o ganho do contrato (linear).
+	var stone: StandardMaterial3D = null
+	for node in fireplace.find_children("*", "MeshInstance3D", true, false):
+		if node.get_meta("home_model", "") == "fireplace/stone":
+			stone = (node as MeshInstance3D).material_override
+	_check("a pedra usa a cor dos vértices, linear, com o ganho de 1,6", stone != null and stone.vertex_color_use_as_albedo
+			and not stone.vertex_color_is_srgb and stone.albedo_color.r > 0.6)
 
 
 ## Todos os .gd do projeto, menos as pastas de SCAN_SKIP.
