@@ -844,3 +844,196 @@ def exportar(objetos, caminho):
         triangulos += len(ob.data.loop_triangles)
         print("  %-14s %6d triângulos %6d vértices" % (ob.name, len(ob.data.loop_triangles), len(ob.data.vertices)))
     print("GLB: %s (%.0f KB, %d triângulos)" % (caminho, tamanho / 1024.0, triangulos))
+
+
+# --- Casa (17.9.1b): acréscimos, sem alterar os geradores anteriores ------------
+
+def ajustar_caixa(bm, tamanho, centro):
+    """Encaixa a malha nos limites pedidos (Blender), preservando a forma.
+
+    Nas pedras aparelhadas isso impede a ondulação de invadir a boca da
+    lareira; no estofado preserva a pegada do móvel que a Godot já usa.
+    """
+    baixos = [min(v.co[k] for v in bm.verts) for k in range(3)]
+    altos = [max(v.co[k] for v in bm.verts) for k in range(3)]
+    for v in bm.verts:
+        for k in range(3):
+            v.co[k] = centro[k] + ((v.co[k] - baixos[k]) / (altos[k] - baixos[k]) - 0.5) * tamanho[k]
+    bm.normal_update()
+    return bm
+
+
+def almofada(tamanho, centro, raio=0.045, semente=1, recuo=0.0):
+    """Caixa macia com bordas arredondadas, leve barriga e vincos de tensão.
+
+    Medidas e centro na Godot; recuo inclina o encosto para +Z ao subir.
+    A malha regular mantém o arredondado sem uma subdivisão enorme.
+    """
+    medidas = Vector((tamanho[0], tamanho[2], tamanho[1]))
+    metade = medidas / 2.0
+    raio = min(raio, min(medidas) * 0.44)
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=2.0)
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=11, use_grid_fill=True)
+    # Mais pontos perto das bordas: o perfil arredondado precisa deles,
+    # enquanto o centro quase plano não precisa de uma grade densa.
+    amostras = (-1.0, -0.98, -0.94, -0.86, -0.68, -0.38, 0.0,
+                 0.38, 0.68, 0.86, 0.94, 0.98, 1.0)
+    for v in bm.verts:
+        p = Vector(tuple(amostras[round((v.co[k] + 1.0) * 6)] * metade[k] for k in range(3)))
+        miolo = Vector(tuple(max(-metade[k] + raio, min(metade[k] - raio, p[k])) for k in range(3)))
+        normal = (p - miolo).normalized()
+        q = miolo + normal * raio
+        # Pequenas rugas nos cantos, sem transformar a almofada numa pedra.
+        u, w = p.x / metade.x, p.y / metade.y
+        canto = max(0.0, abs(u) - 0.45) * max(0.0, abs(w) - 0.35)
+        vinco = math.sin(u * 27.0 + w * 13.0 + semente) * canto * 0.008
+        barriga = 0.009 * (1.0 - u * u) * (1.0 - w * w)
+        q += normal * (barriga + vinco)
+        q.y -= recuo * q.z / medidas.z
+        v.co = q
+    ajustar_caixa(bm, medidas, G(*centro))
+    for f in bm.faces:
+        f.smooth = True
+    bm.normal_update()
+    return bm
+
+
+def tabua_casa_entre(a, b, largura, espessura, semente, lado, **opcoes):
+    """Tábua dos móveis: UV também nas bordas verticais, sem esticar o veio.
+
+    Mantém os geradores antigos intactos; escolhe a projeção por face antes
+    de orientar a peça, e o U continua em metros ao longo da madeira.
+    """
+    a, b = Vector(a), Vector(b)
+    bm = tabua((b - a).length, largura, espessura, semente, **opcoes)
+    uv = bm.loops.layers.uv['gA']
+    for face in bm.faces:
+        eixo = max(range(3), key=lambda k: abs(face.normal[k]))
+        for canto in face.loops:
+            p = canto.vert.co
+            if eixo == 0:
+                canto[uv].uv = (p.y, p.z)
+            else:
+                canto[uv].uv = (p.x + semente * 0.137, p.z if eixo == 1 else p.y)
+    return orientar(bm, b - a, lado, (a + b) / 2)
+
+
+def cordao(pontos, raio=0.002, lados=6):
+    """Vivo da costura, um tubo fechado discreto; pontos já no Blender."""
+    bm = bmesh.new()
+    aneis = []
+    for i, ponto in enumerate(pontos):
+        tangente = (pontos[(i + 1) % len(pontos)] - pontos[i - 1]).normalized()
+        eixo = Vector((0, 0, 1)) if abs(tangente.z) < 0.9 else Vector((1, 0, 0))
+        u = tangente.cross(eixo).normalized()
+        v = tangente.cross(u).normalized()
+        aneis.append([bm.verts.new(ponto + raio * (u * math.cos(k * math.tau / lados)
+                         + v * math.sin(k * math.tau / lados))) for k in range(lados)])
+    for i in range(len(aneis)):
+        for k in range(lados):
+            bm.faces.new((aneis[i][k], aneis[i][(k + 1) % lados],
+                          aneis[(i + 1) % len(aneis)][(k + 1) % lados], aneis[(i + 1) % len(aneis)][k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    for f in bm.faces:
+        f.smooth = True
+    return bm
+
+
+def previa_casa(objetos, nome, alvo, vistas, escala):
+    """Renderiza duas vistas APÓS exportar, só se houver um 2º argumento.
+
+    Usa as PBR já existentes, sem incorporá-las ao GLB. O tecido simula na
+    prévia o relevo fino do HomeMaterials.fabric; a Godot aplica o seu.
+    """
+    args = argumentos()
+    if len(args) < 2:
+        return
+    pasta = os.path.abspath(args[1])
+    os.makedirs(pasta, exist_ok=True)
+    for ob in objetos:
+        mat = ob.data.materials[0]
+        arv = mat.node_tree
+        bsdf = arv.nodes['Principled BSDF']
+        cor = tuple(bsdf.inputs['Base Color'].default_value)
+        tinta = arv.nodes.new('ShaderNodeVertexColor')
+        tinta.layer_name = 'Color'
+        ganho = arv.nodes.new('ShaderNodeVectorMath')
+        ganho.operation = 'SCALE'
+        ganho.inputs['Scale'].default_value = GANHO
+        arv.links.new(tinta.outputs['Color'], ganho.inputs[0])
+        mult = arv.nodes.new('ShaderNodeMixRGB')
+        mult.blend_type = 'MULTIPLY'
+        mult.inputs[0].default_value = 1.0
+        mult.inputs[2].default_value = cor
+        arv.links.new(ganho.outputs[0], mult.inputs[1])
+        arv.links.new(mult.outputs[0], bsdf.inputs['Base Color'])
+        pasta_pbr = {'wood': 'Wood049', 'stone': 'Rock058'}.get(ob.name)
+        if pasta_pbr:
+            coord = arv.nodes.new('ShaderNodeTexCoord')
+            for sufixo, entrada in [('Color', 'Base Color'), ('Roughness', 'Roughness'), ('NormalGL', 'Normal')]:
+                tex = arv.nodes.new('ShaderNodeTexImage')
+                tex.image = bpy.data.images.load(os.path.join(REPO, 'assets', 'ambientcg', pasta_pbr,
+                                '%s_1K-JPG_%s.jpg' % (pasta_pbr, sufixo)), check_existing=True)
+                if ob.name == 'stone':
+                    tex.projection = 'BOX'
+                    tex.projection_blend = 0.2
+                    arv.links.new(coord.outputs['Object'], tex.inputs['Vector'])
+                else:
+                    arv.links.new(coord.outputs['UV'], tex.inputs['Vector'])
+                if sufixo == 'Color':
+                    mescla = arv.nodes.new('ShaderNodeMixRGB')
+                    mescla.blend_type = 'MULTIPLY'
+                    mescla.inputs[0].default_value = 1.0
+                    arv.links.new(mult.outputs[0], mescla.inputs[1])
+                    arv.links.new(tex.outputs[0], mescla.inputs[2])
+                    arv.links.new(mescla.outputs[0], bsdf.inputs[entrada])
+                elif sufixo == 'NormalGL':
+                    tex.image.colorspace_settings.name = 'Non-Color'
+                    # A pedra usa projeção em caixa; o relevo da prévia vem do
+                    # albedo, pois o normal tangente pede UV (a Godot projeta).
+                    if ob.name == 'wood':
+                        normal = arv.nodes.new('ShaderNodeNormalMap')
+                        normal.inputs['Strength'].default_value = 0.65
+                        arv.links.new(tex.outputs[0], normal.inputs['Color'])
+                        arv.links.new(normal.outputs[0], bsdf.inputs[entrada])
+                else:
+                    tex.image.colorspace_settings.name = 'Non-Color'
+                    arv.links.new(tex.outputs[0], bsdf.inputs[entrada])
+        if ob.name == 'fabric':
+            trama = arv.nodes.new('ShaderNodeTexNoise')
+            trama.inputs['Scale'].default_value = 220.0
+            trama.inputs['Detail'].default_value = 2.0
+            bump = arv.nodes.new('ShaderNodeBump')
+            bump.inputs['Strength'].default_value = 0.18
+            bump.inputs['Distance'].default_value = 0.006
+            arv.links.new(trama.outputs['Fac'], bump.inputs['Height'])
+            arv.links.new(bump.outputs[0], bsdf.inputs['Normal'])
+    piso = chao(200.0, -0.003)
+    piso.data.materials.append(material_simples('piso_previa', (0.16, 0.18, 0.19)))
+    cena = bpy.context.scene
+    cena.render.engine = 'BLENDER_EEVEE'
+    cena.render.resolution_x = 1100
+    cena.render.resolution_y = 1100
+    cena.render.resolution_percentage = 100
+    cena.world.use_nodes = True
+    cena.world.node_tree.nodes['Background'].inputs[0].default_value = (0.32, 0.36, 0.42, 1)
+    cena.world.node_tree.nodes['Background'].inputs[1].default_value = 0.35
+    for i, (pos, potencia, tamanho) in enumerate([((3, 5, -4), 650, 4), ((-3, 3, -1), 350, 3), ((1, 4, 3), 500, 3)]):
+        luz = bpy.data.lights.new('luz_previa_%d' % i, 'AREA')
+        luz.energy, luz.size = potencia, tamanho
+        ob = bpy.data.objects.new(luz.name, luz)
+        cena.collection.objects.link(ob)
+        ob.location = G(*pos)
+        ob.rotation_euler = (G(*alvo) - ob.location).to_track_quat('-Z', 'Y').to_euler()
+    camera = bpy.data.cameras.new('camera_previa')
+    camera.type = 'ORTHO'
+    camera.ortho_scale = escala
+    ob = bpy.data.objects.new('camera_previa', camera)
+    cena.collection.objects.link(ob)
+    cena.camera = ob
+    for rotulo, pos in vistas:
+        ob.location = G(*pos)
+        ob.rotation_euler = (G(*alvo) - ob.location).to_track_quat('-Z', 'Y').to_euler()
+        cena.render.filepath = os.path.join(pasta, '%s_%s.png' % (nome, rotulo))
+        bpy.ops.render.render(write_still=True)
