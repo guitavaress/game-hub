@@ -78,6 +78,25 @@ const WINDOW_REFLECTED_LAMPS: int = 4
 const WINDOW_PANE: float = 0.75
 const WINDOW_TRANSOM: float = 0.6
 
+## O SOL de dia (Fase 17.9.1). A casa não sabe onde fica o sol do mundo: ele
+## entra sempre do mesmo jeito, alto (SUN_ELEVATION_DEGREES acima do horizonte)
+## e de lado (SUN_SIDE_DEGREES do norte para o oeste), e cai para dentro da
+## sala, puxando para o leste: a mancha clara da janela fica no chão de
+## madeira, entre o aparador e quem nasce, fora do tapete do canto de estar (o
+## pelo do tapete, no sol, vira chuvisco). A luz fica a SUN_DISTANCE m da
+## janela, do lado de fora, para os raios saírem quase paralelos (como os do
+## sol), e mira só a janela: a parede faz o resto.
+const SUN_ELEVATION_DEGREES: float = 40.0
+const SUN_SIDE_DEGREES: float = 14.0
+const SUN_DISTANCE: float = 14.0
+## A cor do sol no fim da tarde (o pôr do sol puxa para ela).
+const SUN_DUSK_COLOR: Color = Color(1.0, 0.62, 0.36)
+## A luz rebatida: do chão claro para cima, aberta (graus) e curta (m).
+const SUN_BOUNCE_ANGLE: float = 80.0
+const SUN_BOUNCE_RANGE: float = 6.0
+## De dia (noite abaixo disto) as luzes do dia acendem; acima, somem de vez.
+const DAY_LIGHTS_UNTIL: float = 0.98
+
 ## As vigas do teto (se o tema tiver): de leste a oeste, em três linhas, com
 ## esta largura e altura. Os móveis altos das paredes ficam abaixo delas.
 const BEAM_Z: Array[float] = [-ROOM_SIZE.z / 3.0, 0.0, ROOM_SIZE.z / 3.0]
@@ -112,7 +131,16 @@ var _window_material: ShaderMaterial
 var _window_glass: MeshInstance3D
 ## O retrato do mundo para a janela (Fase 17.3).
 var _window_view: WindowView
+## As luzes do dia (Fase 17.9.1): o céu (espalhado, sem sombra), o sol (com
+## sombra, pela janela) e a luz que o chão ensolarado rebate para cima.
 var _daylight: SpotLight3D
+var _sunlight: SpotLight3D
+var _sun_bounce: SpotLight3D
+## As luminárias da sala (tudo o que acende, menos as luzes do dia e o fogo):
+## de dia ficam mais fracas (HomeProfile.lamp_day_scale). A força de noite fica
+## guardada em cada uma (meta NIGHT_ENERGY_META).
+var _lamps: Array[Light3D] = []
+const NIGHT_ENERGY_META: StringName = &"night_energy"
 ## 0 = dia, 1 = noite (a cidade avisa pelo grupo city_night).
 var _night: float = 1.0
 
@@ -131,6 +159,8 @@ func _ready() -> void:
 	_build_indoor_area()
 	_put_on_interior_layer(self)
 	_reflect_lamps_in_window()
+	_collect_lamps()
+	set_night(_night)
 
 
 ## Onde (e para onde virado) o jogador aparece ao entrar em casa.
@@ -159,9 +189,25 @@ func set_night(night: float) -> void:
 		_window_material.set_shader_parameter("night", _night)
 	if _window_view != null:
 		_window_view.set_night(_night)  # na troca de fase do dia, o retrato é refeito
+	var day := 1.0 - _night
+	var lit := _night < DAY_LIGHTS_UNTIL
 	if _daylight != null:
-		_daylight.light_energy = _profile.daylight_energy * (1.0 - _night)
-		_daylight.visible = _night < 0.98
+		_daylight.light_energy = _profile.daylight_energy * day
+		_daylight.visible = lit
+	if _sunlight != null:
+		# No pôr do sol (noite perto de 0,5) o sol esquenta.
+		var dusk := 1.0 - absf(_night * 2.0 - 1.0)
+		_sunlight.light_color = _profile.sun_color.lerp(SUN_DUSK_COLOR, dusk)
+		_sunlight.light_energy = _profile.sun_energy * day
+		_sunlight.visible = lit
+		_sun_bounce.light_color = _sunlight.light_color
+		_sun_bounce.light_energy = _profile.sun_energy * _profile.sun_bounce * day
+		_sun_bounce.visible = lit
+	# As luminárias: inteiras à noite; de dia, só o apoio quente.
+	var lamp_scale := lerpf(_profile.lamp_day_scale, 1.0, _night)
+	for lamp in _lamps:
+		if is_instance_valid(lamp):
+			lamp.light_energy = _night_energy(lamp) * lamp_scale
 	if _environment != null:
 		_environment.ambient_light_color = _profile.ambient_night_color.lerp(_profile.ambient_day_color, 1.0 - _night)
 		_environment.ambient_light_energy = lerpf(_profile.ambient_day_energy, _profile.ambient_night_energy, _night)
@@ -169,6 +215,16 @@ func set_night(night: float) -> void:
 
 func get_night() -> float:
 	return _night
+
+
+## O sol que entra pela janela de dia (Fase 17.9.1; os testes conferem).
+func get_sunlight() -> SpotLight3D:
+	return _sunlight
+
+
+## As luminárias que enfraquecem de dia.
+func get_lamps() -> Array[Light3D]:
+	return _lamps
 
 
 ## O retrato do mundo que a janela mostra (Fase 17.3).
@@ -238,12 +294,15 @@ func _apply_choices() -> void:
 	_window_material = null
 	_window_glass = null
 	_daylight = null
+	_sunlight = null
+	_sun_bounce = null
 	_apply_profile_to_environment()
 	_build_shell()
 	for node in _shell_nodes:
 		_put_on_interior_layer(node)
 	_place_furniture()
 	_reflect_lamps_in_window()
+	_collect_lamps()
 	if _system_panel != null:
 		_system_panel.set_accent(_neon_color())
 	set_night(_night)
@@ -301,7 +360,7 @@ func _build_room() -> void:
 	_add_box("Floor", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, -t / 2.0, 0.0), _material_of(_profile.floor))
 	_add_box("Ceiling", Vector3(w + t * 2.0, t, d + t * 2.0), Vector3(0.0, h + t / 2.0, 0.0), _material_of(_profile.ceiling))
 	var walls := _material_of(_profile.walls)
-	_add_box("WallNorth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, -d / 2.0 - t / 2.0), _material_of(_profile.feature_wall))
+	_build_north_wall(_material_of(_profile.feature_wall))
 	_add_box("WallSouth", Vector3(w + t * 2.0, h, t), Vector3(0.0, h / 2.0, d / 2.0 + t / 2.0), walls)
 	_add_box("WallWest", Vector3(t, h, d), Vector3(-w / 2.0 - t / 2.0, h / 2.0, 0.0), walls)
 	_add_box("WallEast", Vector3(t, h, d), Vector3(w / 2.0 + t / 2.0, h / 2.0, 0.0), walls)
@@ -317,6 +376,38 @@ func _build_room() -> void:
 		var beams := _material_of(_profile.beams)
 		for z in BEAM_Z:
 			_add_box("Beam", Vector3(w, BEAM_SIZE.y, BEAM_SIZE.x), Vector3(0.0, h - BEAM_SIZE.y / 2.0, z), beams, false)
+
+
+## A parede da janela (norte) em quatro pedaços em volta do vão (Fase 17.9.1):
+## embaixo do peitoril, em cima da janela e dos dois lados. Pelo vão passa o sol
+## de dia, e a parede faz a sombra em volta (o desenho da janela no chão). O
+## vidro tapa o vão para quem olha de dentro, e uma colisão sem desenho tapa
+## para quem anda. As texturas são projetadas pela posição no mundo: os pedaços
+## se emendam sem costura.
+func _build_north_wall(material: Material) -> void:
+	var w := ROOM_SIZE.x
+	var h := ROOM_SIZE.y
+	var t := WALL_THICKNESS
+	var z := -ROOM_SIZE.z / 2.0 - t / 2.0
+	var outer_left := -w / 2.0 - t
+	var outer_right := w / 2.0 + t
+	var head := WINDOW_SILL_Y + WINDOW_SIZE.y
+	_add_box("WallNorth", Vector3(w + t * 2.0, WINDOW_SILL_Y, t), Vector3(0.0, WINDOW_SILL_Y / 2.0, z), material)
+	_add_box("WallNorthTop", Vector3(w + t * 2.0, h - head, t), Vector3(0.0, (head + h) / 2.0, z), material)
+	_add_box("WallNorthWest", Vector3(WINDOW_LEFT - outer_left, WINDOW_SIZE.y, t),
+			Vector3((outer_left + WINDOW_LEFT) / 2.0, WINDOW_CENTER_Y, z), material)
+	_add_box("WallNorthEast", Vector3(outer_right - WINDOW_RIGHT, WINDOW_SIZE.y, t),
+			Vector3((WINDOW_RIGHT + outer_right) / 2.0, WINDOW_CENTER_Y, z), material)
+	var block := StaticBody3D.new()
+	block.name = "WindowBlock"
+	block.set_meta("footstep", _profile.footstep)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(WINDOW_SIZE.x, WINDOW_SIZE.y, t)
+	shape.shape = box
+	block.add_child(shape)
+	block.position = Vector3(WINDOW_CENTER_X, WINDOW_CENTER_Y, z)
+	add_child(block)
 
 
 ## O janelão da parede norte: o vidro mostra a vista (o shader do tema; no
@@ -354,16 +445,81 @@ func _build_window() -> void:
 	_add_box("WindowSill", Vector3(WINDOW_SIZE.x + 0.3, 0.06, 0.22),
 			Vector3(WINDOW_CENTER_X, WINDOW_CENTER_Y - half.y - 0.03, inner_z + 0.11), _material_of(_profile.window_sill))
 
+	# A luz do céu: espalhada, sem sombra, do alto da janela para dentro.
 	_daylight = SpotLight3D.new()
 	_daylight.name = "Daylight"
 	_daylight.light_color = _profile.daylight_color
 	_daylight.spot_range = ROOM_SIZE.z + 2.0
 	_daylight.spot_angle = 70.0
-	_daylight.spot_attenuation = 0.8
+	_daylight.spot_attenuation = 0.4  # cai devagar: chega até a parede do fundo
 	_daylight.position = Vector3(WINDOW_CENTER_X, WINDOW_CENTER_Y + 0.6, inner_z + 0.2)
 	_daylight.rotation = Vector3(deg_to_rad(-30.0), 0.0, 0.0)  # para dentro (sul) e para baixo
 	add_child(_daylight)
+	_build_sun()
 	set_night(_night)
+
+
+## O sol de dia (Fase 17.9.1): uma luz de cone estreito do lado de fora, longe,
+## mirando a janela, com sombra. Sem perder força com a distância (como o sol),
+## ela só passa pelo vão: a parede e os quadros da janela desenham a sombra, e a
+## mancha clara cai no chão da sala. Ela só acende a camada da casa. Uma
+## segunda luz, sem sombra, sobe do meio da mancha: é o chão ensolarado
+## devolvendo luz para o teto e para a parede da janela (sem ela, em volta da
+## janela ficava quase preto de dia).
+func _build_sun() -> void:
+	var travel := sun_direction()
+	var window := Vector3(WINDOW_CENTER_X, WINDOW_CENTER_Y, -ROOM_SIZE.z / 2.0)
+	_sunlight = SpotLight3D.new()
+	_sunlight.name = "Sunlight"
+	_sunlight.light_cull_mask = INTERIOR_LAYER_MASK
+	_sunlight.spot_attenuation = 0.0  # não enfraquece com a distância
+	_sunlight.spot_range = SUN_DISTANCE + ROOM_SIZE.z * 2.0
+	# Abre o bastante para pegar a janela inteira (a meia diagonal, vista de
+	# longe) e uma folga: a borda do cone fica na parede, nunca no vão.
+	_sunlight.spot_angle = rad_to_deg(atan(WINDOW_SIZE.length() / 2.0 / SUN_DISTANCE)) + 4.0
+	_sunlight.spot_angle_attenuation = 0.2
+	_sunlight.shadow_enabled = true
+	_sunlight.shadow_blur = 0.6  # a sombra do sol é quase nítida
+	_sunlight.transform = Transform3D(Basis.looking_at(travel), window - travel * SUN_DISTANCE)
+	add_child(_sunlight)
+	# Onde o raio do meio da janela bate no chão: o meio da mancha.
+	var patch := window + travel * (WINDOW_CENTER_Y / -travel.y)
+	_sun_bounce = SpotLight3D.new()
+	_sun_bounce.name = "SunBounce"
+	_sun_bounce.light_cull_mask = INTERIOR_LAYER_MASK
+	_sun_bounce.spot_angle = SUN_BOUNCE_ANGLE
+	_sun_bounce.spot_range = SUN_BOUNCE_RANGE
+	_sun_bounce.spot_angle_attenuation = 0.8
+	_sun_bounce.spot_attenuation = 0.5  # cai devagar: chega ao teto
+	_sun_bounce.position = Vector3(patch.x, 0.05, patch.z)
+	_sun_bounce.rotation.x = PI / 2.0  # o cone aponta para cima
+	add_child(_sun_bounce)
+
+
+## Para onde os raios do sol andam, já dentro da sala (para baixo, para o sul
+## e um pouco para o leste).
+static func sun_direction() -> Vector3:
+	var elevation := deg_to_rad(SUN_ELEVATION_DEGREES)
+	var side := deg_to_rad(SUN_SIDE_DEGREES)
+	return Vector3(sin(side) * cos(elevation), -sin(elevation), cos(side) * cos(elevation)).normalized()
+
+
+## As luminárias da sala: todas as luzes, menos as do dia e o fogo (que tremula
+## sozinho e fica igual de dia). Guarda a força de noite de cada uma, uma vez.
+func _collect_lamps() -> void:
+	_lamps.clear()
+	for node: Node in find_children("*", "Light3D", true, false):
+		var light := node as Light3D
+		if light in [_daylight, _sunlight, _sun_bounce] or "base_energy" in light:
+			continue
+		if not light.has_meta(NIGHT_ENERGY_META):
+			light.set_meta(NIGHT_ENERGY_META, light.light_energy)
+		_lamps.append(light)
+
+
+## A força de uma luminária à noite (a de agora, se ela ainda não foi guardada).
+func _night_energy(light: Light3D) -> float:
+	return float(light.get_meta(NIGHT_ENERGY_META, light.light_energy))
 
 
 ## O retrato do mundo para a janela: não faz parte da casca (fica entre as
@@ -385,7 +541,9 @@ func _reflect_lamps_in_window() -> void:
 	var lamps: Array[Vector3] = []
 	for light: Node in find_children("*", "Light3D", true, false):
 		var lamp := light as Light3D
-		if lamp == _daylight or not lamp.visible or lamp.light_energy < 0.5:
+		# A força de noite: de dia as luminárias estão mais fracas, e o reflexo
+		# não pode mudar com a hora em que o tema foi trocado.
+		if lamp in [_daylight, _sunlight, _sun_bounce] or not lamp.visible or _night_energy(lamp) < 0.5:
 			continue
 		var spot := _window_glass.to_local(lamp.global_position)
 		if spot.z <= 0.2:

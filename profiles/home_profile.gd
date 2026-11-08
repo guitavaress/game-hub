@@ -37,9 +37,19 @@ extends Resource
 @export var ambient_night_energy: float = 0.3
 @export var ambient_day_color: Color = Color(0.55, 0.6, 0.68)
 @export var ambient_day_energy: float = 0.7
-## A luz do dia que entra pela janela.
+## A luz do céu que entra pela janela de dia (sem sombra, espalhada).
 @export var daylight_color: Color = Color(0.82, 0.88, 1.0)
 @export var daylight_energy: float = 2.2
+## O SOL de dia (Fase 17.9.1): entra pela janela com sombra e desenha a janela
+## (e os quadros dela) no chão. Cor e força.
+@export var sun_color: Color = Color(1.0, 0.95, 0.86)
+@export var sun_energy: float = 5.0
+## Quanto do sol volta da mancha clara do chão para o teto e as paredes (a luz
+## rebatida, sem sombra), de 0 a 1.
+@export_range(0.0, 1.0) var sun_bounce: float = 0.2
+## Quanto das luminárias fica aceso de dia (1 = como à noite). De dia quem
+## manda é a janela; as luminárias ficam de apoio quente. À noite é sempre 1.
+@export_range(0.0, 1.0) var lamp_day_scale: float = 0.4
 
 @export_group("Janela")
 ## Shader da vista (recebe o "night" de 0 a 1).

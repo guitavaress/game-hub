@@ -1,7 +1,7 @@
 extends SceneTree
 ## Tira as CAPTURAS da casa por pontos (Fase 17.1b). Rode COM JANELA:
 ##
-##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema]
+##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
@@ -9,6 +9,11 @@ extends SceneTree
 ##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim.
 ##   tema       loft | cabana (padrão: loft). O do usuário volta no fim.
+##   vista      tema | retrato | floresta (padrão: tema, a vista do perfil). Fase
+##              17.9.1: troca só nesta captura a vista da janela, para comparar
+##              (retrato = o mundo de verdade pelo WindowView; floresta = o
+##              desenho da cabana). Nada é gravado no perfil. Com outra vista
+##              que não a do tema, os arquivos levam o nome dela (cabana-retrato_...).
 ##
 ## Pontos (um PNG por ponto e hora, ex.: loft_nascer_22h.png):
 ##   nascer   posição e giro de nascer da disposição atual
@@ -25,8 +30,16 @@ const EYE_HEIGHT: float = 1.7
 ## Capas, sombras e exposição assentam depois de cada troca de hora ou lugar.
 const SETTLE_FRAMES: int = 90
 const WINDOW_WAIT_SECONDS: float = 8.0
+## As vistas da janela que dá para escolher na captura (Fase 17.9.1).
+const VIEWS: Dictionary[String, String] = {
+	"retrato": "res://worlds/home/home_window.gdshader",
+	"floresta": "res://worlds/home/home_window_forest.gdshader",
+}
 
 var _original_settings: Dictionary = {}
+## A vista do perfil antes da troca (vazio = nada trocado) e de qual tema.
+var _original_view: String = ""
+var _view_theme: String = ""
 
 
 func _initialize() -> void:
@@ -37,7 +50,7 @@ func _run() -> void:
 	await process_frame
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema]")
+		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]")
 		quit(1)
 		return
 	var folder: String = _absolute_folder(String(args[0]))
@@ -51,12 +64,13 @@ func _run() -> void:
 		hours.append(float(value))
 	var quality: String = String(args[3]) if args.size() > 3 else "alta"
 	var theme: String = String(args[4]) if args.size() > 4 else "loft"
+	var view: String = String(args[5]) if args.size() > 5 else "tema"
 	if not _folder_allowed(folder):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
 		quit(1)
 		return
-	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"]:
-		push_error("Use jogos >= 0, qualidade leve|media|alta e tema loft|cabana.")
+	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)):
+		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana e vista tema|retrato|floresta.")
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
@@ -69,6 +83,9 @@ func _run() -> void:
 		return
 
 	_choose_settings(quality, theme)
+	var prefix: String = theme if view == "tema" else "%s-%s" % [theme, view]
+	if view != "tema":
+		_choose_view(theme, VIEWS[view])
 	if count > 0:
 		var library_script: GDScript = load("res://tests/fake_library.gd")
 		library_script.install(root, count)
@@ -125,7 +142,7 @@ func _run() -> void:
 			for i: int in SETTLE_FRAMES:
 				await process_frame
 			await RenderingServer.frame_post_draw
-			var file: String = "%s/%s_%s_%02dh.png" % [folder, theme, point["name"], int(hour)]
+			var file: String = "%s/%s_%s_%02dh.png" % [folder, prefix, point["name"], int(hour)]
 			if frame.get_texture().get_image().save_png(file) != OK:
 				push_error("Não consegui salvar: " + file)
 				failed = true
@@ -143,7 +160,19 @@ func _choose_settings(quality: String, theme: String) -> void:
 	config.call("set_home_theme", theme)
 
 
+## Troca a vista da janela do tema só nesta captura: o perfil carregado muda na
+## memória (a casa lê dele ao montar), e o arquivo .tres fica como está.
+func _choose_view(theme: String, shader_path: String) -> void:
+	var profile: Resource = Profiles.home(theme)
+	_view_theme = theme
+	_original_view = String(profile.get("window_shader"))
+	profile.set("window_shader", shader_path)
+
+
 func _restore_settings() -> void:
+	if not _original_view.is_empty():
+		Profiles.home(_view_theme).set("window_shader", _original_view)
+		_original_view = ""
 	if _original_settings.is_empty():
 		return
 	var config: Node = root.get_node("AppConfig")

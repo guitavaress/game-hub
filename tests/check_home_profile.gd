@@ -9,6 +9,10 @@ extends SceneTree
 ## só o pendente do canto de estar e o abajur fazem sombra, e a luz rebatida
 ## (SSIL) acompanha a qualidade (só na Alta). O "retrato" fixo da casa de antes
 ## da 13.2 saiu: ele impediria toda mudança de propósito na casa.
+## Fase 17.9.1: a luz do dia nos dois temas. De dia o sol entra pela janela com
+## sombra (a parede tem um vão de verdade), o chão o rebate para cima e as
+## luminárias ficam mais fracas; à noite tudo volta ao que era. A cabana monta
+## com as duas vistas da janela (a floresta e o retrato do mundo).
 ## Guarda o config.cfg e devolve no fim.
 
 const CONFIG: String = "user://config.cfg"
@@ -92,7 +96,9 @@ func _run() -> void:
 	var lamp_shade: GeometryInstance3D = home.find_child("FloorLampShade", true, false)
 	_check("a cúpula do abajur não tapa a própria luz", lamp_shade != null
 			and lamp_shade.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
-	var others := _lights(home).filter(func(l: Light3D) -> bool: return l.shadow_enabled and not shadowed.has(l) and l != floor_lamp)
+	# O sol do dia (17.9.1) também faz sombra, e tem o teste dele (_check_daylight).
+	var sun: Light3D = home.get_sunlight()
+	var others := _lights(home).filter(func(l: Light3D) -> bool: return l.shadow_enabled and not shadowed.has(l) and l != floor_lamp and l != sun)
 	_check("nenhuma outra luz da casa faz sombra %s" % str(others.map(func(l: Node) -> String: return String(l.name))), others.is_empty())
 	var environment: Environment = home.get_environment()
 	_check("na Alta, a luz rebatida (SSIL) liga", environment.ssil_enabled)
@@ -103,6 +109,7 @@ func _run() -> void:
 	await process_frame
 	_check("na Leve, desliga", not environment.ssil_enabled)
 	_check_loft_objects(home)
+	_check_daylight(home, "o dia no loft (17.9.1)")
 	home.queue_free()
 	await process_frame
 
@@ -270,8 +277,11 @@ func _check_cabin() -> void:
 	var crackle: AudioStreamPlayer3D = home.find_child("FireCrackle", true, false)
 	_check("a lenha estala baixinho, no canal Ambiente", crackle != null and crackle.stream != null and crackle.bus == &"Ambiente")
 	_check("o arbusto do vaso entrou", home.find_child("PlantBush", true, false) != null)
+	_check_daylight(home, "o dia na cabana (17.9.1)")
+	_check("o fogo não enfraquece de dia (ele tremula sozinho)", not home.get_lamps().has(fire))
 	home.queue_free()
 	await process_frame
+	await _check_cabin_views(cabin)
 
 	app.set_home_theme(original_theme)
 	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
@@ -282,6 +292,96 @@ func _check_cabin() -> void:
 
 func _material(surface: HomeSurface) -> Material:
 	return HomeMaterials.from_surface(surface)
+
+
+## A luz do dia (17.9.1), num tema já montado: o sol com sombra fora da sala,
+## mirando a janela pelo vão da parede; a mancha no chão; as luminárias mais
+## fracas de dia e inteiras à noite; e, à noite, nenhuma luz do dia.
+func _check_daylight(home: Node3D, title: String) -> void:
+	print("== %s ==" % title)
+	var profile: HomeProfile = home.get_profile()
+	var room: Vector3 = home.ROOM_SIZE
+	var sun: SpotLight3D = home.get_sunlight()
+	var bounce: SpotLight3D = home.find_child("SunBounce", false, false)
+	var sky: SpotLight3D = home.get_node("Daylight")
+	_check("o sol existe, faz sombra e só acende a casa", sun != null and sun.shadow_enabled
+			and sun.light_cull_mask == home.INTERIOR_LAYER_MASK and bounce != null and not bounce.shadow_enabled)
+	var travel: Vector3 = -sun.transform.basis.z if sun != null else Vector3.ZERO
+	_check("o sol fica do lado de fora e entra para baixo e para dentro", sun != null
+			and sun.position.z < -room.z / 2.0 - 1.0 and travel.y < -0.3 and travel.z > 0.3)
+	# O raio do meio do sol passa pelo meio da janela.
+	var window := Vector3(home.WINDOW_CENTER_X, home.WINDOW_CENTER_Y, -room.z / 2.0)
+	var to_window := (window - sun.position).normalized() if sun != null else Vector3.ZERO
+	_check("o sol mira o meio da janela", to_window.dot(travel) > 0.999)
+	# O vão: nenhum pedaço de parede tapa a janela, e uma colisão sem desenho
+	# segura quem anda; o vidro não faz sombra.
+	var opening := AABB(Vector3(home.WINDOW_LEFT, home.WINDOW_SILL_Y, -room.z / 2.0 - home.WALL_THICKNESS),
+			Vector3(home.WINDOW_SIZE.x, home.WINDOW_SIZE.y, home.WALL_THICKNESS)).grow(-0.02)
+	var blocking: Array[String] = []
+	for child in home.get_children():
+		if child is MeshInstance3D and String(child.name).begins_with("Wall"):
+			var box: AABB = (child as MeshInstance3D).transform * (child as MeshInstance3D).get_aabb()
+			if box.intersects(opening):
+				blocking.append(String(child.name))
+	_check("a parede tem o vão da janela %s" % str(blocking), blocking.is_empty()
+			and home.find_child("WallNorthTop", false, false) != null)
+	var block: StaticBody3D = home.find_child("WindowBlock", false, false)
+	_check("uma colisão tapa o vão", block != null and block.get_child_count() == 1
+			and absf(block.position.x - home.WINDOW_CENTER_X) < 0.01)
+	var glass: GeometryInstance3D = home.get_node("WindowView")
+	_check("o vidro não faz sombra", glass.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	# A mancha: o meio dela cai no chão da sala, longe das paredes.
+	var patch: Vector3 = bounce.position if bounce != null else Vector3.INF
+	_check("a mancha de sol fica no chão da sala (%.1f; %.1f)" % [patch.x, patch.z], absf(patch.x) < room.x / 2.0 - 1.0
+			and absf(patch.z) < room.z / 2.0 - 1.0 and patch.y < 0.1)
+	var rug: Node3D = home.find_child("Rug", false, false)
+	if rug != null and rug.has_meta("loft_piece"):
+		var rug_box: AABB = (rug as MeshInstance3D).transform * (rug as MeshInstance3D).get_aabb()
+		_check("a mancha fica fora do tapete do canto de estar",
+				not rug_box.grow(0.3).has_point(Vector3(patch.x, rug_box.position.y, patch.z)))
+
+	var lamps: Array[Light3D] = home.get_lamps()
+	var night_before: float = home.get_night()
+	home.set_night(0.0)
+	_check("de dia o sol, a luz rebatida e o céu acendem", sun.visible and bounce.visible and sky.visible
+			and is_equal_approx(sun.light_energy, profile.sun_energy)
+			and is_equal_approx(bounce.light_energy, profile.sun_energy * profile.sun_bounce))
+	var dimmed := lamps.all(func(l: Light3D) -> bool:
+			return is_equal_approx(l.light_energy, float(l.get_meta(home.NIGHT_ENERGY_META)) * profile.lamp_day_scale))
+	_check("de dia as %d luminárias ficam de apoio (%.0f%%)" % [lamps.size(), profile.lamp_day_scale * 100.0],
+			lamps.size() >= 3 and dimmed and profile.lamp_day_scale < 1.0)
+	_check("nenhuma luz do dia está entre as luminárias", not lamps.has(sun) and not lamps.has(bounce) and not lamps.has(sky))
+	_check("o sol de dia é mais neutro que as lâmpadas",
+			profile.sun_color.b / profile.sun_color.r > profile.lamp_color.b / profile.lamp_color.r)
+	home.set_night(1.0)
+	var full := lamps.all(func(l: Light3D) -> bool:
+			return is_equal_approx(l.light_energy, float(l.get_meta(home.NIGHT_ENERGY_META))))
+	_check("à noite nenhuma luz do dia, e as luminárias inteiras", not sun.visible and not bounce.visible
+			and not sky.visible and full)
+	home.set_night(night_before)
+
+
+## As duas vistas da cabana (17.9.1), para o dono escolher: a floresta do
+## shader (a do perfil) e o retrato do mundo (o mesmo do loft). As duas
+## carregam, a casa monta com cada uma, e só o retrato liga o WindowView.
+func _check_cabin_views(cabin: HomeProfile) -> void:
+	print("== as vistas da cabana (17.9.1) ==")
+	var original := cabin.window_shader
+	var portrait := "res://worlds/home/home_window.gdshader"
+	for path: String in [original, portrait]:
+		cabin.window_shader = path
+		var home: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
+		root.add_child(home)
+		await process_frame
+		var shader: Shader = (home.get_node("WindowView").material_override as ShaderMaterial).shader
+		# Pelo load: citar a classe direto compila o WindowView antes dos autoloads.
+		var uses: bool = load("res://components/window_view/window_view.gd").uses_view(shader)
+		_check("%s: a janela monta (%s)" % [path.get_file(), "retrato" if uses else "desenho"],
+				shader != null and shader.resource_path == path and uses == (path == portrait))
+		home.queue_free()
+		await process_frame
+	cabin.window_shader = original
+	_check("o perfil da cabana segue com a floresta", cabin.window_shader.ends_with("home_window_forest.gdshader"))
 
 
 ## Todos os .gd do projeto, menos as pastas de SCAN_SKIP.
