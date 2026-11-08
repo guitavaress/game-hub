@@ -88,12 +88,13 @@ static func vertex_tinted(folder: String, meters: float, tint: Color) -> Standar
 	return _materials[key]
 
 
-## Um material liso que é só a cor dos vértices (a cinza da fogueira).
-static func vertex_only(roughness: float) -> StandardMaterial3D:
-	var key := "liso|%.2f" % roughness
+## Um material liso que é só a cor dos vértices (a cinza da fogueira), tingido
+## por quem usa (17.10: a cinza escurece e esfria).
+static func vertex_only(roughness: float, tint: Color = Color.WHITE) -> StandardMaterial3D:
+	var key := "liso|%.2f|%s" % [roughness, tint.to_html()]
 	if not _materials.has(key):
 		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(VERTEX_GAIN, VERTEX_GAIN, VERTEX_GAIN)
+		material.albedo_color = Color(tint.r * VERTEX_GAIN, tint.g * VERTEX_GAIN, tint.b * VERTEX_GAIN)
 		material.vertex_color_use_as_albedo = true
 		material.roughness = roughness
 		_materials[key] = material

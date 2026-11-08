@@ -126,6 +126,15 @@ func _check_floor(deck: Node3D, field: Heightfield, trail: MountainTrail) -> voi
 	_check("e o piso é um desenho só, sem sombra", deck.get_node_or_null("Planks0") != null
 			and deck.get_node_or_null("Planks1") == null
 			and (deck.get_node("Planks0") as GeometryInstance3D).cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	# 17.10: o piso lia laranja e com cara de madeira nova. A Wood049 é quente
+	# por si, e a cor só multiplica: para acinzentar, o azul passa o vermelho.
+	# A rugosidade alta tira o brilho de madeira molhada.
+	var planks := (deck.get_node("Planks0") as MeshInstance3D).material_override as StandardMaterial3D
+	var deck_tint: Color = planks.albedo_color if planks != null else Color.WHITE
+	_check("a madeira do piso é acinzentada, e não laranja (r %.2f < b %.2f)" % [deck_tint.r, deck_tint.b],
+			planks != null and planks.albedo_texture != null and deck_tint.b > deck_tint.r)
+	_check("e fosca, de tábua gasta ao relento (rugosidade %.2f)" % [planks.roughness if planks != null else -1.0],
+			planks != null and planks.roughness >= 0.85)
 
 
 func _check_camp(deck: Node3D, layout: Dictionary) -> void:
@@ -151,6 +160,24 @@ func _check_camp(deck: Node3D, layout: Dictionary) -> void:
 			and fire.light.visible)
 	deck.set_night(0.0)
 	_check("de dia, apagados", lights.all(func(l: OmniLight3D) -> bool: return not l.visible) and not fire.light.visible)
+	# 17.10: a cama de cinza lia como areia clara em cima das tábuas. Agora ela
+	# é escura (a terra queimada) e o disco encolheu para caber no anel de
+	# pedras do modelo (RAIO_ANEL = 0,55 m).
+	var ash: StandardMaterial3D = null
+	var ash_size := Vector3.ZERO
+	for node: Node in fire.find_children("*", "MeshInstance3D", true, false):
+		var piece := node as MeshInstance3D
+		var material := piece.material_override as StandardMaterial3D
+		if material == null or not material.vertex_color_use_as_albedo or material.albedo_texture != null:
+			continue
+		if material.albedo_color.r < 1.0:
+			ash = material
+			ash_size = piece.mesh.get_aabb().size
+	var model := TrailModels.mesh(Campfire.MODEL, "ash").get_aabb().size
+	print("   cinza: cor %.2f, disco %.2f m de %.2f m" % [ash.albedo_color.r if ash != null else -1.0, ash_size.x, model.x])
+	_check("a cinza é escura (terra queimada, e não areia clara)", ash != null and ash.albedo_color.r <= 0.5)
+	_check("e o disco da cinza cabe no anel de pedras (até 85% do modelo)",
+			ash != null and ash_size.x > 0.0 and ash_size.x <= model.x * 0.85)
 
 
 func _check_telescope(city: Node, deck: Node3D, layout: Dictionary, field: Heightfield) -> void:

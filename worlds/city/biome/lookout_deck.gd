@@ -150,9 +150,13 @@ const PLAQUE_WIDTH: float = 1.5
 const PLAQUE_FONT: int = 64
 ## As madeiras (a Wood049 tingida): o piso gasto e acinzentado, o abrigo e os
 ## bancos mais escuros e quentes.
-const DECK_WOOD: Color = Color(0.6, 0.55, 0.51)
-## O piso ao relento, liso como madeira úmida: pega o brilho das luzes e do céu.
-const DECK_ROUGHNESS: float = 0.62
+## 17.10: o piso lia laranja, com cara de madeira nova. A Wood049 já é quente
+## sozinha (37% de saturação) e a cor só multiplica: para acinzentar, o azul
+## precisa passar o vermelho (madeira velha ao relento é cinza-clara, não
+## escura). O brilho fica o mesmo (a luminância não muda) e a rugosidade sobe
+## para o piso fosco de tábua gasta — era 0.62, "lisa como madeira molhada".
+const DECK_WOOD: Color = Color(0.5, 0.56, 0.62)
+const DECK_ROUGHNESS: float = 0.88
 const SHELTER_WOOD: Color = Color(0.53, 0.44, 0.38)
 const RAIL_WOOD: Color = Color(0.44, 0.39, 0.36)
 const IRON_COLOR: Color = Color(0.06, 0.06, 0.065)

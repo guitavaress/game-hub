@@ -17,6 +17,13 @@ const LIGHT_HEIGHT: float = 0.75
 ## A sombra some antes da luz (economia: só quem está perto vê os bancos fazendo sombra).
 const SHADOW_FADE: float = 30.0
 const EMBER_ENERGY: float = 2.6
+## A cinza (17.10): a cama de cinza do modelo lia como areia clara em cima das
+## tábuas do mirante. Aqui ela escurece e esfria (a terra queimada de verdade),
+## e o disco encolhe para ficar por baixo das pedras: o raio cai de 0,84 m (do
+## gerar_fogueira.py) para 0,66 m, e o anel de pedras, a 0,55 m do meio com
+## pedras de 0,2 a 0,28 m, cobre a borda.
+const ASH_TINT: Color = Color(0.3, 0.29, 0.28)
+const ASH_SCALE: float = 0.78
 
 var light: OmniLight3D
 var embers: StandardMaterial3D
@@ -31,7 +38,8 @@ func build(stone: Material, fade_begin: float, fade_length: float) -> void:
 	name = "Campfire"
 	add_to_group("city_night")
 	var batch := TrailProps.Batch.new()
-	batch.add(TrailModels.mesh(MODEL, "ash"), Transform3D.IDENTITY, TrailModels.vertex_only(1.0))
+	var ash := TrailModels.stretched(TrailModels.mesh(MODEL, "ash"), Vector3(ASH_SCALE, 1.0, ASH_SCALE))
+	batch.add(ash, Transform3D.IDENTITY, TrailModels.vertex_only(1.0, ASH_TINT))
 	batch.add(TrailModels.mesh(MODEL, "stone"), Transform3D.IDENTITY, stone)
 	batch.add(TrailModels.mesh(MODEL, "wood"), Transform3D.IDENTITY, TrailModels.own_material(MODEL, "wood"))
 	# A brasa: a textura do modelo, com o brilho das rachas aceso à noite.
