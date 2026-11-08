@@ -101,7 +101,7 @@ Trilha A (Claude, checkout principal: casa, `city.gd`, `day_night.gd`, `.tres`, 
   - Captura: o ponto `mirante` às 13 h e às 22 h, antes e depois.
   - Commit: `Fase 17.8: o mirante como destino`
 - [ ] **17.9 A casa de dia e a cabana** (dividida em duas entregas, com a sua aprovação entre elas; decisões de 2026-11-08 em "Decisões tomadas durante a fase")
-  - [x] **17.9.1 A luz de dia e a vista da cabana** (grande · trilha A, Opus · high · revisão: você, pelas capturas)
+  - [x] **17.9.1 A luz de dia e a vista da cabana** (`b74c25a`) (grande · trilha A, Opus · high · revisão: você, pelas capturas)
     - Faz: de dia a janela domina a luz da sala (luz do dia com sombra, tons mais neutros), com as luminárias como apoio quente, nos dois temas; a noite aprovada do loft não muda. Na cabana, a vista da janela em comparação: a floresta do shader contra a montanha de verdade (o retrato que já existe), às 13 h e às 22 h, para você escolher. Sem floresta 3D e sem ponto de captura novo.
     - Arquivos: `worlds/home/home.gd`, `worlds/home/themes/loft_decor.gd` e `cabin_decor.gd` (só a luz), `worlds/home/home_window.gdshader` e `home_window_forest.gdshader` (se a luz pedir), `profiles/homes/loft.tres` e `cabana.tres`, `tools/capturar_casa.gd` e os testes da casa (`check_home`, `check_home_profile`, `check_capture_home`, `check_window_view` e o que mais a luz tocar).
     - Captura: os dois temas às 13 h e às 22 h, antes e depois, e a vista da cabana nas duas opções. Medida no desktop, na Alta.
@@ -345,7 +345,7 @@ Só se a amostra pedir; a lista exata (nome, link, tamanho) sai da 17.1 e é per
   - **Pendências da 17.8** (torre do mirante, cor do deque, círculo da fogueira) vão para a 17.10; o zoom por FOV e o teste de SSR, névoa volumétrica e SDFGI esperam escopo próprio.
   - **Divisão:** 17.9.1 (luz de dia e vista, trilha A) e 17.9.2 (acabamento da cabana, trilha A), com a aprovação do dono entre elas; os modelos (17.9.1b) correm em paralelo na trilha B.
 
-- 2026-11-08 (17.9.1): a luz de dia na casa.
+- 2026-11-08 (17.9.1, `b74c25a`): a luz de dia na casa.
   - **O sol:** uma luz de cone estreito do lado de fora, a 14 m da janela, mirando o vão (40° de altura, 14° do norte para o oeste), sem perder força com a distância e com sombra. A parede norte virou quatro pedaços em volta do vão (uma colisão sem desenho tapa o vão para quem anda; as texturas são projetadas pelo mundo, sem costura): a parede e os quadros da janela desenham a janela no chão de madeira, entre o aparador e quem nasce, fora do tapete (o pelo do tapete vira chuvisco no sol; o teste confere). A casa não sabe onde está o sol do mundo: ele entra sempre do mesmo jeito. No pôr do sol ele esquenta.
   - **A luz rebatida:** uma luz sem sombra sobe do meio da mancha para o teto e a parede da janela. O céu (a luz fria que já existia) agora cai mais devagar e chega à parede do fundo.
   - **As luminárias de apoio:** de dia, todas as luzes da sala (menos as do dia e o fogo da cabana) ficam na metade da força (`lamp_day_scale` = 0,5); a força da noite fica guardada em cada uma, e o reflexo no vidro usa sempre a da noite.
