@@ -32,6 +32,14 @@ const TOASTS_GAP: int = 8
 const TITLE_BAND_TOASTS: int = 2
 ## Espaço entre a pilha de avisos e o título do bairro (px).
 const TITLE_GAP: float = 8.0
+## PC FRACO (Fase 18.3): depois de tantos segundos andando pela cidade na
+## qualidade Alta, se a média ficou abaixo de QUALITY_MIN_FPS, um aviso (uma
+## vez só na vida do config.cfg) sugere a Leve. Nada muda sozinho.
+const QUALITY_CHECK_SECONDS: float = 20.0
+const QUALITY_MIN_FPS: float = 30.0
+## Um quadro mais longo que isto (s) é uma pausa (a janela parou, uma viagem
+## carregando), não o PC sendo lento: fica de fora da média.
+const QUALITY_MAX_FRAME: float = 0.5
 
 ## Sons (Kenney, CC0).
 const MESSAGE_SOUND: AudioStream = preload("res://assets/kenney/interface-sounds/glass_001.ogg")
@@ -66,6 +74,10 @@ var _controls_hint: ControlsHint
 var _district_title: DistrictTitle
 var _sound: AudioStreamPlayer
 var _click: AudioStreamPlayer
+## A medida do PC fraco (start_quality_check): segundos e quadros contados na
+## cidade. Menor que zero = não está medindo.
+var _quality_seconds: float = -1.0
+var _quality_frames: int = 0
 
 ## Avisos que só aparecem uma vez enquanto o hub estiver aberto (ex.: amigos).
 ## "static": vale para todos os HUDs, mesmo se o mundo for recriado.
@@ -357,6 +369,50 @@ static func format_duration(minutes: int, only_hours: bool = false) -> String:
 	if only_hours or rest == 0:
 		return "%d h" % hours
 	return "%d h %d min" % [hours, rest]
+
+
+## PC FRACO: começa a medir o FPS dos primeiros QUALITY_CHECK_SECONDS na
+## cidade (só conta com o HUD na tela, fora de casa, sem jogo abrindo ou
+## rodando e com a janela em foco). Não mede se já avisou ou se a qualidade
+## não é a Alta (na Média ou na Leve, a pessoa já escolheu).
+func start_quality_check() -> void:
+	if AppConfig.get_seen_quality_hint() or AppConfig.get_quality() != "alta":
+		return
+	_quality_seconds = 0.0
+	_quality_frames = 0
+
+
+## Ainda medindo o FPS (para os testes)?
+func is_checking_quality() -> bool:
+	return _quality_seconds >= 0.0
+
+
+## Vale sugerir a qualidade Leve? Só na Alta, uma vez, com a média abaixo do mínimo.
+static func should_suggest_light(average_fps: float, quality: String, seen: bool) -> bool:
+	return not seen and quality == "alta" and average_fps < QUALITY_MIN_FPS
+
+
+func _process(delta: float) -> void:
+	if _quality_seconds < 0.0:
+		return
+	if not visible or _indoors or delta > QUALITY_MAX_FRAME or GameLauncher.is_busy() \
+			or not DisplayServer.window_is_focused():
+		return
+	_quality_seconds += delta
+	_quality_frames += 1
+	if _quality_seconds >= QUALITY_CHECK_SECONDS:
+		_finish_quality_check(_quality_frames / _quality_seconds)
+
+
+## Acabou a medida: avisa (e grava que avisou) se o PC ficou abaixo do mínimo.
+func _finish_quality_check(average_fps: float) -> void:
+	_quality_seconds = -1.0
+	if not should_suggest_light(average_fps, AppConfig.get_quality(), AppConfig.get_seen_quality_hint()):
+		return
+	AppConfig.set_seen_quality_hint(true)
+	show_message("O hub está pesado neste PC",
+			"Média de %d FPS. Em Esc › Som e vídeo, experimente a Qualidade Leve." % floori(average_fps),
+			Toast.Kind.INFO, 12.0)
 
 
 ## O jogador começou a andar: o aviso de volta do jogo já cumpriu o papel e

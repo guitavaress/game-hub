@@ -353,6 +353,16 @@ func set_seen_controls_hint(seen: bool) -> void:
 	_set_option("ui", "seen_controls_hint", seen)
 
 
+## O aviso de PC fraco ("experimente a qualidade Leve", Fase 18.3) já apareceu?
+## Ele aparece uma vez só, nunca troca a qualidade sozinho.
+func get_seen_quality_hint() -> bool:
+	return bool(_config.get_value("ui", "seen_quality_hint", false))
+
+
+func set_seen_quality_hint(seen: bool) -> void:
+	_set_option("ui", "seen_quality_hint", seen)
+
+
 ## A casa (seção [home], Fase 13.3). O AppConfig guarda só os textos: quem sabe
 ## o que é "loft" ou "espelhada" é o Profiles. "" = o padrão do tema.
 func get_home_theme() -> String:
