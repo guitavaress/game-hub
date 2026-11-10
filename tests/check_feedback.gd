@@ -28,19 +28,39 @@ func _run() -> void:
 	game.app_id = 999999
 	game.name = "Jogo Privado Inventado"
 	game.library_path = "C:/Users/PessoaPrivada/Steam"
-	library._games = [game] as Array[SteamGame]
+	var games: Array[SteamGame] = [game]
+	for i in 199:
+		var extra := SteamGame.new()
+		extra.app_id = 999000000 + i
+		extra.name = "Jogo Inventado %d" % i
+		games.append(extra)
+	games[1].name = "Portal"
+	games[2].name = "Inside"
+	library._games = games
 	library._games_loaded = true
 	var report_script: GDScript = load("res://autoload/feedback_report.gd")
 	var report: String = report_script.build({"impressao": "Gostei", "dificuldades": "Nada", "voltaria": "Sim",
 		"ignorado": key + steam_id + game.name + game.library_path})
 	_check("respostas esperadas aparecem", report.contains("Gostei") and report.contains("Nada") and report.contains("Voltaria a abrir? Sim"))
-	for private_value: String in [key, steam_id, game.name, game.library_path, "PessoaPrivada"]:
-		_check("resumo exclui dado privado configurado", not report.contains(private_value))
-	_check("resumo só conta biblioteca e presença da chave", report.contains("Jogos: 1") and report.contains("Bairros: 1") and report.contains("Chave configurada: sim"))
-	for field: String in ["Versão:", "Sistema:", "Placa de vídeo:", "Qualidade:", "FPS médio:"]:
+	var technical := report.get_slice("\n\n", 0)
+	for private_value: String in [key, steam_id, game.library_path, "PessoaPrivada"]:
+		_check("resumo técnico exclui dado privado configurado", not technical.contains(private_value))
+	var no_game_names: bool = true
+	for installed: SteamGame in games:
+		no_game_names = no_game_names and not technical.contains(installed.name)
+	_check("resumo técnico não contém títulos com biblioteca cheia", no_game_names)
+	_check("resumo só conta biblioteca e presença da chave", technical.contains("Jogos: 200") and technical.contains("Bairros: 1") and technical.contains("Chave configurada: sim"))
+	for field: String in ["Versão:", "Sistema:", "Placa de vídeo:", "Qualidade:", "FPS agora:"]:
 		_check("campo técnico presente: " + field, report.contains(field))
+	if DisplayServer.get_name() == "headless":
+		_check("sem renderização o FPS fica indisponível", technical.contains("FPS agora: indisponível"))
+	var common_words := "O portal da casa ficou bom. Inside também é um jogo."
+	_check("palavras iguais a títulos permanecem intactas nas respostas", report_script.build({"impressao": common_words}).contains(common_words))
 	var pasted: String = report_script.build({"dificuldades": "%s %s %s\n%s" % [key, steam_id, game.name, game.library_path]})
-	_check("dados privados colados também são removidos", not pasted.contains(key) and not pasted.contains(steam_id) and not pasted.contains(game.name) and not pasted.contains("PessoaPrivada"))
+	_check("identificadores e caminhos colados são removidos", not pasted.contains(key) and not pasted.contains(steam_id) and not pasted.contains("PessoaPrivada"))
+	_check("nome de jogo digitado permanece na resposta", pasted.contains(game.name))
+	var patterns: String = report_script.build({"impressao": "0123456789abcdef0123456789abcdef 76561190000000002"})
+	_check("padrões de chave e SteamID também são removidos", not patterns.contains("0123456789abcdef0123456789abcdef") and not patterns.contains("76561190000000002"))
 	fake.set_value("steam", "web_api_key", "")
 	_check("sem chave aparece não", report_script.build({}).contains("Chave configurada: não"))
 	config._config = saved_config
@@ -52,6 +72,7 @@ func _run() -> void:
 	root.add_child(view)
 	view.open()
 	await process_frame
+	var initial_technical: String = view._preview.text.get_slice("\n\n", 0)
 	_check("abre com foco na primeira resposta", root.gui_get_focus_owner() == view._impression)
 	for i in view._focus_chain.size():
 		_check("Tab percorre controle %d" % i, root.gui_get_focus_owner() == view._focus_chain[i])
@@ -69,6 +90,7 @@ func _run() -> void:
 	view._impression.text = "Muito bom"
 	view._impression.text_changed.emit(view._impression.text)
 	_check("prévia inclui resposta antes da cópia", view._preview.text.contains("Muito bom"))
+	_check("dados técnicos capturados ao abrir permanecem estáveis", view._preview.text.get_slice("\n\n", 0) == initial_technical)
 	var closed: Array[bool] = [false]
 	view.closed.connect(func() -> void: closed[0] = true)
 	await _action("ui_cancel")

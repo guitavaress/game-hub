@@ -84,7 +84,8 @@ func _field(question: String) -> LineEdit:
 
 
 func open() -> void:
-	# Congela os dados técnicos ao abrir: o texto copiado é o que foi mostrado.
+	# Captura o FPS agora e os demais dados técnicos ao abrir: o texto copiado
+	# permanece igual ao mostrado, mesmo que o FPS mude enquanto se responde.
 	_technical_report = FeedbackReport.build({})
 	visible = true
 	_refresh()
