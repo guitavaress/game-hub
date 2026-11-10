@@ -30,11 +30,23 @@ func _run() -> void:
 	_check("export_path = 'build/windows/GameHub.exe'",
 		cfg.get_value(windows_section, "export_path", "") == "build/windows/GameHub.exe")
 
-	var filters: Array[String] = []
-	for item in str(cfg.get_value(windows_section, "exclude_filter", "")).split(","):
-		filters.append(item.strip_edges())
-	for wanted in ["tests/*", "docs/*", "tools/*", "*.md"]:
-		_check("exclude_filter contém '%s'" % wanted, wanted in filters)
+	# Os dois presets (Windows e Linux) têm que deixar de fora as sobras do projeto.
+	for preset_name in ["Windows", "Linux"]:
+		var section := ""
+		for candidate in cfg.get_sections():
+			if cfg.get_value(candidate, "name", "") == preset_name:
+				section = candidate
+				break
+		_check("preset '%s' existe" % preset_name, section != "")
+		var filters: Array[String] = []
+		for item in str(cfg.get_value(section, "exclude_filter", "")).split(","):
+			filters.append(item.strip_edges())
+		for wanted in ["tests/*", "docs/*", "tools/*", "*.md", "game-hub-brand-kit/*", ".agents/*"]:
+			_check("%s: exclude_filter contém '%s'" % [preset_name, wanted], wanted in filters)
+
+	# A versão do hub vive só no project.godot.
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	_check("application/config/version existe e não está vazio", version != "")
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()

@@ -64,6 +64,7 @@ func _ready() -> void:
 	column.add_child(_settings)
 	column.add_child(HubTheme.line())
 	column.add_child(_build_bottom_row())
+	column.add_child(_build_version_label())
 
 	GameLauncher.game_started.connect(_on_game_started)
 
@@ -152,6 +153,15 @@ func _build_bottom_row() -> Control:
 	_settings.set_footer_controls([resume, quit] as Array[Control])
 	return row
 
+## A versão do hub, pequena e discreta no pé do menu. Vem do project.godot
+## (application/config/version), nunca escrita aqui. Não pega foco.
+func _build_version_label() -> Label:
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	var label := HubTheme.label("Game Hub %s" % version, &"HubCaption")
+	label.name = "VersionLabel"
+	label.focus_mode = Control.FOCUS_NONE
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 
 func get_quit_button() -> Button:

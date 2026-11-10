@@ -123,6 +123,15 @@ func _run() -> void:
 	menu._disarm_quit()
 	_check("fechar o menu desarma o aviso", quit_button.text == "Sair do hub" and not menu._quit_armed)
 
+	print("\n== versão no rodapé (Fase 18.1) ==")
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	var version_label := menu.find_child("VersionLabel", true, false) as Label
+	_check("a versão existe no project.godot", version != "")
+	_check("o rodapé mostra 'Game Hub ' + a versão", version_label != null
+			and version_label.text == "Game Hub " + version)
+	_check("o rótulo da versão não pega foco", version_label != null
+			and version_label.focus_mode == Control.FOCUS_NONE)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
