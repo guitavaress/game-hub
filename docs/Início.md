@@ -6,8 +6,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
 - **Fase atual:** [Fase 18, Mostrar para amigos](plans/fase-18.md), na branch `fase-18`: um build do Windows que 2 ou 3 amigos baixam e usam.
-  - **Última subetapa feita:** 18.0 (2026-11-10): a Fase 17 entrou na `main` (PR #3), a branch `fase-18` e o plano foram criados, e o teste `check_export_presets` foi juntado.
-  - **Próxima:** 18.1, a versão do hub no menu de pausa e o export sem sobras. Depois, a 18.2: o `.exe` que abre de verdade (a primeira com algo para você abrir).
+  - **Última subetapa feita:** 18.1 (2026-11-10): o hub tem versão (0.18.0), que aparece no pé do menu de pausa, e o brand kit e o `.agents/` ficam fora do build. Antes, a 18.0 (a branch e o plano).
+  - **Próxima:** 18.2, o `.exe` que abre de verdade (a primeira com algo para você abrir), em sessão nova.
 - **Próxima fase:** [Visitar amigos (V-Sekai)](ROADMAP.md#3-visitar-amigos-v-sekai).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).

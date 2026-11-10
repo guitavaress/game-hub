@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** a 18.0 está feita (a Fase 17 entrou na `main` pelo PR #3; a branch e este plano existem). A próxima é a 18.1 (a versão no menu de pausa). Ainda não há nada novo para testar.
+- **Agora:** 18.0 e 18.1 feitas: Esc mostra "Game Hub 0.18.0" no pé do menu. A próxima é a 18.2 (o `.exe` que abre de verdade), em sessão nova.
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
@@ -45,7 +45,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Limpeza: juntar o `tests/check_export_presets.gd` da `guitavaress/check-export` (cherry-pick dos 3 commits) e apagar esse worktree e o `guitavaress/gh-smoke-1` pelo roteiro do AGENTS.md.
   - Antes do push: `git status` e o diff conferidos (sem `config.cfg`, sem chave, sem capturas). Os arquivos não rastreados (`.agents/`, `.vscode/`, `game-hub-brand-kit/`, `saida.txt`, `game_hub_paperclip_omniroute.md`) **não** entram.
   - Commit: `Docs: plano da Fase 18 (Mostrar para amigos)`
-- [ ] **18.1 Versão e higiene do export** (tamanho: pequena · quem: Sonnet, subagente · esforço: medium)
+- [x] **18.1 Versão e higiene do export** (tamanho: pequena · quem: Sonnet, subagente · esforço: medium) — `ce52743`, 2026-11-10; testes `check_export_presets check_pause_menu check_settings_view check_menu_keyboard` ok; o `painel/` já fica fora por ter `.gdignore`
   - Faz: `config/version="0.18.0"`; a versão aparece no rodapé do menu de pausa; `game-hub-brand-kit/` e `.agents/` fora do export (entrada no `exclude_filter` dos dois presets, e não um `.gdignore` numa pasta não rastreada); o `check_export_presets` passa a conferir esses filtros e a versão.
   - Arquivos: `project.godot`, `export_presets.cfg`, `ui/pause_menu.gd`, `tests/check_export_presets.gd`, `tests/check_pause_menu.gd`.
   - Teste: `check_export_presets check_pause_menu check_settings_view`. Captura do menu de pausa.
@@ -53,6 +53,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Commit: `Fase 18.1: versao do hub e export sem sobras`
 - [ ] **18.2 O `.exe` que abre de verdade** (tamanho: grande · quem: Opus, sessão nova · esforço: high · revisão: o dono, abrindo o build)
   - Faz: exporta no desktop e roda o `.exe` como usuário; corrige o que só quebra fora do editor. Suspeitos já achados: `autoload/platform/omarchy_binds.gd` (`globalize_path("res://...lua")` não existe num pck; só Linux, mas tem que falhar calado), `autoload/platform/app_compositor.gd` (a extensão em `native/`, excluída do export), o `DebugMenu` (F3) num build de release, o título da janela e o log em arquivo (`debug/file_logging`, ligado, em `user://logs/`).
+  - Conferir no pck (achado da 18.1): `.claude/` (tem `settings.local.json`), `.codex/`, `.vscode/` e `build/` estão na raiz sem `.gdignore` e fora do `exclude_filter`. A Godot costuma pular pastas que começam com ponto, mas um `.json` vira recurso; se algum aparecer no pck, entra no filtro (e no `check_export_presets`).
   - Ícone: o da janela e da barra de tarefas (`config/icon`). **Decisão do dono:** um ícone simples feito por código/SVG nesta subetapa, ou o símbolo do brand kit (estudo não aprovado). O ícone do `.exe` no Explorer fica de fora se exigir o `rcedit` (ferramenta nova).
   - Arquivos: `tools/empacotar_windows.sh` (novo: só a parte de exportar, nesta subetapa), `tests/check_exported_build.gd` (novo: confere no pck, com `--main-pack`, que as cenas e os autoloads carregam e que `tests/`, `tools/` e `docs/` não estão lá; pula se não houver build), mais os consertos.
   - Teste: bateria completa; o `.exe` abre, a cidade monta, um jogo abre e o hub volta; `tools/medir_desempenho.gd` no editor comparado com o FPS do F3 no build.
