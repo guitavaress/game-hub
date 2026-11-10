@@ -39,11 +39,11 @@ Steam  →  dados do jogo  →  perfil do mundo  →  gerador  →  Godot  →  
 
 ## Próximas fases
 
-Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 17), com o plano aprovado em `plans/fase-N.md`.
+Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 19), com o plano aprovado em `plans/fase-N.md`.
 
 Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 4 abaixo (biomas), a "Fase 17" é a 3 (amigos) e a "Fase 18" está em [Parados](#parados).
 
-### 1. O momento uau — feita na Fase 17 (esperando a sua aprovação)
+### 1. O momento uau — feita na Fase 17
 **Objetivo:** o hub encanta. É onde mora a frustração de hoje:
 - a casa está vazia e pouco aconchegante, e a vista da janela está péssima;
 - a trilha não tem conteúdo, e o mirante está feio;
@@ -56,7 +56,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** a casa, a janela, a trilha e o mirante passam na sua comparação de antes e depois, nas capturas e no jogo.
 
-**Andamento:** é a [Fase 17](plans/fase-17.md): **implementada**, esperando a sua aprovação (as capturas de antes e depois e a folha da fase estão em `C:\Projetos\game-hub-referencias\uau\`). Aprovadas: as referências, a casa à noite com a janela (a amostra), a luz da cidade de dia e de noite, a trilha com as paradas, os modelos do Blender, o mirante como destino, a luz de dia na casa (17.9.1) e o acabamento da cabana (17.9.2). O fechamento (17.10, 2026-11-08) fez as três pendências da 17.8 (a torre do RPG em pedra, a madeira do deque acinzentada e a cinza da fogueira mais escura), estudou o tranco de ~87 ms (decisão: aceitar — é compilação de shader, uma vez por abertura) e fechou a fase: bateria `TUDO OK`, medida no desktop (200 jogos, Alta: 144,8 FPS na caminhada, p99 13 ms) e a folha `folha_17.10.png`. Falta a sua aprovação e, depois, o merge na `main`.
+**Andamento:** é a [Fase 17](plans/fase-17.md): **feita e na `main`** (PR #3, 2026-11-10). As capturas de antes e depois e a folha da fase estão em `C:\Projetos\game-hub-referencias\uau\`. Medida no desktop (200 jogos, Alta): 144,8 FPS na caminhada, p99 13 ms. O tranco de ~87 ms na abertura foi aceito (é compilação de shader, uma vez por abertura).
 
 ### 2. Mostrar para amigos
 **Objetivo:** a etapa 2 do produto. Um build que 2 ou 3 amigos instalam e usam.
@@ -68,6 +68,8 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 - um jeito simples de ouvir o que eles acharam.
 
 **Pronto quando:** um amigo instala sozinho, abre um jogo pelo hub e conta o que achou.
+
+**Andamento:** é a [Fase 18](plans/fase-18.md), em andamento desde 2026-11-10. Decidido no plano: a entrega é um zip num Release do GitHub, o feedback é um botão que copia um resumo, e a chave da Steam é opcional (o hub não cobra). Feita: a 18.0 (a branch e o plano). Próxima: a 18.1 (a versão do hub e o export sem sobras).
 
 ### 3. Visitar amigos (V-Sekai)
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**, com peças do [V-Sekai](https://github.com/v-sekai) (MIT): avatar VRM, espelho, voz, sala de encontro e ideias de rede. Substitui a "visita sem servidor" de antes.
@@ -125,7 +127,7 @@ Nada aqui anda sem uma decisão nova sua.
 | 14 O hub no Omarchy | Painel do sistema, autostart, compositor Wayland e a mesa com três monitores (só Linux; em [Parados](#parados)) | [fase-14](plans/fase-14.md) |
 | 15 Primeiro bioma | O RPG na neve, com arcos, pinheiros e uma montanha com trilha e mirante; setores contínuos | [fase-15](plans/fase-15.md) |
 | 16 Leitura | Capas inteiras na estante, arco legível dos dois lados, avisos e título em lugares próprios, nomes da praça só de perto, textos que dizem o que apertar e estações do metrô com o lugar | [fase-16](plans/fase-16.md) |
-| 17 O momento uau | A casa à noite com objetos e a cidade de verdade na janela (que acende quando fica pronta); a cidade com contraste de dia e de noite; a trilha do RPG com paradas e os modelos do Blender; o mirante como destino; a torre em pedra; a cabana com o aconchego do loft (esperando a sua aprovação) | [fase-17](plans/fase-17.md) |
+| 17 O momento uau | A casa à noite com objetos e a cidade de verdade na janela (que acende quando fica pronta); a cidade com contraste de dia e de noite; a trilha do RPG com paradas e os modelos do Blender; o mirante como destino; a torre em pedra; a cabana com o aconchego do loft | [fase-17](plans/fase-17.md) |
 | Linux | O hub roda no Linux; a plataforma fica isolada em `autoload/platform/` ([PLATAFORMA](PLATAFORMA.md)) | [fase-linux](plans/fase-linux.md) |
 
 ## Horizonte (sem compromisso)
