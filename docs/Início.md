@@ -6,8 +6,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
 - **Fase atual:** [Fase 18, Mostrar para amigos](plans/fase-18.md), na branch `fase-18`: um build do Windows que 2 ou 3 amigos baixam e usam.
-  - **Última subetapa feita:** 18.1 (2026-11-10): o hub tem versão (0.18.0), que aparece no pé do menu de pausa, e o brand kit e o `.agents/` ficam fora do build. Antes, a 18.0 (a branch e o plano).
-  - **Próxima:** 18.2, o `.exe` que abre de verdade (a primeira com algo para você abrir), em sessão nova.
+  - **Última subetapa feita:** 18.2 (2026-11-10): `bash tools/empacotar_windows.sh` gera o `build/windows/GameHub.exe`, que abre na casa, monta a cidade e tem o ícone casa-portal na janela, na barra de tarefas e no Explorer. Antes, a 18.1 (a versão 0.18.0 no menu de pausa).
+  - **Próxima:** 18.3, o primeiro uso num PC limpo (sessão nova); a 18.5, o botão "Contar o que achei", corre em paralelo na trilha B.
 - **Próxima fase:** [Visitar amigos (V-Sekai)](ROADMAP.md#3-visitar-amigos-v-sekai).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).

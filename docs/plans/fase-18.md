@@ -5,11 +5,11 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** 18.0 e 18.1 feitas: Esc mostra "Game Hub 0.18.0" no pé do menu. A próxima é a 18.2 (o `.exe` que abre de verdade), em sessão nova.
+- **Agora:** 18.0, 18.1 e 18.2 feitas: `bash tools/empacotar_windows.sh` gera o `build/windows/GameHub.exe`, que abre com o ícone novo. A próxima é a 18.3 (o primeiro uso num PC limpo), em sessão nova; a 18.5 (trilha B) já pode começar.
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
-- **Decisões que esperam você:** o ícone do hub (18.2) e pedir a publicação do Release (18.7).
+- **Decisões que esperam você:** pedir a publicação do Release (18.7). O ícone foi decidido em 2026-11-10: o símbolo do brand kit.
 
 ## Contexto
 É a fase [2. Mostrar para amigos](../ROADMAP.md#2-mostrar-para-amigos), a etapa 2 do produto: 2 ou 3 amigos instalam e usam. Hoje só o dono usa o hub, sempre pelo editor, com o cache cheio e a chave configurada. O amigo vai encontrar o contrário: um `.exe`, cache vazio, sem chave, outra placa de vídeo.
@@ -51,7 +51,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Teste: `check_export_presets check_pause_menu check_settings_view`. Captura do menu de pausa.
   - Manual: Esc mostra "Game Hub 0.18.0" no rodapé.
   - Commit: `Fase 18.1: versao do hub e export sem sobras`
-- [ ] **18.2 O `.exe` que abre de verdade** (tamanho: grande · quem: Opus, sessão nova · esforço: high · revisão: o dono, abrindo o build)
+- [x] **18.2 O `.exe` que abre de verdade** (tamanho: grande · quem: Opus, sessão nova · esforço: high · revisão: o dono, abrindo o build) — `1ec6eba`, 2026-11-10; bateria completa ok. O `.exe` abre na casa e monta a cidade com o log limpo; abrir um jogo pelo `.exe` e o F3 ficam no checklist do dono
   - Faz: exporta no desktop e roda o `.exe` como usuário; corrige o que só quebra fora do editor. Suspeitos já achados: `autoload/platform/omarchy_binds.gd` (`globalize_path("res://...lua")` não existe num pck; só Linux, mas tem que falhar calado), `autoload/platform/app_compositor.gd` (a extensão em `native/`, excluída do export), o `DebugMenu` (F3) num build de release, o título da janela e o log em arquivo (`debug/file_logging`, ligado, em `user://logs/`).
   - Conferir no pck (achado da 18.1): `.claude/` (tem `settings.local.json`), `.codex/`, `.vscode/` e `build/` estão na raiz sem `.gdignore` e fora do `exclude_filter`. A Godot costuma pular pastas que começam com ponto, mas um `.json` vira recurso; se algum aparecer no pck, entra no filtro (e no `check_export_presets`).
   - Ícone: o da janela e da barra de tarefas (`config/icon`). **Decisão do dono:** um ícone simples feito por código/SVG nesta subetapa, ou o símbolo do brand kit (estudo não aprovado). O ícone do `.exe` no Explorer fica de fora se exigir o `rcedit` (ferramenta nova).
@@ -105,6 +105,12 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
 - Perfis do usuário (Parados) e a visita aos amigos (a próxima fase).
 
 ## Decisões tomadas durante a fase
+- 2026-11-10 (18.2): o que só quebrava no `.exe` e o que mudou.
+  - **Capas sem compressão no build.** O template de export não tem o compressor S3TC (só o editor tem): cada capa dava um `ERROR` no log. O `GameArt.can_compress()` (falso quando `OS.has_feature("template")`) pula a compressão lá. As capas funcionam igual, mas gastam mais memória de vídeo no `.exe` do que no editor (os números do `medir_desempenho` com `--main-pack` não mostram isso, porque o editor comprime). Se um amigo com placa fraca reclamar, a saída é comprimir as capas para o cache já no formato da placa, e isso é fase própria.
+  - **Sobras no pck:** `res://.mcp.json` e `res://opencode.json` entravam (são `.json` na raiz). Saíram pelo `exclude_filter` dos dois presets, junto com `.claude/*`, `.codex/*`, `.vscode/*` e `build/*` por garantia (essas não apareciam). O `.lua` do `OmarchyBinds` não vai no pck (não é recurso): no build ele devolve vazio sem chamar o `lua`. O `AppCompositor` já desistia calado (só Linux e só com o `.so`).
+  - **Ícone:** o símbolo flat do brand kit, copiado para `assets/brand/icone.svg` (arte do projeto, MIT). A Godot 4.7 troca o ícone do `.exe` sozinha com `modify_resources` (sem `rcedit`), então o ícone aparece também no Explorer. No fundo escuro, a casa azul-marinho fica discreta e a porta ciano é o que se vê.
+  - **O DebugMenu (F3) fica no build:** é como o dono mede o FPS no `.exe`. O log em arquivo (`user://logs/`) também fica: é o que um amigo pode mandar se algo quebrar.
+  - **Desempenho (desktop, Alta, 200 jogos, 22 h, 2560 × 1440, 165 Hz):** editor 151,0 FPS na caminhada (p99 12 ms); o pck exportado, rodado com `--main-pack`, 152,1 FPS (p99 12 ms). Casa 165, espelho 165, montanha 162,6 nos dois. O `.exe` de release ignora `-s`, por isso o motor exato do `.exe` se confere pelo F3 (checklist).
 - 2026-11-10 (18.0): a bateria da `fase-17` falhava de vez em quando, em testes diferentes a cada rodada. Duas correções entraram na Fase 17 antes do PR (`5bc17ea`): sem janela, os modelos do mirante carregam na hora (o carregamento em segundo plano às vezes deixava uma malha vazia no servidor de desenho dos testes), e o `check_home_start` espera a tela de abertura sumir (até 3 s) em vez de 0,5 s fixos. A segunda não teve a causa confirmada: se o teste voltar a falhar em "tela clara, HUD de volta, jogador anda", olhar qual das quatro condições falhou.
 - 2026-11-10 (18.0): limpeza feita. O worktree e a branch `guitavaress/check-export` (já juntada aqui) e a branch `guitavaress/gh-smoke-1` (sem commits próprios) foram apagados.
 - 2026-11-09: PR da Fase 17 no GitHub antes da branch; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra (planejamento, respostas do dono).
