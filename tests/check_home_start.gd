@@ -89,7 +89,13 @@ func _start_city() -> void:
 		if not checked_free and not player.in_intro and ready_at[0] == -1:
 			checked_free = true
 			print("== a tela sumiu e a cidade ainda monta ==")
-			await create_timer(0.5).timeout  # a tela GAME HUB termina de sumir
+			# A tela GAME HUB termina de sumir (0,4 s). Espera até 3 s por ela, e
+			# não um tempo fixo: num quadro comprido da montagem, o relógio do
+			# teste vencia antes de a animação da tela andar naquele quadro.
+			var fade_deadline := Time.get_ticks_msec() + 3000
+			while (fade.is_splash_visible() or fade.get_amount() >= 0.01) \
+					and Time.get_ticks_msec() < fade_deadline:
+				await process_frame
 			_check("tela clara, HUD de volta, jogador anda",
 					not fade.is_splash_visible() and fade.get_amount() < 0.01
 					and player.get_hud().visible and player.is_physics_processing())

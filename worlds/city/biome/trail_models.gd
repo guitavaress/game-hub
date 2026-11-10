@@ -64,6 +64,11 @@ static func arrays(file: String, part: String) -> Array:
 ## Começa a carregar os arquivos em segundo plano (o mirante pede os seus no
 ## planejamento; quando a montagem chega neles, já estão prontos).
 static func prefetch(files: Array[String]) -> void:
+	# Sem janela (os testes), a Godot usa um servidor de desenho "de mentira" que
+	# não aguenta duas threads criando malhas ao mesmo tempo: de vez em quando uma
+	# malha nascia vazia e a montagem do mirante quebrava. Lá, carrega na hora.
+	if DisplayServer.get_name() == "headless":
+		return
 	for file in files:
 		var path := (MODELS if "/" in file else FOLDER) + file + ".glb"
 		if not _meshes.has(file + "/") and not ResourceLoader.has_cached(path):
