@@ -69,7 +69,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** um amigo instala sozinho, abre um jogo pelo hub e conta o que achou.
 
-**Andamento:** é a [Fase 18](plans/fase-18.md), em andamento desde 2026-11-10. Decidido no plano: a entrega é um zip num Release do GitHub, o feedback é um botão que copia um resumo, e a chave da Steam é opcional (o hub não cobra). Feitas: a 18.0 (a branch e o plano), a 18.1 (a versão 0.18.0 no menu de pausa e o export sem sobras) e a 18.2 (o `.exe` abre e monta a cidade, com o ícone casa-portal; `tools/empacotar_windows.sh` gera e confere o build). Próxima: a 18.3 (o primeiro uso num PC limpo); a 18.5 (o botão de feedback) pode correr em paralelo.
+**Andamento:** é a [Fase 18](plans/fase-18.md), em andamento desde 2026-11-10. Decidido no plano: a entrega é um zip num Release do GitHub, o feedback é um botão que copia um resumo, e a chave da Steam é opcional (o hub não cobra). Feitas: a 18.0 (a branch e o plano), a 18.1 (a versão 0.18.0 no menu de pausa e o export sem sobras) a 18.2 (o `.exe` abre e monta a cidade, com o ícone casa-portal; `tools/empacotar_windows.sh` gera e confere o build) e a 18.3 (na primeira abertura, a porta da casa diz o que está acontecendo; sem internet, nada fica 7 dias sem capa; PC fraco recebe uma sugestão da Leve; `tools/pc_limpo.ps1` testa como num PC limpo). Próxima: a 18.4 (amigos sem chave); a 18.5 (o botão de feedback) espera a integração no menu de pausa.
 
 ### 3. Visitar amigos (V-Sekai)
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**, com peças do [V-Sekai](https://github.com/v-sekai) (MIT): avatar VRM, espelho, voz, sala de encontro e ideias de rede. Substitui a "visita sem servidor" de antes.

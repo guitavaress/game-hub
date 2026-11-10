@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** 18.0, 18.1 e 18.2 feitas: `bash tools/empacotar_windows.sh` gera o `build/windows/GameHub.exe`, que abre com o ícone novo. A próxima é a 18.3 (o primeiro uso num PC limpo), em sessão nova; a 18.5 (trilha B) já pode começar.
+- **Agora:** 18.0 a 18.3 feitas: o `.exe` abre com o ícone novo e, na primeira vez, a porta da casa diz o que está acontecendo (buscando, baixando capas, ou por que a cidade está vazia). A próxima é a 18.4 (amigos sem chave), como subagente do coordenador; a 18.5 (trilha B) já foi entregue e espera a integração no menu de pausa.
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
@@ -59,7 +59,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Teste: bateria completa; o `.exe` abre, a cidade monta, um jogo abre e o hub volta; `tools/medir_desempenho.gd` no editor comparado com o FPS do F3 no build.
   - Manual: o dono abre `build/windows/GameHub.exe`.
   - Commit: `Fase 18.2: o build do Windows abre e joga`
-- [ ] **18.3 O primeiro uso num PC limpo** (tamanho: grande · quem: Opus · esforço: high · revisão: Astra, `/codex:review`, porque mexe em dado salvo e no caminho de partida de todos os sistemas)
+- [x] **18.3 O primeiro uso num PC limpo** (commit `00c1811`) (tamanho: grande · quem: Opus · esforço: high · revisão: Astra, `/codex:review`, porque mexe em dado salvo e no caminho de partida de todos os sistemas)
   - Faz: roda o build com o `user://` vazio (script `tools/pc_limpo.ps1`, com o pedido do dono) e conserta o que aparecer. O que já se sabe que precisa:
     - a primeira montagem, com o `StoreInfo` e o `GameArt` baixando tudo: a casa diz o que está acontecendo ("Buscando as capas… N de M") em vez de parecer travada;
     - sem internet na primeira vez: a cidade monta com todos em "Outros" e sem capas, com um aviso só;
@@ -68,6 +68,11 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Arquivos: `worlds/city/city.gd`, `worlds/home/home.gd` (o texto da porta), `autoload/store_info.gd` / `autoload/game_art.gd` (só expor o progresso, se ainda não expõem), `autoload/app_config.gd` (`[ui] seen_quality_hint`), `ui/hud.gd`, `tools/pc_limpo.ps1` (novo), `tests/check_first_run.gd` (novo: sem cache, biblioteca falsa, Steam ausente e vazia; estende o que o `check_first_time` já cobre).
   - Teste: bateria completa; capturas da casa na primeira abertura (fora do repositório).
   - Commit: `Fase 18.3: a primeira abertura explica o que acontece`
+  - **Feito (2026-11-10):** a placa da porta (Label3D na `TravelDoor` da frente) mostra "Buscando capas e categorias… N de M", depois "Baixando as capas… N de M", e some no fim; com a cidade vazia, diz o motivo e fica. `StoreInfo.get_progress()`, `GameArt.get_download_progress()` e `is_downloading()`. O aviso do PC fraco cita "Esc › Som e vídeo › Qualidade" (o caminho real do menu).
+    - **Bug achado:** o `GameArt` anotava `.none` (7 dias sem tentar) também quando a rede nem conectava: o amigo que abrisse sem internet ficaria uma semana sem capas. Agora só anota quando a loja respondeu sem a imagem.
+    - **Decisões:** `StoreInfo.api_url` virou variável, para o teste simular "sem internet" sem mexer na rede; o "sem internet" de verdade ficou só no teste (bloquear o `.exe` no firewall pede administrador). `tests/README.md` ganhou as armadilhas do teste novo.
+    - **Teste no `.exe` com a pasta vazia (com internet):** a abertura mostra "Buscando capas e categorias…", a casa abre com as capas na estante, o cartão de controles e um aviso só ("Amigos desligados"). A loja e as capas chegaram durante a abertura; as placas foram conferidas em captura própria. Os dados do dono voltaram (`pc_limpo.ps1 devolver`).
+    - **Revisão (Astra, `/codex:review`):** dois achados aceitos: o `pc_limpo.ps1` passa a recusar também o hub rodado pelo F5 do editor (`--remote-debug`); o `check_first_run` usa um caminho falso da Steam numa máquina sem Steam (o CI), para os cenários com jogos.
 - [ ] **18.4 Amigos sem chave, sem cobrança** (tamanho: pequena · quem: Sonnet, subagente · esforço: medium)
   - Faz: sem chave, o `FriendsService` não emite `problem` (ganha `needs_key()`); o HUD fica quieto. O mural da casa vira o convite: "Veja seus amigos aqui" e os 3 passos (abrir a página da chave, colar em Esc › Amigos, salvar), e E no mural abre a pausa já na aba Amigos. A aba Amigos numera os mesmos passos. Chave inválida e lista privada continuam avisando.
   - Arquivos: `autoload/friends_service.gd`, `worlds/home/friends_wall.gd`, `ui/settings_view.gd`, `ui/pause_menu.gd` (abrir numa aba), `tests/check_phase5.gd`, `tests/check_friends_wall.gd`, `tests/check_settings_view.gd`.
