@@ -186,7 +186,11 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
    - A **bateria completa** roda também antes de cada merge e ao fim da fase.
 4. **Volte ao modo plan quando:** surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas. Atualize o plano.
 5. **Ao fim de cada subetapa:** um resumo curto que **começa pelo que o dono vai ver**, o checklist de teste manual e a mensagem do commit. O dono hoje lê mais do que testa: o resumo tem que levar a testar.
-6. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
+6. **Ao fim de cada subetapa, atualizar o cofre e o painel** (dono, 2026-11-08):
+   - **Docs:** marque o `[x]` e o hash do commit em `docs/plans/fase-N.md`, e atualize o que a subetapa mudou em `docs/ROADMAP.md` e `docs/Início.md` (fase atual, próxima subetapa). Ideia que surgiu vai para `docs/ideias/`.
+   - **Painel:** ele lê `docs/` e o git sozinho (confere a cada 2 s), então os docs atualizados já aparecem nele. Só precisa de `docker compose -f painel/compose.yaml up -d --build` (na raiz) se a subetapa mexeu no código de `painel/`. Se o contêiner estiver parado, avise o dono em vez de subir sem pedir.
+   - Faça isso no mesmo commit da subetapa ou num commit de docs logo depois ("Docs: ..."), que dispensa a bateria.
+7. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
 
 ### Sessões e contexto
 - **Quando abrir uma sessão nova:** veja "Modelos e esforço". O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
@@ -227,4 +231,5 @@ Uma subetapa só está pronta quando:
 3. Mudança visual foi conferida com captura de tela (fora do repositório).
 4. O dono recebeu o resumo curto (começando pelo que ele vai ver) e o checklist de teste manual.
 5. O commit foi feito (e-mail noreply, sem `config.cfg` nem chave) e o `[x]` da subetapa marcado em `docs/plans/fase-N.md`.
-6. Ao fim da fase: README e ROADMAP atualizados.
+6. O cofre foi atualizado (plano, ROADMAP e Início) e, se o código de `painel/` mudou, o painel foi reconstruído (veja "Fluxo de uma fase", item 6).
+7. Ao fim da fase: README e ROADMAP atualizados.
