@@ -1,6 +1,7 @@
 extends SceneTree
 ## Teste do preset de export do Windows (fase "Mostrar para amigos").
 ## Só lê res://export_presets.cfg: não monta a cidade e não usa user://.
+## Sem o preset "Windows", todas as conferências dele contam como falha.
 
 var failures := 0
 
@@ -14,36 +15,26 @@ func _run() -> void:
 	var cfg := ConfigFile.new()
 	var err := cfg.load("res://export_presets.cfg")
 	_check("export_presets.cfg carregou", err == OK)
-	var windows_section: String = ""
+
+	var windows_section := ""
 	for section in cfg.get_sections():
-		var preset_name: String = cfg.get_value(section, "name", "")
-		if preset_name == "Windows":
+		if cfg.get_value(section, "name", "") == "Windows":
 			windows_section = section
 			break
-		
-	# Check 2: preset exists
 	_check("preset 'Windows' existe", windows_section != "")
-	# Check 3: platform
-	if windows_section != "":
-		_check("platform = 'Windows Desktop'", cfg.get_value(windows_section, "platform", "") == "Windows Desktop")
-	# Check 4: runnable
-	if windows_section != "":
-		_check("runnable = true", cfg.get_value(windows_section, "runnable", false) == true)
-	# Check 5: export_path
-	if windows_section != "":
-		_check("export_path = 'build/windows/GameHub.exe'", cfg.get_value(windows_section, "export_path", "") == "build/windows/GameHub.exe")
-	# Check 6: exclude_filter contains required items
-	if windows_section != "":
-		var exclude_filter: String = cfg.get_value(windows_section, "exclude_filter", "")
-		var filters := exclude_filter.split(",")
-		var trimmed_filters := []
-		for filter in filters:
-			trimmed_filters.append(filter.strip_edges())
-		
-		_check("exclude_filter contém 'tests/*'", "tests/*" in trimmed_filters)
-		_check("exclude_filter contém 'docs/*'", "docs/*" in trimmed_filters)
-		_check("exclude_filter contém 'tools/*'", "tools/*" in trimmed_filters)
-		_check("exclude_filter contém '*.md'", "*.md" in trimmed_filters)
+
+	# Sem a seção, o get_value devolve o padrão e a conferência falha sozinha.
+	_check("platform = 'Windows Desktop'",
+		cfg.get_value(windows_section, "platform", "") == "Windows Desktop")
+	_check("runnable = true", cfg.get_value(windows_section, "runnable", false) == true)
+	_check("export_path = 'build/windows/GameHub.exe'",
+		cfg.get_value(windows_section, "export_path", "") == "build/windows/GameHub.exe")
+
+	var filters: Array[String] = []
+	for item in str(cfg.get_value(windows_section, "exclude_filter", "")).split(","):
+		filters.append(item.strip_edges())
+	for wanted in ["tests/*", "docs/*", "tools/*", "*.md"]:
+		_check("exclude_filter contém '%s'" % wanted, wanted in filters)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
