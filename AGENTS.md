@@ -69,13 +69,17 @@ worlds/city/   o primeiro mundo: layout, prédios, decoração, dia e noite, pla
   biome/           o bioma na cidade (BiomeBuilder: chão, enfeites, névoa) e a montanha (BackdropTerrain, sobre o núcleo da 15.8)
 tests/         bateria automática (veja tests/README.md)
 tools/         scripts de geração rodados à mão (ex.: atlas das árvores); linux/: compilar o compositor, licenças, teste manual;
-               jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev
-assets/        só CC0, com LICENSE em cada pasta de origem
+               jev/: triagem das falhas da bateria (Python, só código) e o instrumento que mediu o Jev;
+               blender/: os scripts do Blender (GPL-3.0) que geram os .glb da trilha em assets/models/trail/
+assets/        só CC0, com LICENSE em cada pasta de origem; models/trail/: os .glb gerados por tools/blender/ (nossos, MIT)
 addons/        addons de terceiros, com LICENSE: debug_menu (F3) e sky_3d (opção de céu); regras na seção "Addons"
 native/        código nativo nosso (Fase 14, parte 2): compositor/ é a GDExtension em Rust (Smithay + godot-rust),
                só Linux; o .so compilado (native/bin/) fica fora do repositório. Só autoload/platform/app_compositor.gd usa
 docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cofre do Obsidian do dono (painel em Início.md)
   ideias/        caixa de entrada de ideias. Ideia aqui NÃO é tarefa: só vira trabalho quando entra na ROADMAP como fase
+painel/        o painel visual do cofre (React + Motion, no Docker; http://localhost:4170). Só lê docs/ e o git;
+               não faz parte do hub. Tem a própria skill de design (painel/.claude/skills/impeccable, Apache-2.0),
+               com agentes e hooks em painel/.claude/: para usá-la, abra a sessão dentro de painel/
 .claude/skills/  skills locais (jogos/design, Apache-2.0) + revisao-do-hub
 ```
 
@@ -99,6 +103,13 @@ docs/          ROADMAP, PLATAFORMA, plans/ (planos das fases), design/; é o cof
 - Só **CC0** (Kenney, Poly Haven, ambientCG, Quaternius...), com o `LICENSE` na pasta e o crédito no README.
 - **Antes de baixar, peça permissão** dizendo o nome do arquivo, a origem e o tamanho.
 - Arquivos-fonte pesados (ex.: modelo glTF de centenas de MB) ficam **fora do repositório**. Entra só o que o jogo usa (ex.: o atlas gerado).
+- **Modelos: o Blender é o caminho de modelagem** (dono, 2026-11-04, depois do teste da 17.7.1). As regras:
+  - **O Blender faz a forma; a Godot faz o resto.** Onde cada peça fica, o que depende de dados (capas, tamanho da sala, biblioteca), luzes, chamas e shaders continuam em código. O Blender só gera malhas.
+  - **Um script refazível por modelo** em `tools/blender/` (as peças comuns em `comum.py`), sem `.blend` no repositório. O `.glb` vai para `assets/models/<grupo>/`, e entra junto o `.import` que a Godot gerar.
+  - **Materiais compartilhados:** uma malha por material, com o nome dele (`stone`, `wood`...), para a Godot juntar as peças num desenho por material. As texturas PBR do projeto servem a todos, e nada de textura nova por modelo sem necessidade.
+  - **Orçamento:** cerca de 300 KB por peça pequena e 800 KB por peça grande, com a malha reduzida só onde a forma não muda. **A qualidade vem antes:** se reduzir piorar a forma visível, o orçamento cede, e isso fica registrado no plano.
+  - **Plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
+  - Fora do Blender, até virar fase própria: os prédios da cidade e o terreno.
 
 ## Addons (código de terceiros)
 Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-2026-10-13.md).
@@ -127,6 +138,12 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 
 **Fluxo congelado (dono, 2026-11-02):** este fluxo (Claude Code + Codex + Orca) não muda por 3 fases. Isso quer dizer: nenhuma ferramenta, orquestrador ou modelo novo (o Paperclip fica fora). Cada troca custava sessões só de documentação.
 - **Exceção: o REA** (engenharia reversa: MCP `rea` + skill `reverse-engineer-anything`), instalado pelo dono para o estudo do V-Sekai. Ele fica **só no desenvolvimento**, nunca no hub.
+- **Exceção: o Blender** (dono, 2026-11-04), a partir do teste da 17.7.1.
+  - É a versão LTS, instalada pelo winget (`BlenderFoundation.Blender`; hoje a 5.2.3, em `C:\Program Files\Blender Foundation\Blender 5.2\`), fora do repositório e só no desktop.
+  - Os agentes geram modelos por scripts Python rodados sem janela (`blender --background --python`) e exportam em `.glb`. O Blender fica **só no desenvolvimento**, nunca no hub.
+  - Sem o MCP do Blender: os scripts deixam cada modelo refazível.
+  - Licença: a API Python do Blender é GPL. Por isso os scripts ficam em `tools/blender/`, com o `LICENSE` GPL-3.0 da pasta. Os `.glb` gerados são nossos, como o resto do repositório (MIT).
+- **Exceção: o painel do cofre** (dono, 2026-11-07): Docker, React, Motion e a skill Impeccable, **só em `painel/`**, nunca no hub. Detalhes em [painel/README.md](painel/README.md).
 - A base do estudo é ler o código aberto do V-Sekai. A própria skill do REA manda pular o REA quando há código-fonte.
 - O REA entra só no que existe apenas compilado ou em execução (ex.: observar um build do V-Sekai rodando).
 - **Nunca** num programa fechado cujos termos proíbam engenharia reversa (ex.: o VRChat, que serve só como referência de função, visto de fora).
@@ -169,7 +186,11 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
    - A **bateria completa** roda também antes de cada merge e ao fim da fase.
 4. **Volte ao modo plan quando:** surgir uma decisão de arquitetura que o plano não previa, ou o mesmo erro aparecer duas vezes seguidas. Atualize o plano.
 5. **Ao fim de cada subetapa:** um resumo curto que **começa pelo que o dono vai ver**, o checklist de teste manual e a mensagem do commit. O dono hoje lê mais do que testa: o resumo tem que levar a testar.
-6. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
+6. **Ao fim de cada subetapa, atualizar o cofre e o painel** (dono, 2026-11-08):
+   - **Docs:** marque o `[x]` e o hash do commit em `docs/plans/fase-N.md`, e atualize o que a subetapa mudou em `docs/ROADMAP.md` e `docs/Início.md` (fase atual, próxima subetapa). Ideia que surgiu vai para `docs/ideias/`.
+   - **Painel:** ele lê `docs/` e o git sozinho (confere a cada 2 s), então os docs atualizados já aparecem nele. Só precisa de `docker compose -f painel/compose.yaml up -d --build` (na raiz) se a subetapa mexeu no código de `painel/`. Se o contêiner estiver parado, avise o dono em vez de subir sem pedir.
+   - Faça isso no mesmo commit da subetapa ou num commit de docs logo depois ("Docs: ..."), que dispensa a bateria.
+7. **Ao fim da fase:** atualizar README (o que mudou para o usuário) e ROADMAP (fase marcada como feita); juntar na `main` só quando o dono pedir.
 
 ### Sessões e contexto
 - **Quando abrir uma sessão nova:** veja "Modelos e esforço". O plano em `docs/plans/` é a memória entre sessões: uma sessão nova lê o plano, vê o que está marcado e continua dali.
@@ -210,4 +231,5 @@ Uma subetapa só está pronta quando:
 3. Mudança visual foi conferida com captura de tela (fora do repositório).
 4. O dono recebeu o resumo curto (começando pelo que ele vai ver) e o checklist de teste manual.
 5. O commit foi feito (e-mail noreply, sem `config.cfg` nem chave) e o `[x]` da subetapa marcado em `docs/plans/fase-N.md`.
-6. Ao fim da fase: README e ROADMAP atualizados.
+6. O cofre foi atualizado (plano, ROADMAP e Início) e, se o código de `painel/` mudou, o painel foi reconstruído (veja "Fluxo de uma fase", item 6).
+7. Ao fim da fase: README e ROADMAP atualizados.

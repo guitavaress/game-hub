@@ -35,6 +35,10 @@ const GLASS_CENTER_Y: float = 1.12
 const FRAME_WIDTH: float = 0.08
 const FRAME_DEPTH: float = 0.06
 const FRAME_WOOD: Color = Color(0.22, 0.14, 0.08)
+## A arandela em cima da moldura (Fase 17.2): a sala ficou com poças de luz e
+## cantos escuros, e o espelho precisa de luz para quem se olha nele.
+const SCONCE_COLOR: Color = Color(1.0, 0.78, 0.55)
+const SCONCE_ENERGY: float = 1.1
 ## Até onde (m, da câmera ao vidro) o espelho desenha.
 const ACTIVE_DISTANCE: float = 4.5
 ## Até onde (m) a câmera do espelho enxerga além do vidro.
@@ -303,6 +307,21 @@ func _build_frame() -> void:
 	for x in [-half.x - FRAME_WIDTH / 2.0, half.x + FRAME_WIDTH / 2.0]:
 		HomeDecor.make_box(self, "MirrorFrame", Vector3(FRAME_WIDTH, GLASS_SIZE.y, FRAME_DEPTH),
 				Vector3(x, GLASS_CENTER_Y, FRAME_DEPTH / 2.0), wood, false)
+	_build_sconce(GLASS_CENTER_Y + half.y + FRAME_WIDTH)
+
+
+## A arandela: uma barra acesa logo acima da moldura e a luz quente que ela faz,
+## na frente do vidro (sem sombra).
+func _build_sconce(top: float) -> void:
+	HomeDecor.make_box(self, "MirrorSconce", Vector3(GLASS_SIZE.x * 0.7, 0.04, 0.08),
+			Vector3(0.0, top + 0.08, 0.06), HomeMaterials.glow(SCONCE_COLOR, 3.0), false)
+	var light := OmniLight3D.new()
+	light.name = "MirrorLight"
+	light.light_color = SCONCE_COLOR
+	light.light_energy = SCONCE_ENERGY
+	light.omni_range = 3.2
+	light.position = Vector3(0.0, top, 0.45)
+	add_child(light)
 
 
 ## A "tela escondida" do reflexo e a câmera dela. Sem sombras, sem MSAA e com

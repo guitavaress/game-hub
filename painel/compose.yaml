@@ -1,0 +1,14 @@
+# Painel do cofre: docker compose -f painel/compose.yaml up -d --build
+# e abra http://localhost:4170. Para parar: docker compose -f painel/compose.yaml down
+name: painel-do-cofre
+services:
+  painel:
+    build: .
+    image: game-hub-painel:local
+    # Só a sua máquina enxerga o painel (127.0.0.1).
+    ports:
+      - "127.0.0.1:4170:4170"
+    # O repositório entra SOMENTE LEITURA: o painel nunca escreve nos docs.
+    volumes:
+      - ..:/repo:ro
+    restart: unless-stopped

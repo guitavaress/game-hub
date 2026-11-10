@@ -35,8 +35,8 @@ func _run() -> void:
 	_check("a casa tem o painel do sistema", panel != null and panel.is_in_group("system_panel"))
 	_check("está na parede norte", is_equal_approx(panel.position.z, -home_script.ROOM_SIZE.z / 2.0))
 	_check("fica em cima do computador (mesmo x)", is_equal_approx(panel.position.x, desk.position.x))
-	_check("acima do monitor", panel_script.CENTER_Y - panel_script.PANEL_SIZE.y / 2.0 > desk_script.SCREEN_HEIGHT + desk_script.SCREEN_SIZE.y / 2.0)
-	_check("cabe abaixo do teto", panel_script.CENTER_Y + panel_script.PANEL_SIZE.y / 2.0 < home_script.ROOM_SIZE.y)
+	_check("acima do monitor", panel.center_y - panel_script.PANEL_SIZE.y / 2.0 > desk_script.SCREEN_HEIGHT + desk_script.SCREEN_SIZE.y / 2.0)
+	_check("cabe abaixo do teto", panel.center_y + panel_script.PANEL_SIZE.y / 2.0 < home_script.ROOM_SIZE.y)
 	_check("escuta o SystemStatus", status.changed.is_connected(panel.refresh))
 
 	print("== hora e data ==")
@@ -82,7 +82,7 @@ func _run() -> void:
 		if child is Label3D:
 			first_row = child
 			break
-	_check("a primeira linha ocupa o lugar de cima", first_row != null and is_equal_approx(first_row.position.y, panel_script.CENTER_Y + panel_script.FIRST_ROW_Y))
+	_check("a primeira linha ocupa o lugar de cima", first_row != null and is_equal_approx(first_row.position.y, panel.center_y + panel_script.FIRST_ROW_Y))
 
 	print("== o sistema não sabe de nada ==")
 	status.apply(SystemInfoBackend.unknown())

@@ -68,6 +68,19 @@ const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
 ## pouco à frente dela, olhando para o norte.
 const HOME_DOOR_SPOT: Vector3 = Vector3(6.0, 0.0, 12.2)
 const HOME_DOOR_ARRIVAL: Vector3 = Vector3(6.0, 0.1, 10.0)
+## A VISTA DA JANELA DA CASA (Fase 17.3): a cidade oferece um ponto de vista
+## (WindowViewPoint) do lado oposto ao da montanha, alto (acima dos letreiros
+## dos bairros, que de baixo tampam tudo), olhando a praça com a torre do
+## relógio, os néons dos bairros e, atrás, a montanha com a trilha e o mirante.
+## Sem montanha, olha para o norte. As distâncias são frações do raio da cidade
+## (o tamanho dela muda com a biblioteca), com um mínimo. A câmera desce um
+## pouco (o horizonte fica no quarto de cima da janela) e aproxima um pouco.
+const WINDOW_VIEW_REACH: float = 0.92
+const WINDOW_VIEW_HEIGHT: float = 0.4
+const WINDOW_VIEW_MIN_REACH: float = 70.0
+const WINDOW_VIEW_MIN_HEIGHT: float = 30.0
+const WINDOW_VIEW_PITCH_DEGREES: float = -5.0
+const WINDOW_VIEW_ZOOM: float = 1.2
 ## Amigos na praça: em círculos em volta do chafariz.
 const PLAZA_FRIEND_RADIUS: float = 4.5
 const PLAZA_FRIEND_RING_STEP: float = 2.0
@@ -116,6 +129,8 @@ var _photo_sky: Sky
 ## O céu do addon Sky3D (opção Céu = "sky3d"): ele é o WorldEnvironment e tem
 ## sol e lua próprios.
 var _sky3d: Sky3D
+## O luar que acompanha o Sky3D (veja DayNight.MOONLIGHT_ENERGY).
+var _moonlight: DirectionalLight3D
 ## A casa do jogador e a porta "Casa" da praça.
 var _home: Home
 var _home_door: TravelDoor
@@ -141,6 +156,9 @@ var _backdrop_district: String = ""
 var _backdrop_half: float = 0.0
 var _backdrop_cell: float = 0.0
 var _backdrop_rebuilding: bool = false
+## Os jogos do bairro da montanha (os SteamGame de district["games"]): viram
+## os estandartes da trilha (17.7), na montagem e quando a montanha é refeita.
+var _backdrop_games: Array = []
 
 ## Placas dos bairros: o néon fica mais forte à noite.
 var _district_signs: Array[DistrictSign] = []
@@ -224,6 +242,8 @@ func _ready() -> void:
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
 		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
+	# A cidade está pronta para ser vista: a janela da casa tira o retrato.
+	_add_window_view_point(half)
 	_is_ready = true
 	city_ready.emit()
 	# Uma troca de qualidade feita durante a montagem foi ignorada: confere agora.
@@ -343,6 +363,8 @@ func _rebuild_backdrop() -> void:
 		fresh.visible = false
 		while fresh.build_next():
 			await get_tree().process_frame
+		# Os estandartes entram ainda escondidos, para a troca ser num quadro só.
+		fresh.get_dressing().set_games(_backdrop_games)
 		# A montagem é a mesma de antes, então o nome e o lugar não mudam.
 		remove_child(old)
 		old.queue_free()
@@ -533,6 +555,9 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 		_backdrop_cell = terrain.cell_meters
 		while terrain.build_next():
 			await _keep_frame_light()
+		# A trilha só existe depois da montagem: aí entram os seus jogos.
+		_backdrop_games = district["games"]
+		terrain.get_dressing().set_games(_backdrop_games)
 		for zone in terrain.get_zone_rects():
 			_map.add_zone_rect(district["id"], zone)
 		_map.add_landmark("trilha", TrailDressing.SIGN_TEXT, terrain.trail.start,
@@ -939,7 +964,7 @@ func _build_environment() -> void:
 	env.ssao_enabled = true      # sombrinhas nos cantos: dá "peso" aos objetos
 	env.ssr_enabled = true       # reflexos na tela: vidro e asfalto molhado
 	env.fog_enabled = true       # neblina leve (o DayNight ajusta a densidade)
-	env.fog_sky_affect = 0.15
+	env.fog_sky_affect = 0.15  # o DayNight sobe à noite (céu azul-noite)
 	# Névoa volumétrica: densidade 0 no ar; só aparece dentro de FogVolumes
 	# (ex.: névoa baixa do bairro Terror). O céu e as luzes iluminam ela.
 	env.volumetric_fog_density = 0.0
@@ -961,16 +986,18 @@ func _build_environment() -> void:
 ## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).
 ## O Environment é o mesmo nos dois: neblina, efeitos e qualidade não mudam.
 func _apply_sky(mode: String) -> void:
-	for old: Node in [_world_env, _sun, _sky3d]:
+	for old: Node in [_world_env, _sun, _sky3d, _moonlight]:
 		if old != null:
 			remove_child(old)  # sai já, para não haver dois céus num quadro
 			old.queue_free()
 	_world_env = null
 	_sun = null
 	_sky3d = null
+	_moonlight = null
 	_day_night.sky_material = null
 	_day_night.sun = null
 	_day_night.sky3d = null
+	_day_night.moonlight = null
 
 	if mode == "sky3d":
 		_environment.sky = null  # vazio: o Sky3D cria o céu dele
@@ -988,6 +1015,16 @@ func _apply_sky(mode: String) -> void:
 		_set_sky3d_place(_sky3d.tod)
 		for light in _sky_lights():
 			_setup_sky_light(light)
+		# O luar (Fase 17.5): a lua do Sky3D segue o céu de verdade e muitas
+		# noites está abaixo do horizonte; o DayNight regula esta luz para a
+		# noite nunca ficar sem lua. Sem sombra: é barata.
+		_moonlight = DirectionalLight3D.new()
+		_moonlight.name = "Moonlight"
+		_moonlight.shadow_enabled = false
+		_moonlight.visible = false
+		_setup_sky_light(_moonlight)
+		add_child(_moonlight)
+		_day_night.moonlight = _moonlight
 		_day_night.sky3d = _sky3d
 	else:
 		_environment.sky = _photo_sky
@@ -1096,6 +1133,29 @@ func _build_home() -> void:
 
 func get_home() -> Home:
 	return _home
+
+
+## O ponto de vista da janela da casa (veja WINDOW_VIEW_REACH). Entra só com a
+## cidade pronta: até lá, a janela fica com a vista de reserva.
+func _add_window_view_point(half: float) -> void:
+	var toward := Vector2(0.0, -1.0)  # sem montanha: para o norte
+	var terrain := get_node_or_null("BackdropTerrain_%s" % _backdrop_district) as BackdropTerrain
+	if terrain != null:
+		var tower := terrain.tower_spot()
+		if Vector2(tower.x, tower.z).length() > 1.0:
+			toward = Vector2(tower.x, tower.z).normalized()
+	var reach := maxf(half * WINDOW_VIEW_REACH, WINDOW_VIEW_MIN_REACH)
+	var height := maxf(half * WINDOW_VIEW_HEIGHT, WINDOW_VIEW_MIN_HEIGHT)
+	var point := WindowViewPoint.new()
+	point.name = "WindowViewPoint"
+	point.zoom = WINDOW_VIEW_ZOOM
+	# As placas flutuantes dos bairros ficam fora do retrato (na rua seguem iguais).
+	point.hidden_layers = DistrictSign.RENDER_LAYER_MASK
+	# Girar em Y leva o -Z (a frente da câmera) para "toward"; depois desce.
+	var yaw := atan2(-toward.x, -toward.y)
+	point.basis = Basis.from_euler(Vector3(deg_to_rad(WINDOW_VIEW_PITCH_DEGREES), yaw, 0.0))
+	point.position = Vector3(-toward.x * reach, height, -toward.y * reach)
+	add_child(point)
 
 
 func get_home_door() -> TravelDoor:

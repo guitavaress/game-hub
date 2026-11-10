@@ -7,7 +7,7 @@ extends Node3D
 ## A imagem das silhuetas é desenhada por código uma vez (2048 x 256): prédios
 ## de alturas e larguras sorteadas, com janelinhas. O shader (skyline.gdshader)
 ## pinta tudo numa cor só, tirada da neblina da hora (azul-acinzentado de dia,
-## quente no pôr do sol, quase preto à noite) e acende algumas janelas à noite.
+## quente no pôr do sol, azul-marinho à noite) e acende algumas janelas à noite.
 ##
 ## É só cenário: um cilindro sem tampa, sem luz, sem sombra e sem colisão.
 
@@ -20,7 +20,9 @@ const BUILDING_HEIGHT_RANGE: Vector2 = Vector2(14.0, 62.0)
 const BUILDING_WIDTH_RANGE: Vector2i = Vector2i(10, 36)  # em pixels (1 px = 1,2 m)
 ## Parte das janelas da skyline que acende à noite.
 const LIT_WINDOWS: float = 0.1
-const NIGHT_COLOR: Color = Color("0B0D14")
+## À noite, um azul-marinho pouco mais escuro que a neblina da noite (Fase
+## 17.5): com o céu azul-noite, o preto virava um recorte de papelão.
+const NIGHT_COLOR: Color = Color("131B25")
 const OUTSKIRTS_SIZE: float = RADIUS * 2.2
 const OUTSKIRTS_COLOR: Color = Color("15171C")
 const SHADER: Shader = preload("res://worlds/city/skyline.gdshader")

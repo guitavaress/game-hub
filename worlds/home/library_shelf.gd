@@ -31,6 +31,11 @@ const RETURN_FADE_TIME: float = 0.8
 const RETURN_SPOT: Vector3 = Vector3(0.0, 0.1, 2.5)
 const PANEL_COLOR: Color = Color(0.16, 0.11, 0.08)
 const FRAME_WOOD: Color = Color(0.3, 0.19, 0.11)
+## A luz de vitrine (Fase 17.2): uma fita de LED quente embaixo do tampo e duas
+## luzes fracas na frente das capas, sem sombra. A estante é o que mais se olha
+## na casa, e a sala ficou com poças de luz e cantos escuros.
+const SHOWCASE_COLOR: Color = Color(1.0, 0.78, 0.55)
+const SHOWCASE_ENERGY: float = 0.9
 const FILTER_ALL: String = ""
 
 var _page: int = 0
@@ -239,6 +244,22 @@ func _build_frame() -> void:
 	for row in ROWS:
 		var board_y := FIRST_ROW_Y + row * BOX_STEP.y - BOX_SIZE.y / 2.0 - 0.015
 		_add_part("Board", Vector3(width, 0.03, depth - 0.02), Vector3(0.0, board_y, depth / 2.0), wood, false)
+	_build_showcase_light(width, top, depth)
+
+
+## A fita acesa embaixo da borda da frente do tampo e as duas luzes que ela
+## "faz" (uma em cada metade, para clarear as capas por igual).
+func _build_showcase_light(width: float, top: float, depth: float) -> void:
+	var strip := HomeMaterials.glow(SHOWCASE_COLOR, 3.0)
+	_add_part("ShowcaseStrip", Vector3(width - 0.1, 0.015, 0.02), Vector3(0.0, top - 0.06, depth - 0.02), strip, false)
+	for side in [-1.0, 1.0]:
+		var light := OmniLight3D.new()
+		light.name = "ShowcaseLight"
+		light.light_color = SHOWCASE_COLOR
+		light.light_energy = SHOWCASE_ENERGY
+		light.omni_range = 2.8
+		light.position = Vector3(side * width / 4.0, top - 0.2, depth + 0.5)
+		add_child(light)
 
 
 func _add_part(part_name: String, part_size: Vector3, center: Vector3, material: Material, solid: bool) -> void:

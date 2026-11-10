@@ -25,3 +25,9 @@ docs/.obsidian/workspace*.json
 docs/.obsidian/plugins/
 docs/.obsidian/themes/
 docs/_anexos/
+
+# Painel do cofre (painel/): pacotes e o site compilado ficam fora do git
+painel/node_modules/
+painel/dist/
+# o motor da Impeccable, se um dia for instalado ao lado da skill (fica em ~/.impeccable/)
+painel/.claude/skills/impeccable/scripts/bin/

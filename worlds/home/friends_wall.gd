@@ -15,8 +15,9 @@ const ROWS: int = 3
 const MAX_CARDS: int = COLUMNS * ROWS
 const CARD_SIZE: Vector3 = Vector3(1.0, 0.56, 0.05)
 const CARD_STEP: Vector2 = Vector2(1.15, 0.7)
-## Altura do centro da fileira de baixo.
-const FIRST_ROW_Y: float = 1.0
+## Altura do centro da fileira de baixo. O quadro todo (com o título) fica
+## abaixo das vigas da sala de 3 m (Fase 17.4b; antes, 1,0).
+const FIRST_ROW_Y: float = 0.78
 const CORK_COLOR: Color = Color(0.52, 0.36, 0.22)
 const FRAME_WOOD: Color = Color(0.3, 0.19, 0.11)
 const TITLE_COLOR: Color = Color(1.0, 0.55, 0.85)

@@ -19,6 +19,13 @@ uniform float rough = 0.5;
 uniform bool planks = true;
 // Toras (0 = tábua lisa, 1 = tora redonda). Só nas faces de lado (paredes).
 uniform float log_round = 0.0;
+// Fase 17.7.1 (os bancos do Blender): o veio vem do UV do modelo, em metros
+// (x ao longo do veio), e não da posição no mundo: cada tábua tem o seu, em
+// qualquer giro. "vertex_gain" > 0 multiplica pela cor dos vértices (o tom de
+// cada tábua e os cantos escuros, gravados divididos por esse ganho).
+// Nascem desligados: a casa não muda.
+uniform bool grain_from_uv = false;
+uniform float vertex_gain = 0.0;
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -44,7 +51,9 @@ void fragment() {
 	// p.x = ao longo do veio, p.y = de través.
 	vec3 n = abs(world_normal);
 	vec2 p;
-	if (n.y > n.x && n.y > n.z) {
+	if (grain_from_uv) {
+		p = UV;
+	} else if (n.y > n.x && n.y > n.z) {
 		p = world_position.xz;
 	} else if (n.x > n.z) {
 		p = vec2(world_position.z, world_position.y);
@@ -75,6 +84,9 @@ void fragment() {
 		// A normal se inclina para cima e para baixo, como num cilindro deitado.
 		vec3 bent = normalize(world_normal * max(bulge, 0.25) + vec3(0.0, a * log_round, 0.0));
 		NORMAL = normalize((VIEW_MATRIX * vec4(bent, 0.0)).xyz);
+	}
+	if (vertex_gain > 0.0) {
+		albedo *= COLOR.rgb * vertex_gain;
 	}
 	ALBEDO = albedo;
 	ROUGHNESS = mix(0.9, rough + (fine - 0.5) * 0.12, edge);

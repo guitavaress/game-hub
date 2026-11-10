@@ -12,6 +12,7 @@ extends RefCounted
 ##          com menos detalhe. Para PCs fracos.
 ##
 ## A neblina e o brilho (glow) ficam em todas: são baratos e fazem o clima.
+## Dentro de casa, a Alta liga também a luz rebatida (SSIL, Fase 17.2).
 ## O AppConfig aplica a parte da janela (resolução do 3D, anti-aliasing e o
 ## tamanho da sombra do sol); cada mundo aplica a parte do seu Environment e
 ## do seu sol (e escuta AppConfig.settings_changed).
@@ -31,6 +32,15 @@ static func apply_to_environment(environment: Environment, level: String) -> voi
 	# Névoa volumétrica: só onde o mundo pôs um FogVolume (ex.: névoa baixa do
 	# bairro Terror). Na Leve fica desligada.
 	environment.volumetric_fog_enabled = level != "leve"
+
+
+## A luz rebatida na tela (SSIL, Fase 17.2): a luz quente que bate no chão e
+## nas paredes "rebate" e esquenta o que está perto, como numa sala de verdade.
+## Só na Alta, e por enquanto só dentro de casa (a cidade testa na 17.5).
+static func apply_indoor_light(environment: Environment, level: String) -> void:
+	environment.ssil_enabled = level == "alta"
+	environment.ssil_radius = 4.0
+	environment.ssil_intensity = 1.6
 
 
 ## Na janela: resolução do 3D (o HUD continua nítido: ele não é 3D), o
@@ -112,6 +122,28 @@ static func mirror_resolution(level: String) -> Vector2i:
 	return Vector2i(480, 900)
 
 
+## O retrato da vista da janela (Fase 17.3, WindowView): o tamanho (px, 2:1) e
+## as bordas. As bordas são as mesmas da janela do jogo (apply_to_viewport):
+## com o mesmo MSAA, os shaders que o retrato compila servem também para a
+## tela, e a cidade não paga a compilação duas vezes. Na Leve, menor e sem FSR.
+static func apply_to_window_view(viewport: SubViewport, level: String) -> void:
+	match level:
+		"leve":
+			viewport.size = Vector2i(1024, 512)
+			viewport.msaa_3d = Viewport.MSAA_DISABLED
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+		"media":
+			viewport.size = Vector2i(1536, 768)
+			viewport.msaa_3d = Viewport.MSAA_DISABLED
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
+		_:
+			viewport.size = Vector2i(2048, 1024)
+			viewport.msaa_3d = Viewport.MSAA_2X
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
+	viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	viewport.scaling_3d_scale = 1.0
+
+
 ## Na Leve, o espelho desenha um quadro sim, um não (30 vezes por segundo).
 static func mirror_every_other_frame(level: String) -> bool:
 	return level == "leve"
@@ -124,4 +156,4 @@ static func describe(level: String) -> String:
 			return "Sem reflexos nem sombreamento extra; 3D em 50%, bordas com FXAA e sombra curta. Para PCs fracos."
 		"media":
 			return "Sem os reflexos na tela; bordas lisas com SMAA. Mais leve, quase igual."
-	return "Tudo ligado: reflexos, sombreamento, neblina e bordas lisas (MSAA 2x + SMAA)."
+	return "Tudo ligado: reflexos, sombreamento, luz rebatida em casa, neblina e bordas lisas (MSAA 2x + SMAA)."

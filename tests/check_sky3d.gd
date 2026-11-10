@@ -80,8 +80,25 @@ func _run() -> void:
 			is_equal_approx(sky3d.current_time, clock.FIXED_NIGHT_HOUR))
 	_check("Hora = noite: o Sky3D está de noite", sky3d.is_night())
 	_check("Hora = noite: a cidade foi avisada", day_night.get_night() > 0.99)
+
+	print("== O luar (17.5): a noite nunca fica sem lua ==")
+	var moonlight: Node = city.get_node_or_null("Moonlight")
+	_check("o luar existe e o DayNight o regula", moonlight is DirectionalLight3D and day_night.moonlight == moonlight)
+	if moonlight is DirectionalLight3D:
+		var luar := moonlight as DirectionalLight3D
+		_check("o luar não ilumina a casa nem o corpo do espelho",
+				luar.light_cull_mask & INTERIOR_MASK == 0 and luar.light_cull_mask & REFLECTION_MASK == 0)
+		_check("o luar não faz sombra (é barato)", not luar.shadow_enabled)
+		# Lua do Sky3D + luar: a soma chega à força do luar, esteja a lua onde estiver.
+		var total: float = luar.light_energy * float(luar.visible) + sky3d.moon.light_energy
+		_check("à noite, a luz da lua (Sky3D %.2f + luar %.2f) chega a %.2f" % [sky3d.moon.light_energy,
+				luar.light_energy, clock.MOONLIGHT_ENERGY],
+				luar.visible and total >= clock.MOONLIGHT_ENERGY - 0.01)
+		_check("o luar vem do alto", luar.global_basis.z.y > 0.5)
 	app.set_time_of_day("dia")
 	await process_frame
+	if moonlight is DirectionalLight3D:
+		_check("de dia, o luar fica apagado", not (moonlight as DirectionalLight3D).visible)
 	_check("Hora = dia: Sky3D às 14h (veio %.2f)" % sky3d.current_time,
 			is_equal_approx(sky3d.current_time, clock.FIXED_DAY_HOUR))
 	_check("Hora = dia: o Sky3D está de dia", sky3d.is_day())
@@ -107,6 +124,7 @@ func _run() -> void:
 	_check("o céu voltou a ser o das fotos",
 			environment.sky.sky_material.shader.resource_path.ends_with("sky_blend.gdshader"))
 	_check("o DayNight voltou ao sol de fotos", day_night.sky3d == null and day_night.sun != null)
+	_check("o luar saiu junto com o Sky3D", city.get_node_or_null("Moonlight") == null and day_night.moonlight == null)
 
 	app.set_quality(original_quality)
 	app.set_time_of_day(original_time)

@@ -14,15 +14,17 @@ extends SceneTree
 ##   - é sólida, e o ponto de chegada (quem sai de casa) fica livre, na frente;
 ##   - o néon e a luz acendem à noite; a casa é um marco no mapa.
 ## A cabana (Fase 13.12): as mesmas conferências do loft e das 3 disposições, e
-## a lareira, as poltronas e o vaso não tampam nenhum lugar pronto, a mesa do
-## computador, a porta nem a janela. Guarda o config.cfg e devolve no fim.
+## a lareira, as poltronas e o vaso não tampam os móveis das disposições, a mesa
+## do computador, a porta nem a janela. Guarda o config.cfg e devolve no fim.
+## A sala do tamanho certo (Fase 17.4b): as zonas da porta e da janela e as
+## passagens saem do tamanho da sala (Home.ROOM_SIZE), e os lugares prontos
+## ficam dentro da sala, encostados na parede do nome deles.
 
 const INTERIOR_MASK := 1 << 19  # camada de render 20 (Home.INTERIOR_LAYER)
 const REFLECTION_MASK := 1 << 18  # camada 19 (AvatarBody.REFLECTION_LAYER): o corpo do espelho
 const CONFIG := "user://config.cfg"
-## A porta da rua e a janela (coordenadas da casa): nada pode ficar na frente.
-const DOOR_ZONE := AABB(Vector3(-0.7, 0.0, 3.9), Vector3(1.4, 2.4, 0.8))
-const WINDOW_ZONE := AABB(Vector3(-2.7, 0.0, -4.6), Vector3(5.4, 3.4, 0.6))
+## Quanto (m) na frente de cada móvel, da janela e da porta as passagens chegam.
+const REACH := 1.2
 
 var failures := 0
 
@@ -117,7 +119,9 @@ func _run() -> void:
 			forward.x < 0.0 and from_north > 20.0 and from_north < 50.0)
 
 	print("== Casa → praça ==")
-	player.rotation.y = PI  # vira para a porta da rua (sul)
+	# Vira para a porta da rua (na parede sul, perto do canto sudeste).
+	var to_door: Vector3 = front_door.global_position - player.global_position
+	player.rotation.y = atan2(-to_door.x, -to_door.z)
 	await _frames(3)
 	_check("olhando a porta da rua", hud.get_look_text().begins_with(front_door.door_name))
 	_check("de dentro, a porta diz \"E para sair\"", hud.get_look_action() == "E para sair")
@@ -137,6 +141,7 @@ func _run() -> void:
 	await _frames(3)
 	_check("virando para trás, a porta Casa está ali", hud.get_look_text().begins_with(plaza_door.door_name))
 
+	_check_anchors(home)
 	await _check_loft(home, player)
 	await _check_layouts(home, player)
 	await _check_cabin(home, player)
@@ -315,14 +320,18 @@ func _check_loft(home: Node3D, player: CharacterBody3D, title: String = "O loft"
 
 	# Passagens: o corpo do jogador anda em linha reta de ponto em ponto
 	# (coordenadas da casa, em x e z), sem bater em nada.
+	# Do ponto de nascer, ao longo de x e depois de z, até REACH na frente de cada coisa.
 	var shape: Shape3D = player.get_node("CollisionShape3D").shape
-	var routes := {
-		"estante": [Vector2(0.0, 1.5), Vector2(-3.5, 1.5), Vector2(-3.5, -0.5)],
-		"mural": [Vector2(0.0, 1.5), Vector2(3.5, 1.5), Vector2(3.5, -0.5)],
-		"computador": [Vector2(0.0, 1.5), Vector2(3.6, 1.5), Vector2(3.6, -3.1)],
-		"janela": [Vector2(0.0, 1.5), Vector2(-2.4, 1.5), Vector2(-2.4, -3.8)],
-		"porta da rua": [Vector2(0.0, 1.5), Vector2(0.0, 3.9)],
-	}
+	var spawn := Vector2(home.SPAWN_SPOT.x, home.SPAWN_SPOT.z)
+	var routes := {}
+	for target: Array in [["estante", "oeste"], ["mural", "leste"], ["computador", home.COMPUTER_ANCHOR]]:
+		var anchor: Transform3D = home.get_anchor_transform(target[1])
+		var front := anchor.origin + anchor.basis.z * REACH
+		routes[target[0]] = [spawn, Vector2(front.x, spawn.y), Vector2(front.x, front.z)]
+	var window_x: float = home.WINDOW_CENTER_X
+	routes["janela"] = [spawn, Vector2(window_x, spawn.y), Vector2(window_x, -room.z / 2.0 + REACH)]
+	var door: Vector3 = home.to_local(home.get_front_door().global_position)
+	routes["porta da rua"] = [spawn, Vector2(door.x, spawn.y), Vector2(door.x, door.z - REACH / 2.0)]
 	var space := player.get_world_3d().direct_space_state
 	for target in routes:
 		var points: Array = routes[target]
@@ -365,8 +374,8 @@ func _check_layouts(home: Node3D, player: CharacterBody3D, title: String = "Disp
 	var room: Vector3 = home.ROOM_SIZE
 	var inner := AABB(Vector3(-room.x / 2.0, 0.0, -room.z / 2.0), room).grow(0.03)
 	# A porta da rua e a janela (coordenadas da casa).
-	var door_zone := DOOR_ZONE
-	var window_zone := WINDOW_ZONE
+	var door_zone := _door_zone(home)
+	var window_zone := _window_zone(home)
 	var shape: Shape3D = player.get_node("CollisionShape3D").shape
 	var space := player.get_world_3d().direct_space_state
 	var positions := {}
@@ -434,27 +443,31 @@ func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
 	print("== A cabana: o enfeite não tampa nada ==")
 	var pieces: Array[Node3D] = []
 	for child in home.get_children():
-		if child.has_meta("cabin_piece") and child.get_meta("cabin_piece") in ["lareira", "poltrona", "vaso"]:
+		if child.has_meta("cabin_piece") and child.get_meta("cabin_piece") in ["lareira", "poltrona", "vaso", "mesinha", "lenha"]:
 			pieces.append(child)
-	_check("lareira, duas poltronas e o vaso (%d peças)" % pieces.size(), pieces.size() == 4)
+	_check("lareira, duas poltronas, o vaso, o toco e a lenha (%d peças)" % pieces.size(), pieces.size() == 6)
 	var blocked: Array[String] = []
 	var desk_box := _bounds(home.get_node("ComputerDesk"), home)
 	for piece in pieces:
 		var box := _bounds(piece, home)
 		var kind: String = piece.get_meta("cabin_piece")
-		if box.intersects(DOOR_ZONE) or box.intersects(WINDOW_ZONE) or box.intersects(desk_box):
+		if box.intersects(_door_zone(home)) or box.intersects(_window_zone(home)) or box.intersects(desk_box):
 			blocked.append("%s: porta, janela ou mesa" % kind)
-		# Cada móvel que muda de lugar, em cada um dos 6 lugares prontos.
-		for anchor: String in home.ANCHORS:
-			for id in ["estante", "mural", "estatisticas", "espelho"]:
+		# Cada móvel no lugar de cada disposição do catálogo. (Até a 17.4, valia
+		# para os 6 lugares; na sala de 9 x 7 m, o mural de 5 m não cabe em todos,
+		# e o que vale são as disposições de verdade.)
+		for layout in Profiles.home_catalog().layouts:
+			for id in layout.placements:
 				var furniture: Node3D = home.get_furniture(id)
-				furniture.transform = home.get_anchor_transform(anchor)
+				if furniture == null:
+					continue
+				furniture.transform = home.get_anchor_transform(layout.placements[id])
 				if box.intersects(_bounds(furniture, home)):
-					blocked.append("%s x %s em %s" % [kind, id, anchor])
+					blocked.append("%s x %s (%s)" % [kind, id, layout.id])
 	home._place_furniture()  # cada móvel volta para o lugar da disposição
 	if not blocked.is_empty():
 		print("   tampando: ", blocked)
-	_check("a lareira, as poltronas e o vaso não tampam nenhum lugar pronto, a mesa, a porta nem a janela",
+	_check("a lareira, as poltronas e o vaso não tampam os móveis das disposições, a mesa, a porta nem a janela",
 			blocked.is_empty())
 
 	app.set_home_theme(original_theme)
@@ -464,6 +477,71 @@ func _check_cabin(home: Node3D, player: CharacterBody3D) -> void:
 	file.close()
 	_check("o tema de antes voltou e o config.cfg foi devolvido",
 			home.get_profile() == Profiles.home(original_theme) and FileAccess.get_file_as_string(CONFIG) == backup)
+
+
+## A porta da rua (coordenadas da casa): da folha até 0,6 m para dentro, com o
+## batente e um pouco mais. Nada pode ficar aí.
+func _door_zone(home: Node3D) -> AABB:
+	var door: Vector3 = home.to_local(home.get_front_door().global_position)
+	var width: float = home.DOOR_WIDTH + 0.1
+	var wall: float = home.ROOM_SIZE.z / 2.0
+	return AABB(Vector3(door.x - width / 2.0, 0.0, wall - 0.6), Vector3(width, 2.4, 0.8))
+
+
+## A janela (coordenadas da casa): o vão e 10 cm de cada lado, do lado de fora
+## da parede até 0,5 m para dentro. Nenhum móvel (nem o enfeite da cabana) fica aí.
+func _window_zone(home: Node3D) -> AABB:
+	var size: Vector2 = home.WINDOW_SIZE
+	var room: Vector3 = home.ROOM_SIZE
+	return AABB(Vector3(home.WINDOW_CENTER_X - size.x / 2.0 - 0.1, 0.0, -room.z / 2.0 - 0.1), Vector3(size.x + 0.2, room.y, 0.6))
+
+
+## Os lugares prontos (17.4b): para o ROOM_SIZE de agora, cada um fica dentro da
+## sala e encostado na parede do nome dele, com a frente para dentro; os dois da
+## parede sul ficam entre o canto oeste e a porta, cada um com espaço para o
+## móvel mais largo; e a janela, o canto de estar e a mesa dividem a parede norte
+## sem se encostar.
+func _check_anchors(home: Node3D) -> void:
+	print("== Os lugares prontos e o tamanho da sala ==")
+	var room: Vector3 = home.ROOM_SIZE
+	var half := Vector2(room.x, room.z) / 2.0
+	print("   sala de %.1f x %.1f m, teto de %.1f m" % [room.x, room.z, room.y])
+	var desk_size: Vector3 = home.get_node("ComputerDesk").DESK_SIZE
+	var walls := {"oeste": Vector2(-1.0, 0.0), "leste": Vector2(1.0, 0.0), "sul": Vector2(0.0, 1.0), "norte": Vector2(0.0, -1.0)}
+	var anchors: Array[String] = load("res://profiles/home_layout.gd").ANCHORS
+	_check("a casa tem os %d lugares que as disposições conhecem" % anchors.size(),
+			anchors.all(func(a: String) -> bool: return home.ANCHORS.has(a)) and home.ANCHORS.size() == anchors.size())
+	for anchor in anchors:
+		var place: Transform3D = home.get_anchor_transform(anchor)
+		var spot := Vector2(place.origin.x, place.origin.z)
+		var outward: Vector2 = walls[anchor.get_slice("_", 0)]
+		var back := -Vector2(place.basis.z.x, place.basis.z.z)
+		# O fundo do móvel: no próprio lugar; na mesa do computador, atrás do tampo.
+		var depth: float = desk_size.z / 2.0 if anchor == home.COMPUTER_ANCHOR else 0.0
+		var rear := spot + back * depth
+		var wall_gap := absf(absf(rear.dot(outward)) - absf(half.dot(outward)))
+		var inside := absf(spot.x) <= half.x + 0.001 and absf(spot.y) <= half.y + 0.001
+		_check("%s: dentro da sala, encostado na parede %s (folga %.2f m), de frente para dentro" % [anchor, anchor.get_slice("_", 0), wall_gap],
+				inside and back.is_equal_approx(outward) and rear.dot(outward) > 0.0 and wall_gap <= 0.1)
+	var left: Transform3D = home.get_anchor_transform("sul_esquerda")
+	var right: Transform3D = home.get_anchor_transform("sul_direita")
+	var door: Vector3 = home.to_local(home.get_front_door().global_position)
+	var wide: float = home.WIDE_PIECE
+	_check("na parede sul: canto oeste, sul_esquerda, sul_direita e a porta, cada lugar com %.1f m" % wide,
+			left.origin.x - wide / 2.0 >= -half.x - 0.001 and right.origin.x + wide / 2.0 <= door.x - home.DOOR_WIDTH / 2.0 + 0.001
+			and right.origin.x > left.origin.x and door.x + home.DOOR_WIDTH / 2.0 <= half.x)
+	var desk: Transform3D = home.get_anchor_transform(home.COMPUTER_ANCHOR)
+	var window_left: float = home.WINDOW_CENTER_X - home.WINDOW_SIZE.x / 2.0
+	var window_right: float = home.WINDOW_CENTER_X + home.WINDOW_SIZE.x / 2.0
+	_check("na parede norte: o canto de estar, a janela (%.2f m) e a mesa, sem se encostar" % home.WINDOW_SIZE.x,
+			is_equal_approx(window_left, -half.x + home.LIVING_CORNER_WIDTH)
+			and window_right < desk.origin.x - desk_size.x / 2.0
+			and desk.origin.x + desk_size.x / 2.0 < half.x)
+	_check("a janela fica entre o chão e o teto (%.2f a %.2f m)" % [home.WINDOW_SILL_Y, home.WINDOW_SILL_Y + home.WINDOW_SIZE.y],
+			home.WINDOW_SILL_Y > 0.0 and home.WINDOW_SILL_Y + home.WINDOW_SIZE.y < room.y)
+	var spawn: Vector3 = home.SPAWN_SPOT
+	_check("o ponto de nascer fica dentro da sala, longe da porta e das paredes",
+			absf(spawn.x) < half.x - 1.0 and absf(spawn.z) < half.y - 1.0 and not _door_zone(home).has_point(Vector3(spawn.x, 1.0, spawn.z)))
 
 
 ## Caixa de tudo o que o móvel desenha, em coordenadas da casa.

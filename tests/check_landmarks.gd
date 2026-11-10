@@ -49,6 +49,23 @@ func _run() -> void:
 	var pivot := tower.get_node("Dial0").get_child(-2) as Node3D  # pivô das horas
 	_check("o mostrador gira de verdade", pivot != null and absf(pivot.rotation.z) > 0.1)
 
+	# A luz própria da noite (17.5): holofotes de baixo para cima e o chafariz.
+	var night_lights: Array = tower.get_night_lights()
+	var uplights := night_lights.filter(func(l: Light3D) -> bool: return l is SpotLight3D)
+	tower.set_night(1.0)
+	_check("à noite, quatro holofotes e a luz do chafariz acesos (%d luzes)" % night_lights.size(),
+			uplights.size() == 4 and night_lights.size() == 5
+			and night_lights.all(func(l: Light3D) -> bool: return l.visible and l.light_energy > 0.5))
+	_check("os holofotes apontam para cima, para a torre",
+			uplights.all(func(l: SpotLight3D) -> bool: return l.global_basis.z.y < -0.8))
+	var quiet := true
+	for light: Light3D in night_lights:
+		quiet = quiet and not light.shadow_enabled and light.light_cull_mask & (1 << 19) == 0
+	_check("nenhuma luz da torre faz sombra nem entra em casa", quiet)
+	tower.set_night(0.0)
+	_check("de dia, as luzes da torre ficam apagadas",
+			night_lights.all(func(l: Light3D) -> bool: return not l.visible))
+
 	var landmarks: Array = []
 	for map in get_nodes_in_group("world_map"):
 		landmarks.append_array(map.get_map_data()["landmarks"])
@@ -159,6 +176,47 @@ func _check_tower_body(id: String, landmark: Node) -> void:
 	_check("%s: a base tem ~6 m (%.1f m)" % [id, base.size.x], absf(base.size.x - 6.0) < 0.01 and absf(base.size.y - 6.0) < 0.01)
 	_check("%s: a base tem colisão" % id, landmark.get_node_or_null("Solid") is StaticBody3D)
 	_check("%s: entra no grupo que os pinheiros evitam" % id, landmark.is_in_group(&"scatter_keep_out"))
+	# 17.10: o fuste é de pedra (a textura PBR do projeto, projetada pelo
+	# mundo) e não mais o bloco liso azul-escuro de concreto.
+	var shaft: float = landmark.shaft_size()
+	var shaft_mesh: MeshInstance3D = null
+	var tallest := 0.0
+	for child: Node in landmark.find_children("*", "MeshInstance3D", true, false):
+		var piece := child as MeshInstance3D
+		if piece.mesh is BoxMesh and (piece.mesh as BoxMesh).size.y > tallest:
+			tallest = (piece.mesh as BoxMesh).size.y
+			shaft_mesh = piece
+	var stone: StandardMaterial3D = shaft_mesh.material_override as StandardMaterial3D if shaft_mesh != null else null
+	_check("%s: o fuste é de pedra, com relevo (textura projetada pelo mundo e cor clara)" % id,
+			stone != null and stone.albedo_texture != null and stone.uv1_triplanar
+			and not stone.vertex_color_use_as_albedo and stone.albedo_color.v > 0.5)
+	# A cornija em degraus embaixo da plataforma: três anéis mais largos que o
+	# fuste, cada vez mais largos de baixo para cima (a silhueta de castelo).
+	var steps: Array[Vector2] = []  # (altura do meio, largura)
+	for child: Node in landmark.find_children("*", "MeshInstance3D", true, false):
+		var piece := child as MeshInstance3D
+		if piece.material_override != stone or not (piece.mesh is BoxMesh):
+			continue
+		var size := (piece.mesh as BoxMesh).size
+		if size.y < 1.0 and size.x > shaft + 0.01 and size.x < shaft + 3.0:
+			steps.append(Vector2(piece.position.y, size.x))
+	steps.sort()
+	_check("%s: a cornija tem três degraus, cada vez mais largos (%d)" % [id, steps.size()],
+			steps.size() == 3 and steps[0].x < steps[1].x and steps[1].x < steps[2].x
+			and steps[0].y < steps[1].y and steps[1].y < steps[2].y)
+	# O portal: o vão escuro nas duas faces maiores (a torre fica ao alcance do
+	# jogador e era uma parede cega).
+	var doors := 0
+	for child: Node in landmark.find_children("*", "MeshInstance3D", true, false):
+		var piece := child as MeshInstance3D
+		var material := piece.material_override as StandardMaterial3D
+		if material == null or not (piece.mesh is BoxMesh) or material.albedo_color.v >= 0.1:
+			continue
+		var size := (piece.mesh as BoxMesh).size
+		if size.y > 2.5 and size.y < 3.5 and size.x > 1.2 and size.x < 2.4:
+			doors += 1
+	print("   portais: %d (vão escuro nas faces da praça e de trás)" % doors)
+	_check("%s: as duas faces maiores têm portal (vão escuro)" % id, doors == 2)
 	var neon_top := 0.0
 	var neon: StandardMaterial3D = landmark.get("_neon_material")
 	for child: Node in landmark.find_children("*", "MeshInstance3D", true, false):

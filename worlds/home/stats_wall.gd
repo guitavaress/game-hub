@@ -16,9 +16,10 @@ extends Node3D
 ## Convenção: a origem fica no chão, no meio do quadro, e a FRENTE (+Z) aponta
 ## para dentro da sala.
 
-## Tamanho do quadro (largura, altura) e altura do centro.
+## Tamanho do quadro (largura, altura) e altura do centro. O quadro fica abaixo
+## das vigas da sala de 3 m (Fase 17.4b; antes, 1,75).
 const PANEL_SIZE: Vector2 = Vector2(4.4, 2.6)
-const CENTER_Y: float = 1.75
+const CENTER_Y: float = 1.48
 ## Quantos bairros aparecem, e o comprimento máximo das barras (m).
 const DISTRICT_ROWS: int = 5
 const TOP_BAR_MAX: float = 0.55

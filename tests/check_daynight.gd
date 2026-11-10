@@ -59,8 +59,33 @@ func _run() -> void:
 	print("   13h: %d postes acesos | janelas: brilho %.2f | sol %.2f" % [lit, building._walls_material.get_shader_parameter("night"), day_night.sun.light_energy])
 	_check("tudo apagado às 13h", lit == 0 and building._walls_material.get_shader_parameter("night") == 0.0)
 
-	print("\n== mistura da névoa do bioma ==")
+	print("\n== o dia com contraste (17.6), sem mexer na noite (17.5) ==")
 	var env: Environment = day_night.environment
+	for sky: String in ["fotos", "sky3d"]:
+		city._apply_sky(sky)
+		var night_ambient: float = script.SKY3D_NIGHT_AMBIENT if sky == "sky3d" else script.NIGHT_AMBIENT
+		_set_hour(day_night, city, 13.0)
+		print("   %s 13h: ambiente %.2f | contraste %.2f | saturação %.2f" % [sky, env.ambient_light_energy,
+				env.tonemap_agx_contrast, env.adjustment_saturation])
+		_check("%s: de dia, menos luz do céu, curva em S e cor viva" % sky,
+				is_equal_approx(env.ambient_light_energy, script.DAY_AMBIENT)
+				and is_equal_approx(env.tonemap_agx_contrast, script.DAY_AGX_CONTRAST)
+				and env.adjustment_enabled and is_equal_approx(env.adjustment_saturation, script.DAY_SATURATION))
+		if sky == "sky3d":
+			_check("sky3d: o sol do dia mais forte", is_equal_approx(day_night.sky3d.sun_energy, script.SKY3D_SUN_ENERGY))
+		_set_hour(day_night, city, 23.0)
+		print("   %s 23h: ambiente %.2f | contraste %.2f | saturação %.2f" % [sky, env.ambient_light_energy,
+				env.tonemap_agx_contrast, env.adjustment_saturation])
+		_check("%s: à noite, os valores da 17.5 (contraste padrão, cor sem ajuste)" % sky,
+				is_equal_approx(env.ambient_light_energy, night_ambient)
+				and is_equal_approx(env.tonemap_agx_contrast, Environment.new().tonemap_agx_contrast)
+				and is_equal_approx(env.adjustment_saturation, 1.0)
+				and is_equal_approx(env.tonemap_exposure, pow(2.0, script.NIGHT_EXPOSURE_EV)))
+		if sky == "sky3d":
+			_check("sky3d: à noite, o sol volta ao padrão", is_equal_approx(day_night.sky3d.sun_energy, 1.0))
+	city._apply_sky("fotos")
+
+	print("\n== mistura da névoa do bioma ==")
 	for hour: float in [6.0, 13.0, 18.25, 23.0]:
 		_set_hour(day_night, city, hour)
 		var original: Array = _fog_snapshot(env)

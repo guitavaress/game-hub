@@ -29,6 +29,10 @@ const EYE_HEIGHT: float = 1.7
 ## Quadros de espera depois de mudar a hora ou o lugar (capas carregando,
 ## sombras e exposição assentando).
 const SETTLE_FRAMES: int = 90
+## Segundos de espera depois de mudar a hora: o céu Sky3D leva 3 s para trocar a
+## luz do céu do dia pela da noite (contribution_tween_time); sem esperar, o
+## primeiro ponto saía no meio da troca (Fase 17.5).
+const HOUR_SETTLE_SECONDS: float = 3.5
 
 
 func _initialize() -> void:
@@ -107,6 +111,7 @@ func _run() -> void:
 	var points: Array[Dictionary] = _points(area)
 	for hour in hours:
 		_set_hour(day_night, hour)
+		await create_timer(HOUR_SETTLE_SECONDS).timeout
 		for point in points:
 			var eye: Vector3 = point["eye"]
 			var target: Vector3 = point["target"]
