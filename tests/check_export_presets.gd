@@ -41,8 +41,21 @@ func _run() -> void:
 		var filters: Array[String] = []
 		for item in str(cfg.get_value(section, "exclude_filter", "")).split(","):
 			filters.append(item.strip_edges())
-		for wanted in ["tests/*", "docs/*", "tools/*", "*.md", "game-hub-brand-kit/*", ".agents/*"]:
+		# 18.2: o .mcp.json e o opencode.json entravam no pck (são .json na raiz);
+		# as pastas com ponto e a build/ ficam de fora por garantia.
+		for wanted in ["tests/*", "docs/*", "tools/*", "*.md", "game-hub-brand-kit/*", ".agents/*",
+				".mcp.json", "opencode.json", ".claude/*", ".codex/*", ".vscode/*", "build/*"]:
 			_check("%s: exclude_filter contém '%s'" % [preset_name, wanted], wanted in filters)
+
+	# O ícone (18.2): o da janela vem do project.godot; o do .exe no Explorer, do
+	# preset Windows (a Godot troca sozinha, sem rcedit, com modify_resources).
+	var icon := str(ProjectSettings.get_setting("application/config/icon", ""))
+	_check("application/config/icon aponta para um arquivo que existe",
+		icon != "" and FileAccess.file_exists(icon))
+	_check("Windows: modify_resources = true (ícone do .exe)",
+		cfg.get_value(windows_section + ".options", "application/modify_resources", false) == true)
+	_check("Windows: application/icon = o mesmo ícone da janela",
+		icon != "" and cfg.get_value(windows_section + ".options", "application/icon", "") == icon)
 
 	# A versão do hub vive só no project.godot.
 	var version := str(ProjectSettings.get_setting("application/config/version", ""))

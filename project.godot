@@ -15,6 +15,7 @@ config/description="Launcher em forma de mundo 3D para a biblioteca Steam."
 config/version="0.18.0"
 run/main_scene="res://worlds/city/city.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://assets/brand/icone.svg"
 
 [autoload]
 

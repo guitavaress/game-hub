@@ -199,7 +199,7 @@ func _finish_loading(key: String) -> void:
 	var image: Image = _loaded_images.get(key)
 	_loaded_images.erase(key)
 	_loaded_lock.unlock()
-	if image != null:
+	if image != null and can_compress():
 		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
 	var texture := _to_texture(image, true)
 	var app_id := int(key.get_slice(":", 1))
@@ -367,9 +367,17 @@ static func _decode_image(path: String, max_width: int, compress: bool) -> Image
 		var height := maxi(1, roundi(image.get_height() * float(max_width) / image.get_width()))
 		image.resize(max_width, height, Image.INTERPOLATE_BILINEAR)  # rápido; a imagem continua grande
 	image.generate_mipmaps()  # deixa a imagem bonita vista de longe
-	if compress:
+	if compress and can_compress():
 		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
 	return image
+
+
+## Se esta Godot sabe comprimir imagens. O compressor S3TC só vem no editor:
+## no .exe exportado ("template") o compress() não existe e cada capa daria um
+## erro no log. Lá as capas ficam sem comprimir (funcionam igual, só gastam
+## mais memória de vídeo).
+static func can_compress() -> bool:
+	return not OS.has_feature("template")
 
 
 ## Textura a partir da imagem já carregada (na thread principal).
@@ -377,7 +385,7 @@ func _to_texture(image: Image, wanted_compressed: bool) -> Texture2D:
 	if image == null:
 		push_warning("GameArt: imagem inválida")
 		return null
-	if wanted_compressed and not image.is_compressed() and not _warned_compress:
+	if wanted_compressed and can_compress() and not image.is_compressed() and not _warned_compress:
 		_warned_compress = true
 		push_warning("GameArt: sem compressão de textura nesta versão; as capas gastam mais memória.")
 	return ImageTexture.create_from_image(image)

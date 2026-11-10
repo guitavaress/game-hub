@@ -34,9 +34,13 @@ const KEY_NAMES: Dictionary = {
 
 
 ## Lê a config do usuário (ou o arquivo `config`, nos testes) e devolve a tabela.
-## Vazia se o "lua" não existe ou a config não rodou.
+## Vazia se o "lua" não existe ou a config não rodou. No hub exportado o
+## leitor .lua não está no disco (o pck só guarda recursos): vazia, sem erro.
 static func read_table(config: String = "") -> Dictionary:
-	var args := PackedStringArray([ProjectSettings.globalize_path("res://autoload/platform/omarchy_binds.lua")])
+	var reader := ProjectSettings.globalize_path("res://autoload/platform/omarchy_binds.lua")
+	if not FileAccess.file_exists(reader):
+		return {}
+	var args := PackedStringArray([reader])
 	if not config.is_empty():
 		args.append(config)
 	var output: Array = []

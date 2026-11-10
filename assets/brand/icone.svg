@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Game Hub flat portal symbol">
+  <path d="M9 28.5 32 10l23 18.5V53H42" stroke="#132D49" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 53H9V28.5" stroke="#132D49" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M26.5 53V31.5L41 24.5V53" stroke="#24BAF5" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M26.5 31.5 41 24.5" stroke="#8CF0FF" stroke-width="3" stroke-linecap="round"/>
+</svg>
