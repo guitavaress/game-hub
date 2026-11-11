@@ -132,6 +132,27 @@ func _run() -> void:
 	_check("o rótulo da versão não pega foco", version_label != null
 			and version_label.focus_mode == Control.FOCUS_NONE)
 
+	print("\n== Contar o que achei (Fase 18.5) ==")
+	var fb_button: Button = menu.get_feedback_button()
+	var fb_view: FeedbackView = menu.get_feedback_view()
+	_check("o botão existe e a tela começa fechada", fb_button != null and fb_view != null and not fb_view.visible)
+	await _esc()
+	_check("pausa aberta", menu.is_open() and paused)
+	fb_button.pressed.emit()
+	await process_frame
+	_check("o botão abre a tela e esconde as abas", fb_view.visible and not menu.get_settings().visible)
+	await _esc()
+	_check("o Esc fecha só a tela, não a pausa", not fb_view.visible and menu.is_open() and paused
+			and menu.get_settings().visible)
+	_check("o foco volta para o botão", fb_button.has_focus())
+	fb_button.pressed.emit()
+	await process_frame
+	fb_view._back.pressed.emit()
+	await process_frame
+	_check("Voltar também devolve o foco", not fb_view.visible and fb_button.has_focus())
+	await _esc()
+	_check("outro Esc fecha a pausa", not menu.is_open() and not paused)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
