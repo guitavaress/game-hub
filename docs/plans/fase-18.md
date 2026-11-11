@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** 18.0 a 18.3 e 18.5 feitas: o `.exe` abre com o ícone novo e, na primeira vez, a porta da casa diz o que está acontecendo (buscando, baixando capas, ou por que a cidade está vazia). A próxima é a 18.4 (amigos sem chave), como subagente do coordenador; a 18.5 (o botão "Contar o que achei" no menu de pausa) já está integrada.
+- **Agora:** 18.0 a 18.5 feitas: o `.exe` abre com o ícone novo e, na primeira vez, a porta da casa diz o que está acontecendo (buscando, baixando capas, ou por que a cidade está vazia). A próxima é a 18.6 (o pacote: LEIA-ME, licenças e zip).
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
@@ -73,7 +73,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
     - **Decisões:** `StoreInfo.api_url` virou variável, para o teste simular "sem internet" sem mexer na rede; o "sem internet" de verdade ficou só no teste (bloquear o `.exe` no firewall pede administrador). `tests/README.md` ganhou as armadilhas do teste novo.
     - **Teste no `.exe` com a pasta vazia (com internet):** a abertura mostra "Buscando capas e categorias…", a casa abre com as capas na estante, o cartão de controles e um aviso só ("Amigos desligados"). A loja e as capas chegaram durante a abertura; as placas foram conferidas em captura própria. Os dados do dono voltaram (`pc_limpo.ps1 devolver`).
     - **Revisão (Astra, `/codex:review`):** dois achados aceitos: o `pc_limpo.ps1` passa a recusar também o hub rodado pelo F5 do editor (`--remote-debug`); o `check_first_run` usa um caminho falso da Steam numa máquina sem Steam (o CI), para os cenários com jogos.
-- [ ] **18.4 Amigos sem chave, sem cobrança** (tamanho: pequena · quem: Sonnet, subagente · esforço: medium)
+- [x] **18.4 Amigos sem chave, sem cobrança** (commit `71c3138`, 2026-11-10) (tamanho: pequena · quem: Sonnet, subagente · esforço: medium)
   - Faz: sem chave, o `FriendsService` não emite `problem` (ganha `needs_key()`); o HUD fica quieto. O mural da casa vira o convite: "Veja seus amigos aqui" e os 3 passos (abrir a página da chave, colar em Esc › Amigos, salvar), e E no mural abre a pausa já na aba Amigos. A aba Amigos numera os mesmos passos. Chave inválida e lista privada continuam avisando.
   - Arquivos: `autoload/friends_service.gd`, `worlds/home/friends_wall.gd`, `ui/settings_view.gd`, `ui/pause_menu.gd` (abrir numa aba), `tests/check_phase5.gd`, `tests/check_friends_wall.gd`, `tests/check_settings_view.gd`.
   - Teste: os três acima mais `check_first_time check_pause_menu`. Captura do mural e da aba.
