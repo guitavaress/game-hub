@@ -1,0 +1,29 @@
+# Licenças que vão no pacote do Windows (Fase 18.6), na pasta licencas/.
+# Lido por tools/empacotar_windows.sh (copia) e por tests/check_package.gd
+# (confere que todo LICENSE de assets/ e addons/ está aqui).
+#
+# Uma por linha: <arquivo no repositório>  <nome dentro de licencas/>
+# A licença da Godot não está no disco: o script a gera pelo próprio motor
+# (tools/pacote/licenca_godot.gd) como licencas/godot.txt.
+
+LICENSE                                                    game-hub.txt
+assets/brand/LICENSE.txt                                   game-hub-icone.txt
+assets/models/home/LICENSE                                 game-hub-modelos-casa.txt
+assets/ambientcg/LICENSE.txt                               ambientcg.txt
+assets/polyhaven/LICENSE.txt                               polyhaven.txt
+assets/quaternius/LICENSE.txt                              quaternius.txt
+assets/generated/LICENSE.txt                               sons-gerados.txt
+assets/fonts/barlow/OFL.txt                                fonte-barlow-ofl.txt
+assets/kenney/casino-audio/License.txt                     kenney-casino-audio.txt
+assets/kenney/city-kit-roads/License.txt                   kenney-city-kit-roads.txt
+assets/kenney/impact-sounds/License.txt                    kenney-impact-sounds.txt
+assets/kenney/interface-sounds/License.txt                 kenney-interface-sounds.txt
+assets/kenney/mini-characters/License.txt                  kenney-mini-characters.txt
+assets/kenney/music-jingles/License.txt                    kenney-music-jingles.txt
+assets/kenney/nature-kit/License.txt                       kenney-nature-kit.txt
+assets/kenney/rpg-audio/License.txt                        kenney-rpg-audio.txt
+assets/kenney/sci-fi-sounds/License.txt                    kenney-sci-fi-sounds.txt
+addons/debug_menu/LICENSE.md                               addon-debug-menu.txt
+addons/sky_3d/LICENSE.txt                                  addon-sky3d.txt
+addons/sky_3d/shaders/LICENSE                              addon-sky3d-shaders.txt
+addons/sky_3d/assets/thirdparty/textures/moon/LICENSE.md   addon-sky3d-lua.txt

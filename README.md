@@ -37,6 +37,18 @@ A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**
 - **Steam** instalada. No Linux, a Steam nativa; a do Flatpak deve funcionar, mas não foi testada.
 - **Godot 4.7** ou mais nova (versão padrão, não a .NET).
 
+## Baixar e jogar
+
+Para só usar o hub, sem a Godot (Windows 10 ou 11, com a Steam e uma placa de vídeo com Vulkan):
+
+1. Baixe o `GameHub-<versão>-windows.zip` na página de [Releases](https://github.com/guitavaress/game-hub/releases) e descompacte numa pasta sua.
+2. Abra a Steam e dê dois cliques em `GameHub.exe` (ele e o `GameHub.pck` ficam juntos).
+3. O Windows avisa que protegeu o computador porque o hub não tem assinatura digital paga: clique em **Mais informações › Executar assim mesmo**. É só na primeira vez.
+
+O `LEIA-ME.txt` do zip explica os controles, os amigos (opcionais), onde ficam os dados e como apagar, e o botão **Esc › Contar o que achei**. A pasta `licencas/` tem as licenças do hub, da Godot, da fonte, dos complementos e dos assets.
+
+**Gerar o zip (para quem desenvolve):** `bash tools/empacotar_windows.sh`, no Git Bash. Ele exporta, monta a pasta com o LEIA-ME (modelo em `tools/pacote/LEIA-ME.txt`) e as licenças (lista em `tools/pacote/licencas.txt`), confere e grava o zip em `C:\Projetos\game-hub-builds\`, fora do repositório. Se achar no pacote um `config.cfg`, algo com cara da chave da Steam, uma capa de jogo ou as pastas `tests`, `tools`, `docs`, `painel` ou `native`, ele recusa e não gera o zip.
+
 ## Como rodar
 
 1. Clone o repositório:

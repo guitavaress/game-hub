@@ -1,0 +1,118 @@
+GAME HUB {VERSAO} — LEIA-ME
+===========================
+
+O QUE É
+-------
+O Game Hub abre os seus jogos da Steam de um jeito diferente: em vez de uma
+lista, você anda em primeira pessoa por uma cidade 3D. Cada jogo instalado é um
+prédio, com a capa na fachada, e os prédios ficam juntos em bairros (RPG,
+Estratégia, Terror...). Entre na porta de um prédio e o jogo abre pela Steam.
+Quando você fecha o jogo, o hub volta na mesma porta.
+
+Você começa em casa. Lá tem uma estante com os seus jogos, um mural dos amigos,
+um espelho para trocar de roupa e a porta que leva à cidade.
+
+É um projeto pessoal, em teste. Ele não tem ligação com a Valve.
+
+
+DO QUE PRECISA
+--------------
+- Windows 10 ou 11 (64 bits).
+- A Steam instalada, com pelo menos um jogo baixado.
+- Uma placa de vídeo com Vulkan (quase todas dos últimos anos; mantenha o
+  driver da placa atualizado). Sem Vulkan, o hub não abre.
+- Internet na primeira vez, para buscar as capas e as categorias dos jogos.
+
+
+COMO ABRIR
+----------
+1. Descompacte o zip numa pasta sua (ex.: Documentos\GameHub). Não abra de
+   dentro do zip.
+2. Abra a Steam.
+3. Dê dois cliques em GameHub.exe. Os dois arquivos (GameHub.exe e
+   GameHub.pck) têm que ficar juntos na mesma pasta.
+
+O aviso azul do Windows ("O Windows protegeu o computador"):
+o hub não tem assinatura digital paga, então o Windows desconfia na primeira
+vez. Clique em "Mais informações" e depois em "Executar assim mesmo". Isso só
+acontece uma vez. Se o antivírus reclamar, é pelo mesmo motivo.
+
+Na primeira vez, a porta da casa mostra o hub buscando as capas dos seus jogos.
+Leva alguns segundos (mais, se você tem muitos jogos). Depois fica guardado.
+
+
+CONTROLES
+---------
+Teclado e mouse:
+  Mouse ............ olhar
+  W A S D .......... andar
+  Shift ............ correr
+  Espaço ........... pular
+  E ................ usar: a porta, a estante (segure E para jogar), o mural,
+                     o espelho
+  Tab .............. achar um jogo: digite o nome e aperte Enter; uma faixa
+                     de luz no chão leva até a porta
+  M ................ mapa da cidade
+  Esc .............. menu (som, vídeo, qualidade, controles, amigos)
+  F11 .............. tela cheia
+
+Para abrir um jogo na cidade, fique parado dentro da porta do prédio até o
+anel em volta da mira encher. Recue antes para cancelar.
+
+O metrô: pise na escada de uma estação "M" e escolha o bairro.
+
+Controle de Xbox também funciona: analógico esquerdo anda, o direito olha,
+A pula, X usa, Y busca, View abre o mapa e Menu abre a pausa.
+
+Ficou pesado? Aperte Esc, vá em Qualidade e escolha "Leve".
+
+
+AMIGOS (OPCIONAL)
+-----------------
+O hub pode mostrar os seus amigos da Steam como hologramas, na porta do jogo
+que eles estão jogando. Para isso ele precisa de uma chave da Steam (é de
+graça). O mural da casa mostra os passos, e o E no mural leva direto para o
+lugar certo:
+1. Abra steamcommunity.com/dev/apikey e peça a sua chave. Em "domínio", pode
+   escrever localhost.
+2. No hub, aperte Esc, abra a aba Amigos, cole a chave e clique em
+   "Salvar e conectar".
+
+A chave é SECRETA: não mande para ninguém, nem para quem te passou o hub.
+Sem a chave, o hub funciona igual, só não mostra os amigos.
+
+
+CONTAR O QUE ACHOU
+------------------
+Aperte Esc e clique em "Contar o que achei". Responda o que quiser, clique em
+"Copiar" e cole numa mensagem para quem te mandou o hub.
+O resumo é mostrado inteiro antes de copiar. Ele leva a versão do hub, o
+sistema, a placa de vídeo, a qualidade, o FPS e quantos jogos e bairros você
+tem. Ele NÃO leva a sua chave, o seu ID da Steam, os nomes dos amigos nem os
+nomes dos jogos. Nada é enviado sozinho pela internet.
+
+Se o hub fechar com erro, o registro fica na pasta "logs" (veja abaixo) e
+pode ser mandado junto.
+
+
+ONDE FICAM OS DADOS E COMO APAGAR
+---------------------------------
+O hub guarda as configurações, a chave (se você pôs), as capas baixadas e os
+registros nesta pasta:
+  %APPDATA%\Godot\app_userdata\Game Hub
+Para abrir: aperte Windows + R, cole o caminho acima e aperte Enter.
+
+Para tirar o hub do computador:
+1. Feche o hub.
+2. Apague a pasta "Game Hub" do caminho acima.
+3. Apague a pasta onde você descompactou o zip.
+Não há instalador: o hub não mexe em mais nada do Windows. Os seus jogos e a
+Steam não são tocados.
+
+
+LICENÇAS
+--------
+O Game Hub é software livre (licença MIT). Ele usa a Godot (MIT), a fonte
+Barlow (SIL Open Font License), dois complementos com licença MIT e modelos,
+texturas e sons de domínio público (CC0). Os textos estão na pasta "licencas".
+Steam e os nomes e imagens dos jogos pertencem aos seus donos.
