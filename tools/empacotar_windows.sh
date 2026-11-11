@@ -14,9 +14,11 @@
 #   C:\Projetos\game-hub-builds\GameHub-<versão>-windows.zip
 #
 # A trava: o zip NÃO é gerado se o pacote tiver qualquer coisa fora da lista
-# (exe, pck, LEIA-ME.txt, licencas/*.txt), um config.cfg, uma imagem de capa,
-# as pastas tests, tools, docs, painel ou native (também dentro do pck), ou um
-# texto de 32 letras hexadecimais ao lado de "web_api_key" (a chave da Steam).
+# (exe, pck, LEIA-ME.txt e as licenças de tools/pacote/licencas.txt), se faltar
+# ou estiver diferente uma licença, ou se achar um config.cfg, uma imagem de
+# capa, as pastas tests, tools, docs, painel ou native (também dentro do pck),
+# ou algo com cara da chave da Steam (32 letras hexadecimais) ou de um SteamID.
+# Dentro do pck, os scripts são descompactados para a busca (listar_pck.gd).
 # A trava nunca imprime o que achou: só o arquivo e o motivo.
 #
 # A Godot padrão é a de C:\Godot; para usar outra: GODOT=/caminho bash tools/...
@@ -50,6 +52,24 @@ fi
 # Caminho do Windows (C:\...) para a Godot e o PowerShell.
 caminho_win() { cygpath -w "$1" 2>/dev/null || echo "$1"; }
 
+# Texto para o Bloco de Notas: UTF-8 com BOM e fim de linha do Windows, com a
+# versão no lugar de {VERSAO}. Tem que ser o último sed: o sed do Git Bash tira
+# o "\r" de tudo o que lê de um pipe.
+texto_windows() { printf '\xEF\xBB\xBF'; sed "s/\r\$//; s/{VERSAO}/$VERSAO/g; s/\$/\r/" "$1"; }
+
+# As licenças da lista, "origem destino" por linha (sem comentários).
+licencas_da_lista() { tr -d '\r' < "$RAIZ/tools/pacote/licencas.txt" | grep -vE '^[[:space:]]*(#|$)'; }
+
+# Gera a licença da Godot (pelo próprio motor) no arquivo dado, já no formato do pacote.
+gerar_licenca_godot() {
+	local cru="$1.cru"
+	timeout 120 "$GODOT" --headless --path "$(caminho_win "$RAIZ")" -s res://tools/pacote/licenca_godot.gd \
+		-- "$(caminho_win "$cru")" >/dev/null 2>&1 || { rm -f "$cru"; return 1; }
+	[ -s "$cru" ] || { rm -f "$cru"; return 1; }
+	texto_windows "$cru" > "$1" || { rm -f "$cru"; return 1; }
+	rm -f "$cru"
+}
+
 
 # --- A trava ------------------------------------------------------------------
 # recusar_do_pck <motivo>: cada linha que chega é um arquivo do pck recusado.
@@ -58,7 +78,8 @@ recusar_do_pck() {
 	local rel
 	while IFS= read -r rel; do
 		[ -n "$rel" ] || continue
-		echo "  RECUSADO: pck: res://$rel ($1)"
+		# Sem motivo, a própria linha já diz (o listar_pck.gd põe entre parênteses).
+		if [ -n "$1" ]; then echo "  RECUSADO: pck: res://$rel ($1)"; else echo "  RECUSADO: pck: res://$rel"; fi
 		problemas=$((problemas + 1))
 	done
 }
@@ -73,16 +94,18 @@ conferir_pacote() {
 	fi
 
 	# 1. Só o que está na lista pode estar na pasta.
+	local permitidos=" GameHub.exe GameHub.pck LEIA-ME.txt licencas licencas/godot.txt "
+	local origem destino
+	while read -r origem destino; do
+		permitidos+="licencas/$destino "
+	done < <(licencas_da_lista)
 	for nome in GameHub.exe GameHub.pck LEIA-ME.txt licencas; do
 		[ -e "$pasta/$nome" ] || { echo "  RECUSADO: falta $nome"; problemas=$((problemas + 1)); }
 	done
 	while IFS= read -r rel; do
 		rel="${rel#./}"
 		nome="${rel##*/}"
-		case "$rel" in
-			GameHub.exe|GameHub.pck|LEIA-ME.txt|licencas) continue ;;
-			licencas/*.txt) [ -f "$pasta/$rel" ] && [[ "$rel" != licencas/*/* ]] && continue ;;
-		esac
+		[[ "$permitidos" == *" $rel "* ]] && [ ! -L "$pasta/$rel" ] && continue
 		if [ "$nome" = "config.cfg" ]; then
 			echo "  RECUSADO: $rel (um config.cfg: pode ter a chave da Steam)"
 		elif echo "$nome" | grep -qiE '\.(jpg|jpeg|png|webp|bmp|gif)$'; then
@@ -95,7 +118,33 @@ conferir_pacote() {
 		problemas=$((problemas + 1))
 	done < <(cd "$pasta" && find . -mindepth 1 | sort)
 
-	# 2. Nenhum arquivo (nem o exe e o pck, lidos como bytes) tem a chave ou o ID.
+	# 2. As licenças: todas as da lista, iguais ao original, e a da Godot igual à
+	# que o motor gera agora. Faltando ou diferente, recusa. O LEIA-ME também.
+	while read -r origem destino; do
+		if [ ! -f "$pasta/licencas/$destino" ]; then
+			echo "  RECUSADO: falta licencas/$destino ($origem)"
+			problemas=$((problemas + 1))
+		elif ! cmp -s <(texto_windows "$RAIZ/$origem") "$pasta/licencas/$destino"; then
+			echo "  RECUSADO: licencas/$destino está diferente de $origem"
+			problemas=$((problemas + 1))
+		fi
+	done < <(licencas_da_lista)
+	local godot_agora
+	godot_agora=$(mktemp)
+	if [ ! -f "$pasta/licencas/godot.txt" ]; then
+		echo "  RECUSADO: falta licencas/godot.txt"
+		problemas=$((problemas + 1))
+	elif ! gerar_licenca_godot "$godot_agora" || ! cmp -s "$godot_agora" "$pasta/licencas/godot.txt"; then
+		echo "  RECUSADO: licencas/godot.txt está diferente da licença da Godot"
+		problemas=$((problemas + 1))
+	fi
+	rm -f "$godot_agora"
+	if [ -f "$pasta/LEIA-ME.txt" ] && ! cmp -s <(texto_windows "$RAIZ/tools/pacote/LEIA-ME.txt") "$pasta/LEIA-ME.txt"; then
+		echo "  RECUSADO: LEIA-ME.txt está diferente do modelo (tools/pacote/LEIA-ME.txt)"
+		problemas=$((problemas + 1))
+	fi
+
+	# 3. Nenhum arquivo (nem o exe e o pck, lidos como bytes) tem a chave ou o ID.
 	# O grep devolve 0 (achou), 1 (não achou) ou 2 (não conseguiu ler): o 2 também recusa.
 	local achados codigo
 	achados=$(LC_ALL=C grep -rlaE "$PADRAO_CHAVE" "$pasta" 2>/dev/null); codigo=$?
@@ -113,7 +162,8 @@ conferir_pacote() {
 	done <<< "$achados"
 	[ "$codigo" -le 1 ] || { echo "  RECUSADO: não consegui ler todos os arquivos para procurar o SteamID"; problemas=$((problemas + 1)); }
 
-	# 3. Dentro do pck: a lista vem da própria Godot (tools/pacote/listar_pck.gd).
+	# 4. Dentro do pck: a lista e a busca nos scripts vêm da própria Godot
+	# (tools/pacote/listar_pck.gd).
 	if [ -f "$pasta/GameHub.pck" ]; then
 		local lista
 		lista=$(timeout 240 "$GODOT" --headless --main-pack "$(caminho_win "$pasta/GameHub.pck")" \
@@ -127,6 +177,12 @@ conferir_pacote() {
 			local caminhos pastas
 			caminhos=$(echo "$lista" | sed -n 's/^\(ARQ\|DIR\)=res:\/\///p')
 			pastas=$(echo "$PASTAS_PROIBIDAS" | sed 's/^\^//; s/\$$//')
+			recusar_do_pck "" < <(echo "$lista" | sed -n 's/^SEGREDO=res:\/\///p')
+			recusar_do_pck "script que não deu para abrir e conferir" < <(echo "$lista" | sed -n 's/^GDC_FALHA=res:\/\///p')
+			if echo "$caminhos" | grep -qx 'autoload/app_config.gdc' && ! echo "$lista" | grep -qx 'CONTROLE=sim'; then
+				echo "  RECUSADO: pck: a busca nos scripts não funcionou (o controle no AppConfig falhou)"
+				problemas=$((problemas + 1))
+			fi
 			recusar_do_pck "um config.cfg" < <(echo "$caminhos" | grep -E '(^|/)config\.cfg$')
 			recusar_do_pck "pasta do repositório" < <(echo "$caminhos" | grep -E "(^|/)$pastas(/|$)")
 			recusar_do_pck "cache de capas" < <(echo "$caminhos" | grep -E '(^|/)cache/art(/|$)')
@@ -178,23 +234,7 @@ if ! echo "$saida" | grep -q "RESULTADO: TUDO OK"; then
 	exit 1
 fi
 
-# --- 2. As fontes do pck -----------------------------------------------------------
-# No pck os scripts vão compactados (a busca de texto não os enxerga). Por isso a
-# chave é procurada também nos arquivos do projeto que vão para o export.
-echo "== procurando a chave nas fontes do export =="
-fontes=$(LC_ALL=C grep -rlaE "$PADRAO_CHAVE" . \
-	--exclude-dir=.git --exclude-dir=.godot --exclude-dir=build --exclude-dir=tests \
-	--exclude-dir=tools --exclude-dir=docs --exclude-dir=native --exclude-dir=painel \
-	--exclude-dir=game-hub-brand-kit --exclude-dir=.agents --exclude-dir=.claude \
-	--exclude-dir=.codex --exclude-dir=.vscode --exclude-dir=.github 2>/dev/null)
-if [ -n "$fontes" ]; then
-	echo "$fontes" | sed 's/^/  RECUSADO: /; s/$/ tem um texto de 32 hex ao lado de web_api_key/'
-	echo "  o zip NÃO foi gerado."
-	exit 1
-fi
-echo "  nenhuma"
-
-# --- 3. Montar a pasta -------------------------------------------------------------
+# --- 2. Montar a pasta -------------------------------------------------------------
 PASTA="$PACOTES/$NOME"
 ZIP="$PACOTES/$NOME.zip"
 echo "== montando $PASTA =="
@@ -205,36 +245,25 @@ rm -rf "${PASTA:?}" "${ZIP:?}"
 mkdir -p "$PASTA/licencas" || exit 1
 cp build/windows/GameHub.exe build/windows/GameHub.pck "$PASTA/" || exit 1
 
-# Texto para o Bloco de Notas: UTF-8 com BOM e fim de linha do Windows, com a
-# versão no lugar de {VERSAO}. Tem que ser o último sed: o sed do Git Bash tira
-# o "\r" de tudo o que lê de um pipe.
-texto_windows() { printf '\xEF\xBB\xBF'; sed "s/\r\$//; s/{VERSAO}/$VERSAO/g; s/\$/\r/" "$1"; }
-
-texto_windows tools/pacote/LEIA-ME.txt > "$PASTA/LEIA-ME.txt"
-
 faltou=0
+texto_windows tools/pacote/LEIA-ME.txt > "$PASTA/LEIA-ME.txt" || faltou=1
 while read -r origem destino; do
-	case "$origem" in ''|\#*) continue ;; esac
 	if [ ! -f "$origem" ] || [ -z "$destino" ]; then
 		echo "  falta a licença $origem (tools/pacote/licencas.txt)"
 		faltou=1
-		continue
+	elif ! texto_windows "$origem" > "$PASTA/licencas/$destino"; then
+		echo "  não consegui copiar a licença $origem"
+		faltou=1
 	fi
-	texto_windows "$origem" > "$PASTA/licencas/$destino"
-done < <(tr -d '\r' < tools/pacote/licencas.txt)
-godot_txt="$PASTA/licencas/godot.txt"
-timeout 120 "$GODOT" --headless --path . -s res://tools/pacote/licenca_godot.gd -- "$(caminho_win "$godot_txt")" >/dev/null 2>&1
-if [ ! -s "$godot_txt" ]; then
+done < <(licencas_da_lista)
+if ! gerar_licenca_godot "$PASTA/licencas/godot.txt"; then
 	echo "  não consegui gerar a licença da Godot"
 	faltou=1
-else
-	tmp="$godot_txt.tmp"
-	texto_windows "$godot_txt" > "$tmp" && mv "$tmp" "$godot_txt"
 fi
 [ "$faltou" -eq 0 ] || { echo "Faltou licença: o zip NÃO foi gerado."; exit 1; }
 echo "  $(ls "$PASTA/licencas" | wc -l) licenças em licencas/"
 
-# --- 4. Conferir e zipar -------------------------------------------------------------
+# --- 3. Conferir e zipar -------------------------------------------------------------
 echo "== conferindo o pacote =="
 if ! conferir_pacote "$PASTA"; then
 	exit 1
