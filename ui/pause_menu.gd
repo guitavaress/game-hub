@@ -110,6 +110,15 @@ func open() -> void:
 	opened.emit()
 
 
+## Abre o menu já numa aba (ex.: "Amigos"), como o mural da casa pede. Devolve
+## false se não dá para abrir agora ou se a aba não existe.
+func open_tab(tab_name: String) -> bool:
+	if visible or not can_open():
+		return false
+	open()
+	return _settings.show_tab(tab_name)
+
+
 func close() -> void:
 	if not visible:
 		return

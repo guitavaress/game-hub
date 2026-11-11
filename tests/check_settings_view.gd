@@ -65,6 +65,16 @@ func _run() -> void:
 			has_interact = true
 	_check("linha nova do E (interagir)", has_interact)
 
+	print("\n== aba Amigos: os 3 passos (Fase 18.4) ==")
+	_check("show_tab vai para Amigos", view.show_tab("Amigos") and view.get_page() == 2 and view._pages[2].visible)
+	_check("aba que não existe devolve false", not view.show_tab("Nada"))
+	var steps := 0
+	for label in view._pages[2].find_children("*", "Label", true, false):
+		var line_text: String = (label as Label).text
+		if line_text.begins_with("1. ") or line_text.begins_with("2. ") or line_text.begins_with("3. "):
+			steps += 1
+	_check("três passos numerados", steps == 3 and view_script.FRIENDS_STEPS.size() == 3)
+
 	view.queue_free()
 	var file := FileAccess.open(CONFIG, FileAccess.WRITE)
 	file.store_string(backup)

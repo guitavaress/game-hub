@@ -17,5 +17,6 @@ static func install(root: Node) -> void:
 		service._http.cancel_request()
 		service._pending_kind = ""
 	service._enabled = false
+	service._needs_key = false  # o convite "sem chave" só entra quando o teste pedir
 	var none: Array[SteamFriend] = []
 	service._set_friends(none)

@@ -145,6 +145,27 @@ func _run() -> void:
 	_check("parou de consultar", not FS._enabled)
 	_check("a chave não aparece no aviso", not problems.is_empty() and not FAKE_KEY in problems[0])
 
+	print("\n== sem chave: estado, não erro (Fase 18.4) ==")
+	# Só na memória do AppConfig: o config.cfg e a chave do dono não são tocados.
+	var app = root.get_node("AppConfig")
+	var saved_key = app._config.get_value("steam", "web_api_key", "")
+	var saved_enabled = app._config.get_value("steam", "friends_enabled", true)
+	app._config.set_value("steam", "web_api_key", "")
+	app._config.set_value("steam", "friends_enabled", true)
+	while not FS._pending_kind.is_empty():
+		await process_frame
+	problems.clear()
+	FS.restart()
+	await process_frame
+	_check("sem chave: needs_key() é verdadeiro", FS.needs_key())
+	_check("sem chave: nenhum aviso ao HUD", problems.is_empty() and FS.get_problem().is_empty())
+	_check("sem chave: não consulta a Steam", not FS.is_enabled())
+	app._config.set_value("steam", "friends_enabled", false)
+	FS.restart()
+	_check("amigos desligados de propósito: também sem aviso nem convite", not FS.needs_key() and problems.is_empty())
+	app._config.set_value("steam", "web_api_key", saved_key)
+	app._config.set_value("steam", "friends_enabled", saved_enabled)
+
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
