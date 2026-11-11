@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** 18.0 a 18.3 feitas: o `.exe` abre com o ícone novo e, na primeira vez, a porta da casa diz o que está acontecendo (buscando, baixando capas, ou por que a cidade está vazia). A próxima é a 18.4 (amigos sem chave), como subagente do coordenador; a 18.5 (trilha B) já foi entregue e espera a integração no menu de pausa.
+- **Agora:** 18.0 a 18.3 e 18.5 feitas: o `.exe` abre com o ícone novo e, na primeira vez, a porta da casa diz o que está acontecendo (buscando, baixando capas, ou por que a cidade está vazia). A próxima é a 18.4 (amigos sem chave), como subagente do coordenador; a 18.5 (o botão "Contar o que achei" no menu de pausa) já está integrada.
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
@@ -78,11 +78,11 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Arquivos: `autoload/friends_service.gd`, `worlds/home/friends_wall.gd`, `ui/settings_view.gd`, `ui/pause_menu.gd` (abrir numa aba), `tests/check_phase5.gd`, `tests/check_friends_wall.gd`, `tests/check_settings_view.gd`.
   - Teste: os três acima mais `check_first_time check_pause_menu`. Captura do mural e da aba.
   - Commit: `Fase 18.4: sem chave, o mural convida em vez de cobrar`
-- [ ] **18.5 O botão "Contar o que achei"** (tamanho: pequena · quem: Sol, trilha B · esforço: medium · worktree `worktree/feedback`, criado da `fase-18` depois da 18.2)
+- [x] **18.5 O botão "Contar o que achei"** (tamanho: pequena · quem: Sol, trilha B · esforço: medium · worktree `worktree/feedback`, criado da `fase-18` depois da 18.2)
   - Faz: `FeedbackReport.build(respostas)` monta o texto; a tela (`ui/feedback_view.gd`) tem 3 perguntas ("O que você achou?", "O que travou ou confundiu?", "Voltaria a abrir?" com Sim/Talvez/Não), mostra o resumo técnico inteiro e o botão "Copiar" (`DisplayServer.clipboard_set`), com a frase "Cole para quem te mandou o hub". Navegável por teclado e controle.
   - Arquivos da B: `autoload/feedback_report.gd` (novo), `ui/feedback_view.gd` (novo), `tests/check_feedback.gd` (novo: o texto nunca contém a chave, o SteamID, um nome de jogo ou um caminho com o nome do usuário, mesmo com eles configurados; foco por teclado). **A A integra:** o botão no rodapé de `ui/pause_menu.gd` e o `check_pause_menu`.
   - Teste: `check_feedback check_pause_menu check_menu_keyboard check_gamepad check_platform`. Captura da tela.
-  - Commit: `Fase 18.5: contar o que achei` (B) e `Fase 18.5: o botao no menu de pausa` (A)
+  - Commit: `Fase 18.5: contar o que achei` (B: `3775d91`, `ec1810a`; merge `d37b397`) e `Fase 18.5: o botao no menu de pausa` (A: `9e1a061`)
 - [ ] **18.6 O pacote: LEIA-ME, licenças e zip** (tamanho: grande · quem: Opus · esforço: high · revisão: Astra, `/codex:adversarial-review`, porque é o que sai do PC do dono para o dos outros)
   - Faz: o `empacotar_windows.sh` passa a montar a pasta `GameHub-<versão>-windows/` com o exe, o pck, o `LEIA-ME.txt` (o que é; requisitos: Windows 10/11, Steam, placa com Vulkan; como abrir e o aviso do SmartScreen; os controles; amigos opcionais; onde ficam os dados e como apagar; como contar o que achou) e `licencas/` (o `LICENSE` do projeto, os dos assets CC0, a OFL da Barlow, MIT do Debug Menu e do Sky3D, a licença da Godot). O script **recusa** gerar o zip se achar no pacote um `config.cfg`, um texto de 32 hex ao lado de `web_api_key`, imagens de capa, ou as pastas `tests`, `tools`, `docs`, `painel`, `native`. O zip sai em `C:\Projetos\game-hub-builds\` (fora do repositório).
   - Arquivos: `tools/empacotar_windows.sh`, `tools/pacote/LEIA-ME.txt` (novo, o modelo), `tests/check_package.gd` (novo: confere a lista de licenças contra `assets/*/LICENSE*` e `addons/*/LICENSE*`, para nenhuma ficar de fora), `README.md` (seção "Baixar e jogar", antes de "Como rodar").

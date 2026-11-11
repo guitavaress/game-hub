@@ -7,7 +7,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 ## Agora
 - **Fase atual:** [Fase 18, Mostrar para amigos](plans/fase-18.md), na branch `fase-18`: um build do Windows que 2 ou 3 amigos baixam e usam.
   - **Última subetapa feita:** 18.3 (2026-11-10): na primeira abertura, a porta da casa diz "Buscando capas e categorias… N de M" e depois "Baixando as capas…"; com a cidade vazia, diz por quê. PC fraco na Alta recebe uma sugestão única da Leve. `tools/pc_limpo.ps1` testa o hub como num PC limpo sem perder os seus dados. Antes, a 18.2 (o `.exe` com o ícone casa-portal).
-  - **Próxima:** 18.4, amigos sem chave (Sonnet, subagente do coordenador); a 18.5, o botão "Contar o que achei", já veio da trilha B e espera a integração no menu de pausa.
+  - **Próxima:** 18.4, amigos sem chave (Sonnet, subagente do coordenador); a 18.5, o botão "Contar o que achei" no menu de pausa, está feita.
 - **Próxima fase:** [Visitar amigos (V-Sekai)](ROADMAP.md#3-visitar-amigos-v-sekai).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
