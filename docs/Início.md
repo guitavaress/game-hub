@@ -8,6 +8,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 - **Fase atual:** [Fase 18, Mostrar para amigos](plans/fase-18.md), na branch `fase-18`: um build do Windows que 2 ou 3 amigos baixam e usam.
   - **Última subetapa feita:** 18.6 (2026-11-11): `bash tools/empacotar_windows.sh` gera `C:\Projetos\game-hub-builds\GameHub-0.18.0-windows.zip` (74 MB) com o `.exe`, o `LEIA-ME.txt` e as 22 licenças, e recusa o pacote se achar `config.cfg`, chave, SteamID, capa ou pasta do repositório (até dentro dos scripts do pck). O README ganhou "Baixar e jogar". Antes, a 18.4 e a 18.5 (o mural convida sem chave; o botão "Contar o que achei").
   - **Próxima:** 18.7, o Release no GitHub e os amigos (só docs + publicação; Opus e o dono, medium). Tag, Release e push só quando você pedir.
+  - **README revisado (2026-11-11):** apresentação da casa, cidade, bioma e amigos; versão e plataformas atualizadas; controles e primeiro uso organizados; configuração avançada e mesa Linux em seções expansíveis. O texto deixa claro que o Release ainda não foi publicado e que o desktop virtual está em pausa.
 - **Próxima fase:** [Visitar amigos (V-Sekai)](ROADMAP.md#3-visitar-amigos-v-sekai).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).

@@ -110,6 +110,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
 - Perfis do usuário (Parados) e a visita aos amigos (a próxima fase).
 
 ## Decisões tomadas durante a fase
+- 2026-11-11 (revisão do README, a pedido do dono): apresentação reorganizada como um passeio pela casa, cidade, mirante e amigos, com o ícone já existente. Corrigidos o estado da Fase 17 (na `main`), o foco do produto (launcher e amigos; desktop em pausa), a versão da Godot (4.7.2) e a disponibilidade do pacote (Release ainda pendente). Controles, execução pelo código, configuração e créditos preservados e reorganizados. Manutenção só de docs: não conclui a 18.7 nem autoriza publicação.
 - 2026-11-11 (18.6): o pacote e a trava.
   - **Arquivos além do plano:** `tools/pacote/licencas.txt` (a lista das licenças: o script copia dela e o `check_package` confere contra o disco), `tools/pacote/licenca_godot.gd` (a licença da Godot não está no disco: sai de `Engine.get_license_text()`, `get_copyright_info()` e `get_license_info()`) e `tools/pacote/listar_pck.gd` (lista o pck pela própria Godot, com `--main-pack`).
   - **As licenças moram em subpastas** (`assets/kenney/<pacote>/License.txt`, `assets/fonts/barlow/OFL.txt`, `addons/sky_3d/shaders/LICENSE`, a da Lua do Sky3D), e não só em `assets/*/LICENSE*`: o `check_package` procura em todas as subpastas. São 22 arquivos em `licencas/`.
