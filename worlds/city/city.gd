@@ -40,6 +40,11 @@ const INTRO_FADE_SECONDS: float = 0.4
 const BUILD_BUDGET_MS: float = 6.0
 ## Quanto tempo esperamos a loja responder na primeira vez (segundos).
 const STORE_WAIT_SECONDS: float = 8.0
+## Com a cidade pronta, de quanto em quanto tempo (s) a porta da rua conta as
+## capas que ainda estão chegando (Fase 18.3).
+const DOOR_DOWNLOADS_INTERVAL: float = 0.25
+## O que o cartão da porta da rua diz quando ela está aberta.
+const FRONT_DOOR_DETAIL: String = "Sair para a praça"
 ## Base dos prédios (a altura vem do número de andares: BuildingVariant).
 const BUILDING_FOOTPRINT: float = 10.0
 ## Letreiro do bairro: um por bairro, em cima do meio do primeiro quarteirão,
@@ -230,7 +235,8 @@ func _ready() -> void:
 		# A cidade lá fora está pronta: a porta da rua destranca.
 		_report_progress("Pronto!", 1.0)
 		player.world_loading = false
-		_home.get_front_door().locked_reason = ""
+		_set_door_progress("")
+		_show_city_state_at_door(games)
 		player.get_hud().show_message("A cidade está pronta", "A porta da rua já abre.",
 				Toast.Kind.INFO, -1.0, "", CITY_READY_SOUND, &"Música")
 	else:
@@ -239,6 +245,9 @@ func _ready() -> void:
 
 	# Os avisos só agora, com a cidade pronta (e o HUD já de volta).
 	_show_startup_messages(player, games)
+	# PC fraco: os primeiros 20 s na cidade dizem se vale sugerir a Leve.
+	if play_intro:
+		player.get_hud().start_quality_check()
 	_day_night.clock_advanced.connect(func(hour: float) -> void:
 		player.get_hud().show_message("Relógio da cidade: %02d:%02d" \
 				% [floori(hour), floori(fmod(hour, 1.0) * 60.0)], "F8 adianta 3 horas.", Toast.Kind.INFO, 4.0))
@@ -265,7 +274,7 @@ func _open_at_home(player: Player) -> void:
 	player.set_indoors(_home.get_environment())  # já no primeiro quadro
 	player.world_loading = true
 	player.start_intro()
-	_home.get_front_door().locked_reason = "Montando a cidade…"
+	_set_door_progress("Montando a cidade…")
 	ScreenFade.show_splash(_clock_text())
 	await get_tree().create_timer(INTRO_SPLASH_SECONDS).timeout
 	ScreenFade.hide_splash(INTRO_FADE_SECONDS)
@@ -281,7 +290,13 @@ func _report_progress(text: String, progress: float) -> void:
 	ScreenFade.splash.set_progress(progress)
 	if _is_ready:
 		return
-	_home.get_front_door().locked_reason = "Montando a cidade… %d%%" % roundi(progress * 100.0)
+	_set_door_progress("Montando a cidade… %d%%" % roundi(progress * 100.0))
+
+
+## Porta da rua trancada, com o motivo no cartão e na placa da porta.
+func _set_door_progress(text: String) -> void:
+	_home.get_front_door().locked_reason = text
+	_home.set_door_status(text)
 
 
 ## Montagem em segundo plano: espera (quadro a quadro) a arte do prédio ficar
@@ -400,6 +415,9 @@ func _update_store_info(games: Array[SteamGame]) -> void:
 		ScreenFade.set_message("Organizando a cidade...")
 	var waited := 0.0
 	while StoreInfo.is_fetching() and waited < STORE_WAIT_SECONDS:
+		if play_intro:
+			var progress := StoreInfo.get_progress()
+			_set_door_progress("Buscando capas e categorias… %d de %d" % [progress.x, progress.y])
 		await get_tree().process_frame
 		waited += get_process_delta_time()
 
@@ -1125,7 +1143,7 @@ func _build_home() -> void:
 	add_child(facade)
 
 	var front_door := _home.get_front_door()
-	front_door.detail = "Sair para a praça"
+	front_door.detail = FRONT_DOOR_DETAIL
 	front_door.travel_message = "Praça"
 	# Chegando na praça: na frente da porta "Casa", olhando para o norte (-Z).
 	front_door.set_destination(Transform3D(Basis.IDENTITY, HOME_DOOR_ARRIVAL))
@@ -1279,13 +1297,11 @@ func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
 	var hud := player.get_hud()
 	if not AppConfig.load_problem.is_empty():
 		hud.show_report(AppConfig.load_problem, Toast.Kind.ERROR)
-	if SteamLibrary.get_steam_path().is_empty():
-		hud.show_message("Não encontrei a Steam neste PC", "Instale a Steam e abra o hub de novo.",
-				Toast.Kind.ERROR)
-		return
-	if games.is_empty():
-		hud.show_message("Nenhum jogo instalado na Steam",
-				"Instale um jogo pela Steam e abra o hub de novo.", Toast.Kind.INFO, 10.0)
+	var empty_reason := empty_city_reason(SteamLibrary.get_steam_path(), games.size())
+	if not empty_reason.is_empty():
+		var no_steam := SteamLibrary.get_steam_path().is_empty()
+		hud.show_message(empty_reason[0], empty_reason[1],
+				Toast.Kind.ERROR if no_steam else Toast.Kind.INFO, 10.0)
 		return
 
 	var without_info := 0
@@ -1296,6 +1312,48 @@ func _show_startup_messages(player: Player, games: Array[SteamGame]) -> void:
 		hud.show_message("A loja da Steam não respondeu",
 				"%d jogo(s) ficaram no bairro \"Outros\". Na próxima vez, tento de novo." % without_info,
 				Toast.Kind.INFO, 10.0)
+
+
+## Por que a cidade ficou vazia: [o que houve, o que fazer], ou [] se ela
+## tem jogos. Serve ao aviso do topo e à placa da porta da casa.
+static func empty_city_reason(steam_path: String, game_count: int) -> PackedStringArray:
+	if steam_path.is_empty():
+		return ["Não encontrei a Steam neste PC", "Instale a Steam e abra o hub de novo."]
+	if game_count == 0:
+		return ["Nenhum jogo instalado na Steam", "Instale um jogo pela Steam e abra o hub de novo."]
+	return []
+
+
+## Com a cidade pronta, a placa da porta da rua diz o que ainda importa: por
+## que a cidade está vazia (fica lá, para quem não leu o aviso de 10 s) ou
+## quantas capas ainda estão chegando (some quando acabam).
+func _show_city_state_at_door(games: Array[SteamGame]) -> void:
+	var front_door := _home.get_front_door()
+	var empty_reason := empty_city_reason(SteamLibrary.get_steam_path(), games.size())
+	if not empty_reason.is_empty():
+		front_door.detail = "%s (a praça está vazia)" % FRONT_DOOR_DETAIL
+		_home.set_door_status("A cidade está vazia.\n%s. %s" % [empty_reason[0], empty_reason[1]])
+		return
+	front_door.detail = FRONT_DOOR_DETAIL
+	if not GameArt.is_downloading():
+		return
+	var timer := Timer.new()
+	timer.name = "DoorDownloads"
+	timer.wait_time = DOOR_DOWNLOADS_INTERVAL
+	timer.timeout.connect(_show_downloads_at_door.bind(timer))
+	add_child(timer)
+	timer.start()
+	_show_downloads_at_door(timer)
+
+
+## "Baixando as capas… 12 de 40" na porta, até a leva acabar.
+func _show_downloads_at_door(timer: Timer) -> void:
+	if not GameArt.is_downloading():
+		_home.set_door_status("")
+		timer.queue_free()
+		return
+	var progress := GameArt.get_download_progress()
+	_home.set_door_status("A cidade está pronta.\nBaixando as capas… %d de %d" % [progress.x, progress.y])
 
 
 # --- Utilidades --------------------------------------------------------------

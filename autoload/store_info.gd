@@ -12,6 +12,7 @@ extends Node
 ##   StoreInfo.is_fetching()             # ainda buscando?
 ##   StoreInfo.get_tags(app_id)          # tags, da mais votada para a menos votada
 ##   StoreInfo.get_capsule_url(app_id)   # endereço da capa "em pé" (600x900)
+##   StoreInfo.get_progress()            # (respondidos, pedidos) da busca atual
 
 ## Terminou de buscar tudo o que foi pedido (success = false se algo falhou).
 signal fetch_finished(success: bool)
@@ -27,11 +28,19 @@ const SECONDS_PER_DAY: int = 24 * 60 * 60
 ## Informações por jogo. A chave é o app_id em texto (o JSON só aceita texto
 ## como chave). Cada valor: {"fetched": data, "tags": [ids], "capsule": url, "header": url}
 var _cache: Dictionary = {}
+## Endereço da loja. Os testes trocam por um que não responde, para ver o hub
+## sem internet (tests/check_first_run.gd).
+var api_url: String = API_URL
 var _queue: Array[int] = []
 var _current_batch: Array[int] = []
 var _fetching: bool = false
 var _had_error: bool = false
 var _http: HTTPRequest
+## Progresso da busca atual (Fase 18.3, para a porta da casa dizer "N de M"):
+## quantos jogos foram pedidos e de quantos a loja já respondeu (ou falhou).
+## Volta a zero quando uma busca nova começa.
+var _asked_count: int = 0
+var _done_count: int = 0
 
 
 func _ready() -> void:
@@ -45,9 +54,13 @@ func _ready() -> void:
 ## Pede à loja as informações que faltam (ou estão velhas) desses jogos.
 ## Se não faltar nada, não faz nada (e is_fetching() continua false).
 func fetch(app_ids: Array[int]) -> void:
+	if not _fetching:
+		_asked_count = 0
+		_done_count = 0
 	for app_id in app_ids:
 		if needs_update(app_id) and not app_id in _queue and not app_id in _current_batch:
 			_queue.append(app_id)
+			_asked_count += 1
 	if not _fetching and not _queue.is_empty():
 		_had_error = false
 		_send_next_batch()
@@ -55,6 +68,12 @@ func fetch(app_ids: Array[int]) -> void:
 
 func is_fetching() -> bool:
 	return _fetching
+
+
+## Progresso da busca atual: x = jogos já respondidos (ou que falharam), y =
+## jogos pedidos. (0, 0) = nada foi pedido.
+func get_progress() -> Vector2i:
+	return Vector2i(_done_count, _asked_count)
 
 
 ## true se já temos informação desse jogo (mesmo que velha).
@@ -104,9 +123,10 @@ func get_header_url(app_id: int) -> String:
 
 
 func _send_next_batch() -> void:
+	_done_count += _current_batch.size()  # o lote anterior acabou (deu certo ou não)
+	_current_batch = []
 	if _queue.is_empty():
 		_fetching = false
-		_current_batch = []
 		_save_cache()
 		fetch_finished.emit(not _had_error)
 		return
@@ -123,7 +143,7 @@ func _send_next_batch() -> void:
 		"context": {"language": "brazilian", "country_code": "BR"},
 		"data_request": {"include_tag_count": 20, "include_assets": true},
 	}
-	var error := _http.request(API_URL + JSON.stringify(input).uri_encode())
+	var error := _http.request(api_url + JSON.stringify(input).uri_encode())
 	if error != OK:
 		push_warning("StoreInfo: não consegui fazer o pedido (erro %d)." % error)
 		_had_error = true

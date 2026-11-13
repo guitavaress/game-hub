@@ -40,6 +40,11 @@ extends Node
 ##   GameArt.art_ready.connect(...)           # chegou uma capa (nova ou melhor)
 ##   var hero := GameArt.get_hero(app_id)     # null = ainda não temos (hero_ready avisa)
 ##   var logo := GameArt.get_logo(app_id)     # null = o jogo não tem logo
+##   GameArt.get_download_progress()          # (baixados, pedidos) da leva atual
+##
+## Sem internet (Fase 18.3): uma falha só fica anotada (os 7 dias) quando a
+## loja RESPONDEU e não tinha a imagem. Se nem deu para conectar, nada é
+## anotado: na próxima abertura, com internet, as capas vêm.
 
 ## Uma capa acabou de chegar (a primeira, ou uma versão melhor).
 signal art_ready(app_id: int, texture: Texture2D)
@@ -83,6 +88,11 @@ var _logos: Dictionary = {}
 var _queue: Array[Dictionary] = []
 ## Downloads em andamento, pelo "stem".
 var _active: Dictionary[String, Dictionary] = {}
+## Progresso da leva de downloads atual (Fase 18.3, para a porta da casa
+## dizer "N de M"): quantos foram pedidos e quantos acabaram (com ou sem
+## imagem). Volta a zero quando uma leva nova começa (fila e ativos vazios).
+var _downloads_asked: int = 0
+var _downloads_done: int = 0
 ## Carregamentos em segundo plano: "hero:<app_id>" ou "logo:<app_id>" -> tarefa
 ## do WorkerThreadPool. As imagens prontas ficam em _loaded_images até a
 ## thread principal transformá-las em textura (protegidas pelo _loaded_lock).
@@ -199,7 +209,7 @@ func _finish_loading(key: String) -> void:
 	var image: Image = _loaded_images.get(key)
 	_loaded_images.erase(key)
 	_loaded_lock.unlock()
-	if image != null:
+	if image != null and can_compress():
 		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
 	var texture := _to_texture(image, true)
 	var app_id := int(key.get_slice(":", 1))
@@ -367,9 +377,17 @@ static func _decode_image(path: String, max_width: int, compress: bool) -> Image
 		var height := maxi(1, roundi(image.get_height() * float(max_width) / image.get_width()))
 		image.resize(max_width, height, Image.INTERPOLATE_BILINEAR)  # rápido; a imagem continua grande
 	image.generate_mipmaps()  # deixa a imagem bonita vista de longe
-	if compress:
+	if compress and can_compress():
 		image.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
 	return image
+
+
+## Se esta Godot sabe comprimir imagens. O compressor S3TC só vem no editor:
+## no .exe exportado ("template") o compress() não existe e cada capa daria um
+## erro no log. Lá as capas ficam sem comprimir (funcionam igual, só gastam
+## mais memória de vídeo).
+static func can_compress() -> bool:
+	return not OS.has_feature("template")
 
 
 ## Textura a partir da imagem já carregada (na thread principal).
@@ -377,7 +395,7 @@ func _to_texture(image: Image, wanted_compressed: bool) -> Texture2D:
 	if image == null:
 		push_warning("GameArt: imagem inválida")
 		return null
-	if wanted_compressed and not image.is_compressed() and not _warned_compress:
+	if wanted_compressed and can_compress() and not image.is_compressed() and not _warned_compress:
 		_warned_compress = true
 		push_warning("GameArt: sem compressão de textura nesta versão; as capas gastam mais memória.")
 	return ImageTexture.create_from_image(image)
@@ -428,8 +446,23 @@ func _queue_download(app_id: int, stem: String, urls: Array[String], kind: Strin
 	for job in _queue:
 		if job["stem"] == stem:
 			return
-	_queue.append({"app_id": app_id, "stem": stem, "urls": urls, "kind": kind})
+	if not is_downloading():
+		_downloads_asked = 0
+		_downloads_done = 0
+	_downloads_asked += 1
+	_queue.append({"app_id": app_id, "stem": stem, "urls": urls, "kind": kind, "reached": false})
 	_start_downloads()
+
+
+## Ainda há capas (ou heroes) baixando ou na fila?
+func is_downloading() -> bool:
+	return not _queue.is_empty() or not _active.is_empty()
+
+
+## Progresso da leva atual: x = downloads que acabaram, y = pedidos.
+## (0, 0) = nada foi pedido.
+func get_download_progress() -> Vector2i:
+	return Vector2i(_downloads_done, _downloads_asked)
 
 
 func _start_downloads() -> void:
@@ -455,6 +488,8 @@ func _request_next_url(http: HTTPRequest, job: Dictionary) -> void:
 func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 		body: PackedByteArray, http: HTTPRequest, job: Dictionary) -> void:
 	var extension := _image_extension(body)
+	if result == HTTPRequest.RESULT_SUCCESS:
+		job["reached"] = true  # a loja respondeu (mesmo que sem a imagem)
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200 and not extension.is_empty():
 		var path := "%s/%s.%s" % [CACHE_DIR, job["stem"], extension]
 		var file := FileAccess.open(path, FileAccess.WRITE)
@@ -479,6 +514,7 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 func _finish_download(http: HTTPRequest, job: Dictionary, texture: Texture2D) -> void:
 	var app_id: int = job["app_id"]
 	_active.erase(job["stem"])
+	_downloads_done += 1
 	http.queue_free()
 	if texture != null and job["kind"] == "hero":
 		_heroes[app_id] = texture
@@ -492,8 +528,8 @@ func _finish_download(http: HTTPRequest, job: Dictionary, texture: Texture2D) ->
 		# Baixou a normal e ela veio pequena? Então busca a HD também.
 		if texture.get_width() < HD_MIN_WIDTH and not String(job["stem"]).ends_with("_hd"):
 			_queue_download(app_id, "%d_hd" % app_id, _hd_urls(app_id))
-	else:
-		_mark_failed(job["stem"])
+	elif job.get("reached", false):
+		_mark_failed(job["stem"])  # a loja respondeu e não tinha: 7 dias sem tentar
 	_start_downloads()
 
 

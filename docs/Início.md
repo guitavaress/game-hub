@@ -5,12 +5,13 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 **Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
 
 ## Agora
-- **Fase em aprovação:** [Fase 17, O momento uau](plans/fase-17.md), na branch `fase-17`: **implementada**, falta a sua aprovação e o merge na `main`. As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
-  - **Última subetapa feita:** 17.10, as três partes (2026-11-08). As pendências da 17.8: a torre do RPG agora é de pedra (com cornija em degraus e portal nas duas faces), a madeira do deque ficou acinzentada e fosca e a cinza da fogueira escureceu e encolheu. O estudo do tranco de ~87 ms: é compilação de shader uma vez por abertura, e a decisão foi aceitar (os números estão no plano). O fechamento: bateria `TUDO OK`, medida no desktop (200 jogos, Alta: 144,8 FPS na caminhada, p99 13 ms) e a folha `folha_17.10.png`. Antes, a 17.9.2 (o acabamento da cabana), aprovada em 2026-11-08.
-  - **Próxima:** a sua aprovação da Fase 17 (as capturas e a folha) e, depois, o merge na `main`.
-- **Próxima fase:** [Mostrar para amigos](ROADMAP.md#2-mostrar-para-amigos).
+- **Fase atual:** [Fase 18, Mostrar para amigos](plans/fase-18.md), na branch `fase-18`: um build do Windows que 2 ou 3 amigos baixam e usam.
+  - **Última subetapa feita:** 18.6 (2026-11-11): `bash tools/empacotar_windows.sh` gera `C:\Projetos\game-hub-builds\GameHub-0.18.0-windows.zip` (74 MB) com o `.exe`, o `LEIA-ME.txt` e as 22 licenças, e recusa o pacote se achar `config.cfg`, chave, SteamID, capa ou pasta do repositório (até dentro dos scripts do pck). O README ganhou "Baixar e jogar". Antes, a 18.4 e a 18.5 (o mural convida sem chave; o botão "Contar o que achei").
+  - **Próxima:** 18.7, o Release no GitHub e os amigos (só docs + publicação; Opus e o dono, medium). Tag, Release e push só quando você pedir.
+  - **README revisado (2026-11-11):** apresentação da casa, cidade, bioma e amigos; versão e plataformas atualizadas; controles e primeiro uso organizados; configuração avançada e mesa Linux em seções expansíveis. O texto deixa claro que o Release ainda não foi publicado e que o desktop virtual está em pausa.
+- **Próxima fase:** [Visitar amigos (V-Sekai)](ROADMAP.md#3-visitar-amigos-v-sekai).
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
-- **Última fase feita:** [Fase 16, Leitura](plans/fase-16.md), já na `main` (PR #2).
+- **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
 
 ## O que falta
@@ -63,11 +64,13 @@ gantt
     Fase 16 Leitura                  :done, f16, 2026-11-02, 2026-11-03
 
     section Uau
-    Fase 17 O momento uau            :active, f17, 2026-11-02, 7d
+    Fase 17 O momento uau            :done, f17, 2026-11-02, 2026-11-10
+
+    section Amigos
+    Fase 18 Mostrar para amigos      :active, f18, 2026-11-10, 7d
 
     section Próximas, sem data
-    Mostrar para amigos              :u2, after f17, 7d
-    Visitar amigos, V-Sekai          :u3, after u2, 7d
+    Visitar amigos, V-Sekai          :u3, after f18, 7d
     Biomas baratos, PoC              :u4, after u3, 7d
 ```
 Ao fechar uma fase, troque `active` por `done` e acerte a data do fim. A fase que começar ganha uma linha com a data de início e sai de "Próximas".

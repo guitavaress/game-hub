@@ -20,6 +20,10 @@ var _settings: SettingsView
 var _home_view: HomeSettingsView
 var _system_view: SystemSettingsView
 var _quit_button: Button
+## "Contar o que achei" (Fase 18.5): a tela de feedback troca de lugar com as abas.
+var _feedback_button: Button
+var _feedback_view: FeedbackView
+var _normal_parts: Array[Control] = []
 ## Sair com apps abertos pede um segundo clique (os apps fecham junto com o hub).
 var _quit_armed: bool = false
 
@@ -62,14 +66,22 @@ func _ready() -> void:
 		_system_view.free()
 		_system_view = null
 	column.add_child(_settings)
+	_feedback_view = FeedbackView.new()
+	_feedback_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_feedback_view.closed.connect(_on_feedback_closed)
+	column.add_child(_feedback_view)
 	column.add_child(HubTheme.line())
 	column.add_child(_build_bottom_row())
+	column.add_child(_build_version_label())
 
 	GameLauncher.game_started.connect(_on_game_started)
 
 
 func _input(event: InputEvent) -> void:
 	# Aberto: Esc ou B (ui_cancel) fecham. Fechado: só o Esc abre.
+	# Com a tela de feedback aberta, o Esc é dela (ela fecha só ela mesma).
+	if visible and _feedback_view.visible:
+		return
 	if visible and (event.is_action_pressed("release_mouse") or event.is_action_pressed("ui_cancel")):
 		close()
 		get_viewport().set_input_as_handled()
@@ -89,6 +101,7 @@ func can_open() -> bool:
 
 func open() -> void:
 	_disarm_quit()
+	_feedback_view.close()
 	_settings.refresh()
 	visible = true
 	_settings.grab_tab_focus()
@@ -97,10 +110,20 @@ func open() -> void:
 	opened.emit()
 
 
+## Abre o menu já numa aba (ex.: "Amigos"), como o mural da casa pede. Devolve
+## false se não dá para abrir agora ou se a aba não existe.
+func open_tab(tab_name: String) -> bool:
+	if visible or not can_open():
+		return false
+	open()
+	return _settings.show_tab(tab_name)
+
+
 func close() -> void:
 	if not visible:
 		return
 	_disarm_quit()
+	_feedback_view.close()
 	_settings.save_pending()
 	_settings.drop_focus()
 	visible = false
@@ -144,14 +167,53 @@ func _build_bottom_row() -> Control:
 	row.add_child(resume)
 	row.add_child(KeyHint.create("back"))
 	row.add_child(HubTheme.expander())
+	_feedback_button = HubTheme.button("Contar o que achei")
+	_feedback_button.pressed.connect(_open_feedback)
+	row.add_child(_feedback_button)
 	var quit := HubTheme.button("Sair do hub")
 	quit.pressed.connect(_on_quit_pressed)
 	_quit_button = quit
 	row.add_child(quit)
+	_normal_parts = [_settings, row] as Array[Control]
 	# O rodapé entra na ordem do foco, logo depois da última linha das abas.
-	_settings.set_footer_controls([resume, quit] as Array[Control])
+	_settings.set_footer_controls([resume, _feedback_button, quit] as Array[Control])
 	return row
 
+## A versão do hub, pequena e discreta no pé do menu. Vem do project.godot
+## (application/config/version), nunca escrita aqui. Não pega foco.
+func _build_version_label() -> Label:
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	var label := HubTheme.label("Game Hub %s" % version, &"HubCaption")
+	label.name = "VersionLabel"
+	label.focus_mode = Control.FOCUS_NONE
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+## Troca as abas e o rodapé pela tela "Contar o que achei".
+func _open_feedback() -> void:
+	_disarm_quit()
+	_settings.save_pending()
+	_settings.drop_focus()
+	for part in _normal_parts:
+		part.visible = false
+	_feedback_view.open()
+
+
+## A tela fechou: as abas voltam e o foco volta para o botão.
+func _on_feedback_closed() -> void:
+	for part in _normal_parts:
+		part.visible = true
+	if visible:
+		_feedback_button.grab_focus()
+
+
+func get_feedback_view() -> FeedbackView:
+	return _feedback_view
+
+
+func get_feedback_button() -> Button:
+	return _feedback_button
 
 
 func get_quit_button() -> Button:

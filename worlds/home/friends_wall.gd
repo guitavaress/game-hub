@@ -18,6 +18,8 @@ const CARD_STEP: Vector2 = Vector2(1.15, 0.7)
 ## Altura do centro da fileira de baixo. O quadro todo (com o título) fica
 ## abaixo das vigas da sala de 3 m (Fase 17.4b; antes, 1,0).
 const FIRST_ROW_Y: float = 0.78
+## O cartão-convite do mural sem chave: maior, para caber os 3 passos.
+const INVITE_SIZE: Vector3 = Vector3(2.7, 1.25, 0.05)
 const CORK_COLOR: Color = Color(0.52, 0.36, 0.22)
 const FRAME_WOOD: Color = Color(0.3, 0.19, 0.11)
 const TITLE_COLOR: Color = Color(1.0, 0.55, 0.85)
@@ -90,7 +92,12 @@ func get_card(friend_name: String) -> FriendCard:
 
 
 func has_empty_card() -> bool:
-	return _cards.get_node_or_null("EmptyCard") != null
+	return _cards.get_node_or_null("EmptyCard") != null or has_invite_card()
+
+
+## O convite "Veja seus amigos aqui" (sem chave da Steam Web API).
+func has_invite_card() -> bool:
+	return _cards.get_node_or_null("InviteCard") != null
 
 
 ## Para onde o amigo leva: a porta do jogo dele ou a praça. Ainda sem destino
@@ -120,6 +127,12 @@ func _slot(index: int, total: int) -> Vector3:
 
 
 func _add_empty_card() -> void:
+	if FriendsService.needs_key():
+		var invite := InviteCard.new()
+		invite.name = "InviteCard"
+		invite.position = Vector3(0.0, FIRST_ROW_Y + CARD_STEP.y, INVITE_SIZE.z / 2.0 + 0.04)
+		_cards.add_child(invite)
+		return
 	var card := EmptyCard.new()
 	card.name = "EmptyCard"
 	card.problem = FriendsService.get_problem()
@@ -192,21 +205,21 @@ func _frame_bar(bar_size: Vector3, center: Vector3, material: Material) -> void:
 
 
 ## Cartões e rótulos: a base (área olhável na camada 3, placa e texto).
-static func _look_area(card: Area3D) -> void:
+static func _look_area(card: Area3D, size: Vector3 = CARD_SIZE) -> void:
 	card.collision_layer = 4
 	card.collision_mask = 0
 	card.monitoring = false
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = CARD_SIZE + Vector3(0.0, 0.0, 0.08)
+	box.size = size + Vector3(0.0, 0.0, 0.08)
 	shape.shape = box
 	card.add_child(shape)
 
 
-static func _plate(card: Node3D, color: Color) -> void:
+static func _plate(card: Node3D, color: Color, size: Vector3 = CARD_SIZE) -> void:
 	var plate := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
-	mesh.size = CARD_SIZE
+	mesh.size = size
 	plate.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
@@ -294,7 +307,47 @@ class FriendCard extends Area3D:
 			player.travel_to(destination["transform"], destination["message"])
 
 
-## O cartão de "ninguém aqui": sem chave ou sem amigos online.
+## O convite de quem ainda não pôs a chave (Fase 18.4): não é erro, é um passo a
+## passo. E abre o menu de pausa já na aba Amigos.
+class InviteCard extends Area3D:
+	const TITLE: String = "Veja seus amigos aqui"
+	const STEPS: Array[String] = [
+		"1. Abra steamcommunity.com/dev/apikey e peça a sua chave (de graça).",
+		"2. Cole a chave em {menu} › Amigos.",
+		"3. Clique em Salvar e conectar.",
+	]
+	var _steps: Label3D
+
+	func _ready() -> void:
+		FriendsWall._look_area(self, FriendsWall.INVITE_SIZE)
+		FriendsWall._plate(self, Color(0.2, 0.19, 0.22), FriendsWall.INVITE_SIZE)
+		var left := -FriendsWall.INVITE_SIZE.x / 2.0 + 0.12
+		var top := FriendsWall.INVITE_SIZE.y / 2.0
+		var width := (FriendsWall.INVITE_SIZE.x - 0.24) / 0.0025
+		FriendsWall._text(self, TITLE, Vector2(left, top - 0.2), 64, FriendsWall.TITLE_COLOR, width)
+		_steps = FriendsWall._text(self, _steps_text(), Vector2(left, top - 0.34), 40, FriendsWall.TEXT_COLOR, width)
+		_steps.vertical_alignment = VERTICAL_ALIGNMENT_TOP  # cresce para baixo, sem tocar o título
+		InputDevice.device_changed.connect(_on_device_changed)
+
+	func _steps_text() -> String:
+		var lines: Array[String] = []
+		for step in STEPS:
+			lines.append(InputDevice.fill(step))
+		return "\n".join(lines)
+
+	func get_look_info() -> Dictionary:
+		return {"title": TITLE, "detail": "Falta só a chave da Steam", "action": "{interact} para abrir Amigos"}
+
+	func interact(player: Node) -> void:
+		if player.has_method("get_pause_menu"):
+			var menu: PauseMenu = player.get_pause_menu()
+			menu.open_tab("Amigos")
+
+	func _on_device_changed(_gamepad: bool) -> void:
+		_steps.text = _steps_text()
+
+
+## O cartão de "ninguém aqui": sem amigos online.
 class EmptyCard extends Area3D:
 	const INSTRUCTION: String = "Configure os amigos em {menu} › Amigos"
 	var problem: String = ""

@@ -17,6 +17,12 @@ const API_KEY_URL: String = "https://steamcommunity.com/dev/apikey"
 const VOLUME_SAVE_DELAY: float = 0.4
 
 const TAB_NAMES: Array[String] = ["Som e vídeo", "Controles", "Amigos"]
+## Os 3 passos para ligar os amigos (o mural da casa mostra os mesmos).
+const FRIENDS_STEPS: Array[String] = [
+	"1. Abra o link abaixo, entre com a sua conta Steam e peça a chave (em \"domínio\", escreva localhost).",
+	"2. Cole a chave no campo abaixo. Ela é segredo e fica só neste PC.",
+	"3. Clique em Salvar e conectar.",
+]
 ## [canal de áudio, nome na tela]
 const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], ["Ambiente", "Ambiente"], ["Música", "Música"]]
 ## [valor no config.cfg, nome na tela]
@@ -201,6 +207,15 @@ func previous_page() -> void:
 
 func get_page() -> int:
 	return _current_page
+
+
+## Vai para a aba de nome "tab_name" (ex.: "Amigos"). Devolve false se não existe.
+func show_tab(tab_name: String) -> bool:
+	for i in _tab_buttons.size():
+		if _tab_buttons[i].text == tab_name:
+			_go_to_page(i)
+			return true
+	return false
 
 
 func _go_to_page(index: int) -> void:
@@ -485,10 +500,15 @@ func _on_fov_changed(value: float) -> void:
 func _build_friends_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	var intro := HubTheme.label("Com a chave da Steam Web API, seus amigos aparecem na cidade: na porta "
-			+ "do jogo que estão jogando, ou na praça.", &"HubBodyLight")
+	var intro := HubTheme.label("Veja seus amigos na cidade: na porta do jogo que estão jogando, ou na praça. "
+			+ "É de graça e leva um minuto:", &"HubBodyLight")
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(intro)
+	# Os mesmos 3 passos do mural da casa (Fase 18.4).
+	for step in FRIENDS_STEPS:
+		var line := HubTheme.label(step, &"HubCaption")
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		page.add_child(line)
 
 	var toggle_row := _row("Mostrar amigos")
 	toggle_row.add_child(HubTheme.expander())
@@ -505,10 +525,6 @@ func _build_friends_page() -> Control:
 	link.text = "Pegar uma chave: steamcommunity.com/dev/apikey"
 	link.pressed.connect(func() -> void: OS.shell_open(API_KEY_URL))
 	page.add_child(link)
-	var secret_hint := HubTheme.label("É segredo: fica só neste PC. No site, em \"domínio\", escreva localhost.",
-			&"HubCaption")
-	secret_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	page.add_child(secret_hint)
 
 	page.add_child(HubTheme.spacer(4))
 	page.add_child(HubTheme.label("ID Steam (opcional)"))

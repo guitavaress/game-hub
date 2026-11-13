@@ -1,0 +1,4 @@
+Ícone do Game Hub (icone.svg): o símbolo "casa-portal" do estudo de marca do
+próprio projeto (Brand Kit v0.1, versão flat para tamanhos pequenos).
+É arte do Game Hub, sob a mesma licença MIT do projeto (veja o LICENSE na raiz).
+Usado como ícone da janela e da barra de tarefas (application/config/icon).

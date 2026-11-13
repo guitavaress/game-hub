@@ -51,6 +51,34 @@ func _run() -> void:
 	device.set_gamepad(false)
 	_check("o texto da placa volta ao teclado", empty._instruction.text == "Configure os amigos em Esc › Amigos")
 
+	print("== Sem chave: o mural convida (Fase 18.4) ==")
+	fs._needs_key = true
+	wall.refresh()
+	_check("o convite aparece no lugar do cartão vazio", wall.has_invite_card() and wall.has_empty_card()
+			and wall.get_node_or_null("Cards/EmptyCard") == null)
+	var invite = wall.get_node("Cards/InviteCard")
+	var invite_info: Dictionary = invite.get_look_info()
+	_check("diz \"Veja seus amigos aqui\", sem cobrança", invite_info["title"] == "Veja seus amigos aqui"
+			and not "Configure" in str(invite_info))
+	_check("traz os 3 passos, com Esc no teclado", invite._steps.text.count("\n") == 2
+			and invite._steps.text.begins_with("1. ") and "Esc › Amigos" in invite._steps.text)
+	device.set_gamepad(true)
+	_check("os passos acompanham o controle", "Menu › Amigos" in invite._steps.text)
+	device.set_gamepad(false)
+	_check("o HUD não recebe aviso nenhum", fs.get_problem().is_empty())
+	var pause_menu = player.get_pause_menu()
+	player.teleport_to(Transform3D(Basis.IDENTITY, home.to_global(Vector3(0.0, 0.1, 0.0))))
+	player.set_indoors(home.get_environment())
+	await _frames(3)
+	invite.interact(player)
+	await _frames(2)
+	_check("E no convite abre a pausa na aba Amigos", pause_menu.is_open()
+			and pause_menu.get_settings().get_page() == 2)
+	pause_menu.close()
+	fs._needs_key = false
+	wall.refresh()
+	_check("com a chave, volta o cartão de sempre", wall.get_node_or_null("Cards/EmptyCard") != null and not wall.has_invite_card())
+
 	print("== Com amigos ==")
 	var friends: Array[SteamFriend] = []
 	friends.assign(fs.parse_players(JSON.parse_string(SUMMARIES_JSON)))

@@ -38,6 +38,7 @@ var _enabled: bool = false
 var _api_key: String = ""
 var _steam_id: String = ""
 var _problem: String = ""
+var _needs_key: bool = false
 
 var _friend_ids: PackedStringArray = []
 var _friend_list_ms: int = -1          # quando a lista foi buscada (-1 = nunca)
@@ -75,11 +76,15 @@ func _ready() -> void:
 
 ## Lê a configuração e começa a consultar (se estiver tudo certo).
 func _start() -> void:
+	_needs_key = false
 	if not AppConfig.are_friends_enabled():
 		return
 	_api_key = AppConfig.get_web_api_key()
 	if _api_key.is_empty():
-		_report("Amigos desligados\nColoque a chave da Steam Web API em Esc › Amigos.")
+		# Sem chave é a situação normal de quem acabou de baixar o hub: não é erro,
+		# então nada é avisado ao HUD. O mural da casa e a aba Amigos leem needs_key()
+		# e convidam a pôr a chave (Fase 18.4).
+		_needs_key = true
 		return
 
 	_steam_id = AppConfig.get_steam_id_override()
@@ -109,14 +114,24 @@ func restart() -> void:
 	_summary_batches.clear()
 	_collected.clear()
 	var had_friends := not _friends.is_empty()
+	var had_needs_key := _needs_key
 	_friends.clear()
 	if had_friends:
 		friends_changed.emit()
 	_start()
+	# O mural precisa redesenhar quando a chave entra (ou sai).
+	if not had_friends and had_needs_key != _needs_key:
+		friends_changed.emit()
 
 
 func is_enabled() -> bool:
 	return _enabled
+
+
+## Os amigos estão ligados, mas ainda não há chave da Steam Web API. É um estado
+## (não um erro): quem mostra o convite é o mural da casa e a aba Amigos.
+func needs_key() -> bool:
+	return _needs_key
 
 
 ## Último problema avisado ("" = nenhum). O HUD lê isto ao aparecer.

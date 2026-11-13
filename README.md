@@ -1,147 +1,187 @@
+<p align="center">
+  <img src="assets/brand/icone.svg" alt="Símbolo do Game Hub: uma casa com uma porta azul" width="88">
+</p>
+
 # Game Hub
 
-Um launcher para a biblioteca Steam em forma de **mundo 3D em primeira pessoa**, feito em [Godot 4](https://godotengine.org).
+**Sua biblioteca Steam é um lugar. Entre para jogar.**
 
-Você caminha por uma cidade onde **cada jogo instalado é um prédio**, com o banner do jogo no alto da fachada e o logo sobre a porta. Os prédios ficam agrupados em **bairros por categoria** (RPG, Sobrevivência e Terror, Cartas e Tabuleiro...), cada um com a sua cor de néon, a sua arquitetura e o seu nome em letreiro por cima dos telhados. Ao entrar na porta de um prédio, um anel enche em volta da mira; aí aparece a tela "Abrindo X…", o jogo abre pela Steam e o hub se minimiza. Quando você fecha o jogo, o hub volta com você na porta do mesmo prédio e um resumo da sessão ("1 h 12 min de Balatro").
+Um launcher em forma de **mundo 3D em primeira pessoa**, inspirado no PlayStation Home e feito em Godot. Você começa em casa, sai para uma cidade construída com os seus jogos e encontra os amigos como hologramas pelo caminho.
 
-## Situação do projeto
+Cada jogo instalado tem uma porta. Entre, espere o anel da mira encher e o jogo abre pela Steam. O hub se minimiza; quando você fecha o jogo, volta ao mesmo lugar, com um resumo da sessão.
 
-| Fase | O que é | Situação |
-|---|---|---|
-| 1 | Andar em primeira pessoa numa praça | ✅ pronta |
-| 2 | Portal de jogo: entrar, abrir o jogo, voltar na porta | ✅ pronta |
-| 3 | Cidade gerada da biblioteca, com bairros por categoria e capas | ✅ pronta |
-| 4 | Launcher robusto: Steam fechada, jogos abertos por fora, vários monitores | ✅ pronta |
-| 5 | Amigos da Steam como personagens na porta do jogo que estão jogando | ✅ pronta |
-| 6 | Polimento: horas jogadas, capas HD, sons, som ambiente por bairro, modelos 3D, dia e noite | ✅ pronta |
-| Visual v2 | Semi-realista com noite de néon: céus HDRI, materiais PBR, telas "Abrindo" e "Jogando", avisos, cartão do jogo | ✅ pronta |
-| Visual v2, parte 2 | Menu de pausa, busca com Tab, abertura pelo céu, pórticos, prédios variados, horizonte, noite viva, identidade dos bairros | ✅ pronta |
-| Linux | Roda no Linux (testado no Omarchy, com Hyprland): o jogo abre num workspace próprio e o hub se esconde num workspace oculto | ✅ pronta (conferida no Windows em 2026-10-19) |
-| 7 | World Profile: cada bairro descrito por um perfil de dados (cores, som, enfeite, clima); chuva e invólucros de portal | ✅ pronta (conferida no Windows) |
-| 8 | Escala: viagem rápida, bússola, minimapa, mapa grande e metrô entre bairros, para centenas de jogos | ✅ pronta no Linux (falta a conferência de desempenho no desktop) |
-| 9 | A casa: você nasce num loft com a estante da biblioteca, o mural dos amigos e o computador das configurações | ✅ pronta (conferida no Windows) |
-| 10 | Acabamento: texturas nítidas, bordas lisas, UI que escala com a tela, bairros com arquitetura e letreiro próprios, primeira vez guiada | ✅ pronta no Linux (falta a conferência no desktop) |
-| 13 | Casa, parte 2: parede de estatísticas, temas (loft e cabana), cores das paredes e do néon, posições prontas dos móveis, e um avatar que você vê num espelho | ✅ pronta no Linux (falta a conferência no desktop) |
-| 12 | Tema e controles: um tema único para todas as telas, menus pelo teclado e controle Xbox para jogar tudo, com as dicas trocando entre teclas e botões | ✅ pronta no Linux (falta a conferência com o controle no desktop) |
-| 14 | O hub no Omarchy: painel do sistema (hora, bateria, Wi-Fi, volume), abrir o hub ao entrar no Omarchy, um atalho para chamá-lo de volta e **a mesa com três monitores**: o hub é um compositor Wayland, e os apps (terminal, Brave, a barra e o menu do Omarchy) aparecem nos monitores da casa, com os atalhos do Omarchy (como o Waylandcraft) | ✅ pronta no Linux (falta a medida no desktop e a conferência no Windows) |
-| 11 | Sensação e marcos: câmera com peso, a porta que "pesa", torre do relógio e um marco alto por bairro, música, fundo da cidade, passos de madeira em casa, título ao entrar no bairro | ✅ pronta no Linux (falta a conferência no desktop) |
-| 15 | Primeiro bioma: o bairro RPG vira neve, arcos de pedra, pinheiros e rochas, com neve caindo, névoa, vento e passos na neve; atrás dele, uma montanha com trilha até o mirante e a torre. Cada bairro passou a ser uma fatia da praça até a borda | ✅ pronta no desktop Windows (falta a comparação no notebook; a montagem da cidade ainda tem quadros acima de 50 ms) |
-| 16 | Leitura: capas inteiras na estante, o nome do arco do RPG legível pela frente e por trás, aviso e título do bairro em lugares separados (o título cede durante a carga da porta), o HUD some com a busca, o mapa, o metrô ou a pausa abertos, os nomes dos amigos só aparecem de perto, os textos dizem o que apertar, as estações do metrô dizem onde ficam, o mapa grande tem legenda, e a mesa no Windows diz "SÓ NO LINUX" | ✅ pronta no desktop Windows (falta o merge na main) |
-| 17 | O momento uau: a casa à noite com luz quente, sombras e objetos (sofá, manta, tapete, canto de leitura, plantas) e **a cidade de verdade na janela**, que acende quando fica pronta; a cidade com contraste de dia e de noite; a **trilha do RPG** com paradas e os modelos do Blender (fogueira, terraço de pedra, bancos), até o **mirante** com o seu RPG mais jogado em destaque, a fogueira e a luneta; a torre do RPG em pedra; e a **cabana** com o aconchego do loft | ✅ pronta no desktop Windows (falta a sua aprovação e o merge na main) |
+[Experimentar](#experimentar) · [Explorar o mundo](#um-passeio-pelo-hub) · [Controles](#controles) · [Rodar pelo código](#rodar-pelo-código) · [Roadmap](docs/ROADMAP.md)
 
-A ideia a longo prazo é que o hub vire um **desktop virtual em forma de mundo**, inspirado no PlayStation Home. A sua casa seria o computador, e a biblioteca decidiria como o mundo é: uma montanha de gelo para o Skyrim, uma pista de corrida onde se ouve o motor de longe. O caminho completo está no **[roadmap](docs/ROADMAP.md)**.
+## Um passeio pelo hub
 
-## Requisitos
+### Comece em casa
 
-- **Windows 10 ou 11**, ou **Linux** (testado no Omarchy, com Hyprland e Wayland).
-- **Steam** instalada. No Linux, a Steam nativa; a do Flatpak deve funcionar, mas não foi testada.
-- **Godot 4.7** ou mais nova (versão padrão, não a .NET).
+Luz quente, um sofá, um canto de leitura e **a cidade de verdade na janela**. Na estante, cada caixa tem a capa de um jogo seu: olhe para ela e segure **E** para jogar sem sair de casa.
 
-## Como rodar
+O mural reúne os amigos online. Na parede, suas estatísticas mostram as horas jogadas, os mais jogados e os maiores bairros. No espelho, você escolhe o visual do avatar. Em **Esc › Casa**, troque entre **loft e cabana**, mude as cores e escolha a posição dos móveis.
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/guitavaress/game-hub.git
-   ```
-2. Abra a Godot, clique em **Importar** e escolha o arquivo `project.godot`.
-3. **Desative a janela embutida.** Se ela ficar ligada, o hub não consegue se minimizar. Clique na aba **Game** do editor, abra o menu **⋮** e desmarque **Embed Game on Next Play**.
-4. Aperte **F5**.
+### Saia para a sua biblioteca
 
-Na primeira vez, o hub busca na loja da Steam as tags e as capas dos seus jogos. Isso leva alguns segundos e depois fica guardado.
+Os jogos se agrupam em **dez bairros por categoria**, com arquitetura, cores, marcos e sons próprios. Cartas tem luzes de cassino; Terror tem néon falhando, névoa e garoa à noite. Fachadas mostram a arte dos jogos, e olhar para uma porta revela as horas jogadas e os amigos que estão ali.
 
-### No Linux
+A cidade acompanha o relógio do computador: o céu muda, as janelas acendem e o néon toma conta da noite. Você também pode fixar dia ou noite pelo menu.
 
-- **Godot:** baixe o binário oficial (`Godot_v4.7.2-stable_linux.x86_64.zip`, no site da Godot ou no GitHub), descompacte e copie para `~/.local/bin/godot`. Abra o editor com `godot --path ~/git/game-hub -e`.
-- **Janela:** no Linux o hub usa o Wayland. No **Hyprland**, quando o jogo começa, ele vai para um workspace vazio (no monitor escolhido em `game_monitor`) e o hub se esconde num workspace oculto; quando o jogo fecha, o hub volta para onde estava.
-- **Tela cheia:** por padrão, o próprio jogo decide. Use a opção de tela cheia do jogo (no Undertale, F4). Dá para o hub forçar com `game_fullscreen=true`, mas jogos antigos que não mudam de tamanho (como o Undertale) ficam desenhados num canto.
-- **Steam no Omarchy:** para a janela da Steam não pular na frente quando um jogo abre, abra a Steam com `steam -silent` (ela fica na bandeja da barra) e impeça as janelas dela de roubar o foco. Veja [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
-- **Bússola e minimapa:** a faixa no topo mostra para onde você olha e o destino da busca, com a distância. O minimapa no canto mostra o quarteirão e o bairro onde você está. Esc › "Bússola e mapa" desliga os dois.
+Quer ir direto ao que interessa? **Tab** encontra o jogo e desenha uma rota no chão. **Shift + Enter**, na busca, leva direto até a porta. Há bússola, minimapa, mapa grande e **metrô entre os bairros**.
 
-**Metrô:** há uma estação na praça (a noroeste do chafariz) e uma em cada bairro, no vão entre dois prédios. Bairros grandes ganham mais estações, para nenhuma porta ficar a mais de ~20 s correndo. O painel do metrô diz onde cada estação fica ("perto da praça" ou a quantos metros dela) e quantos jogos ela atende.
+### Suba até o mirante
 
-**Controle Xbox:** joga tudo.
+No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
 
-| Botão | Ação |
+Esse é o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**.
+
+### Veja onde os amigos estão
+
+Com a integração opcional da Steam, amigos aparecem como **hologramas com seus avatares**, na porta do jogo que estão jogando. Quem está online sem jogar, ou num jogo que você não tem, fica na praça.
+
+Hoje eles mostram a presença da Steam. **Visitar e conversar com amigos dentro do hub é uma próxima etapa**, ainda em estudo.
+
+## Experimentar
+
+**Projeto pessoal em desenvolvimento · versão no código: 0.18.0 · atualizado em 11/11/2026.**
+
+A Fase 17, *O momento uau*, já está na `main`. A **Fase 18, Mostrar para amigos**, está em andamento: o pacote do Windows está pronto, com instruções, licenças e um botão de feedback. **O primeiro Release para os amigos ainda está pendente de publicação.**
+
+### Pacote do Windows
+
+Quando publicado, o zip estará na página de [Releases](https://github.com/guitavaress/game-hub/releases). Para usar o pacote, você não precisa instalar a Godot.
+
+Você precisa de **Windows 10 ou 11 de 64 bits**, **Steam com pelo menos um jogo instalado** e **placa de vídeo com suporte a Vulkan**. A primeira abertura usa internet para buscar capas e categorias; depois, esses dados ficam em cache.
+
+1. Descompacte `GameHub-<versão>-windows.zip` numa pasta sua.
+2. Abra a Steam e execute `GameHub.exe`. Mantenha o `.exe` e o `GameHub.pck` juntos.
+3. Como o executável ainda não tem assinatura digital, o Windows pode mostrar o SmartScreen. Confira a origem do pacote; para executar a cópia baixada deste projeto, use **Mais informações › Executar assim mesmo**.
+
+Na primeira abertura, a porta da casa mostra o progresso da preparação da cidade. **A chave da Steam é opcional:** você pode explorar e abrir seus jogos sem configurar os amigos.
+
+O `LEIA-ME.txt` do pacote explica o primeiro uso e como apagar os dados. Em **Esc › Contar o que achei**, você responde três perguntas, confere o resumo e copia para enviar a quem te passou o hub. O botão não envia nada sozinho.
+
+### Windows e Linux
+
+| Plataforma | Situação |
 |---|---|
-| analógico esquerdo | Andar (apertar o analógico = correr) |
-| analógico direito | Olhar |
-| A | Pular; nos menus, escolher |
-| X | Interagir; na busca, ir até a porta |
-| Y | Busca |
-| View | Mapa |
-| Menu | Pausa |
-| B | Voltar e fechar painéis; cancela a espera do jogo |
-| direcional | Navegar nos menus e na lista da busca (que rola por todos os jogos) |
-| LB e RB | Trocar de aba nos menus |
+| **Windows** | Editor e executável testados no desktop. Primeiro pacote para amigos na Fase 18. |
+| **Linux** | Testado no Omarchy, com Hyprland e Wayland, rodando pelo código. A Steam nativa é a opção testada; Flatpak ainda não foi conferido. |
+| **Mesa com apps dentro do mundo** | Recurso experimental só do Linux, com extensão nativa compilada à parte. O desenvolvimento do desktop virtual está em pausa. |
 
-As dicas desenhadas na tela trocam sozinhas: no teclado mostram "Esc", "E" e "Tab"; ao tocar no controle, viram "B", "X" e "Y" (coloridos como o Xbox), e o cursor do mouse some. Em Esc › Controles há a **Sensibilidade do controle**.
-
-**PC fraco?** Notebooks com gráfico integrado ficam bem melhores na qualidade **Leve** (menu Esc › Qualidade).
-
-### Testes automáticos
-
-A pasta `tests/` tem uma bateria que roda sem abrir janela e sem abrir jogo de verdade. Para rodar, use o Git Bash (no Windows) ou o terminal (no Linux):
-
-```bash
-bash tests/run_tests.sh               # todos
-bash tests/run_tests.sh check_gates   # só um
-```
-
-O script procura a Godot em `C:\Godot` (Windows), no `PATH` e em `~/.local/bin/godot` (Linux). Se ela estiver em outro lugar, rode com `GODOT=/caminho/da/godot` antes do comando. No fim aparece `RESULTADO GERAL: TUDO OK` ou a lista do que falhou.
-
-Alguns testes usam a biblioteca de verdade e esperam quatro jogos instalados: **Balatro, Skyrim, Valheim e Stardew Valley**. Num PC sem eles, esses testes falham por falta do jogo, e não por erro no hub.
-
-## Amigos na cidade (opcional)
-
-Seus amigos da Steam aparecem como hologramas com o avatar. O nome aparece de perto ou sob a sua mira:
-- **jogando algo da sua biblioteca:** ficam ao lado da porta do prédio daquele jogo;
-- **online sem jogar, ou jogando algo que você não tem:** ficam em volta do chafariz da praça;
-- **offline:** não aparecem.
-
-Para isso, o hub precisa de uma **chave da Steam Web API**:
-
-1. Logado na Steam, entre em <https://steamcommunity.com/dev/apikey>. Em "domínio", pode escrever `localhost`. A Steam pode pedir confirmação no app Steam Guard.
-2. No hub, aperte **Esc**, abra a aba **Amigos**, cole a chave e clique em **Salvar e conectar**. (Se preferir, dá para colar a chave direto no `config.cfg`, entre as aspas da linha `web_api_key=""`; veja [Configuração](#configuração).)
-
-> ⚠️ **A chave é secreta.** Não mostre para ninguém e não envie para repositórios nem chats. Golpistas usam chaves vazadas para mexer em trocas de itens. Se ela vazar, apague a chave na mesma página. O hub guarda a chave só no `config.cfg`, na pasta de dados do usuário, fora do repositório; no menu, ela aparece só como bolinhas e nunca é mostrada de volta.
-
-A Steam só mostra o jogo de um amigo se ele deixou **"Detalhes do jogo"** como público no perfil. Se não, ele aparece na praça como online. Se o hub avisar que não conseguiu ler sua lista de amigos, deixe **"Lista de amigos"** como pública em Steam → Perfil → Editar perfil → Configurações de privacidade.
+O foco atual é **abrir jogos e encontrar os amigos**. Depois do teste com amigos, vêm o estudo de visitas com V-Sekai e novos biomas. O [roadmap](docs/ROADMAP.md) reúne o histórico, as próximas fases e as pendências de validação.
 
 ## Controles
 
-| Tecla | Ação |
+### Teclado e mouse
+
+| Controle | Ação |
 |---|---|
-| Mouse | Olhar |
-| W A S D | Andar |
-| Shift | Correr |
-| Espaço | Pular |
-| Setas, Enter, Esc | Navegar nos menus (pausa e computador) sem o mouse |
-| Esc | Menu de pausa (som, vídeo, qualidade, hora da cidade, controles, amigos). Em casa, também devolve a câmera do computador |
-| E | Interagir: porta (casa e praça), estante (segurar para jogar; solte para cancelar), mural dos amigos e computador |
-| Tab | Achar um jogo: digite o nome e aperte Enter; uma faixa de luz no chão leva até a porta |
-| Shift+Enter (na busca) | Ir direto até a porta do jogo (a tela escurece e você aparece na frente dela; o jogo não abre) |
-| M | Mapa grande da cidade, com legenda (você, casa, metrô, torre e trilha); M ou Esc fecham |
-| Pisar na escada de uma estação "M" | Metrô: escolha o bairro e viaje (setas ou 1 a 9, Enter; Esc fica) |
-| F11 | Tela cheia |
-| F8 | Adiantar o relógio da cidade em 3 horas (para ver a noite) |
-| Ficar 1,5 s dentro da porta de um prédio | Abrir o jogo (recue antes do anel encher para cancelar) |
-| Esc, enquanto o jogo está abrindo | Cancelar a espera |
+| Mouse / **W A S D** | Olhar / andar |
+| **Shift** / **Espaço** | Correr / pular |
+| **E** | Interagir com portas, mural e espelho; **segure** na estante para abrir um jogo |
+| **Tab** | Buscar um jogo; **Enter** traça a rota, **Shift + Enter** vai até a porta |
+| **M** | Abrir ou fechar o mapa da cidade |
+| **Esc** | Pausa e configurações; voltar ou fechar painéis; cancelar a espera de um jogo |
+| **Setas / Enter** | Navegar e escolher nos menus |
+| **F11** | Alternar tela cheia |
+| **F8** | Adiantar o relógio da cidade em três horas |
 
-**PC fraco?** No menu de pausa, em **Qualidade**, escolha **Leve**: desliga os reflexos, o sombreamento extra e a névoa, desenha o 3D em metade da resolução, usa o anti-aliasing mais barato (FXAA) e encurta a sombra do sol.
+**Para jogar pela cidade:** fique dentro da porta por 1,5 segundo, até o anel da mira encher. Recue antes para cancelar. Para usar o metrô, pise na escada de uma estação **M** e escolha o destino.
 
-**Qualidades:** **Alta** liga tudo e alisa as bordas com MSAA 2x + SMAA; **Média** tira os reflexos na tela e usa SMAA; **Leve** é a de cima. As texturas do chão e das paredes têm mipmaps: o asfalto ao longe não "granula" nem cintila. A interface (menus, avisos, mapa) cresce junto com a janela, então ocupa a mesma parte da tela em 720p, 1080p ou 1440p.
+### Controle Xbox
 
-**Primeira vez:** ao abrir o hub pela primeira vez, um cartão no pé da tela mostra as teclas principais (some no primeiro E ou depois de 15 s; não aparece de novo). Os outros avisos esperam ele sair. Quando a cidade termina de montar, aparece "A cidade está pronta", com um som curto.
+| Controle | Ação |
+|---|---|
+| Analógicos esquerdo / direito | Andar / olhar; aperte o esquerdo para correr |
+| **A** / **X** | Pular ou confirmar / interagir |
+| **Y** / **View** / **Menu** | Busca / mapa / pausa |
+| **B** | Voltar; fechar painéis; cancelar a espera do jogo |
+| Direcional / **LB e RB** | Navegar / trocar de aba nos menus |
 
-**Sensação (Fase 11):** andando, a câmera balança de leve; ao pousar de um pulo, ela afunda; correndo, o campo de visão abre 5°. Na porta de um jogo, enquanto o anel enche, o FOV fecha, a câmera avança um pouco, o vão e o néon acendem mais forte, e o som da carga é um rumor grave. Em Esc › Controles dá para **desligar o balanço da câmera** (se der enjoo) e mudar a **sensibilidade do mouse** e o **campo de visão**, com efeito na hora.
+As dicas da tela mudam automaticamente entre teclado e controle.
 
-**Marcos e títulos:** no meio do chafariz da praça há uma **torre do relógio** (~18 m) que marca a hora da cidade e aparece no minimapa. Cada bairro (menos a Simulação, cuja grua já é o marco) tem um **marco alto** no telhado do quarteirão do pórtico: torre de castelo no RPG, torre de refletores nos Esportes, roda-gigante no Casual, torre de rádio na Ação, dado de néon nas Cartas, caixa d'água no Terror, rei de xadrez na Estratégia, farol na Aventura e antena holográfica em Outros. Ao entrar num bairro, aparece o **nome dele e quantos jogos tem** por ~2,5 s.
+### Ajuste ao seu jeito
 
-**Som:** há um canal **Música** (com deslizador) onde tocam os jingles; a cidade tem um **fundo baixinho** de vento e trânsito ao longe, e o bairro Outros tem som próprio. Em casa, os passos são de **madeira, com um eco leve**; na rua, de concreto.
+Em **Esc › Som e vídeo › Qualidade**, escolha **Alta**, **Média** ou **Leve**. A Leve reduz efeitos, sombras e a resolução do 3D, mantendo a interface nítida. Para notebook com gráfico integrado, comece por ela.
 
-## Configuração
+Em **Esc › Controles**, ajuste a sensibilidade do mouse e do controle, o campo de visão e o balanço da câmera. Em **Som e vídeo**, ajuste os volumes e a hora da cidade.
 
-O hub cria na primeira execução o arquivo `config.cfg`, em `%APPDATA%\Godot\app_userdata\Game Hub\` no Windows e em `~/.local/share/godot/app_userdata/Game Hub/` no Linux. Cada sistema tem o seu: num PC com dual boot, a chave da API é colada uma vez em cada um. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção. Som, vídeo e amigos também mudam pelo menu de pausa (Esc), que grava no mesmo arquivo e mantém os comentários:
+## Amigos da Steam (opcional)
+
+Sem chave, o mural da casa mostra os passos para conectar. Aperte **E** nele para abrir a aba Amigos.
+
+1. Entre na [página oficial da Steam Web API](https://steamcommunity.com/dev/apikey), com sua conta. No campo de domínio, use `localhost`.
+2. No hub, em **Esc › Amigos**, cole a chave e escolha **Salvar e conectar**.
+
+**Guarde a chave em segredo.** Ela fica apenas no `config.cfg`, na pasta de dados do usuário, fora do repositório. Não cole a chave em chats, relatos de problema ou commits. No menu, ela aparece mascarada.
+
+Os hologramas dependem da privacidade da Steam: **Lista de amigos** precisa estar pública para a consulta, e **Detalhes do jogo** para mostrar o que cada amigo joga. Amigos offline não aparecem.
+
+## Rodar pelo código
+
+Use a **Godot 4.7.2 padrão, sem .NET**, a versão adotada e testada pelo projeto, com renderer Forward+ e suporte a Vulkan.
+
+```bash
+git clone https://github.com/guitavaress/game-hub.git
+```
+
+1. Na Godot, clique em **Importar** e escolha `project.godot`.
+2. **Desative a janela embutida**, para o hub conseguir se minimizar: na aba **Game**, abra **⋮** e desmarque **Embed Game on Next Play**.
+3. Aperte **F5**. Você começa em casa enquanto a cidade é preparada.
+
+No Linux, com a Godot em `~/.local/bin/godot`, abra o editor com `godot --path /caminho/game-hub -e`. No Hyprland, o jogo abre num workspace próprio e o hub se esconde até ele fechar. Configuração de monitores, foco da Steam e tela cheia estão em [Plataforma](docs/PLATAFORMA.md).
+
+### Como o projeto se organiza
+
+```text
+Steam → biblioteca, categorias e capas → perfis → mundo 3D
+```
+
+A separação principal é simples: **os sistemas abrem jogos e acompanham sessões; os mundos posicionam e decoram as portas**. O mesmo portal pode ser a entrada de um prédio ou um arco na neve.
+
+| Pasta | Responsabilidade |
+|---|---|
+| `autoload/` | Biblioteca, capas, launcher, amigos e configurações |
+| `autoload/platform/` | Tudo o que depende de Windows ou Linux |
+| `profiles/` | Dados dos bairros, biomas, casas e avatares |
+| `components/` | Peças reutilizáveis: portais, hologramas, telas e portas de viagem |
+| `worlds/` | Casa, cidade e bioma da montanha |
+| `player/` e `ui/` | Primeira pessoa, HUD, mapas, busca e menus |
+| `tests/` e `tools/` | Testes, geração de assets, medição e empacotamento |
+| `docs/` e `painel/` | Cofre do projeto e seu painel visual; o painel é separado do hub |
+
+O hub lê a biblioteca e as horas dos arquivos locais da Steam, busca categorias e arte nos serviços da Steam e abre jogos por `steam://rungameid/<appid>`. Não pede sua senha nem modifica os arquivos da Steam ou dos jogos. Os amigos usam a Web API oficial, com a chave opcional do usuário.
+
+### Testes e pacote
+
+No Git Bash ou no terminal Linux:
+
+```bash
+bash tests/run_tests.sh                         # bateria completa
+bash tests/run_tests.sh check_gates             # um teste
+bash tools/empacotar_windows.sh                 # pacote do Windows
+```
+
+No PowerShell, chame o Git Bash explicitamente:
+
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh
+```
+
+A bateria roda sem janela e sem abrir jogos. Alguns testes exigem **Balatro, Skyrim, Valheim e Stardew Valley** instalados. Antes de rodar, confira se outra sessão está testando: os worktrees compartilham os dados do usuário e, no Windows, não há trava automática. Comandos, pré-requisitos e formato dos testes estão em [tests/README.md](tests/README.md).
+
+O empacotador exporta e confere o conteúdo antes de gerar o zip em `C:\Projetos\game-hub-builds\`, fora do repositório. Inclui o [LEIA-ME](tools/pacote/LEIA-ME.txt) e as [licenças](tools/pacote/licencas.txt), e recusa arquivos pessoais, capas em cache e pastas de desenvolvimento no pacote.
+
+### Personalização por perfis
+
+- **Bairro novo:** no editor, duplique um perfil em `profiles/districts/`, ajuste os dados e acrescente-o à lista **Districts** de `profiles/world_profile.tres`.
+- **Tema de casa novo:** duplique um `HomeProfile` em `profiles/homes/` e acrescente-o à lista **Homes** de `profiles/home_catalog.tres`. Enfeites próprios estendem `HomeDecor`.
+- **Bioma:** chão, clima, enfeites e terreno são dados de um `BiomeSpec`. O primeiro é `profiles/biomes/montanha.tres`, ligado ao RPG. Em bibliotecas muito grandes, a montanha pode ser omitida para caber no mapa; o bairro continua nevado.
+
+<details>
+<summary><strong>Configuração avançada e pasta de dados</strong></summary>
+
+O hub cria na primeira execução o arquivo `config.cfg`, em `%APPDATA%\Godot\app_userdata\Game Hub\` no Windows e em `~/.local/share/godot/app_userdata/Game Hub/` no Linux. Cada sistema tem o seu: num PC com dual boot, a chave da API é colada uma vez em cada um. No editor, você também chega nele pelo menu **Projeto → Abrir Pasta de Dados do Usuário**. Ele é um arquivo de texto com comentários explicando cada opção. O exemplo abaixo mostra algumas delas; a maioria pode ser alterada pelo menu. Som, vídeo e amigos também mudam pelo menu de pausa (Esc), que grava no mesmo arquivo e mantém os comentários:
 
 ```ini
 [library]
@@ -188,45 +228,10 @@ game_fullscreen=false
 
 Bairros disponíveis: `esportes`, `rpg`, `sobrevivencia`, `simulacao`, `estrategia`, `acao`, `cartas`, `aventura`, `casual` e `outros`. A tabela que liga as tags da Steam aos bairros fica em [`autoload/game_categories.gd`](autoload/game_categories.gd).
 
-## Como funciona
+</details>
 
-```
-autoload/      sistemas globais, que não sabem nada sobre a cidade
-  platform/    o que muda entre Windows e Linux (Steam, janela)
-components/    peças reutilizáveis (GamePortal: "este lugar é um jogo")
-player/        controle em primeira pessoa
-ui/            HUD, avisos, menu de pausa, busca, telas "Abrindo"/"Jogando" e abertura
-worlds/city/   a cidade: só monta o cenário e posiciona os portais
-```
-
-- **SteamLibrary** lê `libraryfolders.vdf` e os `appmanifest_*.acf` de todas as bibliotecas.
-- **StoreInfo** busca as tags e os endereços das capas na API pública da loja (`IStoreBrowseService/GetItems`), sem chave e sem login. O resultado fica guardado por 30 dias.
-- **GameCategories** escolhe o bairro de cada jogo: é a primeira tag, da mais votada para a menos votada, que aparece na tabela de bairros.
-- **GameArt** procura o banner (hero), a capa e o logo primeiro no próprio cache, depois no cache local da Steam e, por último, baixa do CDN da Steam.
-- **GameLauncher** abre o jogo com `steam://rungameid/<appid>` e pergunta ao **SteamClient** qual jogo está rodando, para saber quando ele fechou. No Windows, a resposta vem do registro (`RunningAppID`); no Linux, do processo `reaper` que a Steam cria para cada jogo. Também percebe jogos abertos por fora do hub.
-- **HubWindow** esconde e pausa o hub enquanto você joga, e depois o traz de volta. No Windows, ele minimiza e volta no mesmo monitor; no Hyprland, usa um workspace oculto. Os detalhes de cada sistema estão em [docs/PLATAFORMA.md](docs/PLATAFORMA.md).
-- **AppLibrary** e **AppLauncher** fazem pelos programas (navegador, terminal...) o que o SteamLibrary e o GameLauncher fazem pelos jogos. No Linux, a lista vem dos arquivos `.desktop` (menos os jogos da Steam, que já são prédios); no Windows, dos atalhos do Menu Iniciar. O app abre como o Omarchy abre (`uwsm-app`), o hub se esconde, e a sessão acaba quando a janela do app fecha (Hyprland) ou quando o hub volta a ter foco.
-- **SystemStatus** pergunta a bateria, a rede e o volume ao sistema a cada 5 s (e para enquanto o hub dorme), para o painel da casa.
-- **FriendsService** usa a Steam Web API (`GetFriendList` e `GetPlayerSummaries`) para saber quem está online e o que está jogando. Ele consulta a cada 60 s e para enquanto você joga. Os **GamePortals** mostram os amigos que jogam o jogo deles, e a cidade coloca os outros na praça.
-
-**Seguro para a sua conta:** o hub só **lê** arquivos que a Steam deixa no PC e usa endereços públicos da Steam, além da Web API oficial com a sua própria chave. Ele não modifica jogos nem os arquivos da Steam, não injeta nada e não pede senha.
-
-## A casa
-
-Ao abrir o hub, você nasce dentro de um **loft** (de noite, com a cidade na janela), virado para a estante e o janelão, e a cidade monta lá fora; a porta mostra "Montando a cidade… N%" e destranca sozinha. Olhe para uma coisa e aperte **E**:
-
-- **Estante:** uma caixa por jogo da biblioteca, com a capa inteira na frente. Olhar mostra o mesmo cartão do prédio (bairro, horas, amigos); **segurar E** abre o jogo (solte antes para cancelar), e ao fechar você volta para a frente da estante. As placas passam a página e trocam o filtro por bairro.
-- **A mesa com três monitores** (no Linux): veja [A mesa](#a-mesa-com-três-monitores-linux). No Windows, os monitores mostram "SÓ NO LINUX", porque a mesa só funciona no Linux (no Linux, o mesmo aviso aparece se o compositor não foi compilado). Com a mesa ligada e nenhum app aberto, mostram "Sem sinal".
-- **Painel do sistema** (na parede norte, acima do computador): a hora, a bateria, o Wi-Fi e o volume do computador, só para ver (não mexe em nada). O que o computador não tem, como a bateria de um desktop, some.
-- **Mural:** um cartão por amigo online (foto, nome, situação e jogo), com quem está jogando primeiro. E num amigo leva até a porta do jogo dele na cidade (ou à praça, se for um jogo que você não tem). Sem chave ou sem amigos, o cartão diz "Configure os amigos em Esc › Amigos" (no controle, "Menu › Amigos").
-- **Mesa do computador:** três monitores (veja [A mesa](#a-mesa-com-três-monitores-linux)). As configurações (som e vídeo, controles, amigos, **Casa** e **Sistema**) ficam só no menu de pausa (Esc).
-- **Estatísticas:** um quadro na parede sul (à esquerda da porta) com as **horas jogadas**, os **5 mais jogados**, as horas dos **maiores bairros** (na cor de cada um) e o **jogado por último**, com a capa. Conta só os jogos instalados. Sem horas (Steam sem conta logada) ou sem jogos, o quadro explica em vez de mostrar zeros. Atualiza quando você volta de um jogo (a Steam grava as horas com atraso: as da última sessão podem aparecer só na volta seguinte).
-- **Espelho:** na parede sul, à direita da porta. Você se vê nele, com o seu avatar, e o reflexo acompanha o que você faz (só desenha de perto e de frente, para não pesar). **E** no espelho abre o **provador**: 5 visuais prontos e as cores de pele, olhos, cabelo, camiseta e calça. O avatar fica no `config.cfg` (seção `[avatar]`).
-- **Menu de pausa, aba Sistema** (só no Linux): o interruptor **Abrir o hub ao entrar no Omarchy** (cria ou apaga `~/.config/autostart/game-hub.desktop`) o botão **Copiar a linha do atalho** e o botão **Copiar a linha da tecla de emergência** (veja a mesa). O hub nunca mexe na config do Hyprland: cole a linha no fim de `~/.config/hypr/bindings.lua` e o **SUPER + H** chama o hub. Com um app aberto, ele traz o hub de volta (o app continua aberto); com o hub em outro workspace, vai até ele; durante um jogo da Steam, nada muda.
-- **Menu de pausa, aba Casa:** escolha o **tema** (Loft ou Cabana), a **posição dos móveis** (Padrão, Espelhada ou Estante na entrada) e a **cor das paredes e do néon** (8 cores prontas e "Do tema"). A casa muda na hora, atrás do monitor. Tudo fica na seção `[home]` do `config.cfg`.
-- **Portas:** E na porta do loft ("E para sair") leva à praça; E na porta "Casa" da praça (ao lado do chafariz, com um néon "CASA" à noite) traz de volta. Em casa, a bússola e o minimapa somem, o som da cidade fica abafado, e a busca (Tab) e o mapa (M) se adaptam.
-
-## A mesa com três monitores (Linux)
+<details>
+<summary><strong>Mesa com três monitores no Linux (experimental, desenvolvimento em pausa)</strong></summary>
 
 No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://github.com/Smithay/smithay), uma GDExtension): os programas abertos pelo hub desenham as janelas **dentro** do mundo, nos três monitores da mesa do computador. A ideia vem do Waylandcraft (só a ideia: nenhuma linha dele foi copiada).
 
@@ -243,28 +248,7 @@ No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://g
 
 **Limites conhecidos:** os números de workspace da barra ficam parados; não há bloqueio de tela nem idle lá dentro; apps que só falam X11 abrem fora do hub; a área de transferência não é compartilhada com o Omarchy de fora; no Windows não existe.
 
-## Detalhes da cidade
-
-- **Cartão do jogo:** ao olhar para um prédio, o HUD mostra o bairro, o nome, o tempo jogado e quando foi a última vez ("23 h jogadas · jogado ontem"), quais amigos estão jogando e como entrar ("Entre pela porta para jogar"). O hub lê as horas do `localconfig.vdf` da Steam, no seu PC, sem precisar da chave.
-- **Arte da Steam:** o banner largo do jogo (hero) no alto da fachada e o logo sobre a porta; sem banner, a capa em pé.
-- **Bairros com cara própria:** cada bairro tem um pórtico com o nome em néon na entrada, placas nas esquinas e **um letreiro grande acima dos telhados**, que se vê de longe. A **arquitetura** também muda: Estratégia e Simulação são altos; RPG e Aventura, baixos e de tijolo; Casual, baixo e claro; Terror, baixo e de concreto escuro. Alguns têm um elemento só deles: telões no de Ação, lâmpadas de cassino no de Cartas, néon falhando, névoa baixa e garoa à noite no de Terror.
-- **Prédios variados:** andares, recuo no topo, marquise, tipo de janela e caixa d'água mudam de prédio para prédio (sempre iguais para o mesmo jogo).
-- **Sons:** passos, pulo, um zumbido que sobe de tom na porta, um "whoosh" ao abrir o jogo e uma vinheta ao voltar. Cada bairro tem seu **som ambiente 3D**, que você ouve ao se aproximar da porta: motor no de Esportes e Corrida, cartas e fichas no de Cartas, vento no de Terror, passarinhos no de Aventura…
-- **Dia e noite:** seguem o relógio do PC (ou ficam fixos, pelo menu). No pôr do sol o céu fica dourado e as janelas acendem uma a uma; à noite acendem os postes, o néon e as vitrines, e as poças refletem as luzes. No horizonte, uma silhueta de cidade.
-
-### Como criar um tema de casa novo
-Cada tema é um perfil em `profiles/homes/` (um `.tres`, o `HomeProfile`): materiais de piso, paredes e teto, luzes, a vista da janela, o néon e o script do enfeite (os móveis de decoração, em `worlds/home/themes/`). No editor, botão direito no `loft.tres` › Duplicar, mude o que quiser e acrescente o arquivo na lista **Homes** de `profiles/home_catalog.tres`; ele aparece na aba Casa do computador. A sala tem o mesmo tamanho em todos os temas. Para um enfeite novo, copie o `loft_decor.gd` (estende `HomeDecor`).
-
-### Como criar um bairro novo
-Cada bairro é um perfil em `profiles/districts/` (um arquivo `.tres`). Para criar um: no editor da Godot, botão direito num `.tres` › Duplicar, ajuste nome, cores, tags da Steam, sons, enfeite, clima e arquitetura no inspetor, e acrescente o arquivo na lista **Districts** de `profiles/world_profile.tres` (a ordem da lista é a ordem dos bairros). Não é preciso mexer em código.
-
-## O bairro RPG na montanha
-
-O bairro RPG é o primeiro **bioma**: o asfalto vira neve com calçada de pedra, os prédios viram **arcos de pedra** com a capa do jogo, e há pinheiros, rochas, neve caindo, névoa, vento e passos na neve. À noite, os postes do bairro ficam mais fracos (para a neve não estourar de branco) e a torre acende quatro braseiros no alto.
-
-Atrás do bairro, fora da mureta da cidade, sobe uma **montanha** feita por código. Siga as placas "Trilha do Mirante" até o vão da mureta e suba a pé: a trilha tem limites dos dois lados, e no alto ficam o **mirante** (uma plataforma de madeira) e a **torre do RPG**, com a cidade lá embaixo. Na qualidade Leve a montanha fica mais simples (malha mais grossa, metade dos pinheiros e sem sombra); trocar a qualidade refaz a montanha sem tirar o chão de baixo dos pés.
-
-Para isso, cada bairro passou a ocupar uma **fatia** da praça até a borda da cidade (aperte **M** para ver no mapa), e o bioma é **dado**: um `BiomeSpec` no perfil do bairro (`profiles/biomes/montanha.tres`), com chão, enfeites, clima, névoa e terreno. Numa biblioteca enorme (perto de 1000 jogos), a cidade fica grande demais para a montanha caber: o bairro continua nevado, sem montanha e sem trilha.
+</details>
 
 ## Créditos
 
@@ -273,13 +257,14 @@ Para isso, cada bairro passou a ocupar uma **fatia** da praça até a borda da c
 - **Bioma montanha (Fase 15):** neve `Snow010A` e rocha `Rock058` da [ambientCG](https://ambientcg.com), em 1K; rocha 3D `moon_rock_02` e fotos do pinheiro `fir_sapling_medium` da [Poly Haven](https://polyhaven.com), tiradas por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). Tudo **CC0**. O modelo do pinheiro (78 MB) não fica no repositório.
 - **Pedra de calçamento (bairro Aventura):** `PavingStones070`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K.
 - **Madeira dos modelos (Fase 17):** `Wood049`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K: o veio dos modelos feitos no Blender (deque, abrigo, bancos).
+- **Ícone (Fase 18):** o símbolo casa-portal do estudo de marca do próprio Game Hub (versão flat), em `assets/brand/icone.svg`. É arte do projeto, sob a mesma licença **MIT** (`assets/brand/LICENSE.txt`).
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
 - **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
 - **Avatar e hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
 - **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds (inclusive os passos na neve, `footstep_snow_000` a `004`), Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
 - **Menu de depuração (F3):** [Debug Menu](https://github.com/godot-extended-libraries/godot-debug-menu) v1.2.0, de Calinou, licença **MIT** (`addons/debug_menu/LICENSE.md`). F3 alterna entre FPS, tempos de quadro e hardware.
 - **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
-- O estalo da lareira da cabana (`fire_crackle.wav`) também é gerado pelo mesmo script, CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
+- O estalo da lareira da cabana (`fire_crackle.wav`) é gerado por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
 - **A fogueira, o terraço de pedra, os bancos e o monte de pedras da trilha** (Fase 17.7.1) são modelos feitos no [Blender](https://www.blender.org) só por script, por [`tools/blender/`](tools/blender/README.md) (os scripts são GPL-3.0, porque usam a API do Blender; os `.glb` gerados, em `assets/models/trail/`, são nossos, MIT). Nada baixado: a textura da lenha e da brasa é assada no próprio Blender, e os bancos usam a madeira feita por código da casa.
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 

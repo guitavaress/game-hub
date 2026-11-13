@@ -51,6 +51,13 @@ const WIDE_PIECE: float = 4.6
 const DOOR_WIDTH: float = 1.3
 const DOOR_CORNER_GAP: float = 0.15
 const DOOR_X: float = ROOM_SIZE.x / 2.0 - DOOR_CORNER_GAP - DOOR_WIDTH / 2.0
+## A placa da porta (set_door_status): na altura dos olhos, quase da largura
+## da folha, em letras que se leem do meio da sala.
+const DOOR_STATUS_HEIGHT: float = 1.55
+const DOOR_STATUS_WIDTH: float = 0.95
+const DOOR_STATUS_FONT_SIZE: int = 36
+const DOOR_STATUS_PIXEL_SIZE: float = 0.0025
+const DOOR_STATUS_COLOR: Color = Color(1.0, 0.93, 0.8)
 
 ## A parede norte, de oeste para leste: o CANTO DE ESTAR do tema (no loft, o
 ## sofá; na cabana, a lareira), a janela e o computador. A mesa fica a
@@ -127,6 +134,8 @@ var _wall_override: Color = Color(0, 0, 0, 0)
 var _neon_override: Color = Color(0, 0, 0, 0)
 var _environment: Environment
 var _front_door: TravelDoor
+## A placa da porta da rua (Fase 18.3): o que está acontecendo lá fora.
+var _door_status: Label3D
 var _window_material: ShaderMaterial
 var _window_glass: MeshInstance3D
 ## O retrato do mundo para a janela (Fase 17.3).
@@ -174,6 +183,19 @@ func get_spawn_transform() -> Transform3D:
 ## A porta da rua (quem coloca a casa diz para onde ela leva).
 func get_front_door() -> TravelDoor:
 	return _front_door
+
+
+## Escreve na porta da rua o que está acontecendo lá fora ("Montando a
+## cidade… 40%", "Não encontrei a Steam…"), para quem está em casa entender
+## sem precisar olhar o aviso do topo. Texto vazio = a placa some. Quem decide o texto é o mundo.
+func set_door_status(text: String) -> void:
+	_door_status.text = text
+	_door_status.visible = not text.is_empty()
+
+
+## O que a placa da porta diz agora ("" = nada).
+func get_door_status() -> String:
+	return _door_status.text if _door_status.visible else ""
 
 
 ## A luz e o fundo de dentro de casa (a câmera usa este no lugar do mundo).
@@ -574,6 +596,21 @@ func _build_front_door() -> void:
 	_front_door.position = Vector3(DOOR_X, 0.0, ROOM_SIZE.z / 2.0 - 0.1)
 	_front_door.rotation.y = PI  # a frente (+Z) da porta aponta para dentro da sala
 	add_child(_front_door)
+	# A placa fica na folha da porta, na altura dos olhos, virada para a sala
+	# (a origem da porta já fica uns centímetros à frente da folha).
+	_door_status = Label3D.new()
+	_door_status.name = "DoorStatus"
+	_door_status.font_size = DOOR_STATUS_FONT_SIZE
+	_door_status.pixel_size = DOOR_STATUS_PIXEL_SIZE
+	_door_status.width = DOOR_STATUS_WIDTH / DOOR_STATUS_PIXEL_SIZE
+	_door_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_door_status.modulate = DOOR_STATUS_COLOR
+	_door_status.outline_size = 8
+	_door_status.outline_modulate = Color(0.05, 0.04, 0.05)
+	_door_status.position = Vector3(0.0, DOOR_STATUS_HEIGHT, 0.01)
+	_door_status.layers = INTERIOR_LAYER_MASK
+	_door_status.visible = false
+	_front_door.add_child(_door_status)
 
 
 ## A aparência da porta da rua: folha, batente, maçaneta e uma arandela
