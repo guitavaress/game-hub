@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** árvores de verdade (feitas no Blender) nas floreiras, no RPG e na vista da cabana. O dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo. O tempo muda sozinho (abre, fecha, chove) e a chuva é outra: riscos de verdade, respingo, chão molhado e som. A Aventura é uma floresta e a Sobrevivência, um deserto. O bairro que você mais joga ocupa mais terreno e tem o marco mais alto.
-- **Agora:** 19.1 feita (`79594e5`): o código já aceita mais de um bairro com bioma; nada muda na tela. A revisão (segundo Opus) não achou nada grave. A próxima é a 19.2, a amostra do pinheiro no Blender.
+- **Agora:** 19.2 feita (`32658f1`): o pinheiro do Blender existe como amostra, e o jogo ainda não mudou. As capturas estão em `C:\Projetos\game-hub-referenciasase-199.2\`. **Falta a sua decisão** para a 19.3 trocar todas as árvores.
 - **Ordem:** o código deixa de ser "só neve" → a amostra de uma árvore → todas as árvores → o dia em gradiente → a chuva nova → o clima dinâmico → a floresta → o deserto → os bairros crescem → o marco cresce → as sobras da montanha → fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
 - **Decisões que esperam você:** aprovar a árvore da amostra (19.2); aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
@@ -74,7 +74,7 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
   - Teste: bateria completa; um bioma de teste em memória num segundo bairro (duas atmosferas, a de maior peso manda; nenhum enfeite dentro de prédio). Capturas do RPG antes e depois: iguais.
   - Manual: a cidade e a montanha como antes.
   - Commit: `Fase 19.1: o bioma deixa de ser so neve`
-- [ ] **19.2 Amostra: uma árvore no Blender** (grande: modelo e shader · Opus, A · high) — a parte do Blender pode correr junto com a 19.1; as capturas esperam
+- [x] **19.2 Amostra: uma árvore no Blender** (grande: modelo e shader · Opus, A · high) — `32658f1`, 2026-11-13; bateria 95 de 96, e o que falhou (`check_package`, por um `LICENSE` a mais em `assets/models/trees/`) foi corrigido e passou sozinho, sem nova bateria completa; **espera a decisão do dono**
   - Faz: o **pinheiro** (é o que aparece no RPG e na janela da cabana), pelo `gerar_arvore.py`; o `TreeModel` mínimo; o atlas distante refeito. Capturas lado a lado com o pinheiro de hoje: de perto, a 30 m, a 150 m e pela janela da cabana, às 13 e às 22 h. Medida com as cópias do bairro do RPG.
   - O dono decide: segue por script; ou troca para um modelo CC0 reduzido no Blender (com o pedido de download); ou fica como está. A regra das plantas no AGENTS.md ("por script, ficam fracas") é acertada conforme a resposta.
   - Arquivos: `tools/blender/gerar_arvore.py` (novo), `tools/blender/comum.py` (só funções novas), `tools/blender/README.md`, `assets/models/trees/pine.glb`, `worlds/city/tree_model.gd` (novo), `worlds/city/tree_model.gdshader` (novo), `tests/check_trees.gd`.
@@ -120,10 +120,10 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
   - Arquivos: `worlds/city/district_landmarks/district_landmark.gd`, `worlds/city/city.gd` (`_build_landmark`), `tests/check_landmarks.gd`.
   - Teste: `check_landmarks check_city_map`; captura da praça.
   - Commit: `Fase 19.10: o marco cresce com as horas`
-- [ ] **19.11 Canto côncavo e torre de dia** (pequena · modelo grátis no OpenCode, B, worktree `divisa` · revisão: Opus, diff antes do merge) — depois da 19.1, em paralelo com a A. **É o teste da trilha grátis:** se a entrega ficar abaixo do Sonnet, a subetapa volta para o Sonnet na A e o resultado fica registrado aqui
+- [ ] **19.11 Canto côncavo e torre de dia** (pequena · Sonnet, A · medium) — o teste do modelo grátis (OpenCode, `omniroute/free-coding`) foi reprovado em 2026-11-13; veja as decisões da fase
   - Faz: `covered_rects` sem o quadrado de neve no cruzamento cercado por três zonas; a `RpgTower` ganha a bandeira grande para se destacar de dia.
-  - Arquivos da B: `worlds/city/biome/biome_builder.gd` (só `covered_rects`), `worlds/city/district_landmarks/rpg_tower.gd`, `tests/check_divisa.gd` (novo). Sem `.tres`, sem `city.gd`.
-  - Teste: os da B mais `check_biome check_landmarks`; capturas do canto e da torre às 13 h.
+  - Arquivos: `worlds/city/biome/biome_builder.gd` (só `covered_rects`), `worlds/city/district_landmarks/rpg_tower.gd`, `tests/check_divisa.gd` (novo). Sem `.tres`, sem `city.gd`.
+  - Teste: `check_divisa check_biome check_landmarks`; capturas do canto e da torre às 13 h.
   - Commit: `Fase 19.11: canto da divisa e torre de dia`
 - [ ] **19.12 Encosta com pinheiros e rochas** (grande: geometria · Opus, A · high) — depois da 19.3, para já usar o pinheiro novo
   - Faz: as famílias `on_backdrop` na encosta com `BiomeScatter.plan()`, fora da trilha, do mirante e da vista da luneta; quantidade pela qualidade.
@@ -155,6 +155,18 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-13 (19.2): a amostra do pinheiro.
+  - **O que existe:** `tools/blender/gerar_arvore.py` (pinheiro), `assets/models/trees/pine.glb` (677 KB, 11,8 mil triângulos, casca e agulhas com textura assada), o `TreeModel` (`worlds/city/tree_model.gd`), o atlas distante novo (`assets/generated/pine_blender_impostor.png`) e as ferramentas de amostra (`tools/amostra_arvore.gd`, `tools/amostra_arvore_casa.gd`). O jogo não usa nada disso ainda.
+  - **Medida** (desktop, Alta, 200 jogos, 13 h, os 62 pinheiros do RPG, volta de 360°; hoje → novo → hoje): pórtico 194 → 195 → 201 FPS; miolo do bairro 192 → 182 → 193 FPS (p99 13,2 → 14,4 → 12,9 ms); praça 195 → 192 → 196. O custo aparece no meio das árvores: cerca de 5%, +90 desenhos, +0,6 milhão de triângulos.
+  - **Avaliação do worker e da coordenadora (capturas):** de perto e a 30 m, o novo é bem melhor (volume, tronco, casca, sombra); a 150 m ainda lê como pinheiro. Defeitos: o verde sai saturado e claro demais de dia; de perto, as agulhas em "cartões" lembram folha larga; o pontilhado da troca modelo/foto aparece quando muitas árvores trocam ao mesmo tempo (falta ver em movimento). Pela janela da cabana a diferença é pequena.
+  - **Para a 19.3:** a tinta do pinheiro, as agulhas mais finas, e medir de novo com mais cópias (também na 19.12).
+  - O worker da A encerrou uma Godot travada da trilha B (aberta com um comando errado, parada havia mais de 20 minutos).
+- 2026-11-13 (19.11, teste do modelo grátis): **reprovado.** O `omniroute/free-coding` no OpenCode entregou o commit `9964a37` no worktree `divisa`, que não serve:
+  - mexeu em arquivos proibidos (`worlds/city/city.gd`, `worlds/city/city_map.gd`) e incluiu no commit o `opencode.json` e um `test_fix.py` solto (`git add .`);
+  - o `city.gd` ficou com `var town` declarado duas vezes (erro de leitura do script) e o `city_map.gd` usa `[id] * n`, que não existe em GDScript;
+  - rodou a Godot direto com `tests/run_tests.sh` como argumento, sem conferir a outra trilha, e deixou o processo travado;
+  - nada foi juntado. A 19.11 passa ao **Sonnet, na trilha A**, como o plano previa. A trilha paralela fica sem uso até outro modelo ser testado.
+  - Para rodar o OpenCode neste repositório: o `opencode.json` fixa os agentes em modelos da OpenAI e ganha do `--model`; o Orca só aceita `--model` do OpenCode num worktree que já existe; e aspas no prompt quebram a linha de comando (mande um prompt curto que aponta para um arquivo). Worktree novo precisa de `--headless --import` antes dos testes.
 - 2026-11-13 (fluxo): a assinatura ChatGPT Plus do dono acabou e o Codex recusa o Astra e o Sol. Decisão do dono: **Claude + OpenCode com modelos grátis**. O [AGENTS.md](../../AGENTS.md#modelos-e-esforço) foi refeito. Nesta fase: as cinco revisões de risco passam a um segundo Opus só de leitura; a 19.11 vira o teste do modelo grátis (primeiro candidato: `omniroute/free-coding`); a 19.12 passa ao Opus na trilha A.
 - 2026-11-13 (19.1): o que saiu diferente do plano.
   - **Na divisa entre dois biomas, a névoa passa pela da cidade.** A atmosfera que tem a voz usa o quanto o peso dela passa do da segunda colocada, para a névoa não dar degrau. Com um bioma só, é o peso dele, como antes.
