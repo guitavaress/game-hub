@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** árvores de verdade (feitas no Blender) nas floreiras, no RPG e na vista da cabana. O dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo. O tempo muda sozinho (abre, fecha, chove) e a chuva é outra: riscos de verdade, respingo, chão molhado e som. A Aventura é uma floresta e a Sobrevivência, um deserto. O bairro que você mais joga ocupa mais terreno e tem o marco mais alto.
-- **Agora:** 19.0 feita (este plano e os docs). A próxima é a 19.1, que não muda nada na tela.
+- **Agora:** 19.1 feita (`79594e5`): o código já aceita mais de um bairro com bioma; nada muda na tela. A revisão do Astra está rodando. A próxima é a 19.2, a amostra do pinheiro no Blender.
 - **Ordem:** o código deixa de ser "só neve" → a amostra de uma árvore → todas as árvores → o dia em gradiente → a chuva nova → o clima dinâmico → a floresta → o deserto → os bairros crescem → o marco cresce → as sobras da montanha → fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
 - **Decisões que esperam você:** aprovar a árvore da amostra (19.2); aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
@@ -68,7 +68,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
 
 - [x] **19.0 Branch, docs e plano** (só de docs · coordenador · medium) — 2026-11-12; `57f2472` (docs da Fase 18) e o commit `Docs: plano da Fase 19`
   - Faz: a branch `fase-19`; a Fase 18 como "publicada, esperando os amigos"; a ROADMAP com a ordem nova; a nota no estudo de 15/10; este plano.
-- [ ] **19.1 O código deixa de ser "só neve"** (grande · Opus, A · high · revisão: Astra, `/codex:review`, pelo contrato entre a atmosfera e o céu)
+- [x] **19.1 O código deixa de ser "só neve"** (grande · Opus, A · high · revisão: Astra, pelo contrato entre a atmosfera e o céu) — `79594e5`, 2026-11-13; bateria completa ok (96 testes); capturas do RPG antes e depois iguais (13 e 22 h, Alta, 200 jogos); revisão do Astra em andamento
   - Faz: várias atmosferas com uma voz; som de fundo do perfil; passos de grama e areia (com o que o `kenney/impact-sounds` tiver; senão, pedido de asset); prédios como `scatter_keep_out`; `gerar_bioma.gd` com uma função por bioma, sem regravar o que existe. Os climas novos ficam para a 19.6.
   - Arquivos: `worlds/city/city.gd` (`_build_biome_covers`), `worlds/city/biome/biome_atmosphere.gd`, `worlds/city/biome/biome_builder.gd`, `worlds/city/city_building.gd`, `player/player.gd`, `tools/gerar_bioma.gd`, `tests/check_biome.gd`, `tests/check_biome_atmosphere.gd`.
   - Teste: bateria completa; um bioma de teste em memória num segundo bairro (duas atmosferas, a de maior peso manda; nenhum enfeite dentro de prédio). Capturas do RPG antes e depois: iguais.
@@ -154,6 +154,14 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-13 (19.1): o que saiu diferente do plano.
+  - **Na divisa entre dois biomas, a névoa passa pela da cidade.** A atmosfera que tem a voz usa o quanto o peso dela passa do da segunda colocada, para a névoa não dar degrau. Com um bioma só, é o peso dele, como antes.
+  - **O volume original do fundo da cidade fica guardado no próprio nó** (meta `biome_bed_base_db`), para qualquer atmosfera que vire a voz saber para onde voltar.
+  - **`tools/gerar_bioma.gd`:** uma função por bioma; nunca regrava um `.tres` que existe; para regravar de propósito, `-- --refazer=montanha`. A função da montanha dá o `montanha.tres` de hoje sem diferença.
+  - **Teste novo:** `tests/check_biome_second.gd` (a Ação ganha, só na memória, um bioma de teste com prédios: duas atmosferas, a de maior peso manda, nenhuma rocha dentro de prédio).
+  - **Passos de grama e areia não entraram:** o `assets/kenney/impact-sounds` do projeto só tem concreto, madeira e neve. O pacote Kenney Impact Sounds (CC0) tem `footstep_grass_000` a `004`: pede a permissão do dono antes da 19.7. Ele não tem areia: a 19.8 decide entre outra fonte CC0 e usar o som da neve.
+  - **Revisão:** a do Astra roda como worker do Orca (só leitura), e não pelo `/codex:review`, porque quem dispara é a sessão coordenadora.
+  - A Godot dá um segfault ao fechar depois das capturas (as capturas saem completas); já acontecia antes da 19.1.
 - 2026-11-12 (planejamento, respostas do dono):
   - a fase "Visitar amigos (V-Sekai)" fica adiada e a Fase 19 é a de biomas baratos;
   - os biomas novos são Floresta (Aventura) e Deserto (Sobrevivência);
