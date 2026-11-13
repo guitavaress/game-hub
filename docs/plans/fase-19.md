@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** árvores de verdade (feitas no Blender) nas floreiras, no RPG e na vista da cabana. O dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo. O tempo muda sozinho (abre, fecha, chove) e a chuva é outra: riscos de verdade, respingo, chão molhado e som. A Aventura é uma floresta e a Sobrevivência, um deserto. O bairro que você mais joga ocupa mais terreno e tem o marco mais alto.
-- **Agora:** 19.1 feita (`79594e5`): o código já aceita mais de um bairro com bioma; nada muda na tela. A revisão do Astra está rodando. A próxima é a 19.2, a amostra do pinheiro no Blender.
+- **Agora:** 19.1 feita (`79594e5`): o código já aceita mais de um bairro com bioma; nada muda na tela. A revisão (segundo Opus) não achou nada grave. A próxima é a 19.2, a amostra do pinheiro no Blender.
 - **Ordem:** o código deixa de ser "só neve" → a amostra de uma árvore → todas as árvores → o dia em gradiente → a chuva nova → o clima dinâmico → a floresta → o deserto → os bairros crescem → o marco cresce → as sobras da montanha → fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
 - **Decisões que esperam você:** aprovar a árvore da amostra (19.2); aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
@@ -64,11 +64,11 @@ O que já existe (exploração de 2026-11-12):
 - **Assets:** 2 texturas CC0 da ambientCG (1K-JPG, cerca de 3 MB cada), pedidas antes com nome e tamanho. Se a amostra da árvore aprovar modelo CC0 em vez de script, o pedido de download vem junto.
 
 ## Subetapas
-Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criado da `fase-19` depois do merge de que depende). Uma Godot por vez; o Blender não conta. A sessão coordenadora dispara os workers pelo Orca, faz os docs, revisa o diff da B e faz os merges.
+Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em teste na 19.11; worktree próprio, criado da `fase-19`). Desde 2026-11-13 não há Codex: as revisões de risco são de um segundo Opus, só de leitura, num worker separado. Uma Godot por vez; o Blender não conta. A sessão coordenadora dispara os workers pelo Orca, faz os docs, revisa o diff da B e faz os merges.
 
 - [x] **19.0 Branch, docs e plano** (só de docs · coordenador · medium) — 2026-11-12; `57f2472` (docs da Fase 18) e o commit `Docs: plano da Fase 19`
   - Faz: a branch `fase-19`; a Fase 18 como "publicada, esperando os amigos"; a ROADMAP com a ordem nova; a nota no estudo de 15/10; este plano.
-- [x] **19.1 O código deixa de ser "só neve"** (grande · Opus, A · high · revisão: Astra, pelo contrato entre a atmosfera e o céu) — `79594e5`, 2026-11-13; bateria completa ok (96 testes); capturas do RPG antes e depois iguais (13 e 22 h, Alta, 200 jogos); revisão do Astra em andamento
+- [x] **19.1 O código deixa de ser "só neve"** (grande · Opus, A · high · revisão: segundo Opus, pelo contrato entre a atmosfera e o céu) — `79594e5`, 2026-11-13; bateria completa ok (96 testes); capturas do RPG antes e depois iguais (13 e 22 h, Alta, 200 jogos); revisão do segundo Opus: nada grave
   - Faz: várias atmosferas com uma voz; som de fundo do perfil; passos de grama e areia (com o que o `kenney/impact-sounds` tiver; senão, pedido de asset); prédios como `scatter_keep_out`; `gerar_bioma.gd` com uma função por bioma, sem regravar o que existe. Os climas novos ficam para a 19.6.
   - Arquivos: `worlds/city/city.gd` (`_build_biome_covers`), `worlds/city/biome/biome_atmosphere.gd`, `worlds/city/biome/biome_builder.gd`, `worlds/city/city_building.gd`, `player/player.gd`, `tools/gerar_bioma.gd`, `tests/check_biome.gd`, `tests/check_biome_atmosphere.gd`.
   - Teste: bateria completa; um bioma de teste em memória num segundo bairro (duas atmosferas, a de maior peso manda; nenhum enfeite dentro de prédio). Capturas do RPG antes e depois: iguais.
@@ -80,12 +80,12 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
   - Arquivos: `tools/blender/gerar_arvore.py` (novo), `tools/blender/comum.py` (só funções novas), `tools/blender/README.md`, `assets/models/trees/pine.glb`, `worlds/city/tree_model.gd` (novo), `worlds/city/tree_model.gdshader` (novo), `tests/check_trees.gd`.
   - Teste: bateria completa; capturas fora do repositório.
   - Commit: `Fase 19.2: o pinheiro do Blender (amostra)`
-- [ ] **19.3 Todas as árvores** (grande · Opus, A · high · revisão: Astra, `/codex:review`, pelo custo de desenho na cidade inteira)
+- [ ] **19.3 Todas as árvores** (grande · Opus, A · high · revisão: segundo Opus, só leitura, pelo custo de desenho na cidade inteira)
   - Faz: a árvore de rua nas floreiras e na praça (`CityDecor.add_planter` passa ao `TreeModel`), o pinheiro no RPG (`ScatterSpec` tipo `"tree"`, `montanha.tres` regerado pelo script), os dois atlas refeitos, o `home_window_forest.gdshader` removido.
   - Arquivos: `worlds/city/city_decor.gd`, `worlds/city/tree_impostor.gd`, `worlds/city/biome/biome_scatter.gd`, `profiles/scatter_spec.gd`, `profiles/biomes/montanha.tres` (pelo script), `assets/models/trees/street_tree.glb`, `assets/generated/*_impostor.*`, `tests/check_trees.gd`, `tests/check_biome.gd`, `README.md` (créditos).
   - Teste: bateria completa; medida no desktop contra a do começo da fase; capturas da praça, do RPG e das duas casas (a janela da cabana com os pinheiros novos).
   - Commit: `Fase 19.3: as arvores viram modelos`
-- [ ] **19.4 O dia em gradiente** (grande: contrato do céu e dado novo · Opus, A · high · revisão: Astra, `/codex:review`, porque ~30 scripts dependem do `DayNight`)
+- [ ] **19.4 O dia em gradiente** (grande: contrato do céu e dado novo · Opus, A · high · revisão: segundo Opus, só leitura, porque ~30 scripts dependem do `DayNight`)
   - Faz: o `DayCycleSpec` e o `.tres` dele, gerado por script com os valores de hoje como ponto de partida; o `DayNight` interpola entre os momentos; entram o nascer do sol (lado leste, tom rosado), a manhã (luz fria e limpa) e a tarde (luz dourada, sombras longas). `night_amount` e `set_night` iguais aos de hoje. O Sky3D recebe os mesmos momentos no que for dele (força do sol, névoa, exposição).
   - Arquivos: `profiles/day_cycle_spec.gd` (novo), `profiles/day_cycle.tres` (por script), `tools/gerar_ciclo_do_dia.gd` (novo), `worlds/city/day_night.gd`, `worlds/city/sky_blend.gdshader` (se o lado do brilho precisar), `tests/check_daynight.gd`, `tests/check_day_cycle.gd` (novo: nenhuma passagem com salto maior que um limite entre dois minutos seguidos; `night_amount` igual ao de antes em 24 horas).
   - Teste: bateria completa; capturas da praça, do pórtico do RPG e das duas casas às 6h30, 9, 13, 16, 18 e 22 h, nos dois céus.
@@ -96,7 +96,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
   - Arquivos: `worlds/city/district_weather.gd`, `worlds/city/rain_streak.gdshader` (novo), `worlds/city/city_decor.gd` (o molhado no material da rua e das poças), `assets/generated/make_sounds.py` e `rain_loop.wav`, `autoload/graphics_quality.gd` (as camadas por qualidade), `tools/capturar_pontos.gd`, `tests/check_weather.gd`.
   - Teste: bateria completa; medida da caminhada com chuva forte (Alta) e na Leve do notebook só para comparar antes e depois.
   - Commit: `Fase 19.5: a chuva nova`
-- [ ] **19.6 O clima dinâmico** (grande: arquitetura e dado salvo · Opus, A · high · revisão: Astra, `/codex:adversarial-review`, pelo contrato novo entre o clima, o céu e os bairros)
+- [ ] **19.6 O clima dinâmico** (grande: arquitetura e dado salvo · Opus, A · high · revisão: segundo Opus, só leitura e adversarial, pelo contrato novo entre o clima, o céu e os bairros)
   - Faz: o `WeatherDirector`; os tempos (limpo, nublado, chuva fraca, chuva forte) com passagens; o `DayNight` fecha o céu; a `WeatherSpec` passa a dizer como o bairro traduz cada tempo, com os tipos "folhas" e "poeira" na tabela; a montanha traduz chuva em neve e nevasca; a opção "Clima" no menu e no `config.cfg`.
   - Arquivos: `worlds/city/weather_director.gd` (novo), `worlds/city/district_weather.gd`, `worlds/city/day_night.gd` (`set_weather_overlay`), `worlds/city/city.gd`, `profiles/weather_spec.gd`, `profiles/districts/*.tres` e `profiles/biomes/montanha.tres` (pelos scripts), `autoload/app_config.gd`, `ui/settings_view.gd`, `tests/check_weather_director.gd` (novo), `tests/check_weather.gd`, `tests/check_settings_view.gd`.
   - Teste: bateria completa. Mesma semente, mesmo tempo; as passagens não têm salto; "sempre limpo" desliga tudo; a casa ouve a chuva pela janela só se for barato (senão, vira ideia).
@@ -110,7 +110,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
   - Faz: pedido da textura de areia; `deserto.tres` (areia, rochas maiores com areia por cima, vento, poeira no lugar da chuva, névoa quente, sem árvores), ligado em `sobrevivencia.tres`. Sem tocar em `.gd` além do gerador; se precisar, para e registra.
   - Teste: bateria completa; capturas.
   - Commit: `Fase 19.8: a Sobrevivencia vira deserto`
-- [ ] **19.9 O bairro cresce com as horas** (grande · Opus, A · high · revisão: Astra, `/codex:adversarial-review`, porque muda a planta da cidade)
+- [ ] **19.9 O bairro cresce com as horas** (grande · Opus, A · high · revisão: segundo Opus, só leitura e adversarial, porque muda a planta da cidade)
   - Faz: `LibraryStats.district_levels()`; `SectorLayout.plan` aceita o peso por bairro; `city.gd` passa os níveis; horas falsas na biblioteca de teste, se faltarem.
   - Arquivos: `components/library_stats/library_stats.gd`, `worlds/city/sector_layout.gd`, `worlds/city/city.gd`, `tests/check_library_stats.gd`, `tests/check_sector_layout.gd`, `tests/check_city_map.gd`.
   - Teste: bateria completa. Sem horas, planta idêntica; com horas, o nível 3 tem mais território que o 0, todo bairro contíguo e com borda, mesma entrada = mesma planta.
@@ -120,15 +120,15 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
   - Arquivos: `worlds/city/district_landmarks/district_landmark.gd`, `worlds/city/city.gd` (`_build_landmark`), `tests/check_landmarks.gd`.
   - Teste: `check_landmarks check_city_map`; captura da praça.
   - Commit: `Fase 19.10: o marco cresce com as horas`
-- [ ] **19.11 Canto côncavo e torre de dia** (pequena · Sol, B, worktree `divisa` · medium) — depois do merge da 19.1, em paralelo com a A
+- [ ] **19.11 Canto côncavo e torre de dia** (pequena · modelo grátis no OpenCode, B, worktree `divisa` · revisão: Opus, diff antes do merge) — depois da 19.1, em paralelo com a A. **É o teste da trilha grátis:** se a entrega ficar abaixo do Sonnet, a subetapa volta para o Sonnet na A e o resultado fica registrado aqui
   - Faz: `covered_rects` sem o quadrado de neve no cruzamento cercado por três zonas; a `RpgTower` ganha a bandeira grande para se destacar de dia.
   - Arquivos da B: `worlds/city/biome/biome_builder.gd` (só `covered_rects`), `worlds/city/district_landmarks/rpg_tower.gd`, `tests/check_divisa.gd` (novo). Sem `.tres`, sem `city.gd`.
   - Teste: os da B mais `check_biome check_landmarks`; capturas do canto e da torre às 13 h.
   - Commit: `Fase 19.11: canto da divisa e torre de dia`
-- [ ] **19.12 Encosta com pinheiros e rochas** (grande: geometria · Astra, B, worktree `encosta` · high · revisão: Opus, diff antes do merge) — depois do merge da 19.3, para já usar o pinheiro novo
+- [ ] **19.12 Encosta com pinheiros e rochas** (grande: geometria · Opus, A · high) — depois da 19.3, para já usar o pinheiro novo
   - Faz: as famílias `on_backdrop` na encosta com `BiomeScatter.plan()`, fora da trilha, do mirante e da vista da luneta; quantidade pela qualidade.
-  - Arquivos da B: `worlds/city/biome/backdrop_terrain.gd`, `worlds/city/biome/biome_scatter.gd`, `tests/check_backdrop_scatter.gd` (novo).
-  - Teste: bateria completa na A depois do merge; capturas da praça, do mirante e da janela da cabana; medida.
+  - Arquivos: `worlds/city/biome/backdrop_terrain.gd`, `worlds/city/biome/biome_scatter.gd`, `tests/check_backdrop_scatter.gd` (novo).
+  - Teste: bateria completa; capturas da praça, do mirante e da janela da cabana; medida.
   - Commit: `Fase 19.12: pinheiros e rochas na encosta`
 - [ ] **19.13 Medida e fechamento** (só de docs + medida · coordenador e o dono · medium)
   - Faz: bateria completa; medida no desktop (Alta, 200 jogos, 13 e 22 h, tempo limpo e chuva forte); README (árvores, o dia, o clima, os biomas, créditos), ROADMAP (fase feita; V3), `Início.md`. PR e merge só quando o dono pedir.
@@ -144,7 +144,8 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
 - **A floresta parece "cidade com grama":** a 19.7 compara prédios e arcos antes de seguir.
 - **O deserto exige código:** corrigir na generalização (19.1 ou 19.6), não com um `if` no deserto.
 - **A planta muda e o dono estranha a cidade:** níveis por faixa; sem horas, nada muda.
-- **Cota do ChatGPT Plus:** a B tem só a 19.11 e a 19.12, e o Astra, cinco revisões. Se acabar, o Sonnet faz a 19.11, o Opus a 19.12, e as revisões passam a um segundo Opus só de leitura (como na 15.13).
+- **Tudo o que é difícil sai da cota do Claude Pro** (o ChatGPT Plus acabou em 2026-11-13): um worker grande por vez, a revisão depois da entrega, e a fase pausa se a cota esgotar. A linha de corte das horas (19.9 e 19.10) ajuda aqui também.
+- **O modelo grátis entrega mal a 19.11.** É uma subetapa pequena, revisada pelo Opus antes do merge; se falhar, o Sonnet refaz e a trilha B fica sem uso nesta fase.
 
 ## Fora do escopo
 - Terreno novo (morros, dunas com relevo) e água; trovão e raio; nuvens com volume; estações do ano; o clima de verdade da sua cidade pela internet (viram ideias em `docs/ideias/` se você quiser).
@@ -154,13 +155,17 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio, criad
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-13 (fluxo): a assinatura ChatGPT Plus do dono acabou e o Codex recusa o Astra e o Sol. Decisão do dono: **Claude + OpenCode com modelos grátis**. O [AGENTS.md](../../AGENTS.md#modelos-e-esforço) foi refeito. Nesta fase: as cinco revisões de risco passam a um segundo Opus só de leitura; a 19.11 vira o teste do modelo grátis (primeiro candidato: `omniroute/free-coding`); a 19.12 passa ao Opus na trilha A.
 - 2026-11-13 (19.1): o que saiu diferente do plano.
   - **Na divisa entre dois biomas, a névoa passa pela da cidade.** A atmosfera que tem a voz usa o quanto o peso dela passa do da segunda colocada, para a névoa não dar degrau. Com um bioma só, é o peso dele, como antes.
   - **O volume original do fundo da cidade fica guardado no próprio nó** (meta `biome_bed_base_db`), para qualquer atmosfera que vire a voz saber para onde voltar.
   - **`tools/gerar_bioma.gd`:** uma função por bioma; nunca regrava um `.tres` que existe; para regravar de propósito, `-- --refazer=montanha`. A função da montanha dá o `montanha.tres` de hoje sem diferença.
   - **Teste novo:** `tests/check_biome_second.gd` (a Ação ganha, só na memória, um bioma de teste com prédios: duas atmosferas, a de maior peso manda, nenhuma rocha dentro de prédio).
   - **Passos de grama e areia não entraram:** o `assets/kenney/impact-sounds` do projeto só tem concreto, madeira e neve. O pacote Kenney Impact Sounds (CC0) tem `footstep_grass_000` a `004`: pede a permissão do dono antes da 19.7. Ele não tem areia: a 19.8 decide entre outra fonte CC0 e usar o som da neve.
-  - **Revisão:** a do Astra roda como worker do Orca (só leitura), e não pelo `/codex:review`, porque quem dispara é a sessão coordenadora.
+  - **Revisão:** feita por um segundo Opus, como worker do Orca e só de leitura (o Astra e o Sol foram recusados pela conta). **Nada grave:** sempre há exatamente uma voz; com um bioma só, o efeito é o de antes; a troca de qualidade não refaz a atmosfera; o `gerar_bioma.gd` não regrava o `montanha.tres`. Achados leves, que ficam para quando forem caso real:
+    1. se uma atmosfera for refeita sozinha (pode acontecer no clima dinâmico da 19.6), por até 0,1 s a névoa volta à da cidade e o fundo fica 6 dB mais alto; correção: no `_exit_tree`, chamar `update_now()` nas outras do grupo. **A 19.6 confere isso.**
+    2. o `check_biome_atmosphere` não testa a ordem inversa de atualização nem a névoa logo depois de um `setup()` na voz;
+    3. o `check_biome` junta as plantas dos prédios com as das estações: uma estação que encolhesse sem sumir não seria pega.
   - A Godot dá um segfault ao fechar depois das capturas (as capturas saem completas); já acontecia antes da 19.1.
 - 2026-11-12 (planejamento, respostas do dono):
   - a fase "Visitar amigos (V-Sekai)" fica adiada e a Fase 19 é a de biomas baratos;
