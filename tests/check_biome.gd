@@ -231,9 +231,10 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			doors.append(node.global_transform)
 	print("   regiões de neve: %d | portas: %d | estações: %d | portas do RPG: %d"
 			% [regions.size(), keep_out.size(), stations.size(), doors.size()])
-	# Desde a 15.10, a base dos marcos ancorados (a torre do RPG) também vira área livre.
+	# Desde a 15.10, a base dos marcos ancorados (a torre do RPG) também vira
+	# área livre; desde a 19.1, a planta de cada prédio (o mesmo grupo).
 	var anchored := city.get_tree().get_nodes_in_group(&"scatter_keep_out").size()
-	_check("cada estação do metrô (a boca inteira) e cada marco ancorado (%d) vira uma área livre" % anchored,
+	_check("cada estação do metrô (a boca inteira), cada marco ancorado e cada prédio (%d) vira uma área livre" % anchored,
 			stations.size() == city.get_tree().get_nodes_in_group("transit_stop").size() + anchored
 			and stations.all(func(r: Rect2) -> bool: return r.get_area() > 4.0))
 

@@ -37,6 +37,10 @@ const PORTRAIT_ASPECT: float = 600.0 / 900.0
 ## como um outdoor. Com ele, o logo aparece uma vez só: sobre a porta.
 const HERO_SIZE: Vector2 = Vector2(9.0, 9.0 * 620.0 / 1920.0)
 const HERO_TOP_MARGIN: float = 0.9
+## Grupo das áreas que os enfeites do bioma evitam (BiomeBuilder.keep_out_areas):
+## o prédio entra com a planta dele (footprint), para nenhuma árvore ou rocha
+## nascer dentro (19.1). Mesmo nome de DistrictLandmark.KEEP_OUT_GROUP.
+const KEEP_OUT_GROUP: StringName = &"scatter_keep_out"
 ## Metal escuro das molduras e do painel da capa.
 const DARK_METAL: Color = Color("1A1D22")
 ## Hora em que todas as janelas sorteadas já estão acesas.
@@ -86,6 +90,7 @@ var _hero_mode: bool = false
 func _ready() -> void:
 	# O relógio da cidade (DayNight) acende as janelas de todo mundo nesse grupo.
 	add_to_group("city_night")
+	add_to_group(KEEP_OUT_GROUP)
 	if variant == null:
 		variant = BuildingVariant.from_app_id(game.app_id, _profile_weights(false))
 	_build_body()
@@ -392,6 +397,12 @@ func _make_walls_material() -> ShaderMaterial:
 ## A fachada (face da frente) fica em z = metade da profundidade.
 func _front_z() -> float:
 	return size.z / 2.0
+
+
+## A base do prédio no chão, no espaço dele (x e z; a origem é o meio). A
+## marquise fica no alto e não conta: embaixo dela se anda.
+func footprint() -> Rect2:
+	return Rect2(-size.x / 2.0, -size.z / 2.0, size.x, size.z)
 
 
 ## Caixa só visual (sem colisão).

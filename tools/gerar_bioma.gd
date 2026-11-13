@@ -1,9 +1,55 @@
 extends SceneTree
-## Gera a amostra aprovada como dado; não liga o bioma a nenhum bairro.
-## Rodar à mão: godot --headless --path . -s res://tools/gerar_bioma.gd
-## Após a geração inicial, o .tres é a fonte editável no Inspector.
+## Gera os biomas como dado (profiles/biomes/<id>.tres), uma função por bioma.
+## Não liga o bioma a nenhum bairro (isso é do perfil do bairro).
+##
+## Rodar à mão:
+##   godot --headless --path . -s res://tools/gerar_bioma.gd
+##   godot --headless --path . -s res://tools/gerar_bioma.gd -- --refazer=montanha
+##
+## Sem argumento, só grava os biomas que ainda NÃO existem: um .tres que já
+## existe nunca é regravado (ele pode ter sido afinado no Inspector). Para
+## regravar um de propósito, passe --refazer=<id> (vários: --refazer=a,b).
+## Bioma novo (Fase 19.1): escreva a função dele e ponha em _biomes().
+
+const PASTA: String = "res://profiles/biomes"
+
 
 func _initialize() -> void:
+	var refazer: PackedStringArray = PackedStringArray()
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--refazer="):
+			refazer = arg.trim_prefix("--refazer=").split(",", false)
+	var error: int = DirAccess.make_dir_recursive_absolute(PASTA)
+	var biomes: Dictionary[String, Callable] = _biomes()
+	for id: String in refazer:
+		if not biomes.has(id):
+			push_error("Não conheço o bioma \"%s\" (tem: %s)." % [id, ", ".join(biomes.keys())])
+			error = ERR_INVALID_PARAMETER
+	for id: String in biomes:
+		if error != OK:
+			break
+		var path: String = "%s/%s.tres" % [PASTA, id]
+		if FileAccess.file_exists(path) and not refazer.has(id):
+			print("%s já existe: fica como está (use --refazer=%s para regravar)." % [path, id])
+			continue
+		var biome: BiomeSpec = biomes[id].call()
+		error = ResourceSaver.save(biome, path)
+		print("Gravado: %s (resultado %d)" % [path, error])
+	if error != OK:
+		push_error("Não consegui gravar os biomas (erro %d)." % error)
+	quit(0 if error == OK else 1)
+
+
+## Os biomas que este script sabe fazer: id -> função que monta o BiomeSpec.
+func _biomes() -> Dictionary[String, Callable]:
+	return {
+		"montanha": _montanha,
+	}
+
+
+## A montanha nevada do RPG (15.6; ligada na 15.6, afinada até a 15.13).
+## Os valores são os do montanha.tres de hoje: regravar dá o mesmo dado.
+func _montanha() -> BiomeSpec:
 	var biome := BiomeSpec.new()
 	biome.id = "montanha"
 	biome.display_name = "Montanha nevada"
@@ -15,11 +61,12 @@ func _initialize() -> void:
 	biome.path_tint = Color(0.7, 0.73, 0.78)
 	biome.footstep = "snow"
 	biome.cover_streets = true
+	# A neve reflete umas três vezes mais luz que o asfalto (15.13.5).
+	biome.street_light_scale = 0.4
 	biome.shell = "arch"
 	biome.backdrop = TerrainSpec.new()
 	biome.backdrop.snow_folder = "Snow010A"
 	biome.backdrop.rock_folder = "Rock058"
-	# Valores iniciais: densidades, névoa e cobertura serão afinados visualmente.
 	biome.snow_cover = 0.7
 	biome.fog_density_scale = 1.4
 	biome.fog_tint = Color(0.65, 0.72, 0.82)
@@ -56,9 +103,4 @@ func _initialize() -> void:
 			rock.density = 0.6
 			rock.collision_radius = 0.35
 		biome.scatter.append(rock)
-	var error := DirAccess.make_dir_recursive_absolute("res://profiles/biomes")
-	if error == OK:
-		error = ResourceSaver.save(biome, "res://profiles/biomes/montanha.tres")
-	if error != OK:
-		push_error("Não consegui gravar o bioma (erro %d)." % error)
-	quit(0 if error == OK else 1)
+	return biome

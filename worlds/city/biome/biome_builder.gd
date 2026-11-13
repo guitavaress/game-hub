@@ -126,8 +126,9 @@ static func add_cover(parent: Node3D, category_id: String, biome: BiomeSpec, rec
 	return body
 
 
-## A névoa e o vento do bioma (15.12) sobre as áreas cobertas. Só um por
-## cidade, por enquanto: o DayNight tem uma só mistura de névoa.
+## A névoa e o som de fundo do bioma (15.12) sobre as áreas cobertas. Um por
+## bairro com bioma (19.1); o DayNight tem uma só mistura de névoa, e quem
+## fala com ele é a atmosfera de maior peso onde o jogador está.
 static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, rects: Array[Rect2],
 		player: Node3D, day_night: DayNight) -> BiomeAtmosphere:
 	var atmosphere := BiomeAtmosphere.new()
@@ -226,13 +227,16 @@ static func keep_out_points(parent: Node) -> Array[Vector3]:
 
 
 ## As áreas que ficam livres (no chão): a boca de cada estação do metrô, com
-## a escada, o corrimão e o totem (a forma que a estação dá em footprint()), e
-## a base dos marcos ancorados no chão (15.10: a torre do RPG sem montanha).
+## a escada, o corrimão e o totem (a forma que a estação dá em footprint()),
+## a base dos marcos ancorados no chão (15.10: a torre do RPG sem montanha) e,
+## desde a 19.1, a planta de cada prédio (CityBuilding.footprint()), para um
+## bioma com prédios não pôr árvore dentro de um.
 static func keep_out_areas(parent: Node) -> Array[Rect2]:
 	var areas: Array[Rect2] = []
 	var tree := parent.get_tree()
-	# "scatter_keep_out" = DistrictLandmark.KEEP_OUT_GROUP (pelo nome: o
-	# DistrictLandmark usa autoloads, e os testes carregam este script sozinho).
+	# "scatter_keep_out" = DistrictLandmark.KEEP_OUT_GROUP e
+	# CityBuilding.KEEP_OUT_GROUP (pelo nome: os dois usam autoloads, e os
+	# testes carregam este script sozinho).
 	for node in tree.get_nodes_in_group("transit_stop") + tree.get_nodes_in_group(&"scatter_keep_out"):
 		var stop := node as Node3D
 		if stop == null or not parent.is_ancestor_of(stop):

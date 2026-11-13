@@ -21,6 +21,9 @@ extends Resource
 ## Vazio herda a casca do bairro.
 @export var shell: String = ""
 @export var scatter: Array[ScatterSpec] = []
+## O chão do bioma por cima da pedra (nos arcos, nas rochas e nos pilares
+## da montanha), onde a superfície aponta para cima: 0 = só a pedra, 1 = tudo
+## coberto. O nome ficou da montanha (trocar o campo quebraria o .tres).
 @export_range(0.0, 1.0) var snow_cover: float = 0.0
 @export var backdrop: TerrainSpec
 @export_group("Atmosfera")

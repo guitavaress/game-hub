@@ -523,13 +523,13 @@ func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> v
 		CityDecor.add_block_ground(parent, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
 
 
-## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
-## passos), os pinheiros e as rochas, e a névoa e o vento do primeiro deles.
-## Roda depois do metrô: as estações e as portas ficam livres dos enfeites.
-## Devolve as áreas cobertas de todos.
+## O setor coberto de cada bairro com bioma (o chão do bioma nas ruas, com
+## colisão e passos), os enfeites, e a névoa e o som de fundo de cada um
+## (19.1: uma atmosfera por bioma; só a de maior peso fala com o céu).
+## Roda depois do metrô e dos prédios: as estações, as portas e os prédios
+## ficam livres dos enfeites. Devolve as áreas cobertas de todos.
 func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
 	var covered: Array[Rect2] = []
-	var has_atmosphere := false
 	var inside := Rect2(-half, -half, half * 2.0, half * 2.0)
 	for district in districts:
 		var biome := BiomeBuilder.biome_of(district["id"])
@@ -545,10 +545,8 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 		# Os enfeites só mudam ao abrir a cidade (não se refazem na troca da qualidade).
 		BiomeBuilder.add_scatter(self, district["id"], biome, town,
 				GraphicsQuality.scatter_amount(AppConfig.get_quality()))
-		if not has_atmosphere:
-			# A névoa e o vento valem também na trilha e no mirante.
-			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
-			has_atmosphere = true
+		# A névoa e o som de fundo valem também na trilha e no mirante.
+		BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
 		if biome.cover_streets:
 			covered.append_array(rects)
 	return covered
