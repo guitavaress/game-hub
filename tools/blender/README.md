@@ -25,6 +25,7 @@ Depois, abra o editor da Godot (ou rode `--headless --import`) para ela importar
 | `gerar_luneta.py` | `lookout/telescope.glb` (120 KB) | a luneta de latão: a base torneada com três pés, a coluna, o garfo e o tubo com a ocular | ~2 s |
 | `gerar_poltrona.py` | `home/armchair.glb` (259 KiB) | armação Wood049, cinco volumes estofados, vivos do assento e encosto | ~5 s com prévias |
 | `gerar_lareira.py` | `home/fireplace.glb` (228 KiB) | pedras aparelhadas, soleira, consolo Wood049, fundo de fuligem e grade de ferro | ~5 s com prévias |
+| `gerar_arvore.py` | `trees/pine.glb` (677 KB) | 19.2: o pinheiro (abeto) de 10 m: tronco com raízes, verticilos de galhos e cartões de agulhas (a foto de um raminho feito de agulhas de verdade, com transparência) | ~35 s; ~65 s com prévias |
 
 `comum.py` tem as peças que todos usam (17.8: também `orientar`/`tabua_entre`, para pôr uma tábua de um ponto a outro, e `caixa`, `cilindro` e `tubo`, as peças de metal torneadas): a pedra (caixa arredondada, ondulada por ruído, lascada por cortes planos e com as quinas chanfradas), a tábua, a tora e a acha rachada, o material de madeira procedural (anéis, fibras, casca, quinas gastas, carvão), o "assar" desse material numa textura pequena (cor e relevo), a oclusão de ambiente (os cantos escuros) assada nas cores dos vértices e a exportação.
 
@@ -65,3 +66,26 @@ O teste mede as malhas importadas, uma superfície por material, UV/cor/normais,
 
 ## Licença
 Estes scripts usam a API Python do Blender, que é **GPL**. Por isso esta pasta é **GPL-3.0** (o texto está no [`LICENSE`](LICENSE), copiado da instalação do Blender). Os `.glb` que eles geram são **nossos**, como o resto do repositório (**MIT**): a licença do Blender diz que o que se cria com ele é de quem cria.
+
+## Árvores (19.2)
+
+`gerar_arvore.py` tem uma função por espécie (nesta subetapa, só `pinheiro`). Da raiz do repositório:
+
+```
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python tools/blender/gerar_arvore.py -- pinheiro [saida.glb] [pasta das prévias]
+```
+
+Sem argumentos, grava `assets/models/trees/pine.glb`. A pasta das prévias (opcional, fora do repositório) recebe duas vistas no Cycles (`pinheiro_perto.png` e `pinheiro_longe.png`), só para conferir a forma.
+
+- **Duas malhas:** `bark` (tronco e galhos) e `leaves` (os cartões de agulhas). A origem é o pé do tronco, no chão; o pinheiro tem 10 m (a copa passa de 3 m de raio embaixo).
+- **A casca** é o `material_madeira` do `comum.py`, só com o tipo casca, assado numa textura alta e estreita (256 × 1024: o UV dá a volta no tronco e sobe 5 m; o tronco de cima repete). Os galhos usam uma faixa dessa mesma textura.
+- **As agulhas:** o script monta dois raminhos de abeto com agulhas de verdade (três níveis de ramos), fotografa de cima com fundo transparente (`comum.foto_de_cima`, só emissão: a foto guarda a cor, a luz é da Godot) e espalha a cor por baixo do transparente (`comum.sangrar_cor`). Cada cartão é um retângulo 2:1 com uma das duas metades da foto; o do meio e o de baixo são dobrados (a ponta cai).
+- **A cor dos vértices** das folhas escurece o miolo e o andar de baixo da copa (a sombra de dentro). Vai para o glTF sem o ganho (`GANHO`) das pedras.
+- **WEBP:** o `comum.exportar_com_alfa` grava as texturas em WEBP (o JPEG do `exportar` perde a transparência das agulhas). A Godot lê o `EXT_texture_webp` e tira as texturas para `pine_*.webp` ao lado.
+- **Na Godot:** as LODs automáticas ficam desligadas no `pine.glb.import` (a simplificação abriria buracos nos cartões). Quem desenha é o `TreeModel` (`worlds/city/tree_model.gd`): o modelo perto, a impostora do mesmo modelo longe. Depois de mudar o modelo, refaça o atlas (com janela):
+
+```
+"C:/Godot/Godot_v4.7.2-stable_win64_console.exe" --path . -s res://tools/make_tree_impostor.gd -- res://assets/models/trees/pine.glb res://assets/generated/pine_blender_impostor.png
+```
+
+O `comum.py` ganhou só funções novas: `assar_textura_retangular`, `foto_de_cima`, `sangrar_cor` e `exportar_com_alfa`.

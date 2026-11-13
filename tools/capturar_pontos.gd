@@ -34,6 +34,10 @@ const SETTLE_FRAMES: int = 90
 ## primeiro ponto saía no meio da troca (Fase 17.5).
 const HOUR_SETTLE_SECONDS: float = 3.5
 
+## Nome do bairro nos arquivos; uma amostra pode trocar no _prepare (Fase 19.2:
+## "rpg-novo"). Vazio = o id do bairro.
+var _district_label: String = ""
+
 
 func _initialize() -> void:
 	_run()
@@ -125,9 +129,12 @@ func _run() -> void:
 			for i in SETTLE_FRAMES:
 				await process_frame
 			await RenderingServer.frame_post_draw
-			var file := "%s/%s_%s_%02dh.png" % [folder, district, point["name"], int(hour)]
-			frame.get_texture().get_image().save_png(file)
+			var label := _district_label if not _district_label.is_empty() else district
+			var file := "%s/%s_%s_%02dh.png" % [folder, label, point["name"], int(hour)]
+			var image := frame.get_texture().get_image()
+			image.save_png(file)
 			print("Captura: ", file)
+			_after_capture(image, camera, point, file)
 
 	config.set_quality(original_quality)
 	quit()
@@ -136,6 +143,12 @@ func _run() -> void:
 ## Ponto de extensão: um script de amostra (que estende este) põe aqui o que
 ## quer ver na cidade antes das capturas. Aqui não faz nada.
 func _prepare(_city: Node, _area: Dictionary) -> void:
+	pass
+
+
+## Ponto de extensão (19.2): depois de cada captura, a amostra pode salvar
+## mais alguma coisa da mesma imagem (ex.: um recorte ampliado). Aqui, nada.
+func _after_capture(_image: Image, _camera: Camera3D, _point: Dictionary, _file: String) -> void:
 	pass
 
 

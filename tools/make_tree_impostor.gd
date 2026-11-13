@@ -9,6 +9,10 @@ extends SceneTree
 ## projeto:
 ##   Godot --path . -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png] [nó]
 ## Saída padrão: res://assets/generated/tree_impostor.png (+ .json com as medidas).
+## Fase 19.2: um modelo do Blender (malhas "bark" e "leaves", feito por
+## tools/blender/gerar_arvore.py) é fotografado com os materiais do TreeModel
+## (o mesmo recorte das folhas e a mesma normal da copa de perto), sem vento:
+##   ... -- res://assets/models/trees/pine.glb res://assets/generated/pine_blender_impostor.png
 ## "nó" (opcional): quando o glTF traz várias árvores lado a lado, o nome da
 ## que vai na foto (as outras são apagadas). Ex. do pinheiro da Fase 15:
 ##   ... -- ~/git/game-hub-fontes/polyhaven/fir_sapling_medium/fir_sapling_medium_1k.gltf \
@@ -85,8 +89,13 @@ func _run() -> void:
 	viewport.add_child(pivot)
 	pivot.add_child(tree)
 
+	# Modelo do Blender (19.2): os materiais do TreeModel, sem vento nem troca.
+	if _use_tree_model_materials(tree):
+		print("Modelo do Blender: fotografando com os materiais do TreeModel.")
 	# Folhas opacas (no modelo elas vêm com "transparência", que só pesa aqui).
 	for node in tree.find_children("*", "MeshInstance3D", true, false):
+		if (node as MeshInstance3D).material_override != null:
+			continue
 		var mesh_instance := node as MeshInstance3D
 		for surface in mesh_instance.mesh.get_surface_count():
 			var material := mesh_instance.mesh.surface_get_material(surface) as BaseMaterial3D
@@ -147,6 +156,23 @@ func _run() -> void:
 	file.close()
 	print("Pronto: ", absolute, " | ", info)
 	quit()
+
+
+## Se a árvore tem as malhas "bark" e "leaves" (um modelo do gerar_arvore.py),
+## põe nelas os materiais do TreeModel, parados (sem vento e sem troca).
+func _use_tree_model_materials(tree: Node3D) -> bool:
+	var bark := tree.find_child("bark", true, false) as MeshInstance3D
+	var leaves := tree.find_child("leaves", true, false) as MeshInstance3D
+	if bark == null or leaves == null:
+		return false
+	var box := bark.mesh.get_aabb().merge(leaves.mesh.get_aabb())
+	var radius := maxf(maxf(-box.position.x, box.end.x), maxf(-box.position.z, box.end.z))
+	for part: MeshInstance3D in [bark, leaves]:
+		var material := TreeModel._make_material(part.mesh, part == leaves, box.end.y, radius, Color.WHITE)
+		material.set_shader_parameter("sway_amount", 0.0)
+		material.set_shader_parameter("flutter_amount", 0.0)
+		part.material_override = material
+	return true
 
 
 ## Caixa que envolve todas as malhas (em coordenadas do mundo).

@@ -1037,3 +1037,160 @@ def previa_casa(objetos, nome, alvo, vistas, escala):
         ob.rotation_euler = (G(*alvo) - ob.location).to_track_quat('-Z', 'Y').to_euler()
         cena.render.filepath = os.path.join(pasta, '%s_%s.png' % (nome, rotulo))
         bpy.ops.render.render(write_still=True)
+
+
+# --- Árvores (19.2): acréscimos, sem alterar os geradores anteriores ------------
+
+def assar_textura_retangular(objetos, mat, largura, altura, nome, amostras=32):
+    """Como assar_textura (cor e relevo), mas numa imagem retangular: a casca
+    do tronco é alta e estreita (o UV dá a volta no tronco e sobe por ele).
+    Troca o material dos objetos pelo simples com as texturas e o devolve."""
+    if not isinstance(objetos, (list, tuple)):
+        objetos = [objetos]
+    cena = bpy.context.scene
+    cena.cycles.samples = amostras
+    cena.render.bake.target = 'IMAGE_TEXTURES'
+    arv = mat.node_tree
+    alvo = arv.nodes.new("ShaderNodeTexImage")
+    arv.nodes.active = alvo
+    selecionar(objetos)
+    cor = bpy.data.images.new(nome + "_cor", largura, altura, alpha=False, float_buffer=False)
+    alvo.image = cor
+    bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'}, margin=6)
+    relevo = bpy.data.images.new(nome + "_relevo", largura, altura, alpha=False, float_buffer=False)
+    relevo.colorspace_settings.name = 'Non-Color'
+    alvo.image = relevo
+    bpy.ops.object.bake(type='NORMAL', normal_space='TANGENT', margin=6)
+    for img in (cor, relevo):
+        img.pack()
+
+    novo = bpy.data.materials.new(nome)
+    arv2 = novo.node_tree
+    bsdf = arv2.nodes["Principled BSDF"]
+    uvn = arv2.nodes.new("ShaderNodeUVMap")
+    uvn.uv_map = "bake"
+    t_cor = arv2.nodes.new("ShaderNodeTexImage")
+    t_cor.image = cor
+    arv2.links.new(uvn.outputs[0], t_cor.inputs[0])
+    arv2.links.new(t_cor.outputs["Color"], bsdf.inputs["Base Color"])
+    t_rel = arv2.nodes.new("ShaderNodeTexImage")
+    t_rel.image = relevo
+    arv2.links.new(uvn.outputs[0], t_rel.inputs[0])
+    mapa = arv2.nodes.new("ShaderNodeNormalMap")
+    mapa.uv_map = "bake"
+    arv2.links.new(t_rel.outputs["Color"], mapa.inputs["Color"])
+    arv2.links.new(mapa.outputs["Normal"], bsdf.inputs["Normal"])
+    bsdf.inputs["Roughness"].default_value = 0.9
+    for ob in objetos:
+        ob.data.materials.clear()
+        ob.data.materials.append(novo)
+    return novo
+
+
+def foto_de_cima(objetos, caminho, largura, altura, escala, centro=(0.0, 0.0), amostras=32):
+    """Fotografa os objetos de cima (câmera ortográfica, fundo transparente)
+    e grava um PNG com transparência. Os materiais devem ser só emissão: a
+    foto guarda a COR (o albedo), e a luz quem põe é a Godot. "escala" é a
+    largura (m) que a foto cobre; "centro", o meio da foto no plano XY."""
+    cena = bpy.context.scene
+    motor_antes = cena.render.engine
+    cena.render.engine = 'CYCLES'
+    cena.cycles.samples = amostras
+    cena.render.film_transparent = True
+    cena.render.resolution_x = largura
+    cena.render.resolution_y = altura
+    cena.render.resolution_percentage = 100
+    cena.render.filter_size = 1.0
+    cena.view_settings.view_transform = 'Standard'
+    cena.view_settings.look = 'None'
+    cena.view_settings.exposure = 0.0
+    cena.view_settings.gamma = 1.0
+    cena.render.image_settings.file_format = 'PNG'
+    cena.render.image_settings.color_mode = 'RGBA'
+    cena.render.image_settings.color_depth = '8'
+    dados = bpy.data.cameras.new("camera_foto")
+    dados.type = 'ORTHO'
+    dados.ortho_scale = escala
+    camera = bpy.data.objects.new("camera_foto", dados)
+    cena.collection.objects.link(camera)
+    camera.location = (centro[0], centro[1], 20.0)
+    camera.rotation_euler = (0.0, 0.0, 0.0)
+    dados.clip_end = 40.0
+    cena.camera = camera
+    # Só os objetos pedidos aparecem na foto.
+    escondidos = []
+    for ob in cena.objects:
+        if ob not in objetos and ob is not camera and not ob.hide_render:
+            ob.hide_render = True
+            escondidos.append(ob)
+    cena.render.filepath = caminho
+    bpy.ops.render.render(write_still=True)
+    for ob in escondidos:
+        ob.hide_render = False
+    bpy.data.objects.remove(camera)
+    cena.render.film_transparent = False
+    cena.render.engine = motor_antes
+    return caminho
+
+
+def sangrar_cor(img, passos=24):
+    """Espalha a cor das bordas por baixo do transparente (como o
+    fix_alpha_edges da Godot): de longe, nas versões menores da textura, as
+    folhas não ganham contorno escuro."""
+    import numpy as np
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+    cor = px[..., :3].copy()
+    cheio = px[..., 3] > 0.02
+    for _ in range(passos):
+        soma = np.zeros_like(cor)
+        n = np.zeros((h, w), np.float32)
+        for desloca in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            soma += np.roll(cor * cheio[..., None], desloca, (0, 1))
+            n += np.roll(cheio, desloca, (0, 1))
+        novo = (~cheio) & (n > 0)
+        cor[novo] = soma[novo] / n[novo][:, None]
+        cheio = cheio | novo
+    if cheio.any():
+        cor[~cheio] = cor[cheio].mean(axis=0)
+    px[..., :3] = cor
+    img.pixels[:] = px.ravel()
+    img.update()
+
+
+def exportar_com_alfa(objetos, caminho, formato='WEBP', qualidade=85):
+    """Exporta só estes objetos para um .glb (Y para cima), com as texturas em
+    WEBP (guarda a transparência das folhas, que o JPEG do exportar() perde).
+    Sem tangentes; a cor dos vértices vai se a malha tiver ("Color")."""
+    for ob in objetos:
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method='BEAUTY', ngon_method='BEAUTY')
+        bm.to_mesh(ob.data)
+        bm.free()
+        # A cor dos vértices ("Color"), se houver, fica ativa e vai para o glTF.
+        cores = ob.data.color_attributes
+        if cores.get("Color") is not None:
+            cores.active_color = cores["Color"]
+            ob.data.attributes.active_color = cores["Color"]
+            cores.render_color_index = cores.active_color_index
+        camadas = ob.data.uv_layers
+        for nome_uv in [c.name for c in camadas if c.name != "bake"]:
+            camadas.remove(camadas[nome_uv])
+        if len(camadas):
+            camadas.active = camadas[0]
+            camadas[0].active_render = True
+    selecionar(objetos)
+    bpy.ops.export_scene.gltf(
+        filepath=caminho, export_format='GLB', use_selection=True, export_apply=True,
+        export_yup=True, export_tangents=False, export_normals=True, export_texcoords=True,
+        export_vertex_color='ACTIVE', export_all_vertex_colors=False,
+        export_materials='EXPORT', export_image_format=formato, export_image_quality=qualidade,
+        export_cameras=False, export_lights=False, export_animations=False)
+    tamanho = os.path.getsize(caminho)
+    triangulos = 0
+    for ob in objetos:
+        ob.data.calc_loop_triangles()
+        triangulos += len(ob.data.loop_triangles)
+        print("  %-14s %6d triângulos %6d vértices" % (ob.name, len(ob.data.loop_triangles), len(ob.data.vertices)))
+    print("GLB: %s (%.0f KB, %d triângulos)" % (caminho, tamanho / 1024.0, triangulos))

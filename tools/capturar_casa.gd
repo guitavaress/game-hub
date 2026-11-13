@@ -40,6 +40,9 @@ var _original_settings: Dictionary = {}
 ## A vista do perfil antes da troca (vazio = nada trocado) e de qual tema.
 var _original_view: String = ""
 var _view_theme: String = ""
+## Um rótulo a mais no nome dos arquivos, que uma amostra pode pôr no _prepare
+## (Fase 19.2: "novo" dá cabana-novo_janela_13h.png). Vazio = nada.
+var _mode_label: String = ""
 
 
 func _initialize() -> void:
@@ -142,7 +145,8 @@ func _run() -> void:
 			for i: int in SETTLE_FRAMES:
 				await process_frame
 			await RenderingServer.frame_post_draw
-			var file: String = "%s/%s_%s_%02dh.png" % [folder, prefix, point["name"], int(hour)]
+			var label: String = prefix if _mode_label.is_empty() else "%s-%s" % [prefix, _mode_label]
+			var file: String = "%s/%s_%s_%02dh.png" % [folder, label, point["name"], int(hour)]
 			if frame.get_texture().get_image().save_png(file) != OK:
 				push_error("Não consegui salvar: " + file)
 				failed = true
