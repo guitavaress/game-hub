@@ -42,17 +42,17 @@ Hoje eles mostram a presença da Steam. **Visitar e conversar com amigos dentro 
 
 ## Experimentar
 
-**Projeto pessoal em desenvolvimento · versão no código: 0.18.0 · atualizado em 11/11/2026.**
+**Projeto pessoal em desenvolvimento · versão 0.18.0 · atualizado em 12/11/2026.**
 
-A Fase 17, *O momento uau*, já está na `main`. A **Fase 18, Mostrar para amigos**, está em andamento: o pacote do Windows está pronto, com instruções, licenças e um botão de feedback. **O primeiro Release para os amigos ainda está pendente de publicação.**
+A Fase 17, *O momento uau*, já está na `main`. A **Fase 18, Mostrar para amigos**, está na fase de teste com amigos: o pacote do Windows traz instruções, licenças e um botão de feedback. **O primeiro Release está publicado: [baixar o Game Hub 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0).**
 
 ### Pacote do Windows
 
-Quando publicado, o zip estará na página de [Releases](https://github.com/guitavaress/game-hub/releases). Para usar o pacote, você não precisa instalar a Godot.
+Baixe o zip da [versão mais recente](https://github.com/guitavaress/game-hub/releases/latest), na página de Releases. Para usar o pacote, você não precisa instalar a Godot.
 
 Você precisa de **Windows 10 ou 11 de 64 bits**, **Steam com pelo menos um jogo instalado** e **placa de vídeo com suporte a Vulkan**. A primeira abertura usa internet para buscar capas e categorias; depois, esses dados ficam em cache.
 
-1. Descompacte `GameHub-<versão>-windows.zip` numa pasta sua.
+1. Baixe e descompacte `GameHub-<versão>-windows.zip` numa pasta sua.
 2. Abra a Steam e execute `GameHub.exe`. Mantenha o `.exe` e o `GameHub.pck` juntos.
 3. Como o executável ainda não tem assinatura digital, o Windows pode mostrar o SmartScreen. Confira a origem do pacote; para executar a cópia baixada deste projeto, use **Mais informações › Executar assim mesmo**.
 
