@@ -180,8 +180,8 @@ Rodada de planejamento feita com as respostas acima, em 2026-11-02. O dono tamb�
 | 11, 24 | Norte: launcher + encontro com amigos; compositor e V5 em pausa | [ROADMAP](ROADMAP.md#visão) |
 | 2, 28, 29 | Produto em 3 etapas; fase "Mostrar para amigos"; brand kit no Horizonte | [ROADMAP](ROADMAP.md#o-caminho-do-produto) |
 | 4, 6, 8, 12 | A falta de "uau" (casa, janela, trilha, mirante) vira a fase "O momento uau" | [ROADMAP](ROADMAP.md#1-o-momento-uau) |
-| 25 | Biomas baratos como PoC | [ROADMAP](ROADMAP.md#4-biomas-baratos-poc) |
-| 26 | Visitar amigos com o V-Sekai, começando por um estudo | [ROADMAP](ROADMAP.md#3-visitar-amigos-v-sekai) |
+| 25 | Biomas baratos como PoC | [ROADMAP](ROADMAP.md#3-biomas-baratos-poc) |
+| 26 | Visitar amigos com o V-Sekai, começando por um estudo | [ROADMAP](ROADMAP.md#4-visitar-amigos) |
 | 17 | Jev parado; a triagem fica opcional | ROADMAP e AGENTS.md |
 | 27 | Perfis do usuário parados | [ROADMAP](ROADMAP.md#parados) |
 | 30 | ROADMAP reescrita só com o futuro e uma tabela do feito | [ROADMAP](ROADMAP.md) |

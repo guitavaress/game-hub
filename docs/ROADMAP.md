@@ -32,16 +32,16 @@ Steam  →  dados do jogo  →  perfil do mundo  →  gerador  →  Godot  →  
 |---|---|---|
 | **V1** Cidade e categorias | A biblioteca vira uma cidade com bairros | ✅ fases 1–6 |
 | **V2** Mundo pessoal | Casa, avatar e amigos | ✅ fases 9 e 13 |
-| **V3** Mundo dinâmico | O que você joga molda o lugar | 🟡 primeiro bioma na Fase 15; [biomas baratos](#4-biomas-baratos-poc) |
-| **V4** Amigos | Encontrar e visitar os amigos | 🔜 [Visitar amigos (V-Sekai)](#3-visitar-amigos-v-sekai) |
+| **V3** Mundo dinâmico | O que você joga molda o lugar | 🟡 primeiro bioma na Fase 15; [biomas baratos](#3-biomas-baratos-poc), em andamento na Fase 19 |
+| **V4** Amigos | Encontrar e visitar os amigos | 🔜 [Visitar amigos](#4-visitar-amigos), adiada em 2026-11-12 |
 | **V5** Desktop | O hub como ambiente de desktop | ⏸️ mesa com três monitores na Fase 14 (só Linux); [parado](#parados) |
 | **V6** Plataforma | Mundos criados pela comunidade, loja | [Horizonte](#horizonte-sem-compromisso) |
 
 ## Próximas fases
 
-Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 19), com o plano aprovado em `plans/fase-N.md`.
+Nesta ordem, até alguém decidir mudar. **O número é dado quando a fase começa** (o próximo livre, a partir de 20), com o plano aprovado em `plans/fase-N.md`.
 
-Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 4 abaixo (biomas), a "Fase 17" é a 3 (amigos) e a "Fase 18" está em [Parados](#parados).
+Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a fase 3 abaixo (biomas), a "Fase 17" é a 4 (amigos) e a "Fase 18" está em [Parados](#parados).
 
 ### 1. O momento uau — feita na Fase 17
 **Objetivo:** o hub encanta. É onde mora a frustração de hoje:
@@ -71,29 +71,35 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Andamento:** é a [Fase 18](plans/fase-18.md), em andamento desde 2026-11-10. As subetapas **18.0 a 18.6 estão feitas**: versão 0.18.0, executável do Windows, primeira abertura guiada, amigos opcionais sem cobrança, botão "Contar o que achei" e zip com LEIA-ME e licenças. O `tools/empacotar_windows.sh` gera e confere o pacote, recusando dados pessoais e sobras de desenvolvimento, inclusive dentro do pck. O [README](../README.md) foi reorganizado em 2026-11-11 para apresentar o mundo e orientar quem vai experimentar. **O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12** (PR #4 na `main`, tag `v0.18.0`). **Falta só o retorno dos amigos:** a fase fecha quando o primeiro resumo entrar no plano.
 
-### 3. Visitar amigos (V-Sekai)
-**Objetivo:** o encontro com os amigos acontece **dentro do hub**, com peças do [V-Sekai](https://github.com/v-sekai) (MIT): avatar VRM, espelho, voz, sala de encontro e ideias de rede. Substitui a "visita sem servidor" de antes.
-
-**Primeira subetapa, um estudo curto.** Atualiza o [estudo de 15/10](design/exploracao-open-source-2026-10-15.md) e responde:
-- que funções queremos;
-- para cada uma: a licença, se roda na Godot 4.7.2 oficial e se precisa de servidor;
-- qual é o menor encontro que dá para testar.
-
-**As ferramentas do estudo:**
-- o código do V-Sekai, que é aberto;
-- o **REA** (engenharia reversa), só no que existe apenas compilado ou em execução. As regras de uso estão no [AGENTS.md](../AGENTS.md#modelos-e-esforço).
-
-**Pronto quando:** o plano da fase sai do estudo, com o menor encontro definido.
-
-### 4. Biomas baratos (PoC)
+### 3. Biomas baratos (PoC)
 **Objetivo:** provar o coração da V3 ("o que você joga molda o lugar") sem o custo da montanha.
 
 **Entregas:**
-- 2 ou 3 biomas só com chão, enfeites e clima, sem terreno;
+- 2 biomas só com chão, enfeites e clima, sem terreno: a floresta (Aventura) e o deserto (Sobrevivência);
 - o bairro (e o marco dele) cresce com as horas jogadas;
-- as sobras da Fase 15: a encosta com pinheiros e rochas, o canto côncavo da divisa neve/asfalto e o destaque da torre de dia.
+- as sobras da Fase 15: a encosta com pinheiros e rochas, o canto côncavo da divisa neve/asfalto e o destaque da torre de dia;
+- pedidos do dono no planejamento (2026-11-12): **todas as árvores como modelos do Blender** (inclusive as da janela da cabana) e **o céu vivo**: o dia em gradiente (nascer do sol, manhã, tarde, pôr do sol, noite), o clima dinâmico e a chuva refeita.
 
 **Pronto quando:** um bioma novo é um perfil novo, e dá para ver um bairro maior que outro pelas horas jogadas.
+
+**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.0 (docs e plano) está feita; a próxima é a 19.1.
+
+### 4. Visitar amigos
+**Objetivo:** o encontro com os amigos acontece **dentro do hub**: avatar próprio, espelho, voz, sala de encontro e uma rede simples. Substitui a "visita sem servidor" de antes.
+
+**Adiada em 2026-11-12** (era a fase 3, "Visitar amigos (V-Sekai)"). O dono conferiu o V-Sekai e achou o projeto parado. Os números do GitHub nesse dia:
+- o jogo ([v-sekai-game](https://github.com/V-Sekai/v-sekai-game)): 253 commits em 2024, 82 em 2025 (o último de código em junho de 2025) e 8 em 2026, todos de robô;
+- o servidor (uro): o último commit é de junho de 2025;
+- seguem vivos: o godot-vrm (do V-Sekai, atualizado para a Godot 4.7 em julho de 2026) e, fora dele, o netfox e o TwoVoIP.
+
+**Quando voltar, a primeira subetapa é um estudo curto**, que atualiza o [estudo de 15/10](design/exploracao-open-source-2026-10-15.md) e responde:
+- que funções queremos;
+- para cada peça candidata: a licença, **se o projeto está vivo** (commits de código, não de robô), se roda na Godot 4.7.2 oficial e se precisa de servidor;
+- qual é o menor encontro que dá para testar.
+
+O V-Sekai entra como leitura de ideias (o código é MIT e continua aberto), e não como base. O **REA** (engenharia reversa) só no que existir apenas compilado; as regras estão no [AGENTS.md](../AGENTS.md#modelos-e-esforço).
+
+**Pronto quando:** o plano da fase sai do estudo, com o menor encontro definido.
 
 ## Dia de conferência
 
@@ -135,7 +141,7 @@ Nada aqui anda sem uma decisão nova sua.
 Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas vão para [`ideias/`](ideias/README.md).
 
 - **Etapa pública do produto:** custos, questões legais, monetização e o PoC no Reddit.
-- **V4 ao vivo:** ver o amigo andando, com o avatar dele, e eventos. É o primeiro item com custo de servidor; a fase 4 diz se ele é necessário.
+- **V4 ao vivo:** ver o amigo andando, com o avatar dele, e eventos. É o primeiro item com custo de servidor; o estudo da fase [Visitar amigos](#4-visitar-amigos) diz se ele é necessário.
 - **V5 completo:** o hub como a sessão inteira do Hyprland, janelas em qualquer lugar, dmabuf.
 - **V6 com compartilhamento e loja:** mundos, biomas e enfeites criados por usuários.
 - **Addons para depois** ([avaliação](design/addons-2026-10-13.md)): GodotSteam (amigos sem a chave da Web API), gdcef (navegador no `Screen3D`), trailers nos telões, LimboAI e Godot Steam Audio.
@@ -156,5 +162,6 @@ Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas 
   - a cerimônia completa vale só para subetapas grandes, e a revisão cruzada só nos pontos de risco;
   - as conferências pendentes viram um dia só.
   Detalhes no [AGENTS.md](../AGENTS.md) e na [revisão](revisao-roadmap-2026-11-02.md).
+- **2026-11-12:** os biomas baratos passam à frente de visitar amigos, porque o jogo do V-Sekai está parado desde junho de 2025 (números na [fase 4](#4-visitar-amigos)). A Fase 19 ganha também as árvores no Blender e o céu vivo (dia em gradiente, clima dinâmico, chuva refeita).
 
 As regras de arquitetura (dados de mundo em perfis, plataforma isolada etc.) estão no [AGENTS.md](../AGENTS.md#regras-de-arquitetura).

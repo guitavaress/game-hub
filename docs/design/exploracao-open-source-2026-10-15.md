@@ -1,5 +1,7 @@
 # Exploração: V-Sekai e outros projetos abertos (2026-10-15)
 
+> **Correção de 2026-11-12:** este estudo diz que o jogo do V-Sekai estava "ativo em 2026". Não estava: os pushes de 2026 eram de robô (atualização de dependências). O `v-sekai-game` teve 253 commits em 2024, 82 em 2025 (o último de código em junho de 2025) e 8 em 2026; o servidor `uro` parou em junho de 2025. O godot-vrm, o netfox e o TwoVoIP seguem ativos. Por isso a fase "Visitar amigos" foi adiada ([ROADMAP](../ROADMAP.md#4-visitar-amigos)). O resto do estudo vale como estava.
+
 Pergunta do dono: **o que o V-Sekai e outros projetos open-source já resolveram daquilo que o ROADMAP quer fazer, e o que dá para trazer para o hub?**
 
 Este documento é só exploração: nada foi baixado nem implementado. Tudo o que for adotado segue as regras do CLAUDE.md (licença permissiva, pedir permissão antes de baixar, spike numa branch, ponto único no projeto). Complementa a [avaliação de addons de 2026-10-13](addons-2026-10-13.md), que já cobriu Sky3D, Terrain3D, Debug Menu, GodotSteam e outros. Esses não se repetem aqui.
