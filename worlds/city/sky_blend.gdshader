@@ -20,6 +20,9 @@ uniform float sunset_rotation = 0.0;
 // Brilho próprio da foto do pôr do sol (cada foto vem com uma exposição
 // diferente; isto deixa as três no mesmo "nível").
 uniform float sunset_gain = 1.0;
+// Uma cor por cima do céu inteiro (Fase 19.4): branco não muda nada. Vem do
+// momento do dia (DayMoment.sky_tint): rosado no nascer, dourado à tarde.
+uniform vec3 tint : source_color = vec3(1.0);
 // A foto da noite tem morros de deserto marrons no horizonte (15.13.2): de
 // baixo até "night_ground_top" (a altura do olhar, de 0 a 1) ela é trocada por
 // esta cor, uma silhueta azul-escura; acima disso as estrelas ficam como são.
@@ -48,5 +51,5 @@ void sky() {
 	vec3 color = textureLod(day_sky, uv, 0.0).rgb * day_weight
 			+ textureLod(sunset_sky, sunset_uv, 0.0).rgb * sunset_weight * sunset_gain
 			+ night_color(uv, EYEDIR.y) * night_weight;
-	COLOR = color * energy;
+	COLOR = color * tint * energy;
 }

@@ -7,18 +7,21 @@ extends Node
 ## a neblina e a luz ambiente. Quando escurece, avisa pelo sinal night_changed
 ## (0 = dia, 1 = noite), e a cidade acende os postes, as janelas etc.
 ##
-##   - 06:00 a 07:00: amanhecer (sol baixo e alaranjado)
-##   - 07:00 a 17:30: dia (sol forte e quente, sombras marcadas, cores vivas;
-##     Fase 17.6)
-##   - 17:30 a 19:00: pôr do sol (sol #FF9A5C, neblina quente, +0,2 EV);
-##     as janelas acendem uma a uma até 18h30 e os postes às 18h
-##   - 19:00 a 05:30: noite (luz fraca e azulada da "lua", neblina densa)
+## O dia é uma lista de MOMENTOS (Fase 19.4; profiles/day_cycle.tres, veja
+## DayCycleSpec): madrugada (5h30), nascer do sol (6h30, rosado, com o brilho
+## no leste), manhã (8h30, luz fria e limpa), meio-dia (11h às 14h30, o dia da
+## Fase 17.6), tarde (16h15, luz dourada), pôr do sol (18h), anoitecer (18h30)
+## e noite (19h). Este relógio só mistura o momento de antes com o de depois.
+##
+## O "quanto é noite" (night_amount) NÃO vem dos momentos e não mudou: os
+## postes acendem às 18h e as janelas uma a uma até 18h30, como antes.
 ##
 ## F8 adianta o relógio da cidade em 3 horas (para testar sem esperar).
 ##
 ## Com o céu "sky3d" (opção Céu do menu), o sol, a lua, as estrelas e o céu
-## são do addon Sky3D: este relógio só repassa a hora a ele, e continua cuidando
-## da neblina, da exposição e do aviso night_changed.
+## são do addon Sky3D: este relógio repassa a hora a ele, a força e a cor do
+## sol do momento, e continua cuidando da neblina, da exposição e do aviso
+## night_changed.
 
 ## Quanto está de noite: 0.0 = dia claro, 1.0 = noite fechada.
 signal night_changed(night: float)
@@ -27,75 +30,28 @@ signal clock_advanced(hour: float)
 
 const UPDATE_INTERVAL: float = 1.0
 const HOURS_PER_F8: float = 3.0
+## Quanto tempo as 3 horas do F8 levam para passar (Fase 19.4).
+const ADVANCE_SECONDS: float = 2.0
 ## Horas usadas quando a opção "Hora" é "dia" ou "noite" (menu de pausa).
 const FIXED_DAY_HOUR: float = 14.0
 const FIXED_NIGHT_HOUR: float = 22.0
 
-## Os três "climas" do dia. Cada valor da cena é uma mistura dos três,
-## com os mesmos pesos que misturam as fotos do céu.
-const DAY_SUN_COLOR: Color = Color("FFEFD9")
-const SUNSET_SUN_COLOR: Color = Color("FF9A5C")
-const MOON_COLOR: Color = Color(0.55, 0.65, 1.0)
-const DAY_SUN_ENERGY: float = 1.5
-const SUNSET_SUN_ENERGY: float = 1.2
-const MOON_ENERGY: float = 0.45
-## O sol do Sky3D de dia (Fase 17.6): mais forte que o padrão (1,0), para a
-## face que pega sol se destacar da face na sombra. Só no dia (veja update_now).
-const SKY3D_SUN_ENERGY: float = 1.5
-## Opacidade das sombras: marcadas de dia (Fase 17.6; eram 0,4 e o dia ficava
-## chapado), longas e marcadas no pôr do sol.
-const DAY_SHADOW_OPACITY: float = 0.8
-const SUNSET_SHADOW_OPACITY: float = 0.8
-const NIGHT_SHADOW_OPACITY: float = 0.5
-## Exposição da câmera, em "EV" (+1 = dobro de luz).
-const DAY_EXPOSURE_EV: float = 0.25
-const SUNSET_EXPOSURE_EV: float = 0.2
-const NIGHT_EXPOSURE_EV: float = 0.0
-## Brilho do céu de dia e de noite (a foto da noite já é escura).
-const DAY_SKY_ENERGY: float = 1.0
-const NIGHT_SKY_ENERGY: float = 0.45
-## Neblina: leve de dia, quente no pôr do sol, densa e azulada à noite.
-const DAY_FOG_DENSITY: float = 0.0009
-const SUNSET_FOG_DENSITY: float = 0.002
-const NIGHT_FOG_DENSITY: float = 0.005
-const DAY_FOG_COLOR: Color = Color(0.72, 0.78, 0.86)
-const SUNSET_FOG_COLOR: Color = Color("E8A07A")
-## A neblina da noite é azul-marinho, e não quase preta (Fase 17.5): o que fica
-## longe some num azul frio, e as silhuetas (montanha, prédios) se leem contra
-## o céu. É a "base fria" do sistema visual (docs/design/uau-referencias.md).
-const NIGHT_FOG_COLOR: Color = Color("1E2C3A")
-## Quanto a neblina tinge o céu: de dia pouco; à noite mais, para o céu ser um
-## azul-noite e não um preto (as estrelas continuam aparecendo).
-const DAY_FOG_SKY_AFFECT: float = 0.15
-const NIGHT_FOG_SKY_AFFECT: float = 0.35
-## Luz ambiente à noite. No Sky3D o céu noturno é quase preto (ele não tem a
-## foto clara da noite), então a luz ambiente compensa.
-const NIGHT_AMBIENT: float = 0.3
-const SKY3D_NIGHT_AMBIENT: float = 1.1
-## O dia com contraste (Fase 17.6, a C2 da revisão). O dia era um cinza claro
-## sem brancos nem sombras fundas: a luz do céu enchia as sombras, a neblina
-## lavava o fundo e o AgX achatava os claros. Estes valores valem só no "dia"
-## (o peso do dia do céu): o pôr do sol e a noite (17.5) não mudam.
-##   - luz ambiente: menos luz do céu, e a sombra fica mais funda;
-##   - contraste do AgX: a curva do tonemap mais em "S" (o padrão é 1,25);
-##   - saturação: as cores dos bairros aparecem (o AgX desbota).
-const DAY_AMBIENT: float = 0.45
-const DAY_AGX_CONTRAST: float = 1.55
-const NIGHT_AGX_CONTRAST: float = 1.25
-const DAY_SATURATION: float = 1.2
 ## O luar (Fase 17.5): uma luz fraca e fria, do alto, sem sombra, que só existe
 ## à noite. No Sky3D a lua segue o céu de verdade (fase e hora em que nasce), e
 ## em muitas noites ela está abaixo do horizonte: sem o luar, a neve e o chão
 ## ficariam pretos. Quando a lua do Sky3D está no céu, o luar diminui o tanto
 ## que ela já ilumina (a soma fica parecida). No céu de fotos, a "lua" é o
-## próprio sol da cena (MOON_ENERGY), e o luar não é usado.
+## próprio sol da cena (a cor e a força da noite no ciclo), e o luar não é usado.
+## Quanto dele acende em cada hora é o "moonlight" do momento (0 a 1).
 const MOONLIGHT_COLOR: Color = Color(0.62, 0.72, 0.95)
 const MOONLIGHT_ENERGY: float = 0.4
 ## De onde vem o luar: a mesma lua do céu de fotos (50° de altura).
 const MOONLIGHT_ELEVATION_DEG: float = 50.0
 const MOONLIGHT_YAW_DEG: float = 30.0
 
-var _fog_weights: Vector3 = Vector3(1.0, 0.0, 0.0)
+## O momento de agora (a mistura do de antes com o de depois). Antes da
+## primeira hora, um meio-dia (os valores padrão do DayMoment).
+var _moment: DayMoment = DayMoment.new()
 var _fog_overlay_weight: float = 0.0
 var _fog_overlay_scale: float = 1.0
 var _fog_overlay_tint: Color = Color.WHITE
@@ -123,15 +79,30 @@ var sky3d: Sky3D
 ## O luar (veja MOONLIGHT_ENERGY): a cidade cria junto com o Sky3D e põe aqui.
 ## Este relógio só regula a força e a direção.
 var moonlight: DirectionalLight3D
+## O dia em momentos. Vazio = o do perfil (Profiles.day_cycle()); um teste
+## pode pôr outro.
+var cycle: DayCycleSpec
 
-## Horas somadas ao relógio do PC com F8.
-var hour_offset: float = 0.0
+## Horas somadas ao relógio do PC com F8. Quem muda de fora (o menu, um teste,
+## a captura) interrompe a passagem do F8 que estiver andando.
+var hour_offset: float = 0.0:
+	set(value):
+		hour_offset = value
+		if not _advancing and _advance_tween != null:
+			_advance_tween.kill()
+			_advance_tween = null
 ## Onde fica o brilho do sol na foto do pôr do sol (0 a 1, da esquerda para a
 ## direita da foto panorâmica). O céu gira essa foto para o brilho ficar do lado
 ## do sol: oeste à tarde, leste de manhã. Quem escolhe a foto informa.
 var sunset_glow_u: float = 0.5
 
 var _night: float = -1.0
+## A passagem do F8 (veja advance_clock): o deslocamento sem dar a volta nas
+## 24 h, até onde ele vai, e se é a própria passagem que mexe no hour_offset.
+var _advance_tween: Tween
+var _advance_value: float = 0.0
+var _advance_target: float = 0.0
+var _advancing: bool = false
 
 
 func _ready() -> void:
@@ -146,9 +117,43 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("advance_time"):
-		hour_offset = fposmod(hour_offset + HOURS_PER_F8, 24.0)
-		update_now()
-		clock_advanced.emit(current_hour())
+		advance_clock(HOURS_PER_F8)
+
+
+## Adianta o relógio da cidade (F8). As horas passam em ADVANCE_SECONDS por
+## toque, e não de uma vez: a luz atravessa os momentos no caminho, sem pulo
+## (Fase 19.4). Outro toque no meio soma mais horas ao fim da passagem. O aviso
+## clock_advanced sai na hora, com a hora em que o relógio vai parar.
+func advance_clock(hours: float) -> void:
+	if _advance_tween != null and _advance_tween.is_valid():
+		_advance_tween.kill()
+		_advance_target += hours
+	else:
+		_advance_value = hour_offset
+		_advance_target = hour_offset + hours
+	clock_advanced.emit(fposmod(current_hour() + _advance_target - _advance_value, 24.0))
+	if not is_inside_tree():
+		_set_advance(_advance_target)
+		return
+	var seconds := ADVANCE_SECONDS * (_advance_target - _advance_value) / HOURS_PER_F8
+	_advance_tween = create_tween()
+	_advance_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_advance_tween.tween_method(_set_advance, _advance_value, _advance_target, seconds)
+	_advance_tween.finished.connect(func() -> void: _advance_tween = null)
+
+
+## Um passo da passagem do F8: põe o relógio no ponto e refaz a luz.
+func _set_advance(value: float) -> void:
+	_advance_value = value
+	_advancing = true
+	hour_offset = fposmod(value, 24.0)
+	_advancing = false
+	update_now()
+
+
+## true enquanto o F8 está passando as horas.
+func is_advancing() -> bool:
+	return _advance_tween != null and _advance_tween.is_valid()
 
 
 ## Hora da cidade, de 0.0 a 24.0 (ex.: 18.5 = 18:30). Segue o relógio do PC,
@@ -179,47 +184,53 @@ static func night_amount(hour: float) -> float:
 
 
 func update_now() -> void:
-	var hour := current_hour()
+	apply_hour(current_hour())
+
+
+## O dia em momentos que este relógio usa.
+func get_cycle() -> DayCycleSpec:
+	if cycle == null:
+		cycle = Profiles.day_cycle()
+	return cycle
+
+
+## O momento do dia em que se está, ou o último que passou (ex.: "manha" às
+## 10h, "tarde" às 17h). Os ids estão em profiles/day_cycle.tres.
+func current_moment() -> String:
+	return get_cycle().moment_at(current_hour()).id
+
+
+## Como a cidade está agora: a mistura dos momentos na última hora aplicada
+## (só leitura).
+func get_moment() -> DayMoment:
+	return _moment
+
+
+## Põe a cidade na hora dada (0 a 24): o update_now usa a hora do relógio; um
+## teste pode chamar direto, minuto a minuto.
+func apply_hour(hour: float) -> void:
 	var night := night_amount(hour)
 	var daylight := 1.0 - night
+	var moment := get_cycle().sample(hour)
+	_moment = moment
 
-	# Sol: nasce no leste às 6h, fica no alto ao meio-dia e se põe no oeste às 18h.
-	var arc := clampf((hour - 6.0) / 12.0, 0.0, 1.0)
-	var elevation := deg_to_rad(8.0 + 57.0 * sin(arc * PI))
-	var sun_yaw := lerpf(deg_to_rad(90.0), deg_to_rad(-90.0), arc)
-	# Perto do horizonte (amanhecer/entardecer), a luz fica alaranjada.
-	# "sunset" sobe só na última hora e meia de sol (e na primeira da manhã).
-	var low_sun := 1.0 - sin(arc * PI)
-	var sunset := clampf((low_sun - 0.6) / 0.35, 0.0, 1.0) * daylight
-
-	# Céu: quanto de cada foto (dia, pôr do sol, noite) aparece agora.
-	# As estrelas só entram quando a noite já está pela metade (senão elas
-	# apareceriam no meio do pôr do sol); o resto fica com o pôr do sol.
-	# Os mesmos pesos misturam a neblina e a exposição, com qualquer céu.
-	var day_weight := maxf(daylight - sunset, 0.0)
-	var night_weight := smoothstep(0.5, 1.0, night)
-	var sunset_weight := maxf(1.0 - day_weight - night_weight, 0.0)
-	var weights := Vector3(day_weight, sunset_weight, night_weight)
 	if sky3d != null:
 		# O Sky3D calcula o sol, a lua e as estrelas pela hora e pela data.
 		sky3d.current_time = hour
-		# Só no dia: no pôr do sol o sol do Sky3D segue com a força padrão.
-		sky3d.sun_energy = lerpf(1.0, SKY3D_SUN_ENERGY, day_weight)
+		sky3d.sun_energy = moment.sky3d_sun_energy
 		if sky3d.sky != null:
-			sky3d.sky.sun_light_color = Color.WHITE.lerp(DAY_SUN_COLOR, day_weight)
-	else:
-		_apply_photo_sky(hour, daylight, sunset, elevation, sun_yaw, weights)
-	_apply_moonlight(night_weight)
+			sky3d.sky.sun_light_color = moment.sky3d_sun_color
+	elif sky_material != null and sun != null:
+		_apply_photo_sky(hour, daylight, moment)
+	_apply_moonlight(moment.moonlight)
 
 	# Exposição, neblina, luz ambiente e brilho (glow).
-	environment.tonemap_exposure = pow(2.0, _mix3(weights, DAY_EXPOSURE_EV, SUNSET_EXPOSURE_EV, NIGHT_EXPOSURE_EV))
-	_fog_weights = weights
+	environment.tonemap_exposure = pow(2.0, moment.exposure_ev)
 	_apply_fog()
-	var night_ambient := SKY3D_NIGHT_AMBIENT if sky3d != null else NIGHT_AMBIENT
-	environment.ambient_light_energy = lerpf(night_ambient, 1.0, daylight) * lerpf(1.0, DAY_AMBIENT, day_weight)
-	_apply_day_contrast(day_weight)
-	environment.glow_intensity = lerpf(1.1, 0.6, daylight)
-	environment.fog_sky_affect = lerpf(DAY_FOG_SKY_AFFECT, NIGHT_FOG_SKY_AFFECT, night_weight)
+	environment.ambient_light_energy = moment.ambient_sky3d if sky3d != null else moment.ambient
+	_apply_day_contrast(moment)
+	environment.glow_intensity = moment.glow
+	environment.fog_sky_affect = moment.fog_sky_affect
 
 	if absf(night - _night) > 0.005:
 		_night = night
@@ -227,47 +238,53 @@ func update_now() -> void:
 
 
 ## O céu de fotos: mistura as três fotos e move o sol (ou a "lua") à mão.
-func _apply_photo_sky(hour: float, daylight: float, sunset: float, elevation: float,
-		sun_yaw: float, weights: Vector3) -> void:
-	var day_weight := weights.x
-	var sunset_weight := weights.y
-	var night_weight := weights.z
-	sky_material.set_shader_parameter("day_weight", day_weight)
-	sky_material.set_shader_parameter("sunset_weight", sunset_weight)
-	sky_material.set_shader_parameter("night_weight", night_weight)
-	sky_material.set_shader_parameter("energy", lerpf(NIGHT_SKY_ENERGY, DAY_SKY_ENERGY, daylight))
-	# Na foto, o oeste (-X) fica em u = 0,25 e o leste (+X) em u = 0,75.
+func _apply_photo_sky(hour: float, daylight: float, moment: DayMoment) -> void:
+	sky_material.set_shader_parameter("day_weight", moment.sky_day)
+	sky_material.set_shader_parameter("sunset_weight", moment.sky_sunset)
+	sky_material.set_shader_parameter("night_weight", moment.sky_night)
+	sky_material.set_shader_parameter("energy", moment.sky_energy)
+	sky_material.set_shader_parameter("tint", moment.sky_tint)
+	# O brilho da foto do pôr do sol fica do lado do sol: leste de manhã (o
+	# nascer do sol), oeste à tarde. Na foto, o oeste (-X) fica em u = 0,25 e o
+	# leste (+X) em u = 0,75. A troca ao meio-dia não aparece: o peso da foto
+	# do pôr do sol é zero lá.
 	var sun_side_u := 0.25 if hour >= 12.0 else 0.75
 	sky_material.set_shader_parameter("sunset_rotation", sunset_glow_u - sun_side_u)
 
-	# Sol (ou "lua", à noite).
-	var moon_elevation := deg_to_rad(50.0)
-	var moon_yaw := deg_to_rad(30.0)
+	# Sol: nasce no leste às 6h, fica no alto ao meio-dia e se põe no oeste às
+	# 18h (à tarde ele já está baixo: as sombras ficam longas). À noite, a
+	# "lua" fica parada no alto; a passagem segue o "quanto é noite".
+	var arc := clampf((hour - 6.0) / 12.0, 0.0, 1.0)
+	var elevation := deg_to_rad(8.0 + 57.0 * sin(arc * PI))
+	var sun_yaw := lerpf(deg_to_rad(90.0), deg_to_rad(-90.0), arc)
+	var moon_elevation := deg_to_rad(MOONLIGHT_ELEVATION_DEG)
+	var moon_yaw := deg_to_rad(MOONLIGHT_YAW_DEG)
 	sun.rotation = Vector3(-lerpf(moon_elevation, elevation, daylight), lerp_angle(moon_yaw, sun_yaw, daylight), 0.0)
-	sun.light_color = MOON_COLOR.lerp(DAY_SUN_COLOR.lerp(SUNSET_SUN_COLOR, sunset), daylight)
-	sun.light_energy = lerpf(MOON_ENERGY, lerpf(DAY_SUN_ENERGY, SUNSET_SUN_ENERGY, sunset), daylight)
-	sun.shadow_opacity = _mix3(weights, DAY_SHADOW_OPACITY, SUNSET_SHADOW_OPACITY, NIGHT_SHADOW_OPACITY)
+	sun.light_color = moment.sun_color
+	sun.light_energy = moment.sun_energy
+	sun.shadow_opacity = moment.shadow_opacity
 
 
-## O contraste e a saturação do dia (veja DAY_AGX_CONTRAST). Fora do dia, os
-## valores padrão (saturação 1,0 não muda a cor). O ajuste fica sempre ligado:
-## ligar e desligar troca a variante do shader do tonemap, e a troca no meio do
-## pôr do sol podia dar um tranco.
-func _apply_day_contrast(day_weight: float) -> void:
-	environment.tonemap_agx_contrast = lerpf(NIGHT_AGX_CONTRAST, DAY_AGX_CONTRAST, day_weight)
+## O contraste e a saturação do momento (o dia com contraste é da Fase 17.6,
+## a C2 da revisão: curva do AgX mais em "S" e cor viva; à noite, os valores
+## padrão). O ajuste fica sempre ligado: ligar e desligar troca a variante do
+## shader do tonemap, e a troca no meio do pôr do sol podia dar um tranco.
+func _apply_day_contrast(moment: DayMoment) -> void:
+	environment.tonemap_agx_contrast = moment.agx_contrast
 	environment.adjustment_enabled = true
-	environment.adjustment_saturation = lerpf(1.0, DAY_SATURATION, day_weight)
+	environment.adjustment_saturation = moment.saturation
 
 
-## O luar: acende com a noite (o mesmo peso das estrelas) e desconta a lua do
-## Sky3D, se ela estiver no céu. Apagado, fica invisível (não custa nada).
-func _apply_moonlight(night_weight: float) -> void:
+## O luar: acende com a noite (o "moonlight" do momento, que segue o peso das
+## estrelas) e desconta a lua do Sky3D, se ela estiver no céu. Apagado, fica
+## invisível (não custa nada).
+func _apply_moonlight(weight: float) -> void:
 	if moonlight == null:
 		return
 	var real_moon := 0.0
 	if sky3d != null and sky3d.moon != null:
 		real_moon = sky3d.moon.light_energy
-	var energy := maxf(MOONLIGHT_ENERGY * night_weight - real_moon, 0.0)
+	var energy := maxf(MOONLIGHT_ENERGY * weight - real_moon, 0.0)
 	moonlight.light_energy = energy
 	moonlight.light_color = MOONLIGHT_COLOR
 	moonlight.rotation = Vector3(-deg_to_rad(MOONLIGHT_ELEVATION_DEG), deg_to_rad(MOONLIGHT_YAW_DEG), 0.0)
@@ -299,9 +316,8 @@ static func tint_keeping_brightness(base: Color, tint: Color) -> Color:
 func _apply_fog() -> void:
 	if environment == null:
 		return
-	var density: float = _mix3(_fog_weights, DAY_FOG_DENSITY, SUNSET_FOG_DENSITY, NIGHT_FOG_DENSITY)
-	var color: Color = DAY_FOG_COLOR * _fog_weights.x + SUNSET_FOG_COLOR * _fog_weights.y \
-			+ NIGHT_FOG_COLOR * _fog_weights.z
+	var density: float = _moment.fog_density
+	var color: Color = _moment.fog_color
 	# Peso zero restaura os valores exatos, inclusive a névoa de altura original.
 	environment.fog_density = density
 	environment.fog_light_color = color
@@ -319,9 +335,3 @@ func _apply_fog() -> void:
 
 func get_night() -> float:
 	return maxf(_night, 0.0)
-
-
-## Mistura três valores (dia, pôr do sol, noite) com os pesos do céu.
-static func _mix3(weights: Vector3, day: float, sunset: float, night: float) -> float:
-	var total := maxf(weights.x + weights.y + weights.z, 0.0001)
-	return (day * weights.x + sunset * weights.y + night * weights.z) / total

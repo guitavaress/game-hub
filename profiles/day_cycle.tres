@@ -1,0 +1,166 @@
+[gd_resource type="Resource" script_class="DayCycleSpec" format=3]
+
+[ext_resource type="Script" path="res://profiles/day_moment.gd" id="1_jjl7t"]
+[ext_resource type="Script" path="res://profiles/day_cycle_spec.gd" id="2_j3voe"]
+
+[sub_resource type="Resource" id="Resource_r7tsi"]
+script = ExtResource("1_jjl7t")
+id = "madrugada"
+display_name = "Madrugada"
+hour = 5.5
+sky_day = 0.0
+sky_night = 1.0
+sky_energy = 0.45
+sun_color = Color(0.55, 0.65, 1, 1)
+sun_energy = 0.45
+shadow_opacity = 0.5
+sky3d_sun_energy = 1.0
+sky3d_sun_color = Color(1, 1, 1, 1)
+ambient_sky3d = 1.1
+moonlight = 1.0
+exposure_ev = 0.0
+fog_density = 0.005
+fog_color = Color(0.11764706, 0.17254902, 0.22745098, 1)
+fog_sky_affect = 0.35
+ambient = 0.3
+agx_contrast = 1.25
+saturation = 1.0
+glow = 1.1
+
+[sub_resource type="Resource" id="Resource_cuosr"]
+script = ExtResource("1_jjl7t")
+id = "nascer"
+display_name = "Nascer do sol"
+hour = 6.5
+sky_day = 0.17042580364032067
+sky_sunset = 0.8295741963596793
+sky_energy = 0.8574074074074074
+sky_tint = Color(1, 0.88, 0.86, 1)
+sun_color = Color(0.91833335, 0.68890345, 0.651888, 1)
+sun_energy = 1.1010411250887955
+sky3d_sun_energy = 1.0852129018201604
+sky3d_sun_color = Color(1, 0.8156863, 0.8, 1)
+ambient_sky3d = 0.9297615882051746
+exposure_ev = 0.20852129037741693
+fog_density = 0.0018125316116968278
+fog_color = Color(0.88877803, 0.6498401, 0.56736696, 1)
+ambient = 0.7417953465463667
+agx_contrast = 1.3011277410920963
+saturation = 1.0340851607280641
+glow = 0.7296296296296296
+
+[sub_resource type="Resource" id="Resource_yymxk"]
+script = ExtResource("1_jjl7t")
+id = "manha"
+display_name = "Manhã"
+hour = 8.5
+sky_tint = Color(0.96, 0.99, 1.03, 1)
+sun_color = Color(0.9529412, 0.95686275, 1, 1)
+sun_energy = 1.45
+sky3d_sun_energy = 1.45
+sky3d_sun_color = Color(0.9529412, 0.95686275, 1, 1)
+ambient_sky3d = 0.44999999999999996
+fog_density = 0.0006
+fog_color = Color(0.7, 0.78, 0.9, 1)
+ambient = 0.44999999999999996
+saturation = 1.15
+
+[sub_resource type="Resource" id="Resource_0bbhi"]
+script = ExtResource("1_jjl7t")
+id = "meio-dia"
+display_name = "Meio-dia"
+hour = 11.0
+hold_hours = 3.5
+ambient_sky3d = 0.44999999999999996
+ambient = 0.44999999999999996
+
+[sub_resource type="Resource" id="Resource_a1qvi"]
+script = ExtResource("1_jjl7t")
+id = "tarde"
+display_name = "Tarde"
+hour = 16.25
+sky_tint = Color(1.04, 0.98, 0.88, 1)
+sun_color = Color(1, 0.83137256, 0.6039216, 1)
+sun_energy = 1.55
+shadow_opacity = 0.85
+sky3d_sun_energy = 1.55
+sky3d_sun_color = Color(1, 0.83137256, 0.6039216, 1)
+ambient_sky3d = 0.44999999999999996
+fog_density = 0.0011
+fog_color = Color(0.82, 0.78, 0.7, 1)
+ambient = 0.44999999999999996
+saturation = 1.25
+
+[sub_resource type="Resource" id="Resource_rqd5u"]
+script = ExtResource("1_jjl7t")
+id = "por-do-sol"
+display_name = "Pôr do sol"
+hour = 18.0
+sky_day = 0.0
+sky_sunset = 1.0
+sky_energy = 0.8574074074074074
+sun_color = Color(0.8833333, 0.67988247, 0.6206461, 1)
+sun_energy = 1.0631687242798353
+sky3d_sun_energy = 1.0
+sky3d_sun_color = Color(1, 1, 1, 1)
+ambient_sky3d = 1.025925925925926
+exposure_ev = 0.2
+fog_density = 0.002
+fog_color = Color(0.9098039, 0.627451, 0.47843137, 1)
+ambient = 0.8185185185185184
+agx_contrast = 1.25
+saturation = 1.0
+glow = 0.7296296296296296
+
+[sub_resource type="Resource" id="Resource_ehmrs"]
+script = ExtResource("1_jjl7t")
+id = "anoitecer"
+display_name = "Anoitecer"
+hour = 18.5
+sky_day = 0.0
+sky_sunset = 0.5277650764619216
+sky_night = 0.4722349235380784
+sky_energy = 0.5925925925925927
+sun_color = Color(0.6666667, 0.7020683, 0.9284166, 1)
+sun_energy = 0.7020576131687244
+shadow_opacity = 0.6583295238515876
+sky3d_sun_energy = 1.0
+sky3d_sun_color = Color(1, 1, 1, 1)
+ambient_sky3d = 1.0740740740740742
+moonlight = 0.4722349235380784
+exposure_ev = 0.10555301590105844
+fog_density = 0.0034167047614841236
+fog_color = Color(0.5357198, 0.41263044, 0.35990965, 1)
+fog_sky_affect = 0.24444698470761567
+ambient = 0.4814814814814815
+agx_contrast = 1.25
+saturation = 1.0
+glow = 0.9703703703703704
+
+[sub_resource type="Resource" id="Resource_4ew1g"]
+script = ExtResource("1_jjl7t")
+id = "noite"
+display_name = "Noite"
+hour = 19.0
+sky_day = 0.0
+sky_night = 1.0
+sky_energy = 0.45
+sun_color = Color(0.55, 0.65, 1, 1)
+sun_energy = 0.45
+shadow_opacity = 0.5
+sky3d_sun_energy = 1.0
+sky3d_sun_color = Color(1, 1, 1, 1)
+ambient_sky3d = 1.1
+moonlight = 1.0
+exposure_ev = 0.0
+fog_density = 0.005
+fog_color = Color(0.11764706, 0.17254902, 0.22745098, 1)
+fog_sky_affect = 0.35
+ambient = 0.3
+agx_contrast = 1.25
+saturation = 1.0
+glow = 1.1
+
+[resource]
+script = ExtResource("2_j3voe")
+moments = Array[ExtResource("1_jjl7t")]([SubResource("Resource_r7tsi"), SubResource("Resource_cuosr"), SubResource("Resource_yymxk"), SubResource("Resource_0bbhi"), SubResource("Resource_a1qvi"), SubResource("Resource_rqd5u"), SubResource("Resource_ehmrs"), SubResource("Resource_4ew1g")])

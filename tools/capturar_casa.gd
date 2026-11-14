@@ -1,12 +1,13 @@
 extends SceneTree
 ## Tira as CAPTURAS da casa por pontos (Fase 17.1b). Rode COM JANELA:
 ##
-##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]
+##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
 ##   jogos      0 = biblioteca de verdade; N = N jogos falsos (padrão: 200)
-##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22)
+##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22); hora
+##              quebrada vira minutos no nome (6.5 dá loft_janela_06h30.png)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim.
 ##   tema       loft | cabana (padrão: loft). O do usuário volta no fim.
 ##   vista      tema | retrato (padrão: tema, a vista do perfil). Fase 17.9.1:
@@ -15,6 +16,7 @@ extends SceneTree
 ##              vista que não a do tema, os arquivos levam o nome dela
 ##              (cabana-retrato_...). A vista "floresta" (o desenho da cabana)
 ##              saiu na 19.3: a cabana usa o retrato desde a 17.9.2.
+##   céu        fotos | sky3d (padrão: o do usuário, que volta no fim; Fase 19.4)
 ##
 ## Pontos (um PNG por ponto e hora, ex.: loft_nascer_22h.png):
 ##   nascer   posição e giro de nascer da disposição atual
@@ -53,7 +55,7 @@ func _run() -> void:
 	await process_frame
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]")
+		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu]")
 		quit(1)
 		return
 	var folder: String = _absolute_folder(String(args[0]))
@@ -68,12 +70,13 @@ func _run() -> void:
 	var quality: String = String(args[3]) if args.size() > 3 else "alta"
 	var theme: String = String(args[4]) if args.size() > 4 else "loft"
 	var view: String = String(args[5]) if args.size() > 5 else "tema"
+	var sky: String = String(args[6]) if args.size() > 6 else ""
 	if not _folder_allowed(folder):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
 		quit(1)
 		return
-	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)):
-		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana e vista tema|retrato.")
+	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)) or sky not in ["", "fotos", "sky3d"]:
+		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana, vista tema|retrato e céu fotos|sky3d.")
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
@@ -85,7 +88,7 @@ func _run() -> void:
 		quit(1)
 		return
 
-	_choose_settings(quality, theme)
+	_choose_settings(quality, theme, sky)
 	var prefix: String = theme if view == "tema" else "%s-%s" % [theme, view]
 	if view != "tema":
 		_choose_view(theme, VIEWS[view])
@@ -146,7 +149,7 @@ func _run() -> void:
 				await process_frame
 			await RenderingServer.frame_post_draw
 			var label: String = prefix if _mode_label.is_empty() else "%s-%s" % [prefix, _mode_label]
-			var file: String = "%s/%s_%s_%02dh.png" % [folder, label, point["name"], int(hour)]
+			var file: String = "%s/%s_%s_%s.png" % [folder, label, point["name"], _hour_label(hour)]
 			if frame.get_texture().get_image().save_png(file) != OK:
 				push_error("Não consegui salvar: " + file)
 				failed = true
@@ -157,11 +160,15 @@ func _run() -> void:
 
 
 ## Guarda as escolhas antes da amostra; a restauração serve também aos testes.
-func _choose_settings(quality: String, theme: String) -> void:
+## Céu vazio = o do usuário (nada muda).
+func _choose_settings(quality: String, theme: String, sky: String = "") -> void:
 	var config: Node = root.get_node("AppConfig")
-	_original_settings = {"quality": config.call("get_quality"), "theme": config.call("get_home_theme")}
+	_original_settings = {"quality": config.call("get_quality"), "theme": config.call("get_home_theme"),
+		"sky": config.call("get_sky")}
 	config.call("set_quality", quality)
 	config.call("set_home_theme", theme)
+	if not sky.is_empty():
+		config.call("set_sky", sky)
 
 
 ## Troca a vista da janela do tema só nesta captura: o perfil carregado muda na
@@ -182,6 +189,7 @@ func _restore_settings() -> void:
 	var config: Node = root.get_node("AppConfig")
 	config.call("set_quality", _original_settings["quality"])
 	config.call("set_home_theme", _original_settings["theme"])
+	config.call("set_sky", _original_settings["sky"])
 	_original_settings.clear()
 
 
@@ -248,6 +256,14 @@ func _wait_window_view(home: Node) -> void:
 	await process_frame
 	while not bool(view.call("is_settled")) and Time.get_ticks_msec() - started < WINDOW_WAIT_SECONDS * 1000.0:
 		await process_frame
+
+
+## A hora no nome do arquivo: "13h" (hora cheia) ou "06h30" (Fase 19.4).
+static func _hour_label(hour: float) -> String:
+	var minutes: int = roundi(hour * 60.0)
+	if minutes % 60 == 0:
+		return "%02dh" % floori(minutes / 60.0)
+	return "%02dh%02d" % [floori(minutes / 60.0), minutes % 60]
 
 
 func _set_hour(day_night: Node, hour: float) -> void:
