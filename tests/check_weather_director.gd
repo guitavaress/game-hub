@@ -271,6 +271,18 @@ func _check_city(app: Node) -> void:
 	_check("soltar: volta ao limpo", director.current_state() == "limpo" and not director.is_passing()
 			and day_night.get_weather_overlay() == 0.0)
 
+	print("== o menu com o jogo pausado ==")
+	# O menu Esc pausa o jogo: a troca tem que aparecer na hora, atrás do menu.
+	paused = true
+	app.set_weather("chuva_forte")
+	_check("pausado: o céu fecha e o chão molha na hora", director.current_state() == "chuva_forte"
+			and not director.is_passing() and is_equal_approx(day_night.get_weather_overlay(), 0.9)
+			and decor.ground_wetness() == 1.0)
+	app.set_weather("limpo")
+	_check("pausado: volta ao limpo na hora", director.current_state() == "limpo"
+			and day_night.get_weather_overlay() == 0.0 and decor.ground_wetness() == 0.0)
+	paused = false
+
 	print("== a luz de dentro de casa ==")
 	# Revisão da 19.6: com o céu fechado, o sol não pode entrar forte pela janela.
 	var home: Node = city._home

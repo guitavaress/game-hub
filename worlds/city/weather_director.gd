@@ -299,7 +299,7 @@ func _set_mode(mode: String, instant: bool) -> void:
 	_mode = mode
 	if _forced != "":
 		return
-	if mode != "dinamico" and mode != _state:
+	if mode != "dinamico" and (mode != _state or (instant and is_passing())):
 		if instant:
 			_settle(mode)
 			_wet = wet_for(_strength)
@@ -313,7 +313,9 @@ func _set_mode(mode: String, instant: bool) -> void:
 
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "weather" and _arg_mode.is_empty():
-		_set_mode(AppConfig.get_weather(), false)
+		# Com o jogo pausado (o menu Esc aberto), o tempo não anda: a troca vale
+		# na hora, para o céu e o chão já mudarem atrás do menu (como a "Hora").
+		_set_mode(AppConfig.get_weather(), get_tree().paused)
 	elif section == "video" and key == "quality":
 		publish(true)
 
