@@ -16,6 +16,12 @@ extends DistrictLandmark
 ## azul-escuro liso. Agora ela é de pedra de verdade — a PavingStones070 do
 ## projeto, a mesma pedra em fiadas da chaminé da cabana —, com a cornija em
 ## degraus embaixo da plataforma e um portal em cada face maior.
+##
+## Fase 19.11: de dia a flâmula de néon quase some (a emissão se perde na luz) e
+## a torre lia como mais um bloco cinza. Agora uma bandeira grande de pano
+## carmim, com a faixa dourada, pende de uma verga nas quatro faces do fuste,
+## logo abaixo da coroa. Sem luz nova: é a mancha de cor que acha a torre de
+## longe, de dia (as frestas de néon que ela cobriria ficam de fora).
 
 ## A pedra do fuste: a textura, o tamanho de uma repetição (m) e o cinza claro
 ## de castelo. A cinta é a mesma pedra, mais escura (a verga da porta, os
@@ -53,6 +59,14 @@ const POLE_LENGTH: float = 4.4
 const PENNANT_SIZE: Vector2 = Vector2(2.0, 1.1)
 const SWAY_DEGREES: float = 14.0
 const SWAY_SPEED: float = 1.6
+## A bandeira grande (19.11), no fuste: a largura é uma fração do fuste, o
+## comprimento tem um teto (m) e o pano nunca desce até o portal e as frestas de
+## baixo. Fica a BANNER_GAP abaixo da coroa de néon.
+const BANNER_WIDTH_RATIO: float = 0.55
+const BANNER_LENGTH: float = 14.0
+const BANNER_GAP: float = 0.5
+const BANNER_COLOR: Color = Color(0.78, 0.08, 0.1)
+const BANNER_TRIM_COLOR: Color = Color(0.95, 0.72, 0.18)
 ## O braseiro (a bacia de pedra e a chama): medidas do telhado, crescem com a torre.
 const BRAZIER_RADIUS: float = 0.35
 const BRAZIER_HEIGHT: float = 0.45
@@ -112,11 +126,19 @@ func _build(height: float) -> void:
 	# Frestas de néon no fuste: uma a cada 4 m, em duas faces. Ancorada, elas
 	# começam acima do portal.
 	var crown_y := platform_y - corbel * CORBEL_STEPS - CROWN_HEIGHT * k * 0.5
+	var crown_bottom := crown_y - CROWN_HEIGHT * k * 0.5
+	var span := banner_span(crown_bottom, 5.0 if is_anchored() else 3.0)
 	var y := 5.0 if is_anchored() else 3.0
-	while y < crown_y - CROWN_HEIGHT * k * 0.5 - 0.6:
+	while y < crown_bottom - 0.6:
+		# A bandeira (19.11) cobre as frestas dessa faixa: ficam só as de baixo.
+		if y > span.y - 1.0 and y < span.x + 0.5:
+			y += 4.0
+			continue
 		for side in [-1.0, 1.0]:
 			_add_box(Vector3(0.0, y, side * (shaft / 2.0 + 0.02)), Vector3(0.3 * k, 1.0, 0.05), _neon_material)
 		y += 4.0
+	if span.x - span.y > 2.0:
+		_build_banner(span, shaft)
 	# A coroa de néon: as quatro faces do fuste, logo abaixo da cornija.
 	for side in [-1.0, 1.0]:
 		_add_box(Vector3(0.0, crown_y, side * (shaft / 2.0 + 0.03)),
@@ -155,6 +177,47 @@ func _build(height: float) -> void:
 	add_child(_pennant)
 	_add_box(Vector3(PENNANT_SIZE.x * k / 2.0, 0.0, 0.0),
 			Vector3(PENNANT_SIZE.x * k, PENNANT_SIZE.y * k, 0.04), _neon_material, _pennant)
+
+
+## A bandeira grande (19.11): o pano pende de uma verga de ferro em cada face do
+## fuste, com uma faixa dourada em cima e outra embaixo. Pano e faixa são opacos
+## e sem emissão: de dia lêem como cor, de noite escurecem com a luz.
+## "span" = (altura de cima, altura de baixo) do pano, de banner_span().
+func _build_banner(span: Vector2, shaft: float) -> void:
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = BANNER_COLOR
+	cloth.roughness = 0.95
+	var trim := StandardMaterial3D.new()
+	trim.albedo_color = BANNER_TRIM_COLOR
+	trim.roughness = 0.6
+	var rod := CityDecor.make_material(IRON_COLOR)
+	var top := span.x
+	var bottom := span.y
+	var width := shaft * BANNER_WIDTH_RATIO
+	var length := top - bottom
+	var banner := Node3D.new()
+	banner.name = "Banner"
+	add_child(banner)
+	# Cada face: o pano a 0,07 m da pedra (de pé, olhando para fora).
+	for face: Vector2 in [Vector2(0, 1), Vector2(0, -1), Vector2(1, 0), Vector2(-1, 0)]:
+		var along_x := absf(face.y) > 0.5  # a face é perpendicular a z: o pano se estende em x
+		var out := shaft / 2.0 + 0.07
+		var size := Vector3(width, length, 0.04) if along_x else Vector3(0.04, length, width)
+		var at := Vector3(face.x * out, (top + bottom) / 2.0, face.y * out)
+		_add_box(at, size, cloth, banner)
+		for y in [top - 0.3, bottom + 0.3]:
+			var strip := Vector3(width + 0.02, 0.4, 0.06) if along_x else Vector3(0.06, 0.4, width + 0.02)
+			_add_box(Vector3(at.x, y, at.z), strip, trim, banner)
+		var bar := Vector3(width + 0.5, 0.12, 0.12) if along_x else Vector3(0.12, 0.12, width + 0.5)
+		_add_box(Vector3(at.x, top + 0.08, at.z), bar, rod, banner)
+
+
+## A faixa de altura do pano na face do fuste: (cima, baixo), em m. Começa
+## BANNER_GAP abaixo da coroa de néon e tem, no máximo, BANNER_LENGTH, sem
+## passar de "floor_y" (o portal e as primeiras frestas ficam livres).
+func banner_span(crown_bottom: float, floor_y: float) -> Vector2:
+	var top := crown_bottom - BANNER_GAP
+	return Vector2(top, maxf(top - BANNER_LENGTH, floor_y))
 
 
 ## Quatro braseiros, um no vão do meio de cada lado da plataforma.
