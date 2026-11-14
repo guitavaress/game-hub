@@ -17,6 +17,10 @@ extends Node3D
 ## A altura é a mesma regra, contada do chão. Ancorado, o marco fica ao alcance
 ## do jogador: quem herda põe colisão (_add_solid) e diz a base em footprint(),
 ## para os enfeites do bioma não nascerem dentro dele (grupo KEEP_OUT_GROUP).
+## 19.7: quem herda e não diz nada (o farol da Aventura, a caixa d'água da
+## Sobrevivência: marcos de telhado que, num bairro de arcos, ficam no chão)
+## ganha a base do próprio desenho (as peças que começam até BASE_REACH m do
+## chão) e uma colisão dessa base, BASE_SOLID_HEIGHT m de altura.
 
 ## Quanto o topo passa do prédio mais alto possível (m).
 const CLEARANCE: float = 3.0
@@ -29,6 +33,10 @@ const CONCRETE_COLOR: Color = Color(0.2, 0.21, 0.24)
 ## Os marcos ancorados entram neste grupo: o BiomeScatter não põe pinheiro nem
 ## rocha na base deles (BiomeBuilder.keep_out_areas).
 const KEEP_OUT_GROUP: StringName = &"scatter_keep_out"
+## Até que altura (m) uma peça do desenho conta como base do marco ancorado.
+const BASE_REACH: float = 1.0
+## Altura da colisão da base de um marco ancorado sem colisão própria (m).
+const BASE_SOLID_HEIGHT: float = 4.0
 
 ## O bairro e os prédios do quarteirão (a cidade preenche antes de adicionar).
 var category_id: String = ""
@@ -45,6 +53,8 @@ var _concrete_material: StandardMaterial3D
 var _beam_pivot: Node3D
 var _beam_material: StandardMaterial3D
 var _beam_speed: float = 0.0
+## A base do desenho, para o marco ancorado que não diz a sua (19.7).
+var _drawn_base: Rect2 = Rect2()
 
 
 func _ready() -> void:
@@ -67,6 +77,12 @@ func _ready() -> void:
 	else:
 		global_transform = _target.global_transform * Transform3D(Basis.IDENTITY, roof_of_tallest())
 	_build(_height)
+	if is_anchored():
+		_drawn_base = _base_from_meshes()
+		if get_node_or_null(^"Solid") == null and _drawn_base.has_area():
+			var middle := _drawn_base.get_center()
+			_add_solid(Vector3(middle.x, BASE_SOLID_HEIGHT / 2.0, middle.y),
+					Vector3(_drawn_base.size.x, BASE_SOLID_HEIGHT, _drawn_base.size.y))
 	set_night(0.0)
 
 
@@ -114,9 +130,29 @@ func is_anchored() -> bool:
 
 
 ## A base do marco no chão, no espaço dele (x e z; a origem é o meio). Vazio =
-## nada a reservar. Quem herda e tem colisão responde.
+## nada a reservar (no telhado). Quem herda pode responder com a sua; senão,
+## ancorado, vale a base do desenho (19.7).
 func footprint() -> Rect2:
-	return Rect2()
+	return _drawn_base
+
+
+## A caixa (x e z, no espaço do marco) das peças desenhadas que começam perto
+## do chão (até BASE_REACH m). Vazio se nenhuma.
+func _base_from_meshes() -> Rect2:
+	var base := Rect2()
+	var found := false
+	for node: Node in find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		var to_self := global_transform.affine_inverse() * mesh_instance.global_transform
+		var box := to_self * mesh_instance.mesh.get_aabb()
+		if box.position.y > BASE_REACH:
+			continue
+		var flat := Rect2(Vector2(box.position.x, box.position.z), Vector2(box.size.x, box.size.z))
+		base = flat if not found else base.merge(flat)
+		found = true
+	return base
 
 
 ## 0 = dia, 1 = noite (mesma regra de todo o néon da cidade).

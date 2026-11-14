@@ -19,5 +19,10 @@ extends Resource
 @export var collision_radius: float = 0.0
 ## Distância mínima da área caminhável, além das exclusões das portas.
 @export var walkable_clearance: float = 0.0
+## Só no tipo "mesh" (19.7): a pasta da ambientCG do material da peça (ex.:
+## "Rock058"), com o chão do bioma por cima (BiomeSpec.snow_cover). Vazio = a
+## rocha do terreno de fundo (TerrainSpec.rock_folder), se o bioma tiver; senão,
+## o material que veio no glTF.
+@export var material_folder: String = ""
 @export var in_town: bool = true
 @export var on_backdrop: bool = false

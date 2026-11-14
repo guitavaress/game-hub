@@ -1,8 +1,12 @@
 extends SceneTree
-## Teste do bioma no chão (Fase 15.6): com 200 jogos falsos, só o bairro com
-## bioma (o RPG, com a montanha) muda. Ele fica com a fatia no norte, arcos no
+## Teste do bioma no chão (Fase 15.6): com 200 jogos falsos, só os bairros com
+## bioma mudam. O RPG (a montanha) fica com a fatia no norte, arcos no
 ## lugar dos prédios, neve nos quarteirões e nas ruas (setor coberto com a
 ## marca "snow"), e as faixas e poças da cidade pulam as zonas dele.
+## 19.7: a Aventura é a floresta (grama, passos "grass", folhas na chuva,
+## pássaros de fundo); os enfeites dos dois biomas passam pelas mesmas
+## conferências, e a copa das árvores fica longe dos prédios, das portas, do
+## metrô e dos marcos.
 var failures: int = 0
 
 
@@ -26,7 +30,8 @@ func _run() -> void:
 		if district.biome != null:
 			biome_ids.append(district.id)
 	print("bairros com bioma: ", biome_ids)
-	_check("só o RPG tem bioma", biome_ids.size() == 1 and biome_ids[0] == "rpg")
+	biome_ids.sort()
+	_check("só o RPG e a Aventura têm bioma", biome_ids == (["aventura", "rpg"] as Array[String]))
 
 	print("\n== cascas ==")
 	var arches := 0
@@ -37,10 +42,12 @@ func _run() -> void:
 		var is_arch: bool = child.get_script().resource_path.ends_with("arch_shell.gd")
 		if child.category_id == "rpg":
 			arches += 1
-		if is_arch != (child.category_id == "rpg"):
+		# A casca é a do perfil: a do bioma (o RPG, sempre arcos; a floresta, a
+		# escolhida no gerador) ou a do bairro (prédios).
+		if is_arch != (Profiles.district(child.category_id).effective_shell() == "arch"):
 			wrong_shell += 1
 	print("   arcos no RPG: ", arches)
-	_check("o RPG tem arcos e os outros bairros continuam com prédios", arches > 0 and wrong_shell == 0)
+	_check("o RPG tem arcos e cada bairro tem a casca do perfil", arches > 0 and wrong_shell == 0)
 
 	print("\n== a fatia no norte ==")
 	var cells: Array = city._district_cells["rpg"]
@@ -57,9 +64,10 @@ func _run() -> void:
 	_check("o setor coberto tem a marca \"snow\"", cover != null and cover.get_meta("footstep", "") == "snow")
 	var others := 0
 	for child: Node in city.get_children():
-		if String(child.name).begins_with("BiomeCover_") and child != cover:
+		if String(child.name).begins_with("BiomeCover_") and child != cover \
+				and String(child.name) != "BiomeCover_aventura":
 			others += 1
-	_check("nenhum outro bairro tem setor coberto", others == 0)
+	_check("nenhum bairro sem bioma tem setor coberto", others == 0)
 	var half: float = (city.get_node("CityMap").get_map_data()["bounds"] as Rect2).size.x / 2.0
 	# (BiomeBuilder e BiomeAtmosphere usam autoloads: no teste vão por load(), sem o nome da classe.)
 	var builder: GDScript = load("res://worlds/city/biome/biome_builder.gd")
@@ -151,7 +159,9 @@ func _run() -> void:
 	_check("o clima do RPG é neve", city.get_node_or_null("DistrictWeather_rpg") != null
 			and city.get_node("DistrictWeather_rpg").spec.kind == "neve")
 
-	_check_scatter(city, builder)
+	_check_scatter(city, builder, "rpg")
+	await _check_forest(city, builder, half)
+	_check_scatter(city, builder, "aventura")
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(0 if failures == 0 else 1)
@@ -209,33 +219,73 @@ func _check_divisa(town: Array[Rect2], rects: Array[Rect2], half: float, dashes:
 ## pedra de neve por cima. 15.7.1: as distâncias contam "folga + raio" (o tronco
 ## no pinheiro, o vértice mais longe na rocha), a cópia inteira fica fora da
 ## faixa da porta, a estação é a boca inteira e cada cilindro é conferido.
-func _check_scatter(city: Node, builder: GDScript) -> void:
-	print("\n== pinheiros e rochas (15.7) ==")
-	var biome = builder.biome_of("rpg")
-	var scatter = city.get_node_or_null("BiomeScatter_rpg")  # sem tipo: BiomeScatter usa autoloads
-	_check("o RPG tem o BiomeScatter", scatter != null)
+## A floresta da Aventura (19.7): o chão, os passos, o clima e o som de fundo.
+func _check_forest(city: Node, builder: GDScript, half: float) -> void:
+	print("\n== a floresta (19.7) ==")
+	var biome = builder.biome_of("aventura")
+	_check("a Aventura usa o bioma da floresta", biome != null and biome.id == "floresta")
+	if biome == null:
+		return
+	_check("chão de grama e calçada de pedra",
+			biome.ground_folder == "Grass001" and biome.path_folder == "PavingStones070")
+	var cover: StaticBody3D = city.get_node_or_null("BiomeCover_aventura")
+	_check("o setor coberto da Aventura tem a marca \"grass\"",
+			cover != null and cover.get_meta("footstep", "") == "grass")
+	var surfaces: Dictionary = load("res://player/player.gd").FOOTSTEP_SURFACES
+	_check("o jogador conhece os passos de grama", surfaces.has("grass") and surfaces["grass"].size() == 5)
+	var bounds := Rect2(-half, -half, half * 2.0, half * 2.0)
+	var town: Array[Rect2] = []
+	town.assign(city.get_node("CityMap").zone_rects("aventura").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
+	var rects: Array[Rect2] = builder.covered_rects(town, half, biome.cover_streets)
+	var player = city.get_node("Player")
+	var spot := rects[0].position + Vector2(1.5, 1.5)
+	player.global_position = Vector3(spot.x, 0.5, spot.y)
+	player.velocity = Vector3.ZERO
+	for i in 30:
+		await physics_frame
+	print("   superfície em ", spot, ": ", player.get_surface())
+	_check("na rua da Aventura a superfície é \"grass\"", player.get_surface() == "grass")
+	var weather: Node = city.get_node_or_null("DistrictWeather_aventura")
+	_check("na chuva, a Aventura mostra folhas caindo", weather != null and weather.spec.kind == "folhas")
+	var atmosphere: Node = city.get_node_or_null("BiomeAtmosphere_aventura")
+	_check("a Aventura tem a atmosfera do bioma", atmosphere != null)
+	_check("o fundo da floresta são pássaros avulsos (bird_chirp)", biome.ambience_bed != null
+			and biome.ambience_bed.kind == "avulsos" and biome.ambience_bed.files.size() == 4
+			and Array(biome.ambience_bed.files).all(func(f: String) -> bool: return f.contains("bird_chirp")))
+	_check("névoa verde leve", biome.fog_tint.g > biome.fog_tint.r and biome.fog_tint.g > biome.fog_tint.b
+			and biome.fog_tint_amount > 0.0 and biome.fog_tint_amount < 0.5)
+	# O gerador fica com a casca recomendada (19.7); o teste aceita as duas.
+	_check("a casca da floresta é arcos ou prédios (%s)" % biome.shell, biome.shell in ["arch", "building"])
+
+
+func _check_scatter(city: Node, builder: GDScript, id: String) -> void:
+	print("\n== árvores e rochas: %s (15.7; 19.7) ==" % id)
+	var biome = builder.biome_of(id)
+	var scatter = city.get_node_or_null("BiomeScatter_%s" % id)  # sem tipo: BiomeScatter usa autoloads
+	_check("%s tem o BiomeScatter" % id, scatter != null)
 	var others := 0
 	for child: Node in city.get_children():
-		if String(child.name).begins_with("BiomeScatter_") and child != scatter:
+		var child_name := String(child.name)
+		if child_name.begins_with("BiomeScatter_") and builder.biome_of(child_name.trim_prefix("BiomeScatter_")) == null:
 			others += 1
-	_check("nenhum outro bairro tem pinheiros e rochas", others == 0)
+	_check("nenhum bairro sem bioma tem árvores e rochas", others == 0)
 	if scatter == null:
 		return
 
 	# Só as zonas dentro da mureta (a da montanha, 15.9, não ganha os enfeites da cidade).
 	var bounds: Rect2 = city.get_node("CityMap").get_map_data()["bounds"]
 	var town: Array[Rect2] = []
-	town.assign(city.get_node("CityMap").zone_rects("rpg").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
+	town.assign(city.get_node("CityMap").zone_rects(id).filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
 	var regions: Array[Rect2] = builder.scatter_regions(town)
 	var keep_out: Array[Vector3] = builder.keep_out_points(city)
 	var stations: Array[Rect2] = builder.keep_out_areas(city)
 	var scatter_script: GDScript = load("res://worlds/city/biome/biome_scatter.gd")
-	# As portas do RPG, com a frente (para a rua), para conferir a faixa da porta.
+	# As portas do bairro, com a frente (para a rua), para conferir a faixa da porta.
 	var doors: Array[Transform3D] = []
 	for node in city.get_tree().get_nodes_in_group("game_portal"):
-		if node.get_parent() != null and node.get_parent().get("category_id") == "rpg":
+		if node.get_parent() != null and node.get_parent().get("category_id") == id:
 			doors.append(node.global_transform)
-	print("   regiões de neve: %d | portas: %d | estações: %d | portas do RPG: %d"
+	print("   regiões: %d | portas: %d | áreas livres: %d | portas do bairro: %d"
 			% [regions.size(), keep_out.size(), stations.size(), doors.size()])
 	# Desde a 15.10, a base dos marcos ancorados (a torre do RPG) também vira
 	# área livre; desde a 19.1, a planta de cada prédio (o mesmo grupo).
@@ -253,7 +303,7 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			_check("família %d (só da montanha) fica fora do bairro" % i, family == null)
 			continue
 		town_specs += 1
-		var label := "pinheiros" if spec.kind != "mesh" else "rochas"
+		var label := ("árvores %d" % i) if spec.kind != "mesh" else "rochas"
 		var drawn := 0
 		if family is MultiMeshInstance3D:
 			drawn = (family as MultiMeshInstance3D).multimesh.instance_count
@@ -271,6 +321,10 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 		var in_door := 0
 		var near_keep := 0
 		var bad_body := 0
+		var crown_hits := 0
+		var crown_base := 0.0
+		if spec.kind == "tree":
+			crown_base = float(TreeModel.species(spec.source, spec.tint)["radius"])
 		var body: StaticBody3D = scatter.get_node_or_null("ScatterCollision_%d" % i)
 		# A rocha medida aqui mesmo, pelos vértices (e não pela caixa da malha).
 		var rock: Dictionary = scatter_script.mesh_of(spec.source) if spec.kind == "mesh" else {}
@@ -314,6 +368,16 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			for area in stations:
 				if scatter_script.area_distance(area, spot) < maxf(scatter_script.AREA_GAP, spec.walkable_clearance) + radius - 0.01:
 					near_keep += 1
+			# 19.7: a copa (o raio das folhas do modelo, na escala da cópia) não
+			# chega a nenhum prédio, boca do metrô, marco nem porta.
+			if crown_base > 0.0:
+				var crown: float = crown_base * item_scale.x + scatter_script.CROWN_GAP
+				for area in stations:
+					if scatter_script.area_distance(area, spot) < crown - 0.01:
+						crown_hits += 1
+				for point in keep_out:
+					if spot.distance_to(Vector2(point.x, point.y)) < crown - 0.01:
+						crown_hits += 1
 			# A faixa da porta: da rua (6 m à frente) até 3 m atrás da passagem do
 			# arco, e nenhum pedaço da cópia dentro dela.
 			for door in doors:
@@ -326,6 +390,9 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 		_check("%s: a %.0f m ou mais da calçada (e a cópia inteira na neve)" % [label, spec.walkable_clearance], near_walk == 0)
 		_check("%s: nada na faixa da porta nem na passagem do arco" % label, in_door == 0)
 		_check("%s: longe das portas e das estações" % label, near_keep == 0)
+		if spec.kind == "tree":
+			_check("%s: nenhuma copa (%.1f m no modelo) chega a prédio, porta, metrô ou marco (%d)"
+					% [label, crown_base, crown_hits], crown_base > 0.0 and crown_hits == 0)
 		if spec.collision_radius > 0.0:
 			_check("%s: um cilindro de colisão por cópia" % label, body != null and body.get_child_count() == count)
 			_check("%s: cada cilindro no lugar da cópia, do chão para cima%s (%d errados)"
@@ -336,17 +403,17 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			var species := TreeModel.species(spec.source, spec.tint)
 			var leaves: ShaderMaterial = species["leaves_material"]
 			var tint: Color = leaves.get_shader_parameter("tint")
-			_check("pinheiros: o modelo do perfil, a tinta dele e o vento ligado",
+			_check("%s: o modelo do perfil, a tinta dele e o vento ligado" % label,
 					trees.get_transforms() == transforms and tint.is_equal_approx(spec.tint)
 					and float(leaves.get_shader_parameter("sway_amount")) > 0.0)
 			var heights_ok := true
 			for k in count:
 				var height: float = transforms[k].basis.get_scale().y * trees.model_height()
 				heights_ok = heights_ok and height >= spec.height_range.x - 0.01 and height <= spec.height_range.y + 0.01
-			_check("pinheiros: altura entre %.0f e %.0f m" % [spec.height_range.x, spec.height_range.y], heights_ok)
+			_check("%s: altura entre %.1f e %.1f m" % [label, spec.height_range.x, spec.height_range.y], heights_ok)
 		else:
 			var material: ShaderMaterial = (family as MultiMeshInstance3D).material_override
-			_check("rochas: pedra com neve por cima",
+			_check("rochas: pedra com o chão do bioma por cima",
 					material != null and material.shader.resource_path.ends_with("snow_cover.gdshader")
 					and is_equal_approx(float(material.get_shader_parameter("snow_cover")), biome.snow_cover))
 	_check("um desenho (MultiMesh ou TreeModel) por família do bairro (%d)" % town_specs,
@@ -361,18 +428,20 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 	_check("com metade da densidade, bem menos cópias (%d de %d)" % [half_amount.size(), first.size()],
 			half_amount.size() < first.size() and half_amount.size() >= first.size() / 4)
 
-	# Os arcos do bioma usam a pedra com neve por cima.
+	# Os arcos do bioma usam a pedra com o chão do bioma por cima.
+	if Profiles.district(id).effective_shell() != "arch":
+		return
 	var dressed := 0
 	var arches := 0
 	for child: Node in city.get_children():
-		if String(child.name).begins_with("Building_") and child.get("category_id") == "rpg":
+		if String(child.name).begins_with("Building_") and child.get("category_id") == id:
 			arches += 1
 			var stone: Node = child.get_node_or_null("Stone")
 			var mesh: MeshInstance3D = stone.get_child(0) if stone != null else null
 			if mesh != null and mesh.material_override is ShaderMaterial \
 					and mesh.material_override.shader.resource_path.ends_with("snow_cover.gdshader"):
 				dressed += 1
-	_check("os arcos do RPG têm neve por cima (%d de %d)" % [dressed, arches], arches > 0 and dressed == arches)
+	_check("os arcos de %s têm o chão do bioma por cima (%d de %d)" % [id, dressed, arches], arches > 0 and dressed == arches)
 
 
 static func _inside(point: Vector2, rects: Array[Rect2]) -> bool:

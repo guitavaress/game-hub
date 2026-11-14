@@ -96,6 +96,7 @@ func _run() -> void:
 	await process_frame
 	await _check_district_landmarks()
 	await _check_landmark_without_mountain()
+	await _check_anchored_bases()
 	_finish()
 
 
@@ -131,7 +132,10 @@ func _check_district_landmarks() -> void:
 				_check("%s (arcos) tem marco ancorado" % id, false)
 				continue
 			found += 1
-			_check_mountain_tower(city, id, landmark)
+			if profile.biome != null and profile.biome.backdrop != null:
+				_check_mountain_tower(city, id, landmark)
+			else:
+				_check_ground_landmark(city, id, landmark, variant_class, plate_half)
 			continue
 		_check("%s tem landmark_script no perfil" % id, profile != null and not profile.landmark_script.is_empty())
 		expected += 1
@@ -147,6 +151,23 @@ func _check_district_landmarks() -> void:
 	_check("todos os bairros, menos a Simulação, têm marco (%d)" % expected, expected == city._district_cells.size() - 1 and found == expected)
 	city.queue_free()
 	await process_frame
+
+
+## 19.7: com arcos e sem montanha (a floresta da Aventura), o marco fica no
+## chão, no meio do primeiro quarteirão, com base e colisão, e o letreiro sobe
+## para ficar acima dele.
+func _check_ground_landmark(city: Node, id: String, landmark: Node, variant_class: GDScript,
+		plate_half: float) -> void:
+	var first: Vector2i = city._district_cells[id][0]
+	var center := CityLayout.block_center(first)
+	_check("%s (arcos, sem montanha): o marco fica no chão, no meio do 1º quarteirão" % id,
+			landmark.is_anchored() and landmark.global_position.distance_to(center) < 0.01)
+	_check("%s: o marco no chão tem base e colisão" % id,
+			landmark.footprint().has_area() and landmark.get_node_or_null("Solid") != null)
+	var top: float = landmark.get_top_y()
+	_check("%s: o topo (%.1f m) passa do prédio mais alto possível" % [id, top], top > variant_class.max_total_height())
+	var district_sign: Node3D = city.get_node("DistrictSign_%s" % id)
+	_check("%s: o letreiro sobe para ficar acima do marco" % id, district_sign.position.y - plate_half > top)
 
 
 ## A torre ancorada no mirante (15.10): na base que a montanha dá, mais larga,
@@ -297,6 +318,28 @@ func _check_landmark_without_mountain() -> void:
 	var hits: Array = city.get_world_3d().direct_space_state.intersect_shape(query, 4)
 	_check("nada sólido dentro da base da torre (%d)" % hits.size(), hits.is_empty())
 	city.queue_free()
+	await process_frame
+
+
+## 19.7: num bairro de arcos (a floresta da Aventura; o deserto da 19.8), o
+## marco de telhado fica no chão. Todo marco, ancorado, tem base (para as
+## árvores não nascerem dentro dele) e colisão (o jogador não o atravessa).
+func _check_anchored_bases() -> void:
+	print("== todo marco ancorado tem base e colisão (19.7) ==")
+	var holder := Node3D.new()
+	root.add_child(holder)
+	for district in Profiles.districts():
+		if district.landmark_script.is_empty():
+			continue
+		var landmark: Node3D = load(district.landmark_script).new()
+		landmark.category_id = district.id
+		landmark.anchor = Vector3(40.0, 0.0, 40.0)
+		holder.add_child(landmark)
+		var base: Rect2 = landmark.footprint()
+		var solid: StaticBody3D = landmark.get_node_or_null("Solid")
+		_check("%s: base %s e colisão" % [district.id, base.size],
+				landmark.is_anchored() and base.has_area() and base.get_area() >= 0.25 and solid != null)
+	holder.queue_free()
 	await process_frame
 
 

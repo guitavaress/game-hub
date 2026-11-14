@@ -71,7 +71,8 @@ func _run() -> void:
 	world.add_child(atmosphere)
 	var low: AudioStreamPlayer = atmosphere.get_node("WindLow")
 	var high: AudioStreamPlayer = atmosphere.get_node("WindHigh")
-	var timer: Timer = atmosphere.get_children().filter(func(n: Node) -> bool: return n is Timer)[0]
+	# O relógio da atualização (o outro, de um tiro só, é o dos sons avulsos da 19.7).
+	var timer: Timer = atmosphere.get_children().filter(func(n: Node) -> bool: return n is Timer and not n.one_shot)[0]
 	_check("atualização a 10 Hz", is_equal_approx(timer.wait_time, 0.1) and not timer.is_stopped())
 	_finish_audio(atmosphere)
 	_check("sem grupo de fundo também funciona", atmosphere.get_weight() == 0.0 and env.fog_density == base_density)
@@ -160,6 +161,7 @@ func _run() -> void:
 	atmosphere.free()
 	_check("limite público de albedo da neve ≤ 0,85", atmosphere_script.SNOW_ALBEDO_MAX <= 0.85)
 	await _check_two_biomes(world, clock, env, bed)
+	await _check_shots(world, clock)
 	world.free()
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(1 if failures > 0 else 0)
@@ -278,6 +280,53 @@ func _check_two_biomes(world: Node3D, clock: Node, env: Environment, bed: AudioS
 
 
 ## Atualiza todas as atmosferas (cada uma no seu tique) e termina as rampas.
+## 19.7: um fundo "avulsos" (os pássaros da floresta) toca um arquivo de cada
+## vez, de tempos em tempos, sem loop, com o tom sorteado na faixa do perfil;
+## longe do bioma, não toca nada. Trocar para um loop volta ao loop.
+func _check_shots(world: Node3D, clock: Node) -> void:
+	print("== fundo avulso (19.7) ==")
+	var zones: Array[Rect2] = [Rect2(0, 0, 10, 10)]
+	var player: Node3D = Node3D.new()
+	world.add_child(player)
+	player.position = Vector3(5, 0, 5)
+	var spec: BiomeSpec = BiomeSpec.new()
+	spec.id = "teste_avulsos"
+	spec.ambience_bed = AmbienceSpec.new()
+	spec.ambience_bed.kind = "avulsos"
+	spec.ambience_bed.files = PackedStringArray(["res://assets/generated/bird_chirp_1.wav",
+			"res://assets/generated/bird_chirp_2.wav"])
+	spec.ambience_bed.interval = Vector2(0.05, 0.1)
+	spec.ambience_bed.pitch_range = Vector2(0.9, 1.2)
+	var atmosphere: Node = load("res://worlds/city/biome/biome_atmosphere.gd").new()
+	atmosphere.setup(spec, zones, player, clock)
+	world.add_child(atmosphere)
+	var low: AudioStreamPlayer = atmosphere.get_node("WindLow")
+	var chirps: Array[String] = [spec.ambience_bed.files[0], spec.ambience_bed.files[1]]
+	await create_timer(0.8).timeout
+	var played: int = atmosphere.shots_played
+	var stream_ok: bool = low.stream != null and chirps.has(low.stream.resource_path)
+	_check("no bioma, os sons avulsos tocam (%d em 0,8 s)" % played, played >= 3)
+	_check("cada som é um dos arquivos do perfil, sem loop, com o tom na faixa",
+			stream_ok and (low.stream as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_DISABLED
+			and low.pitch_scale >= 0.9 - 0.001 and low.pitch_scale <= 1.2 + 0.001)
+	player.position = Vector3(200, 0, 200)
+	atmosphere.update_now()
+	var before: int = atmosphere.shots_played
+	await create_timer(0.5).timeout
+	_check("longe do bioma, não toca", atmosphere.shots_played == before)
+	spec.ambience_bed = AmbienceSpec.new()
+	spec.ambience_bed.kind = "loop"
+	spec.ambience_bed.files = PackedStringArray(["res://assets/generated/wind_loop.wav"])
+	atmosphere.setup(spec, zones, player, clock)
+	var loop_stream: AudioStreamWAV = low.stream as AudioStreamWAV
+	_check("trocar para um loop volta ao loop, no tom normal", loop_stream != null
+			and loop_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD and is_equal_approx(low.pitch_scale, 1.0)
+			and low.playing)
+	world.remove_child(atmosphere)
+	atmosphere.free()
+	player.free()
+
+
 func _update_all(atmospheres: Array[Node]) -> void:
 	for atmosphere: Node in atmospheres:
 		atmosphere.update_now()

@@ -25,7 +25,7 @@ Depois, abra o editor da Godot (ou rode `--headless --import`) para ela importar
 | `gerar_luneta.py` | `lookout/telescope.glb` (120 KB) | a luneta de latão: a base torneada com três pés, a coluna, o garfo e o tubo com a ocular | ~2 s |
 | `gerar_poltrona.py` | `home/armchair.glb` (259 KiB) | armação Wood049, cinco volumes estofados, vivos do assento e encosto | ~5 s com prévias |
 | `gerar_lareira.py` | `home/fireplace.glb` (228 KiB) | pedras aparelhadas, soleira, consolo Wood049, fundo de fuligem e grade de ferro | ~5 s com prévias |
-| `gerar_arvore.py` | `trees/pine.glb` (795 KB) e `trees/street_tree.glb` (449 KB) | 19.2: o pinheiro (abeto) de 10 m: tronco com raízes, verticilos de galhos e cartões de agulhas (a foto de um raminho feito de agulhas de verdade, com transparência). 19.3: a árvore de rua de 6 m (copa oval de folhas largas) e o pinheiro com agulhas finas e verde de abeto | ~35 s cada; ~65 s com prévias |
+| `gerar_arvore.py` | `trees/pine.glb` (795 KB), `trees/street_tree.glb` (449 KB) e `trees/forest_tree.glb` (764 KB) | 19.2: o pinheiro (abeto) de 10 m: tronco com raízes, verticilos de galhos e cartões de agulhas (a foto de um raminho feito de agulhas de verdade, com transparência). 19.3: a árvore de rua de 6 m (copa oval de folhas largas) e o pinheiro com agulhas finas e verde de abeto. 19.7: a árvore da floresta de 13 m (tronco alto, copa larga e irregular) | ~35 s cada; ~65 s com prévias |
 
 `comum.py` tem as peças que todos usam (17.8: também `orientar`/`tabua_entre`, para pôr uma tábua de um ponto a outro, e `caixa`, `cilindro` e `tubo`, as peças de metal torneadas): a pedra (caixa arredondada, ondulada por ruído, lascada por cortes planos e com as quinas chanfradas), a tábua, a tora e a acha rachada, o material de madeira procedural (anéis, fibras, casca, quinas gastas, carvão), o "assar" desse material numa textura pequena (cor e relevo), a oclusão de ambiente (os cantos escuros) assada nas cores dos vértices e a exportação.
 
@@ -69,16 +69,18 @@ Estes scripts usam a API Python do Blender, que é **GPL**. Por isso esta pasta 
 
 ## Árvores (19.2; 19.3)
 
-`gerar_arvore.py` tem uma função por espécie: `pinheiro` (o abeto do bairro do RPG) e `rua` (a árvore das floreiras e da praça, 19.3). Da raiz do repositório:
+`gerar_arvore.py` tem uma função por espécie: `pinheiro` (o abeto do bairro do RPG), `rua` (a árvore das floreiras e da praça, 19.3) e `floresta` (a do bioma da floresta, na Aventura, 19.7). Da raiz do repositório:
 
 ```
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python tools/blender/gerar_arvore.py -- pinheiro [saida.glb] [pasta das prévias]
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python tools/blender/gerar_arvore.py -- rua [saida.glb] [pasta das prévias]
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python tools/blender/gerar_arvore.py -- floresta [saida.glb] [pasta das prévias]
 ```
 
-Sem argumentos, grava `assets/models/trees/pine.glb`; com `rua`, `assets/models/trees/street_tree.glb`. A pasta das prévias (opcional, fora do repositório) recebe duas vistas no Cycles (`<espécie>_perto.png` e `<espécie>_longe.png`), só para conferir a forma.
+Sem argumentos, grava `assets/models/trees/pine.glb`; com `rua`, `assets/models/trees/street_tree.glb`; com `floresta`, `assets/models/trees/forest_tree.glb`. A pasta das prévias (opcional, fora do repositório) recebe duas vistas no Cycles (`<espécie>_perto.png` e `<espécie>_longe.png`), só para conferir a forma.
 
 - **A árvore de rua (19.3):** um tronco curto (2 m) que abre em cinco galhos grossos e um "líder" no meio; cada galho dá ramos, e cada ramo, raminhos, até a casca de uma copa oval (um elipsoide de 2,5 m de raio). As folhas são cartões com a foto de um raminho de folhas largas (feito aqui, com folhas ovais, nervura e talinho; 512 px), nas pontas dos ramos e raminhos, virados para fora da copa. A casca é a do pinheiro em placas mais finas e marrom-acinzentada; o tronco cobre a textura inteira (2,4 m por volta), para os galhos, que usam faixas dela, não caírem num pedaço vazio.
+- **A árvore da floresta (19.7):** uma folhosa alta de mata (como um carvalho crescido entre outras árvores), com as mesmas funções da árvore de rua e outra `Forma`: tronco alto e limpo (os galhos grossos saem de 3,8 a 6,5 m, e não de uma forquilha só), copa larga (4,3 m de raio) com "calombos" (a `Copa` com `ondas`: o raio muda com a direção, por um ruído), folhas menores e mais juntas num verde de mata mais escuro, e casca marrom mais funda. 13 m, 13,2 mil triângulos. A parametrização deixou a árvore de rua idêntica (o `.glb` regerado sai com os mesmos bytes).
 - **O pinheiro corrigido (19.3):** a foto das agulhas passou a 1024 px, com agulhas de 3,8 mm (eram 7,5 mm: de perto, o raminho lembrava uma folha larga) e mais juntas; os tons são de abeto (verde-escuro puxado para o azul; na 19.2 saía saturado e claro de dia). Para caber no orçamento: o WEBP a 60 e os galhos curtos do alto com 3 lados (ficam cobertos pelas agulhas).
 
 - **Duas malhas:** `bark` (tronco e galhos) e `leaves` (os cartões de agulhas). A origem é o pé do tronco, no chão; o pinheiro tem 10 m (a copa passa de 3 m de raio embaixo).
@@ -91,6 +93,7 @@ Sem argumentos, grava `assets/models/trees/pine.glb`; com `rua`, `assets/models/
 ```
 "C:/Godot/Godot_v4.7.2-stable_win64_console.exe" --path . -s res://tools/make_tree_impostor.gd -- res://assets/models/trees/pine.glb res://assets/generated/pine_impostor.png
 "C:/Godot/Godot_v4.7.2-stable_win64_console.exe" --path . -s res://tools/make_tree_impostor.gd -- res://assets/models/trees/street_tree.glb res://assets/generated/street_tree_impostor.png
+"C:/Godot/Godot_v4.7.2-stable_win64_console.exe" --path . -s res://tools/make_tree_impostor.gd -- res://assets/models/trees/forest_tree.glb res://assets/generated/forest_tree_impostor.png
 ```
 
 O `comum.py` ganhou só funções novas: `assar_textura_retangular`, `foto_de_cima`, `sangrar_cor` e `exportar_com_alfa`.

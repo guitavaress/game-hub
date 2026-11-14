@@ -35,13 +35,15 @@ func _run() -> void:
 	imports.append("res://assets/generated/street_tree_impostor.png.import")
 	# Fase 15.0 (bioma montanha): o atlas do pinheiro e as texturas da rocha 3D.
 	imports.append("res://assets/generated/pine_impostor.png.import")
+	# 19.7: o atlas da árvore da floresta.
+	imports.append("res://assets/generated/forest_tree_impostor.png.import")
 	for folder in DirAccess.get_directories_at("res://assets/polyhaven/models"):
 		var textures := "res://assets/polyhaven/models/%s/textures" % folder
 		for file in DirAccess.get_files_at(textures):
 			if file.ends_with(".import"):
 				imports.append("%s/%s" % [textures, file])
-	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3.
-	_check("achou as 30 texturas da ambientCG, os 2 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 35)
+	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3; 19.7: a Grass001, com as suas 3.
+	_check("achou as 33 texturas da ambientCG, os 3 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 39)
 	var bad: Array[String] = []
 	var bad_normals: Array[String] = []
 	for path in imports:

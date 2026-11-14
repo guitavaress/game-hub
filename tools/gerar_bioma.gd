@@ -10,8 +10,27 @@ extends SceneTree
 ## existe nunca é regravado (ele pode ter sido afinado no Inspector). Para
 ## regravar um de propósito, passe --refazer=<id> (vários: --refazer=a,b).
 ## Bioma novo (Fase 19.1): escreva a função dele e ponha em _biomes().
+##
+## 19.7: --casca=<arch|building> escolhe a casca das portas dos biomas que não
+## têm uma fixa (hoje, a floresta; a montanha é sempre de arcos). Sem ele, vale
+## CASCA_PADRAO. Para trocar a casca da floresta:
+##   godot --headless --path . -s res://tools/gerar_bioma.gd -- --refazer=floresta --casca=building
+## Depois de gravar, cada bioma de BAIRROS é ligado ao perfil do bairro dele
+## (profiles/districts/<bairro>.tres), se ainda não estiver: só o campo "biome"
+## muda.
 
 const PASTA: String = "res://profiles/biomes"
+const PASTA_BAIRROS: String = "res://profiles/districts"
+## A casca das portas nos biomas sem casca fixa: "arch" (arcos) ou "building" (prédios).
+const CASCA_PADRAO: String = "arch"
+## Qual bairro usa cada bioma.
+const BAIRROS: Dictionary[String, String] = {
+	"montanha": "rpg",
+	"floresta": "aventura",
+}
+
+## A casca pedida na linha de comando (vazio = CASCA_PADRAO).
+var _casca: String = ""
 
 
 func _initialize() -> void:
@@ -19,7 +38,12 @@ func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--refazer="):
 			refazer = arg.trim_prefix("--refazer=").split(",", false)
+		elif arg.begins_with("--casca="):
+			_casca = arg.trim_prefix("--casca=")
 	var error: int = DirAccess.make_dir_recursive_absolute(PASTA)
+	if not _casca.is_empty() and _casca not in ["arch", "building"]:
+		push_error("A casca deve ser arch ou building (veio \"%s\")." % _casca)
+		error = ERR_INVALID_PARAMETER
 	var biomes: Dictionary[String, Callable] = _biomes()
 	for id: String in refazer:
 		if not biomes.has(id):
@@ -35,6 +59,10 @@ func _initialize() -> void:
 		var biome: BiomeSpec = biomes[id].call()
 		error = ResourceSaver.save(biome, path)
 		print("Gravado: %s (resultado %d)" % [path, error])
+	for id: String in biomes:
+		if error != OK:
+			break
+		error = _ligar(id)
 	if error != OK:
 		push_error("Não consegui gravar os biomas (erro %d)." % error)
 	quit(0 if error == OK else 1)
@@ -44,7 +72,27 @@ func _initialize() -> void:
 func _biomes() -> Dictionary[String, Callable]:
 	return {
 		"montanha": _montanha,
+		"floresta": _floresta,
 	}
+
+
+## Liga o bioma ao perfil do bairro dele (BAIRROS), se ainda não estiver ligado.
+func _ligar(id: String) -> int:
+	if not BAIRROS.has(id):
+		return OK
+	var biome_path: String = "%s/%s.tres" % [PASTA, id]
+	var district_path: String = "%s/%s.tres" % [PASTA_BAIRROS, BAIRROS[id]]
+	var district := load(district_path) as DistrictProfile
+	var biome := load(biome_path) as BiomeSpec
+	if district == null or biome == null:
+		push_error("Não consegui ligar %s a %s." % [biome_path, district_path])
+		return ERR_CANT_OPEN
+	if district.biome != null and district.biome.resource_path == biome_path:
+		return OK
+	district.biome = biome
+	var error: int = ResourceSaver.save(district, district_path)
+	print("Ligado: %s usa %s (resultado %d)" % [district_path, biome_path, error])
+	return error
 
 
 ## A montanha nevada do RPG (15.6; ligada na 15.6, afinada até a 15.13).
@@ -105,4 +153,72 @@ func _montanha() -> BiomeSpec:
 			rock.density = 0.6
 			rock.collision_radius = 0.35
 		biome.scatter.append(rock)
+	return biome
+
+
+## A floresta da Aventura (19.7): chão de grama, calçada de pedra com musgo,
+## árvores altas de mata (forest_tree.glb) com árvores novas por baixo (a de
+## rua, menor), rochas com musgo por cima, pássaros de fundo, folhas caindo na
+## chuva e uma névoa verde leve. A casca das portas vem de --casca.
+func _floresta() -> BiomeSpec:
+	var biome := BiomeSpec.new()
+	biome.id = "floresta"
+	biome.display_name = "Floresta"
+	biome.ground_folder = "Grass001"
+	biome.ground_meters = 2.5
+	biome.ground_tint = Color(0.6, 0.66, 0.5)
+	biome.ground_normal_strength = 1.2
+	biome.path_folder = "PavingStones070"
+	biome.path_tint = Color(0.62, 0.62, 0.55)
+	biome.footstep = "grass"
+	biome.cover_streets = true
+	biome.shell = _casca if not _casca.is_empty() else CASCA_PADRAO
+	# O musgo por cima da pedra (nos arcos e nas rochas).
+	biome.snow_cover = 0.4
+	biome.fog_density_scale = 1.25
+	biome.fog_tint = Color(0.55, 0.68, 0.5)
+	biome.fog_tint_amount = 0.22
+	biome.fog_height_density = 0.006
+	# Na floresta, a chuva da cidade traz folhas caindo (19.6).
+	biome.weather = WeatherSpec.new()
+	biome.weather.kind = "folhas"
+	biome.ambience_bed = AmbienceSpec.new()
+	biome.ambience_bed.kind = "avulsos"
+	biome.ambience_bed.files = PackedStringArray([
+		"res://assets/generated/bird_chirp_1.wav",
+		"res://assets/generated/bird_chirp_2.wav",
+		"res://assets/generated/bird_chirp_3.wav",
+		"res://assets/generated/bird_chirp_4.wav",
+	])
+	biome.ambience_bed.volume_db = -16.0
+	biome.ambience_bed.interval = Vector2(1.5, 5.0)
+	biome.ambience_bed.pitch_range = Vector2(0.85, 1.25)
+	# As árvores altas: o tronco a 1,5 m da calçada (a copa passa por cima de
+	# quem anda, acima de 3,5 m) e a copa longe dos prédios, das portas e do
+	# metrô (BiomeScatter.CROWN_GAP).
+	var tree := ScatterSpec.new()
+	tree.source = "res://assets/models/trees/forest_tree.glb"
+	tree.kind = "tree"
+	tree.height_range = Vector2(10, 16)
+	tree.density = 2.6
+	tree.walkable_clearance = 1.5
+	tree.collision_radius = 0.3
+	biome.scatter.append(tree)
+	# As árvores novas, por baixo das altas: a árvore de rua, menor.
+	var young := ScatterSpec.new()
+	young.source = "res://assets/models/trees/street_tree.glb"
+	young.kind = "tree"
+	young.height_range = Vector2(3.5, 5.5)
+	young.density = 1.2
+	young.walkable_clearance = 1.2
+	young.collision_radius = 0.12
+	biome.scatter.append(young)
+	var rock := ScatterSpec.new()
+	rock.source = "res://assets/polyhaven/models/moon_rock_02/moon_rock_02_1k.gltf"
+	rock.material_folder = "Rock058"
+	rock.tint = Color(0.72, 0.7, 0.64)
+	rock.height_range = Vector2(0.5, 1.4)
+	rock.density = 0.5
+	rock.collision_radius = 0.3
+	biome.scatter.append(rock)
 	return biome

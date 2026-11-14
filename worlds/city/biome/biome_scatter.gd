@@ -24,6 +24,15 @@ extends Node3D
 ## altura dele (a rocha é enterrada um pouco); as estações viram áreas.
 ##
 ## A conta (plan) é pura e estática: a 15.9 reaproveita para a encosta.
+##
+## 19.7 (a floresta, num bairro que pode ter prédios): a COPA de cada árvore
+## (o raio dela no modelo, TreeModel.species, na escala da cópia) fica a
+## CROWN_GAP m dos prédios, das bocas do metrô, dos marcos e das portas, além
+## da conta de sempre do tronco. Assim nenhuma copa atravessa uma parede. Uma
+## árvore pode ficar mais perto da calçada que a copa: a copa passa por cima
+## de quem anda (a da floresta começa acima de 3,5 m). As rochas usam a pasta
+## do material do perfil (ScatterSpec.material_folder), com o chão do bioma
+## por cima, sem depender da montanha.
 
 ## Distância mínima entre dois troncos de árvore (impostora ou modelo), além dos raios.
 const IMPOSTOR_SPACING: float = 3.0
@@ -44,6 +53,9 @@ const COLLISION_HEIGHT_MAX: float = 4.0
 ## Distância mínima entre uma cópia e a boca de uma estação (além da
 ## walkable_clearance, se ela for maior): o lugar de quem desce a escada.
 const AREA_GAP: float = 1.5
+## Folga entre a beira da copa de uma árvore e um prédio, uma boca do metrô,
+## um marco ou uma porta (19.7).
+const CROWN_GAP: float = 0.5
 
 ## Malhas já lidas dos glTF (caminho -> {mesh, aabb}).
 static var _meshes: Dictionary = {}
@@ -79,16 +91,18 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 			push_warning("O elemento %s do bioma %s não carregou." % [spec.source, biome.id])
 			continue
 		var items := plan(spec, regions, keep_out, occupied, hash([category_id, i]),
-				source["height"], source["radius"], keep_out_areas, amount)
+				source["height"], source["radius"], keep_out_areas, amount, float(source.get("crown", 0.0)))
 		_add_family(i, spec, source, items)
 
 
 ## As cópias de uma família: [{position, height, yaw, scale (Vector3), radius,
 ## collision}]. Acrescenta cada uma em "occupied". "base_height" e
 ## "base_radius": altura e raio da malha (ou do tronco) sem escala.
+## "base_crown" (19.7): o raio da copa sem escala (0 = sem copa; só nas
+## árvores), que fica a CROWN_GAP dos pontos e das áreas livres.
 static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vector3],
 		occupied: Array[Vector3], seed_value: int, base_height: float, base_radius: float,
-		keep_out_areas: Array[Rect2] = [], amount: float = 1.0) -> Array[Dictionary]:
+		keep_out_areas: Array[Rect2] = [], amount: float = 1.0, base_crown: float = 0.0) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	if spec.density <= 0.0 or amount <= 0.0 or base_height <= 0.0:
 		return items
@@ -101,6 +115,8 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 	var reference := spec.height_range.x / base_height
 	var spread := MESH_SPREAD if not impostor else Vector2.ONE
 	var largest := base_radius * spec.height_range.y / base_height * spread.y
+	# A maior copa (na maior altura), para achar os pontos e as áreas perto.
+	var largest_crown := base_crown * spec.height_range.y / base_height + CROWN_GAP if base_crown > 0.0 else 0.0
 	for region in regions:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([seed_value, region.position])
@@ -111,12 +127,12 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 		# Só os pontos livres perto desta região (para a conta não crescer com a cidade).
 		var near_keep: Array[Vector3] = []
 		for point in keep_out:
-			var reach := maxf(point.z, clearance) + largest
+			var reach := maxf(maxf(point.z, clearance) + largest, largest_crown)
 			if usable.grow(reach).has_point(Vector2(point.x, point.y)):
 				near_keep.append(point)
 		var near_areas: Array[Rect2] = []
 		for area in keep_out_areas:
-			if usable.grow(maxf(AREA_GAP, clearance) + largest).intersects(area):
+			if usable.grow(maxf(maxf(AREA_GAP, clearance) + largest, largest_crown)).intersects(area):
 				near_areas.append(area)
 		var placed := 0
 		var tries := 0
@@ -140,7 +156,8 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 			if inner.size.x <= 0.0 or inner.size.y <= 0.0:
 				continue
 			var spot := inner.position + Vector2(u, v) * inner.size
-			if _blocked(spot, footprint, clearance, spacing, near_keep, occupied, near_areas):
+			var crown := base_crown * scale_xz + CROWN_GAP if base_crown > 0.0 else 0.0
+			if _blocked(spot, footprint, clearance, spacing, near_keep, occupied, near_areas, crown):
 				continue
 			occupied.append(Vector3(spot.x, spot.y, footprint))
 			items.append({
@@ -156,14 +173,16 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 
 
 ## Se o ponto (com raio "radius") cai perto demais de um ponto livre, de uma
-## área livre ou de algo já posto.
+## área livre ou de algo já posto. "crown" (19.7): o raio da copa com a folga
+## (0 = sem copa), que também não pode chegar aos pontos e às áreas livres.
 static func _blocked(spot: Vector2, radius: float, clearance: float, spacing: float,
-		keep_out: Array[Vector3], occupied: Array[Vector3], areas: Array[Rect2] = []) -> bool:
+		keep_out: Array[Vector3], occupied: Array[Vector3], areas: Array[Rect2] = [],
+		crown: float = 0.0) -> bool:
 	for point in keep_out:
-		if spot.distance_to(Vector2(point.x, point.y)) < maxf(point.z, clearance) + radius:
+		if spot.distance_to(Vector2(point.x, point.y)) < maxf(maxf(point.z, clearance) + radius, crown):
 			return true
 	for area in areas:
-		if area_distance(area, spot) < maxf(AREA_GAP, clearance) + radius:
+		if area_distance(area, spot) < maxf(maxf(AREA_GAP, clearance) + radius, crown):
 			return true
 	for other in occupied:
 		if spot.distance_to(Vector2(other.x, other.y)) < other.z + radius + spacing:
@@ -188,6 +207,8 @@ static func _source(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
 			"height": model_height,
 			# O raio do tronco é o de colisão do perfil (na menor altura).
 			"radius": spec.collision_radius * model_height / spec.height_range.x,
+			# A copa: o raio das folhas no modelo (19.7).
+			"crown": float(species["radius"]),
 		}
 	if spec.kind == "impostor":
 		var atlas := load(spec.source) as Texture2D
@@ -210,8 +231,12 @@ static func _source(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
 		return {}
 	var aabb: AABB = loaded["aabb"]
 	var material: Material = null
-	if biome.backdrop != null and not biome.backdrop.rock_folder.is_empty():
-		material = BiomeBuilder.snow_cover_material(biome, biome.backdrop.rock_folder, spec.tint, ROCK_METERS)
+	# A pedra da peça: a do perfil (19.7) ou, sem ela, a rocha do terreno de fundo.
+	var folder := spec.material_folder
+	if folder.is_empty() and biome.backdrop != null:
+		folder = biome.backdrop.rock_folder
+	if not folder.is_empty():
+		material = BiomeBuilder.snow_cover_material(biome, folder, spec.tint, ROCK_METERS)
 	return {
 		"mesh": loaded["mesh"],
 		"material": material,

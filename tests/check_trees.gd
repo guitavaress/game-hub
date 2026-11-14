@@ -4,13 +4,14 @@ extends SceneTree
 ##   - na cidade: uma árvore de rua por floreira, todas num TreeModel só
 ##     (StreetTrees), entre 5 e 6,5 m; nenhuma árvore só de foto;
 ##   - no bairro do RPG: os pinheiros são um TreeModel (o modelo do Blender);
-##   - os dois modelos (pine.glb e street_tree.glb) dentro do orçamento, com as
+##   - os modelos (pine.glb, street_tree.glb e, desde a 19.7, forest_tree.glb) dentro do orçamento, com as
 ##     malhas bark e leaves e o atlas de longe tirado deles;
 ##   - o TreeModel monta as células, aceita árvores aos poucos (add) e troca
 ##     modelo e foto na mesma distância, com a variação por árvore.
 
 const PINE := "res://assets/models/trees/pine.glb"
 const STREET_TREE := "res://assets/models/trees/street_tree.glb"
+const FOREST_TREE := "res://assets/models/trees/forest_tree.glb"
 
 var failures := 0
 
@@ -29,7 +30,7 @@ func _run() -> void:
 	_check_city(city)
 	city.queue_free()
 	await process_frame
-	for model: String in [PINE, STREET_TREE]:
+	for model: String in [PINE, STREET_TREE, FOREST_TREE]:
 		_check_species(model)
 	await _check_tree_model()
 
@@ -120,6 +121,10 @@ func _check_species(model: String) -> void:
 	if model == PINE:
 		_check("o pinheiro tem uns 10 m e a copa de 2 a 3,5 m de raio",
 				height > 9.5 and height < 10.6 and radius > 2.0 and radius < 3.5)
+	elif model == FOREST_TREE:
+		# 19.7: a folhosa alta de mata (a copa larga é o que pede a folga dos prédios).
+		_check("a árvore da floresta tem uns 13 m e a copa de 3,5 a 5 m de raio",
+				height > 12.5 and height < 13.6 and radius > 3.5 and radius < 5.0)
 	else:
 		_check("a árvore de rua tem uns 6 m e a copa de 2 a 3,2 m de raio",
 				height > 5.5 and height < 6.6 and radius > 2.0 and radius < 3.2)

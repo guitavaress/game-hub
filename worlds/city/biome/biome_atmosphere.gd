@@ -15,6 +15,9 @@ extends Node
 ## O som de fundo vem do perfil (BiomeSpec.ambience_bed, o primeiro arquivo,
 ## em loop); quem não diz nada ganha o vento. A camada do vento alto (mais
 ## forte perto da cota do mirante) só existe com terreno de fundo.
+## 19.7: um fundo "avulsos" (os pássaros da floresta) toca um dos arquivos de
+## tempos em tempos (o intervalo e o tom do perfil), na mesma camada baixa e
+## com o mesmo volume pelo peso; longe do bioma, não toca.
 
 const UPDATE_INTERVAL: float = 0.1
 const CITY_AMBIENCE_GROUP: StringName = &"city_ambience_bed"
@@ -43,6 +46,11 @@ var _wind_low: AudioStreamPlayer
 var _wind_high: AudioStreamPlayer
 ## O arquivo original da camada baixa (antes da cópia em loop).
 var _bed_source: AudioStream
+## Os sons de um fundo "avulsos" (vazio = o fundo é um loop) e o relógio deles.
+var _shots: Array[AudioStream] = []
+var _shot_timer: Timer
+## Os sons avulsos que já tocaram (para os testes).
+var shots_played: int = 0
 var _audio_tween: Tween
 ## Os fundos da cidade que esta atmosfera abaixou (só enquanto é a voz).
 var _ducked_beds: Array[AudioStreamPlayer] = []
@@ -72,6 +80,10 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	_wind_low = _make_player("WindLow", 1.0)
 	_wind_high = _make_player("WindHigh", 0.9)
+	_shot_timer = Timer.new()
+	_shot_timer.one_shot = true
+	_shot_timer.timeout.connect(_play_shot)
+	add_child(_shot_timer)
 	_sync_streams()
 	var timer: Timer = Timer.new()
 	timer.wait_time = UPDATE_INTERVAL
@@ -187,11 +199,23 @@ func _make_player(node_name: String, pitch: float) -> AudioStreamPlayer:
 func _sync_streams() -> void:
 	if _wind_low == null:
 		return
-	var source: AudioStream = _bed_stream()
-	if source != _bed_source:
-		_bed_source = source
-		_wind_low.stream = AmbientEmitter.looping(source)
-		_wind_low.play()
+	var shots: Array[AudioStream] = _bed_shots()
+	if shots != _shots:
+		_shots = shots
+		_shot_timer.stop()
+		if not _shots.is_empty():
+			# O fundo avulso não tem loop: a camada baixa toca um som por vez.
+			_bed_source = null
+			_wind_low.stop()
+			_wind_low.stream = null
+			_schedule_shot()
+	if _shots.is_empty():
+		var source: AudioStream = _bed_stream()
+		if source != _bed_source:
+			_bed_source = source
+			_wind_low.pitch_scale = 1.0
+			_wind_low.stream = AmbientEmitter.looping(source)
+			_wind_low.play()
 	var wants_high: bool = _spec != null and _spec.backdrop != null
 	if wants_high and _wind_high.stream == null:
 		_wind_high.stream = AmbientEmitter.looping(WIND_STREAM)
@@ -200,6 +224,39 @@ func _sync_streams() -> void:
 	elif not wants_high and _wind_high.stream != null:
 		_wind_high.stop()
 		_wind_high.stream = null
+
+
+## Os sons de um fundo "avulsos" do perfil (os que carregaram). Vazio se o
+## fundo é um loop, se não há perfil ou se nenhum arquivo carregou.
+func _bed_shots() -> Array[AudioStream]:
+	var result: Array[AudioStream] = []
+	if _spec == null or _spec.ambience_bed == null or _spec.ambience_bed.kind != "avulsos":
+		return result
+	for path: String in _spec.ambience_bed.files:
+		var stream: AudioStream = load(path) as AudioStream if ResourceLoader.exists(path) else null
+		if stream != null:
+			result.append(stream)
+		else:
+			push_warning("O som %s do bioma %s não carregou." % [path, _spec.id])
+	return result
+
+
+func _schedule_shot() -> void:
+	var interval: Vector2 = _spec.ambience_bed.interval
+	_shot_timer.start(randf_range(interval.x, maxf(interval.y, interval.x + 0.01)))
+
+
+## Um som avulso, se o jogador está no bioma (longe dele, só espera o próximo).
+func _play_shot() -> void:
+	if _shots.is_empty():
+		return
+	if _weight > 0.0:
+		var pitch: Vector2 = _spec.ambience_bed.pitch_range
+		_wind_low.stream = _shots.pick_random()
+		_wind_low.pitch_scale = randf_range(pitch.x, pitch.y)
+		_wind_low.play()
+		shots_played += 1
+	_schedule_shot()
 
 
 ## O som de fundo do perfil (o primeiro arquivo); sem ele, o vento.

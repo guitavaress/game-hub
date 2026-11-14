@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="BiomeSpec" format=3]
+
+[ext_resource type="Script" path="res://profiles/ambience_spec.gd" id="1_onq3r"]
+[ext_resource type="Script" path="res://profiles/scatter_spec.gd" id="2_aaj4s"]
+[ext_resource type="Script" path="res://profiles/biome_spec.gd" id="3_wvwe0"]
+[ext_resource type="Script" path="res://profiles/weather_spec.gd" id="4_v5kfn"]
+
+[sub_resource type="Resource" id="Resource_b7i14"]
+script = ExtResource("1_onq3r")
+files = PackedStringArray("res://assets/generated/bird_chirp_1.wav", "res://assets/generated/bird_chirp_2.wav", "res://assets/generated/bird_chirp_3.wav", "res://assets/generated/bird_chirp_4.wav")
+volume_db = -16.0
+interval = Vector2(1.5, 5)
+pitch_range = Vector2(0.85, 1.25)
+
+[sub_resource type="Resource" id="Resource_qs7cj"]
+script = ExtResource("2_aaj4s")
+source = "res://assets/models/trees/forest_tree.glb"
+kind = "tree"
+density = 2.6
+height_range = Vector2(10, 16)
+collision_radius = 0.3
+walkable_clearance = 1.5
+
+[sub_resource type="Resource" id="Resource_xep0f"]
+script = ExtResource("2_aaj4s")
+source = "res://assets/models/trees/street_tree.glb"
+kind = "tree"
+density = 1.2
+height_range = Vector2(3.5, 5.5)
+collision_radius = 0.12
+walkable_clearance = 1.2
+
+[sub_resource type="Resource" id="Resource_7xalf"]
+script = ExtResource("2_aaj4s")
+source = "res://assets/polyhaven/models/moon_rock_02/moon_rock_02_1k.gltf"
+density = 0.5
+height_range = Vector2(0.5, 1.4)
+tint = Color(0.72, 0.7, 0.64, 1)
+collision_radius = 0.3
+material_folder = "Rock058"
+
+[sub_resource type="Resource" id="Resource_eobw5"]
+script = ExtResource("4_v5kfn")
+kind = "folhas"
+
+[resource]
+script = ExtResource("3_wvwe0")
+id = "floresta"
+display_name = "Floresta"
+ground_folder = "Grass001"
+ground_meters = 2.5
+ground_tint = Color(0.6, 0.66, 0.5, 1)
+ground_normal_strength = 1.2
+path_folder = "PavingStones070"
+path_tint = Color(0.62, 0.62, 0.55, 1)
+footstep = "grass"
+cover_streets = true
+shell = "arch"
+scatter = Array[ExtResource("2_aaj4s")]([SubResource("Resource_qs7cj"), SubResource("Resource_xep0f"), SubResource("Resource_7xalf")])
+snow_cover = 0.4
+weather = SubResource("Resource_eobw5")
+ambience_bed = SubResource("Resource_b7i14")
+fog_density_scale = 1.25
+fog_tint = Color(0.55, 0.68, 0.5, 1)
+fog_tint_amount = 0.22
+fog_height_density = 0.006

@@ -2,7 +2,7 @@ extends SceneTree
 ## Teste de quem MOSTRA o tempo (DistrictWeather; chuva da 19.5, tempo da
 ## cidade da 19.6). O tempo vem do WeatherDirector (check_weather_director).
 ##   1. quem tem clima: a chuva da cidade (em todo lugar menos os bairros com
-##      clima próprio) e a neve do RPG (se ele existir);
+##      clima próprio), a neve do RPG e as folhas da Aventura (19.7), se existirem;
 ##   2. com tempo limpo nada cai; com chuva, cai na praça, nas ruas e fora da
 ##      mureta, mas não no RPG (lá neva); dentro de casa não cai, e o som fica;
 ##   3. a força muda a quantidade sem reiniciar as partículas, e a forma passa
@@ -41,18 +41,33 @@ func _run() -> void:
 	var weathers: Array[Node] = city.get_children().filter(func(n: Node) -> bool: return n.get_script() == weather_script)
 	var names := weathers.map(func(n: Node) -> String: return String(n.name))
 	names.sort()
-	var has_rpg: bool = city._district_cells.has("rpg")
+	# Os bairros com clima próprio no perfil (o RPG, com a neve; a Aventura, com as folhas).
+	var own: Array[String] = []
+	for id: String in city._district_cells:
+		var profile = load("res://profiles/profiles.gd").district(id)
+		if profile != null and profile.effective_weather() != null:
+			own.append(id)
 	var expected_names: Array = ["DistrictWeather_cidade"]
-	if has_rpg:
-		expected_names = ["DistrictWeather_cidade", "DistrictWeather_rpg"]
-	_check("a chuva da cidade e a neve do RPG %s" % str(names), names == expected_names)
+	for id in own:
+		expected_names.append("DistrictWeather_%s" % id)
+	expected_names.sort()
+	_check("a chuva da cidade, a neve do RPG e as folhas da Aventura %s" % str(names), names == expected_names)
 	var weather: Node = city.get_node("DistrictWeather_cidade")
 	var snow: Node = city.get_node_or_null("DistrictWeather_rpg")
-	_check("a cidade mostra chuva; o RPG, neve", weather.current_kind() == "garoa"
-			and (snow == null or snow.current_kind() == "neve"))
+	var leaves: Node = city.get_node_or_null("DistrictWeather_aventura")
+	_check("a cidade mostra chuva; o RPG, neve; a Aventura, folhas", weather.current_kind() == "garoa"
+			and (snow == null or snow.current_kind() == "neve")
+			and (leaves == null or leaves.current_kind() == "folhas"))
 	var map: Node = get_first_node_in_group("world_map")
-	_check("a chuva da cidade vale em todo lugar, menos no RPG", weather.areas.is_empty()
-			and (snow == null or weather.exclude == snow.areas))
+	var own_areas := 0
+	var all_out := true
+	for id in own:
+		var areas: Array = city.get_node("DistrictWeather_%s" % id).areas
+		own_areas += areas.size()
+		for area: Rect2 in areas:
+			all_out = all_out and weather.exclude.has(area)
+	_check("a chuva da cidade vale em todo lugar, menos nos bairros com clima próprio", weather.areas.is_empty()
+			and weather.exclude.size() == own_areas and all_out)
 	_check("o perfil do bairro ficou sem a garoa (mostra a da cidade)",
 			load("res://profiles/profiles.gd").district("sobrevivencia").effective_weather() == null)
 
@@ -61,7 +76,7 @@ func _run() -> void:
 	var plaza := Vector3(4.0, 1.0, 4.0)
 	var outside := Vector3(bounds.end.x + 200.0, 1.0, bounds.end.y + 200.0)
 	# Uma zona de um bairro sem clima próprio (lá chove a chuva da cidade).
-	var district_zone: Rect2 = map.zone_rects(_first_other_district(map, "rpg"))[0]
+	var district_zone: Rect2 = map.zone_rects(_first_other_district(map, own))[0]
 	var street := Vector3(district_zone.get_center().x, 1.0, district_zone.get_center().y)
 
 	print("== tempo limpo: nada cai ==")
@@ -156,11 +171,11 @@ func _run() -> void:
 	quit()
 
 
-static func _first_other_district(map: Node, skip: String) -> String:
+static func _first_other_district(map: Node, skip: Array[String]) -> String:
 	for area: Dictionary in map.get_map_data()["areas"]:
-		if area["id"] != skip:
+		if not skip.has(area["id"]):
 			return area["id"]
-	return skip
+	return ""
 
 
 ## O chão e o céu são da cidade toda: o tempo molha e fecha; o limpo devolve.

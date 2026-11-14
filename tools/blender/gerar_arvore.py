@@ -2,6 +2,7 @@
 # uma função por espécie.
 #   pinheiro  o abeto do bairro do RPG (e da vista da cabana): pine.glb
 #   rua       a árvore de folha larga das floreiras e da praça: street_tree.glb
+#   floresta  a folhosa alta do bioma da floresta (a Aventura, 19.7): forest_tree.glb
 #
 #   blender --background --factory-startup --python tools/blender/gerar_arvore.py \
 #       [-- <espécie> [saida.glb] [pasta das prévias]]
@@ -17,8 +18,8 @@
 #           abeto (feito aqui mesmo, de agulhas de verdade, e fotografado de
 #           cima com fundo transparente). A cor dos vértices escurece o miolo
 #           da copa (a sombra de dentro), e a Godot multiplica pela textura.
-# A origem é o pé do tronco, no chão; o pinheiro tem ALTURA m e a árvore de
-# rua, RUA_ALTURA m. O vento, a
+# A origem é o pé do tronco, no chão; o pinheiro tem ALTURA m, a árvore de
+# rua, RUA_ALTURA m, e a da floresta, FLO_ALTURA m. O vento, a
 # troca pela impostora de longe e a escala de cada cópia ficam na Godot
 # (worlds/city/tree_model.gd e tree_model.gdshader).
 
@@ -581,11 +582,29 @@ def rua_raio(z):
     return RUA_RAIO_BASE * (1.0 - 0.28 * t + forquilha)
 
 
-def ate_a_copa(p, d):
-    """Quanto falta (m) de p, na direção d, até a casca da copa (o elipsoide).
-    0 se p já está fora e d aponta para fora."""
-    c = Vector((0.0, 0.0, RUA_COPA_CENTRO))
-    s = Vector((1.0 / RUA_COPA_RAIO, 1.0 / RUA_COPA_RAIO, 1.0 / RUA_COPA_METADE))
+class Copa:
+    """A casca da copa: um elipsoide (centro na altura "centro", "raio" para os
+    lados e "metade" do meio até o alto). Com "ondas" > 0 (19.7), a casca tem
+    calombos (o raio muda com a direção, por um ruído): a copa da floresta é
+    feita de "nuvens" de folhas, e não de um ovo liso."""
+
+    def __init__(self, centro, raio, metade, ondas=0.0, semente=0.0):
+        self.centro = Vector((0.0, 0.0, centro))
+        self.raio = raio
+        self.metade = metade
+        self.ondas = ondas
+        self.semente = semente
+
+    def calombo(self, q):
+        """O quanto a casca sai (> 1) ou entra (< 1) na direção q (já no espaço
+        do elipsoide, onde a casca lisa é a esfera de raio 1)."""
+        if self.ondas <= 0.0 or q.length < 1e-6:
+            return 1.0
+        n = q.normalized() * 1.7 + Vector((self.semente, 0.0, 0.0))
+        return 1.0 + self.ondas * noise.noise(n)
+
+
+def _ate_o_elipsoide(p, d, c, s):
     q = (p - c) * s
     e = d * s
     a = e.dot(e)
@@ -597,19 +616,38 @@ def ate_a_copa(p, d):
     return max(0.0, (-b + math.sqrt(disc)) / (2.0 * a))
 
 
-def dentro_da_copa(p):
+def ate_a_copa(p, d, copa=None):
+    """Quanto falta (m) de p, na direção d, até a casca da copa (o elipsoide).
+    0 se p já está fora e d aponta para fora."""
+    copa = copa or COPA_RUA
+    s = Vector((1.0 / copa.raio, 1.0 / copa.raio, 1.0 / copa.metade))
+    t = _ate_o_elipsoide(p, d, copa.centro, s)
+    if copa.ondas <= 0.0:
+        return t
+    # Com calombos: o raio da casca na direção em que o galho chega a ela.
+    f = copa.calombo((p + d * t - copa.centro) * s)
+    return _ate_o_elipsoide(p, d, copa.centro, s / f)
+
+
+def dentro_da_copa(p, copa=None):
     """0 no meio da copa, 1 na casca dela (pode passar de 1 fora)."""
-    q = p - Vector((0.0, 0.0, RUA_COPA_CENTRO))
-    return math.sqrt((q.x / RUA_COPA_RAIO) ** 2 + (q.y / RUA_COPA_RAIO) ** 2 + (q.z / RUA_COPA_METADE) ** 2)
+    copa = copa or COPA_RUA
+    q = p - copa.centro
+    q = Vector((q.x / copa.raio, q.y / copa.raio, q.z / copa.metade))
+    return q.length / copa.calombo(q)
 
 
-def para_fora(p):
+def para_fora(p, copa=None):
     """A direção para fora da copa em p (a normal do elipsoide que passa por p)."""
-    q = p - Vector((0.0, 0.0, RUA_COPA_CENTRO))
-    n = Vector((q.x / RUA_COPA_RAIO ** 2, q.y / RUA_COPA_RAIO ** 2, q.z / RUA_COPA_METADE ** 2))
+    copa = copa or COPA_RUA
+    q = p - copa.centro
+    n = Vector((q.x / copa.raio ** 2, q.y / copa.raio ** 2, q.z / copa.metade ** 2))
     if n.length < 1e-4:
         return Vector((0.0, 0.0, 1.0))
     return n.normalized()
+
+
+COPA_RUA = Copa(RUA_COPA_CENTRO, RUA_COPA_RAIO, RUA_COPA_METADE)
 
 
 def curva_de_galho(inicio, direcao, comprimento, rnd, subir, pontos=5):
@@ -644,10 +682,29 @@ def direcao_ao_longo(linha, t):
     return linha[-1], (linha[-1] - linha[-2]).normalized()
 
 
-def galhos_rua(semente=5):
+class Forma:
+    """As medidas que mudam de uma árvore de folha larga para outra (19.7: a
+    de rua e a da floresta usam as mesmas funções). Os nomes:
+      copa      a casca da copa (Copa)
+      tronco    m, onde o tronco abre nos galhos; raio_base, eixo e raio: o tronco
+      casca     m de tronco por volta da textura da casca
+      galhos    quantos galhos grossos; saida: onde nascem (m, em volta de "tronco")
+      sobe      graus acima do chão com que saem; alcance: quanto da distância
+                até a casca da copa eles andam; grosso: o raio deles (x raio_base)
+      filhos    quantos ramos cada nível dá; maximo: o comprimento máximo (m)
+                dos ramos (nível 1) e dos raminhos (nível 2)
+      lider     quanto da distância até o alto da copa o galho do meio anda"""
+
+    def __init__(self, **valores):
+        self.__dict__.update(valores)
+
+
+def galhos_rua(semente=5, forma=None):
     """Os galhos da árvore de rua: cinco grossos e um "líder" no meio; cada um
     dá ramos e cada ramo dá raminhos, todos até perto da casca da copa.
-    Devolve (bmesh, lista de [linha, nível]) para as folhas."""
+    Devolve (bmesh, lista de [linha, nível]) para as folhas. "forma" (19.7):
+    as medidas de outra espécie de folha larga (sem ela, a de rua)."""
+    f_ = forma or FORMA_RUA
     rnd = random.Random(semente)
     bm = bmesh.new()
     bm.loops.layers.uv.new("gA")
@@ -658,7 +715,7 @@ def galhos_rua(semente=5):
     def ramificar(linha, raio, nivel):
         if nivel > 3:
             return
-        quantos = (0, 5, 4, 0)[nivel]
+        quantos = f_.filhos[nivel]
         lado_alterna = rnd.choice((-1.0, 1.0))
         for k in range(quantos):
             t = 0.25 + 0.7 * (k + rnd.uniform(0.2, 0.8)) / quantos
@@ -672,40 +729,40 @@ def galhos_rua(semente=5):
             abre = math.radians(rnd.uniform(35.0, 60.0))
             dn = (d * math.cos(abre) + (giro @ lado) * lado_alterna * math.sin(abre)
                   + Vector((0.0, 0.0, 0.25))).normalized()
-            falta = ate_a_copa(p, dn)
-            comprimento = min(falta * rnd.uniform(0.75, 0.95), (1.7, 0.9)[nivel - 1])
+            falta = ate_a_copa(p, dn, f_.copa)
+            comprimento = min(falta * rnd.uniform(0.75, 0.95), f_.maximo[nivel - 1])
             if comprimento < 0.2:
                 continue
             filho = curva_de_galho(p, dn, comprimento, rnd, 0.15, 4 if nivel == 1 else 3)
             r = raio * (0.5 + 0.1 * (1.0 - t))
             raios = [r * (1.0 - 0.75 * i / (len(filho) - 1)) for i in range(len(filho))]
             tubo_por(bm, filho, raios, 5 if nivel == 1 else 4,
-                     (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+                     (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), f_.casca)
             lista.append((filho, nivel + 1))
             ramificar(filho, r, nivel + 1)
 
     giro = rnd.uniform(0, math.tau)
-    quantos = 5
+    quantos = f_.galhos
     for k in range(quantos):
         a = giro + math.tau * k / quantos + rnd.uniform(-0.25, 0.25)
-        z0 = RUA_TRONCO + rnd.uniform(-0.12, 0.3)
-        sobe = math.radians(rnd.uniform(38.0, 55.0))
+        z0 = f_.tronco + rnd.uniform(*f_.saida)
+        sobe = math.radians(rnd.uniform(*f_.sobe))
         d = Vector((math.cos(a) * math.cos(sobe), math.sin(a) * math.cos(sobe), math.sin(sobe)))
-        inicio = rua_eixo(z0) + Vector((math.cos(a), math.sin(a), 0.0)) * rua_raio(z0) * 0.4
-        comprimento = ate_a_copa(inicio, d) * rnd.uniform(0.7, 0.82)
+        inicio = f_.eixo(z0) + Vector((math.cos(a), math.sin(a), 0.0)) * f_.raio(z0) * 0.4
+        comprimento = ate_a_copa(inicio, d, f_.copa) * rnd.uniform(*f_.alcance)
         linha = curva_de_galho(inicio, d, comprimento, rnd, 0.2)
-        raio = RUA_RAIO_BASE * rnd.uniform(0.5, 0.6)
+        raio = f_.raio_base * rnd.uniform(*f_.grosso)
         raios = [raio * (1.0 - 0.7 * i / (len(linha) - 1)) for i in range(len(linha))]
-        tubo_por(bm, linha, raios, 6, (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+        tubo_por(bm, linha, raios, 6, (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), f_.casca)
         lista.append((linha, 1))
         ramificar(linha, raio, 1)
     # O líder: sobe pelo meio da copa.
-    inicio = rua_eixo(RUA_TRONCO - 0.1)
+    inicio = f_.eixo(f_.tronco - 0.1)
     d = Vector((rnd.uniform(-0.1, 0.1), rnd.uniform(-0.1, 0.1), 1.0)).normalized()
-    linha = curva_de_galho(inicio, d, ate_a_copa(inicio, d) * 0.72, rnd, 0.0)
-    raio = RUA_RAIO_BASE * 0.55
+    linha = curva_de_galho(inicio, d, ate_a_copa(inicio, d, f_.copa) * f_.lider, rnd, 0.0)
+    raio = f_.raio_base * 0.55
     tubo_por(bm, linha, [raio * (1.0 - 0.75 * i / (len(linha) - 1)) for i in range(len(linha))], 6,
-             (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+             (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), f_.casca)
     lista.append((linha, 1))
     ramificar(linha, raio, 1)
     for f in bm.faces:
@@ -722,12 +779,19 @@ def tronco_rua(semente=8):
                            semente, 12, raizes=(0.2, 0.2, 0.55), escala_veio=0.9)
 
 
-def raminho_folhoso(bm_por_cor, centro_y, semente):
+FORMA_RUA = Forma(copa=COPA_RUA, tronco=RUA_TRONCO, raio_base=RUA_RAIO_BASE, eixo=rua_eixo,
+                  raio=rua_raio, casca=RUA_CASCA_METROS, galhos=5, saida=(-0.12, 0.3),
+                  sobe=(38.0, 55.0), alcance=(0.7, 0.82), grosso=(0.5, 0.6),
+                  filhos=(0, 5, 4, 0), maximo=(1.7, 0.9), lider=0.72)
+
+
+def raminho_folhoso(bm_por_cor, centro_y, semente, escala_folha=1.0, folhas_por_ramo=12):
     """Um raminho de folhas largas, chato, com a base em x = 0 e a ponta em
     x = 1 (a foto cobre y de centro_y - 0,25 a centro_y + 0,25). As folhas
     alternam dos dois lados, cada uma num talinho; perto da base saem dois ou
     três raminhos de lado. bm_por_cor: os tons das folhas, do mais escuro ao
-    mais claro, e por último o do talo."""
+    mais claro, e por último o do talo. 19.7: "escala_folha" muda o tamanho das
+    folhas e "folhas_por_ramo", quantas (a floresta: folhas menores e mais juntas)."""
     rnd = random.Random(semente)
     tons = len(bm_por_cor) - 1
     talo = bm_por_cor[-1]
@@ -777,7 +841,7 @@ def raminho_folhoso(bm_por_cor, centro_y, semente):
             talo.faces.new([talo.verts.new(q + Vector((0.0, 0.0, z))) for q in (pa - lado, pa + lado, pb + lado, pb - lado)])
         # As folhas: alternadas, a cada ~1/12 do ramo, maiores no meio.
         lado_s = rnd.choice((-1.0, 1.0))
-        cada = max(1, len(linha) // 12)
+        cada = max(1, len(linha) // folhas_por_ramo)
         for i in range(1, len(linha)):
             if i % cada:
                 continue
@@ -807,7 +871,7 @@ def raminho_folhoso(bm_por_cor, centro_y, semente):
         return linha
 
     principal = ramo(Vector((0.015, centro_y + rnd.uniform(-0.02, 0.02), 0.0)),
-                     Vector((1.0, rnd.uniform(-0.05, 0.05), 0.0)), 0.95, 0.0055, 0.13, 0.0)
+                     Vector((1.0, rnd.uniform(-0.05, 0.05), 0.0)), 0.95, 0.0055, 0.13 * escala_folha, 0.0)
     # Os raminhos de lado (atrás do principal: z mais baixo), alternados.
     lado_s = rnd.choice((-1.0, 1.0))
     for k in range(6):
@@ -817,27 +881,31 @@ def raminho_folhoso(bm_por_cor, centro_y, semente):
         lado_s = -lado_s
         ang = math.radians(rnd.uniform(30.0, 45.0))
         dn = (d * math.cos(ang) + Vector((-d.y, d.x, 0.0)) * lado_s * math.sin(ang)).normalized()
-        ramo(p, dn, rnd.uniform(0.32, 0.45) * (1.0 - 0.1 * k), 0.0035, 0.11, -0.012)
+        ramo(p, dn, rnd.uniform(0.32, 0.45) * (1.0 - 0.1 * k), 0.0035, 0.11 * escala_folha, -0.012)
 
 
-def textura_de_folhas():
-    """Fotografa dois raminhos de folhas (um em cada metade da foto) e devolve
-    a imagem (RGBA, com a cor espalhada por baixo do transparente)."""
-    # Os tons (cor linear): verdes de folha de rua, um pouco puxados para o
-    # oliva (de dia, a copa não fica verde-limão); e o talo.
-    tons = [(0.022, 0.036, 0.014), (0.028, 0.046, 0.017), (0.036, 0.057, 0.02),
+# Os tons (cor linear) das folhas de rua: verdes um pouco puxados para o oliva
+# (de dia, a copa não fica verde-limão); e o talo.
+TONS_RUA = [(0.022, 0.036, 0.014), (0.028, 0.046, 0.017), (0.036, 0.057, 0.02),
             (0.045, 0.068, 0.023), (0.056, 0.08, 0.027), (0.07, 0.094, 0.032),
             (0.085, 0.108, 0.04), (0.06, 0.045, 0.028)]
+
+
+def textura_de_folhas(tons=TONS_RUA, sementes=(41, 58), foto=RUA_FOTO, escala_folha=1.0,
+                      folhas_por_ramo=12):
+    """Fotografa dois raminhos de folhas (um em cada metade da foto) e devolve
+    a imagem (RGBA, com a cor espalhada por baixo do transparente). Sem
+    argumentos, a da árvore de rua."""
     bms = [bmesh.new() for _ in tons]
-    raminho_folhoso(bms, -0.25, 41)
-    raminho_folhoso(bms, 0.25, 58)
+    raminho_folhoso(bms, -0.25, sementes[0], escala_folha, folhas_por_ramo)
+    raminho_folhoso(bms, 0.25, sementes[1], escala_folha, folhas_por_ramo)
     objetos = []
     for i, (bm, cor) in enumerate(zip(bms, tons)):
         ob = comum.objeto("folhas%d" % i, bm)
         ob.data.materials.append(material_emissao("tom_folha%d" % i, cor))
         objetos.append(ob)
     pasta = tempfile.mkdtemp(prefix="arvore_")
-    caminho = comum.foto_de_cima(objetos, os.path.join(pasta, "folhas.png"), RUA_FOTO, RUA_FOTO, 1.0, (0.5, 0.0))
+    caminho = comum.foto_de_cima(objetos, os.path.join(pasta, "folhas.png"), foto, foto, 1.0, (0.5, 0.0))
     for ob in objetos:
         bpy.data.objects.remove(ob)
     img = bpy.data.images.load(caminho)
@@ -847,9 +915,11 @@ def textura_de_folhas():
     return img
 
 
-def folhas_rua(lista, semente=29):
+def folhas_rua(lista, semente=29, copa=None, cartoes=(0.7, 1.0)):
     """Os cartões de folhas: nas pontas dos ramos e raminhos, virados para
-    fora da copa (e um pouco para cima), com a ponta caída."""
+    fora da copa (e um pouco para cima), com a ponta caída. 19.7: "copa" e o
+    tamanho dos "cartoes" (m) de outra espécie (sem eles, a de rua)."""
+    copa = copa or COPA_RUA
     rnd = random.Random(semente)
     bm = bmesh.new()
     bm.loops.layers.uv.new("bake")
@@ -857,8 +927,8 @@ def folhas_rua(lista, semente=29):
 
     def cor_de(p):
         # O miolo da copa e a parte de baixo ficam na sombra; a casca de fora, clara.
-        fora = max(0.0, min(1.0, dentro_da_copa(p)))
-        alto = max(0.0, min(1.0, (p.z - (RUA_COPA_CENTRO - RUA_COPA_METADE)) / (2.0 * RUA_COPA_METADE)))
+        fora = max(0.0, min(1.0, dentro_da_copa(p, copa)))
+        alto = max(0.0, min(1.0, (p.z - (copa.centro.z - copa.metade)) / (2.0 * copa.metade)))
         v = (0.34 + 0.66 * fora ** 1.3) * (0.78 + 0.22 * alto)
         return (v, v, v * 0.96)
 
@@ -871,7 +941,7 @@ def folhas_rua(lista, semente=29):
         for t in posicoes:
             p, d = direcao_ao_longo(linha, t)
             for k in range(2):
-                fora = para_fora(p)
+                fora = para_fora(p, copa)
                 normal = (fora * 0.65 + Vector((0.0, 0.0, 0.45))
                           + Vector((rnd.uniform(-0.5, 0.5), rnd.uniform(-0.5, 0.5), rnd.uniform(-0.3, 0.3)))).normalized()
                 # Ao longo do raminho (no plano do cartão), girado ao acaso.
@@ -879,7 +949,7 @@ def folhas_rua(lista, semente=29):
                 if ao_longo.length < 0.05:
                     ao_longo = normal.orthogonal()
                 ao_longo = Matrix.Rotation(rnd.uniform(-1.0, 1.0), 3, normal) @ ao_longo.normalized()
-                c = rnd.uniform(0.7, 1.0)
+                c = rnd.uniform(*cartoes)
                 cartao(bm, cor, p - ao_longo * c * 0.35 + normal * rnd.uniform(-0.08, 0.08), ao_longo,
                        normal, c, rnd.randint(0, 1), c * 0.12, cor_de, 2 if k == 0 else 1)
     bm.normal_update()
@@ -898,6 +968,74 @@ def arvore_de_rua(saida, previas):
     comum.exportar_com_alfa([bark, leaves], saida)
     if previas:
         previa(bark, leaves, previas, "rua", RUA_ALTURA)
+
+
+# --- A árvore da floresta (19.7) ----------------------------------------------------
+# A árvore do bioma da floresta (a Aventura): uma folhosa alta de mata, como um
+# carvalho ou uma faia crescidos no meio de outras árvores. Diferente da de
+# rua: o tronco é alto e limpo (a copa começa acima de 4 m, e passa por cima de
+# quem anda), os galhos grossos saem em alturas diferentes (e não de uma
+# forquilha só), a copa é grande e irregular (os "calombos" da Copa), e as
+# folhas são menores, mais juntas e de um verde mais fundo, de sombra de mata.
+# Usa as mesmas funções da árvore de rua, com outra Forma.
+
+FLO_ALTURA = 13.0         # m, do chão ao alto da copa
+FLO_TRONCO = 3.9          # m, onde saem os primeiros galhos grossos
+FLO_RAIO_BASE = 0.24      # m, o tronco logo acima das raízes
+FLO_TOPO = 6.9            # m, onde o tronco acaba (o líder segue dali)
+# m de tronco por volta da textura da casca (o tronco de 6,9 m dá duas voltas).
+FLO_CASCA_METROS = 3.5
+COPA_FLORESTA = Copa(8.2, 4.3, 4.8, ondas=0.2, semente=3.7)
+# Verde de mata (cor linear): mais escuro e mais frio que o da rua, com um
+# broto mais claro, puxado para o amarelo; e o talo.
+TONS_FLORESTA = [(0.013, 0.028, 0.010), (0.018, 0.037, 0.012), (0.024, 0.048, 0.015),
+                 (0.031, 0.059, 0.018), (0.040, 0.071, 0.021), (0.053, 0.086, 0.025),
+                 (0.074, 0.103, 0.030), (0.05, 0.038, 0.024)]
+
+
+def flo_eixo(z):
+    """O meio do tronco: sobe com uma inclinação leve (a árvore de mata
+    procura a luz), sem ser torta."""
+    t = z / FLO_TOPO
+    return Vector((0.16 * noise.noise(Vector((t * 1.2, 4.0, 0.0))) * t,
+                   0.16 * noise.noise(Vector((t * 1.2, 12.0, 0.0))) * t, z))
+
+
+def flo_raio(z):
+    """O tronco afina devagar até a altura dos galhos e engrossa um pouco onde
+    eles saem."""
+    t = max(0.0, min(1.0, z / FLO_TOPO))
+    nos = math.exp(-((z - FLO_TRONCO - 0.6) / 0.9) ** 2) * 0.12
+    return FLO_RAIO_BASE * (1.0 - 0.45 * t + nos)
+
+
+def tronco_floresta(semente=13):
+    """O tronco alto da árvore da floresta, até um pouco acima dos últimos galhos."""
+    alturas = [-0.15, 0.0, 0.07, 0.16, 0.3, 0.5, 0.85, 1.3, 1.9, 2.6, 3.3, 3.9, 4.4, 4.9,
+               5.4, 5.9, 6.4]
+    return tronco_generico(alturas, flo_eixo, flo_raio, flo_eixo(FLO_TOPO), FLO_CASCA_METROS,
+                           semente, 12, raizes=(0.35, 0.3, 0.8), escala_veio=1.1)
+
+
+FORMA_FLORESTA = Forma(copa=COPA_FLORESTA, tronco=FLO_TRONCO, raio_base=FLO_RAIO_BASE, eixo=flo_eixo,
+                       raio=flo_raio, casca=FLO_CASCA_METROS, galhos=8, saida=(-0.1, 2.6),
+                       sobe=(14.0, 46.0), alcance=(0.82, 0.95), grosso=(0.42, 0.52),
+                       filhos=(0, 6, 4, 0), maximo=(2.9, 1.3), lider=0.8)
+
+
+def arvore_da_floresta(saida, previas):
+    comum.iniciar()
+    img_folhas = textura_de_folhas(TONS_FLORESTA, (63, 77), RUA_FOTO, escala_folha=0.8,
+                                   folhas_por_ramo=15)
+    galhos_bm, lista = galhos_rua(19, FORMA_FLORESTA)
+    # Casca de mata: marrom-acinzentada e mais funda que a da rua (as placas do carvalho).
+    bark = casca_assada(tronco_floresta(), galhos_bm, (0.1, 0.066, 0.04), (0.03, 0.019, 0.011), 0.03,
+                        256, 512, raio_chao=5.0)
+    leaves = comum.objeto("leaves", folhas_rua(lista, 31, COPA_FLORESTA, (0.95, 1.35)))
+    leaves.data.materials.append(material_folhas(img_folhas))
+    comum.exportar_com_alfa([bark, leaves], saida)
+    if previas:
+        previa(bark, leaves, previas, "floresta", FLO_ALTURA)
 
 
 # --- A prévia ---------------------------------------------------------------------
@@ -949,8 +1087,8 @@ def previa(bark, leaves, pasta, nome, altura):
         bpy.ops.render.render(write_still=True)
 
 
-ESPECIES = {"pinheiro": pinheiro, "rua": arvore_de_rua}
-ARQUIVOS = {"pinheiro": "pine", "rua": "street_tree"}
+ESPECIES = {"pinheiro": pinheiro, "rua": arvore_de_rua, "floresta": arvore_da_floresta}
+ARQUIVOS = {"pinheiro": "pine", "rua": "street_tree", "floresta": "forest_tree"}
 
 
 def main():
