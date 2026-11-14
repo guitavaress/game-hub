@@ -122,6 +122,14 @@ func _check_component() -> void:
 	_check("cada retrato teve o próprio quadro, sempre em UPDATE_ONCE",
 			_seen.size() == 3 and _seen.all(func(seen: Dictionary) -> bool: return seen["mode"] == SubViewport.UPDATE_ONCE))
 
+	print("== um momento novo do dia, na mesma fase (revisão da 19.4) ==")
+	view.on_world_changed()
+	await _frames(3)
+	_check("o mundo mudou: o retrato é refeito uma vez, na mesma fase",
+			view.capture_count == 4 and view.get_phase() == view.Phase.DAY and _seen.size() == 4)
+	_check("e se funde no anterior", float(material.get_shader_parameter("view_blend")) < 1.0)
+	await create_timer(view.CROSSFADE_SECONDS + 0.3).timeout
+
 	print("== o enquadramento de quem usa a janela (17.9.2) ==")
 	var plain: Dictionary = _seen[0]
 	var before: int = view.capture_count

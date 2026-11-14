@@ -7,7 +7,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 ## Agora
 - **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), na branch `fase-19`: árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Última subetapa feita:** 19.4 (2026-11-14, `14ad992`): o dia em gradiente. Nascer do sol rosado (6h30), manhã fria e limpa (8h30), o meio-dia de antes (11h às 14h30), tarde dourada (16h15), pôr do sol e noite, sem pulo de luz. O F8 passa as 3 horas em 2 segundos. As 13 e as 22 h ficaram como antes. As capturas estão em `C:\Projetos\game-hub-referencias\fase-19\19.4\`.
-  - **Pendente da 19.4:** a revisão do segundo Opus; e a janela da casa, que ainda não acompanha manhã e tarde (refaz o retrato só na troca dia, pôr do sol e noite).
+  - **Revisão da 19.4:** nada grave. A janela da casa agora acompanha cada momento do dia (manhã, tarde...); corrigido, com teste. Falta você medir o F8 das 16 às 19 h com o F3 aberto (veja o plano).
   - **Próxima subetapa:** a 19.5, a chuva nova (amostra, para você aprovar).
   - **Teste do modelo grátis (OpenCode):** reprovado na 19.11; ela passa ao Sonnet. Outro modelo grátis será testado mais adiante, numa subetapa pequena.
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).

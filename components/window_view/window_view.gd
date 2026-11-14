@@ -140,6 +140,13 @@ func on_point_changed() -> void:
 	_refresh()
 
 
+## O mundo lá fora mudou sem trocar a fase (um momento novo do dia, como a
+## manhã e a tarde): o retrato é refeito e se funde no anterior. Quem chama é o
+## mundo, pelo grupo GROUP. Pedidos no meio de uma captura se juntam num só.
+func on_world_changed() -> void:
+	_refresh(true)
+
+
 static func phase_of(night: float) -> int:
 	if night >= NIGHT_FROM:
 		return Phase.NIGHT

@@ -5,8 +5,9 @@ extends SceneTree
 ##   godot --headless --path . -s res://tools/gerar_ciclo_do_dia.gd
 ##   godot --headless --path . -s res://tools/gerar_ciclo_do_dia.gd -- --refazer
 ##
-## Sem argumento, só grava se o arquivo ainda NÃO existe (ele pode ter sido
-## afinado no Inspector). Para regravar de propósito, passe --refazer.
+## Sem argumento, só grava se o arquivo ainda NÃO existe. Para regravar de
+## propósito, passe --refazer. Afinar é aqui, e não no Inspector: o
+## check_day_cycle confere que o arquivo é o que este gerador faz.
 ##
 ## O ponto de partida é o dia de hoje: hoje(hora) refaz a conta do DayNight
 ## até a Fase 19.3 (três estados: dia, pôr do sol e noite). Os momentos que já

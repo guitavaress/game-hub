@@ -39,7 +39,7 @@ func _run() -> void:
 	var generated: DayCycleSpec = generator.ciclo()
 	var same: bool = generated.moments.size() == cycle.moments.size()
 	for i: int in mini(generated.moments.size(), cycle.moments.size()):
-		same = same and _differences(generated.moments[i], cycle.moments[i]).is_empty()
+		same = same and _differences(generated.moments[i], cycle.moments[i]).is_empty() 				and generated.moments[i].id == cycle.moments[i].id 				and is_equal_approx(generated.moments[i].hour, cycle.moments[i].hour) 				and is_equal_approx(generated.moments[i].hold_hours, cycle.moments[i].hold_hours)
 	_check("o arquivo é o que o gerador faz (regerar dá o mesmo dado)", same)
 	_check("Profiles.day_cycle() lê o mesmo arquivo", Profiles.day_cycle().moments.size() == cycle.moments.size())
 
@@ -124,6 +124,8 @@ func _check_applied(clock_script: GDScript, cycle: DayCycleSpec) -> void:
 	var east_at_dawn: bool = true
 	var nights: Array[float] = []
 	clock.night_changed.connect(func(night: float) -> void: nights.append(night))
+	var moments_seen: Array[String] = []
+	clock.moment_changed.connect(func(id: String) -> void: moments_seen.append(id))
 	for minute: int in 24 * 60 + 1:
 		var hour: float = minute / 60.0
 		clock.apply_hour(hour)
@@ -155,6 +157,14 @@ func _check_applied(clock_script: GDScript, cycle: DayCycleSpec) -> void:
 	# valor pode ficar a um passo do 0 ou do 1.
 	_check("o aviso de noite ainda chega (night_changed: de 0 a 1)", nights.size() > 10
 			and float(nights.min()) < 0.01 and float(nights.max()) > 0.99)
+	# Revisão da 19.4: o aviso de momento novo (a janela da casa refaz o retrato).
+	# A primeira hora (0h) não avisa; a volta das 24h cai de novo na madrugada.
+	var expected: Array[String] = []
+	for moment: DayMoment in cycle.moments:
+		if moment.id != cycle.moment_at(0.0).id:
+			expected.append(moment.id)
+	expected.append(cycle.moment_at(0.0).id)
+	_check("um aviso por momento novo, em ordem (%s)" % ", ".join(moments_seen), moments_seen == expected)
 	clock.apply_hour(13.0)
 	_check("13h no céu de fotos: tom branco, sol e ambiente do meio-dia",
 			(sky.get_shader_parameter("tint") as Color).is_equal_approx(Color.WHITE)

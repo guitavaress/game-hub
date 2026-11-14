@@ -27,6 +27,10 @@ extends Node
 signal night_changed(night: float)
 ## O relógio da cidade foi adiantado com F8 (hora nova, de 0 a 24).
 signal clock_advanced(hour: float)
+## Entrou um momento novo do dia (o id do day_cycle.tres, ex.: "tarde"). Não
+## sai na primeira hora aplicada, só nas trocas (revisão da 19.4: a janela da
+## casa refaz o retrato da cidade).
+signal moment_changed(id: String)
 
 const UPDATE_INTERVAL: float = 1.0
 const HOURS_PER_F8: float = 3.0
@@ -97,6 +101,8 @@ var hour_offset: float = 0.0:
 var sunset_glow_u: float = 0.5
 
 var _night: float = -1.0
+## O id do momento da última hora aplicada ("" antes da primeira).
+var _moment_id: String = ""
 ## A passagem do F8 (veja advance_clock): o deslocamento sem dar a volta nas
 ## 24 h, até onde ele vai, e se é a própria passagem que mexe no hour_offset.
 var _advance_tween: Tween
@@ -235,6 +241,13 @@ func apply_hour(hour: float) -> void:
 	if absf(night - _night) > 0.005:
 		_night = night
 		night_changed.emit(night)
+
+	var id := get_cycle().moment_at(hour).id
+	if id != _moment_id:
+		var first := _moment_id.is_empty()
+		_moment_id = id
+		if not first:
+			moment_changed.emit(id)
 
 
 ## O céu de fotos: mistura as três fotos e move o sol (ou a "lua") à mão.

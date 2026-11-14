@@ -230,6 +230,10 @@ func _ready() -> void:
 	# Postes e janelas (grupo "city_night") acendem conforme a hora.
 	_day_night.night_changed.connect(_on_night_changed)
 	_on_night_changed(_day_night.get_night())
+	# A janela da casa refaz o retrato a cada momento novo do dia (revisão da
+	# 19.4: sem isso, ela ficava com o retrato da manhã até o pôr do sol).
+	_day_night.moment_changed.connect(func(_id: String) -> void:
+		get_tree().call_group_flags(SceneTree.GROUP_CALL_DEFERRED, WindowView.GROUP, &"on_world_changed"))
 
 	if play_intro:
 		# A cidade lá fora está pronta: a porta da rua destranca.
