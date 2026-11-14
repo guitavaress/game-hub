@@ -82,7 +82,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** um bioma novo é um perfil novo, e dá para ver um bairro maior que outro pelas horas jogadas.
 
-**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1 a 19.6 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe; o dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo; a chuva nova, em camadas, aprovada pelo dono em 2026-11-14; o tempo muda sozinho na cidade toda, com a opção "Clima" no menu). A revisão de risco da 19.6 foi feita e corrigida. Depois vem a 19.7, a floresta.
+**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1 a 19.6 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe; o dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo; a chuva nova, em camadas, aprovada pelo dono em 2026-11-14; o tempo muda sozinho na cidade toda, com a opção "Clima" no menu). A revisão de risco da 19.6 foi feita e corrigida. A 19.9 (o bairro que você mais joga ocupa mais terreno) foi adiantada e está feita, esperando a revisão de risco. Depois vem a 19.7, a floresta.
 
 ### 4. Visitar amigos
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**: avatar próprio, espelho, voz, sala de encontro e uma rede simples. Substitui a "visita sem servidor" de antes.
