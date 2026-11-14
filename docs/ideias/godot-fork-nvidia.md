@@ -6,6 +6,8 @@ data: "2026-11-14"
 ---
 
 ## Resumo para o dono
+> Escrito pelo modelo grátis (`omniroute/free-reasoning`, OpenCode) e revisado pelo Opus em 2026-11-14. Os fatos do fork (versões do DLSS, tamanhos, data do último commit) vêm das fontes do fim da nota e **têm de ser conferidos de novo no dia do spike**. É uma ideia: só vira trabalho se entrar na ROADMAP como fase.
+
 O fork da NVIDIA (NVIDIA-RTX/godot, branch `nvidia-pt-dlss`) adiciona **path tracing em tempo real** + **DLSS 4.5** (Super Sampling, Frame Generation, DLAA, Ray Reconstruction) ao Godot 4.x. O hub ganharia iluminação global realista, reflexos e sombras fisicamente corretos sem baking — o "uau" visual que falta. Custo do teste: uma branch spike, compilar ou baixar binário (~120 MB Windows, ~80 MB Linux), rodar a bateria e as ferramentas de desempenho/captura lado a lado. **Não há binário oficial da NVIDIA**; o build de referência vem do itch.io do JohnLogostini.
 
 ## O que se sabe do fork (com fonte)
@@ -24,10 +26,10 @@ O fork da NVIDIA (NVIDIA-RTX/godot, branch `nvidia-pt-dlss`) adiciona **path tra
 | Item do hub | Risco | Como conferir no spike |
 |-------------|-------|------------------------|
 | Godot 4.7.2 do projeto vs base do fork | **Alto**: fork pode estar em 4.7-dev ou 4.8-dev; API pode ter mudado | Abrir `project.godot` no fork; ver erros de import; rodar `tests/run_tests.sh` |
-| GDScript tipado estático | Baixo: linguagem não muda | Compilar scripts; `check_gdscript` se existir |
-| Física Jolt | Baixo: Jolt é módulo separado | `check_physics` ou andar na cidade |
+| GDScript tipado estático | Baixo: linguagem não muda | A importação do `run_tests.sh` acusa erro de script |
+| Física Jolt | Baixo: Jolt é módulo separado | `check_first_person`, e andar na cidade |
 | Renderer Forward+ | **Médio**: path tracing substitui o pipeline; shaders de tela podem quebrar | Ligar path tracing off (se houver fallback) e comparar visual |
-| Shaders próprios (`.gdshader`/`gdshaderinc` em `worlds/`) | **Alto**: shaders de tela (SSR, sky_blend, building_facade) assumem rasterização | Carregar cidade; ver erros de shader; conferir `building_facade`, `sky_blend`, `water`, `fog_volume` |
+| Shaders próprios (`.gdshader`/`gdshaderinc` em `worlds/`) | **Alto**: os shaders do hub (`building_facade`, `sky_blend`, `tree_model`, `tree_impostor`, `rain_streak`, `snow_cover`, a janela da casa) assumem rasterização | Carregar a cidade e a casa; ver erros de shader; `check_textures`, `check_trees`, `check_window_view` |
 | MultiMesh das árvores | Baixo: MultiMesh é instancing de malha | `check_trees` ou captura da praça |
 | Addon sky_3d | Baixo: só GDScript/shader | Trocar céu no menu; `check_sky3d` |
 | Addon debug_menu (F3) | Baixo: só GDScript | Abrir F3; ver overlay |
@@ -41,13 +43,13 @@ O fork da NVIDIA (NVIDIA-RTX/godot, branch `nvidia-pt-dlss`) adiciona **path tra
 1. **Pedir ao dono antes de baixar/compilar**: confirmar nome (`NVIDIA-RTX/godot`), origem (GitHub), branch (`nvidia-pt-dlss`), versão (commit hash ou tag), e tamanho do download (binário ~120 MB Windows / ~80 MB Linux) ou tempo de compilação (~30–60 min).
 2. **Copiar o projeto sem estragar o original**: `git worktree add ../godot-rtx-spike fase-N` (branch da fase atual) → abrir a cópia no fork (editor do fork aponta para `../godot-rtx-spike`).
 3. **Importar no fork**: deixar a Godot do fork importar o projeto (pode fechar na 1ª importação — defeito conhecido tipo Terrain3D). Reabrir.
-4. **Rodar bateria básica**: `bash tests/run_tests.sh check_gates check_trees check_physics check_shaders check_sky3d check_compositor` (só testes que não precisam de jogos instalados). Conferir `RESULTADO GERAL: TUDO OK`.
+4. **Rodar bateria básica**: primeiro um recorte rápido, `bash tests/run_tests.sh check_gates check_trees check_sky3d check_daynight check_window_view check_compositor`; passando, a **bateria completa** (`bash tests/run_tests.sh`), até `RESULTADO GERAL: TUDO OK`. Uma Godot por vez.
 5. **Medir desempenho (COM JANELA)**:  
-   - Desktop (RTX 4070, Alta): `godot --path . -s tools/medir_desempenho.gd -- 0 alta 13` e `-- 0 alta 22`  
-   - Notebook (Leve): `godot --path . -s tools/medir_desempenho.gd -- 0 leve 13` e `-- 0 leve 22`  
+   - Desktop (RTX 4070, Alta): `godot --path . -s tools/medir_desempenho.gd -- 200 alta 13` e `-- 200 alta 22` (200 jogos falsos, como nas medidas das fases)  
+   - Notebook (Leve): `godot --path . -s tools/medir_desempenho.gd -- 200 leve 13` e `-- 200 leve 22` (só para ver se abre; o notebook não é meta)  
    Comparar com os números atuais da branch `fase-N` (mesmo commit-base).
 6. **Capturas lado a lado (COM JANELA, pasta FORA do repo)**:  
-   `godot --path . -s tools/capturar_pontos.gd -- <pasta> 0 rpg 13,22 alta fotos`  
+   `godot --path . -s tools/capturar_pontos.gd -- <pasta> 200 rpg 13,22 alta`, e `tools/capturar_casa.gd -- <pasta> 200 13,22 alta cabana` para a casa  
    Pontos: `praca`, `portico`, `cima`, `mirante` (se trilha montanha existir). Repetir no fork e no original; mesmo horário (13 h e 22 h), mesma qualidade.
 7. **Testar exportação**: `bash tools/empacotar_windows.sh` no fork; rodar `check_exported_build` (precisa do `.pck` gerado).
 8. **Path tracing ON vs OFF**: se o fork tem fallback raster, repetir passos 5–6 com path tracing desligado (verificar se há opção no menu ou `GraphicsQuality`).
@@ -63,8 +65,8 @@ O fork da NVIDIA (NVIDIA-RTX/godot, branch `nvidia-pt-dlss`) adiciona **path tra
 ## Riscos e o que fica de fora
 - **Fork ≠ mainline**: manutenção por conta da NVIDIA; PR prometido mas sem data. Atualizações de segurança/bugs da Godot 4.7.x não chegam automaticamente.
 - **DLSS/RR fechados**: só NVIDIA; AMD/Intel dependem do NRD (ainda não integrado no fork).
-- **Path tracing não é "grátis"**: shaders de tela (SSR, neblina volumétrica, sky_blend, building_facade) precisam ser reescritos ou desligados no modo path tracing.
-- **Export templates**: precisam ser compilados para o fork (Windows + Linux x86_64) e guardados no CI.
+- **Path tracing não é "grátis"**: os shaders do hub (céu, fachadas, árvores, chuva, janela) talvez precisem ser reescritos ou desligados no modo path tracing.
+- **Export templates**: precisam ser compilados para o fork (Windows + Linux x86_64) e guardados fora do repositório.
 - **Notebook (Radeon 610M)**: **fora da meta**. Se o fork não tem fallback raster estável, o hub não abre no notebook de viagem.
 - **O que NÃO entra no teste**: integração contínua, CI do GitHub Actions, build do compositor Rust no Linux (precisa toolchain Rust + Smithay), testes de amigos/Steam (precisam chave/API), migração de dados `user://`.
 
