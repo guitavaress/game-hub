@@ -82,7 +82,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** um bioma novo é um perfil novo, e dá para ver um bairro maior que outro pelas horas jogadas.
 
-**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1 a 19.6 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe; o dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo; a chuva nova, em camadas, aprovada pelo dono em 2026-11-14; o tempo muda sozinho na cidade toda, com a opção "Clima" no menu). A revisão de risco da 19.6 foi feita e corrigida. A 19.9 (o bairro que você mais joga ocupa mais terreno) foi adiantada e está feita; a revisão de risco achou dois problemas graves, corrigidos em 2026-11-14 (com horas, a cidade e a montanha não mudam de tamanho; o bairro cresce só nas vagas que já existiam). Depois vem a 19.7, a floresta.
+**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1 a 19.6 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe; o dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo; a chuva nova, em camadas, aprovada pelo dono em 2026-11-14; o tempo muda sozinho na cidade toda, com a opção "Clima" no menu). A revisão de risco da 19.6 foi feita e corrigida. A 19.6.1, pedida pelo dono ao testar a casa, está feita: a janela mostra a chuva no vidro, e a vista não deforma mais ao andar pela sala (a lente da foto ficou mais larga). A 19.9 (o bairro que você mais joga ocupa mais terreno) foi adiantada e está feita; a revisão de risco achou dois problemas graves, corrigidos em 2026-11-14 (com horas, a cidade e a montanha não mudam de tamanho; o bairro cresce só nas vagas que já existiam). Depois vem a 19.7, a floresta.
 
 ### 4. Visitar amigos
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**: avatar próprio, espelho, voz, sala de encontro e uma rede simples. Substitui a "visita sem servidor" de antes.
@@ -100,6 +100,19 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 O V-Sekai entra como leitura de ideias (o código é MIT e continua aberto), e não como base. O **REA** (engenharia reversa) só no que existir apenas compilado; as regras estão no [AGENTS.md](../AGENTS.md#modelos-e-esforço).
 
 **Pronto quando:** o plano da fase sai do estudo, com o menor encontro definido.
+
+### 5. A janela de verdade
+**Objetivo:** a janela da casa deixa de ser uma foto da cidade e passa a mostrar a cidade ao vivo: a chuva caindo, o céu mudando, as luzes acendendo, com a profundidade certa quando você anda pela sala.
+
+**Pedida pelo dono em 2026-11-14**, depois de notar na Fase 19 que a foto não mostra a chuva e deforma ao andar. A Fase 19 melhora a foto (chuva desenhada no vidro e lente mais larga, subetapa 19.6.1); esta fase troca a foto.
+
+**A primeira subetapa é uma medida no desktop**, que compara dois caminhos:
+- a vista ao vivo em baixa taxa (a janela redesenha a cidade algumas vezes por segundo, em resolução menor);
+- o vidro transparente olhando a cidade real (a casa num lugar de verdade da cidade, e a cidade desenhada enquanto você está em casa).
+
+A foto continua como reserva na qualidade Leve e enquanto a cidade monta.
+
+**Pronto quando:** de dentro de casa, na Alta, dá para ver a chuva cair lá fora e a vista não deforma ao andar, sem a casa perder a meta de desempenho do desktop.
 
 ## Dia de conferência
 
