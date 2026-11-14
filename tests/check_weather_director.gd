@@ -281,7 +281,20 @@ func _check_city(app: Node) -> void:
 	app.set_weather("limpo")
 	_check("pausado: volta ao limpo na hora", director.current_state() == "limpo"
 			and day_night.get_weather_overlay() == 0.0 and decor.ground_wetness() == 0.0)
+	var paused_probe := Node.new()
+	paused_probe.set_script(_window_probe())
+	paused_probe.add_to_group(&"window_view")
+	root.add_child(paused_probe)
+	paused_probe.set_meta(&"calls", 0)
+	app.set_weather("nublado")
 	paused = false
+	await process_frame
+	_check("pausado: a janela da casa é avisada da troca", int(paused_probe.get_meta(&"calls")) == 1)
+	paused_probe.free()
+	paused = true
+	app.set_weather("limpo")
+	paused = false
+	await process_frame
 
 	print("== a luz de dentro de casa ==")
 	# Revisão da 19.6: com o céu fechado, o sol não pode entrar forte pela janela.

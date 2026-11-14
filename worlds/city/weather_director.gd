@@ -303,6 +303,9 @@ func _set_mode(mode: String, instant: bool) -> void:
 		if instant:
 			_settle(mode)
 			_wet = wet_for(_strength)
+			# Sem passagem não há o aviso do fim dela: avisa aqui (a janela da
+			# casa refaz o retrato por ele).
+			weather_changed.emit(_state)
 		else:
 			_begin(mode, MENU_PASSAGE_SECONDS)
 	elif mode == "dinamico" and _remaining <= 0.0:
