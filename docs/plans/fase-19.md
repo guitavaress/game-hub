@@ -5,7 +5,7 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** árvores de verdade (feitas no Blender) nas floreiras, no RPG e na vista da cabana. O dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo. O tempo muda sozinho (abre, fecha, chove) e a chuva é outra: riscos de verdade, respingo, chão molhado e som. A Aventura é uma floresta e a Sobrevivência, um deserto. O bairro que você mais joga ocupa mais terreno e tem o marco mais alto.
-- **Agora:** 19.2 feita (`32658f1`): o pinheiro do Blender existe como amostra, e o jogo ainda não mudou. As capturas estão em `C:\Projetos\game-hub-referenciasase-199.2\`. Você aprovou seguir **por script** (2026-11-13). A 19.3, em andamento, troca todas as árvores e corrige a cor e as agulhas do pinheiro.
+- **Agora:** 19.3 feita (`17a6a14`): todas as árvores do hub são modelos do Blender. As floreiras e a praça têm a árvore de rua nova; os pinheiros do RPG são o abeto corrigido (verde mais escuro, agulhas finas). As capturas estão em `C:\Projetos\game-hub-referencias\fase-19\19.3\`. Falta a revisão do segundo Opus; depois, a 19.4 (o dia em gradiente).
 - **Ordem:** o código deixa de ser "só neve" → a amostra de uma árvore → todas as árvores → o dia em gradiente → a chuva nova → o clima dinâmico → a floresta → o deserto → os bairros crescem → o marco cresce → as sobras da montanha → fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
 - **Decisões que esperam você:** aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
@@ -80,7 +80,7 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
   - Arquivos: `tools/blender/gerar_arvore.py` (novo), `tools/blender/comum.py` (só funções novas), `tools/blender/README.md`, `assets/models/trees/pine.glb`, `worlds/city/tree_model.gd` (novo), `worlds/city/tree_model.gdshader` (novo), `tests/check_trees.gd`.
   - Teste: bateria completa; capturas fora do repositório.
   - Commit: `Fase 19.2: o pinheiro do Blender (amostra)`
-- [ ] **19.3 Todas as árvores** (grande · Opus, A · high · revisão: segundo Opus, só leitura, pelo custo de desenho na cidade inteira)
+- [x] **19.3 Todas as árvores** (grande · Opus, A · high · revisão: segundo Opus, só leitura, pelo custo de desenho na cidade inteira) — `17a6a14`, 2026-11-13; bateria completa ok (96 testes); medida sem queda (veja as decisões da fase); **espera a revisão do segundo Opus**
   - Faz: a árvore de rua nas floreiras e na praça (`CityDecor.add_planter` passa ao `TreeModel`), o pinheiro no RPG (`ScatterSpec` tipo `"tree"`, `montanha.tres` regerado pelo script), os dois atlas refeitos, o `home_window_forest.gdshader` removido.
   - Arquivos: `worlds/city/city_decor.gd`, `worlds/city/tree_impostor.gd`, `worlds/city/biome/biome_scatter.gd`, `profiles/scatter_spec.gd`, `profiles/biomes/montanha.tres` (pelo script), `assets/models/trees/street_tree.glb`, `assets/generated/*_impostor.*`, `tests/check_trees.gd`, `tests/check_biome.gd`, `README.md` (créditos).
   - Teste: bateria completa; medida no desktop contra a do começo da fase; capturas da praça, do RPG e das duas casas (a janela da cabana com os pinheiros novos).
@@ -155,6 +155,20 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-13 (19.3): todas as árvores viram modelos. O que saiu diferente do plano:
+  - **A árvore de rua** é uma espécie de folha larga, de copa oval (como as tílias e os plátanos de calçada), e não uma cópia da jacarandá: `street_tree.glb`, 449 KB, 7,5 mil triângulos, 6 m (5 a 6,5 m nas floreiras). Tronco curto que abre em cinco galhos e um líder; as folhas são cartões com a foto de um raminho de folhas feito no script.
+  - **O pinheiro corrigido:** tons de abeto (verde-escuro puxado para o azul); agulhas de 3,8 mm (eram 7,5) numa foto de 1024 px (era 512). Para caber nos 800 KB (com a foto nova deu 846 KB): o WEBP a 60 (era 85) e os galhos curtos do alto com 3 lados (cobertos pelas agulhas). Ficou com 795 KB e 11,3 mil triângulos. A forma não cedeu.
+  - **A tinta do pinheiro no perfil** passou a branca: a cor certa já vem do modelo (a tinta (0,45; 0,55; 0,55) era para a foto da Poly Haven).
+  - **O pontilhado da troca:** cada árvore troca modelo e foto na sua distância (até 15% para mais ou para menos, sorteada pela posição dela, a mesma conta nos dois shaders). Andando, elas trocam uma de cada vez, e não num anel inteiro. Nas capturas paradas, nenhum pontilhado aparece; **em movimento, fica para o dono conferir** (o worker não vê vídeo).
+  - **O atlas segue o nome do modelo** (`TreeModel.impostor_path`: `pine.glb` → `pine_impostor.png`, `street_tree.glb` → `street_tree_impostor.png`). O `ScatterSpec` do tipo `"tree"` não precisa de campo novo. O `tree_impostor.png` (a jacarandá) virou o `street_tree_impostor.png` (mesmo `uid` e a mesma importação comprimida com mipmaps); o `pine_blender_impostor` da amostra saiu.
+  - **As árvores de rua num TreeModel só** (`StreetTrees`, filho da cidade): o `TreeModel` ganhou `add()`, que só refaz as células que ganharam árvore (as floreiras chegam aos poucos, quarteirão por quarteirão). O `TreeImpostor` virou só as funções da foto (nenhum nó usa mais a foto sozinha).
+  - **A vista "floresta" saiu também do `capturar_casa.gd`**, e o `gerar_cabana.gd` passou ao retrato (o `cabana.tres` já usava o retrato desde a 17.9.2; o script estava desatualizado). O `check_window_view` testa com um shader sem retrato feito na memória.
+  - **Ferramentas da amostra:** o `amostra_arvore.gd` virou "as árvores de perto" (um pinheiro e uma árvore de rua lado a lado na rua do pórtico); o `medir_arvores.gd` mede o jogo como está (duas voltas); o `amostra_arvore_casa.gd` saiu (o `capturar_casa.gd` já mostra a janela com as árvores novas).
+  - **Testes a mais:** o `check_landmarks` e o `check_mountain_trail` só olham os `BiomeScatter` (as árvores de rua não têm "família"). A ferramenta parada do Jev (`gerar_capturas.gd`) também esconde os pinheiros novos.
+  - **Medida** (desktop, Alta, 200 jogos, 13 h; base medida no mesmo dia, antes da troca):
+    - caminhada (`medir_desempenho.gd`): 135,7 → **136,4 FPS**, p99 14 → 15 ms, 2675 → 2674 desenhos;
+    - pontos (`medir_arvores.gd`, volta de 360°; base = as impostoras, segunda volta "hoje" da versão de antes): pórtico 179,5 → **186,5–188,7 FPS**; miolo do RPG 180,6 → **180,6–181,8** (p99 14,0 → 13,0–13,5 ms); praça 172,6 → **188,3–189,0**. Custa +0,3 a 0,6 milhão de triângulos e ~+80 desenhos; o FPS não cai (a máquina varia uns 10% entre voltas).
+  - Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.3\` (praça, pórtico, alto e mirante do RPG; o par de perto, a 30 m e a 150 m; loft e cabana; 13 e 22 h). O "antes" do pinheiro de perto é o `pinheiro-antes_par_perto_*` (cópia do `rpg-novo_par_perto_*` da 19.2); o "depois", o `rpg_par_perto_*`.
 - 2026-11-13 (respostas do dono, depois da 19.2 e do teste da 19.11):
   - **Pinheiro: segue por script.** A 19.3 corrige a tinta e as agulhas e troca todas as árvores. A regra das plantas no AGENTS.md foi acertada: as árvores são por script; as outras plantas seguem de preferência CC0.
   - **Worktree `divisa`:** apagado, com a branch `worktree/divisa` (só tinha o commit reprovado `9964a37`).
