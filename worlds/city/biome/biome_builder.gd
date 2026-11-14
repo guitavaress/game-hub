@@ -90,6 +90,53 @@ static func covered_rects(zones: Array[Rect2], half: float, cover_streets: bool)
 		if zone.end.y < edge and not _has_neighbor(zone, zones, Vector2.DOWN):
 			bottom -= curb
 		result.append(Rect2(left, top, right - left, bottom - top))
+	if cover_streets:
+		result.append_array(_concave_corner_rects(zones, edge, curb))
+	return result
+
+
+## O canto côncavo (19.11): num cruzamento de ruas cercado por três zonas (a
+## quarta, na diagonal, é de outro bairro ou está vazia), a zona de canto cobre
+## só o quarto do cruzamento que é dela, e a neve ficava num quadrado solto no
+## meio do asfalto. Aqui o cruzamento inteiro vira neve: as outras três quartas
+## partes entram em dois retângulos que não se sobrepõem (sem brilho duplo).
+static func _concave_corner_rects(zones: Array[Rect2], edge: float, curb: float) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	var seen: Dictionary = {}
+	for zone in zones:
+		for corner: Vector2 in [zone.position, Vector2(zone.end.x, zone.position.y),
+				Vector2(zone.position.x, zone.end.y), zone.end]:
+			# Só cruzamentos de dentro (na borda a neve já vai até a mureta).
+			if absf(corner.x) >= edge or absf(corner.y) >= edge:
+				continue
+			var key := Vector2i(roundi(corner.x * 4.0), roundi(corner.y * 4.0))
+			if seen.has(key):
+				continue
+			seen[key] = true
+			# Um ponto logo depois do cruzamento em cada diagonal: a zona que o cobre, ou nenhuma.
+			var owners := 0
+			var missing := Vector2.ZERO
+			for dir: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+				var probe := corner + dir * 0.5
+				var found := false
+				for other in zones:
+					if other.has_point(probe):
+						found = true
+						break
+				if found:
+					owners += 1
+				else:
+					missing = dir
+			if owners != 3:
+				continue
+			# A zona de canto fica na diagonal oposta à que falta: o quarto dela já é neve.
+			# Falta cobrir a metade do cruzamento do lado da diagonal vazia (em x, de
+			# ponta a ponta em y) e o quarto do lado da zona de canto, no lado vazio em y.
+			var x_far := Rect2(corner.x if missing.x > 0.0 else corner.x - curb, corner.y - curb, curb, curb * 2.0)
+			var x_near := Rect2(corner.x if missing.x < 0.0 else corner.x - curb,
+					corner.y if missing.y > 0.0 else corner.y - curb, curb, curb)
+			result.append(x_far)
+			result.append(x_near)
 	return result
 
 
