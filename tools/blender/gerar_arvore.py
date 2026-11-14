@@ -1,5 +1,7 @@
-# As árvores do hub (Fase 19.2): uma função por espécie. Nesta subetapa, só o
-# pinheiro (o do bairro do RPG e da vista da cabana).
+# As árvores do hub (Fase 19.2; 19.3: a árvore de rua e o pinheiro corrigido):
+# uma função por espécie.
+#   pinheiro  o abeto do bairro do RPG (e da vista da cabana): pine.glb
+#   rua       a árvore de folha larga das floreiras e da praça: street_tree.glb
 #
 #   blender --background --factory-startup --python tools/blender/gerar_arvore.py \
 #       [-- <espécie> [saida.glb] [pasta das prévias]]
@@ -15,7 +17,8 @@
 #           abeto (feito aqui mesmo, de agulhas de verdade, e fotografado de
 #           cima com fundo transparente). A cor dos vértices escurece o miolo
 #           da copa (a sombra de dentro), e a Godot multiplica pela textura.
-# A origem é o pé do tronco, no chão; o pinheiro tem ALTURA m. O vento, a
+# A origem é o pé do tronco, no chão; o pinheiro tem ALTURA m e a árvore de
+# rua, RUA_ALTURA m. O vento, a
 # troca pela impostora de longe e a escala de cada cópia ficam na Godot
 # (worlds/city/tree_model.gd e tree_model.gdshader).
 
@@ -41,17 +44,24 @@ COPA_RAIO = 2.5         # m, o raio da copa embaixo
 ANDAR = 0.4             # m entre dois verticilos (os "andares" de galhos)
 # A casca: o UV sobe CASCA_METROS por volta da textura (o tronco de cima repete).
 CASCA_METROS = 5.0
-# A foto do raminho: 512 x 512, com duas variações (metade de baixo e de cima).
-FOTO = 512
+# A foto do raminho: FOTO x FOTO, com duas variações (metade de baixo e de cima).
+# 19.3: 1024 (era 512), para as agulhas finas terem uns 4 px de largura de perto.
+FOTO = 1024
+# A largura de uma agulha (na foto, que cobre 1 m do raminho). 19.3: era 7,5 mm,
+# e de perto o raminho lembrava uma folha larga; a agulha do abeto tem ~2 mm.
+AGULHA_LARGURA = 0.0038
+# O passo entre duas agulhas ao longo do ramo (m). 19.3: mais juntas (eram
+# 5,5 mm), para o raminho não ficar ralo com as agulhas finas.
+AGULHA_PASSO = 0.0045
 
 
 def argumentos_da_arvore():
     """(espécie, saída, pasta das prévias), pelos argumentos depois de "--"."""
     args = comum.argumentos()
     especie = args[0] if args else "pinheiro"
-    arquivo = {"pinheiro": "pine"}.get(especie)
+    arquivo = ARQUIVOS.get(especie)
     if arquivo is None:
-        raise SystemExit("Espécie desconhecida: %s (há: pinheiro)" % especie)
+        raise SystemExit("Espécie desconhecida: %s (há: %s)" % (especie, ", ".join(ARQUIVOS)))
     saida = args[1] if len(args) > 1 else os.path.join(comum.PASTA_GRUPOS, "trees", arquivo + ".glb")
     os.makedirs(os.path.dirname(os.path.abspath(saida)), exist_ok=True)
     previas = args[2] if len(args) > 2 else ""
@@ -81,32 +91,42 @@ def raio_do_tronco(z):
 
 
 def tronco(semente=3, lados=14):
-    """O tronco num bmesh, com as raízes que alargam o pé, o veio da casca
-    (gA/gB, para o comum.material_madeira) e o UV "bake" cilíndrico."""
-    rnd = random.Random(semente)
-    bm = bmesh.new()
-    ga = bm.loops.layers.uv.new("gA")
-    gb = bm.loops.layers.uv.new("gB")
-    uv = bm.loops.layers.uv.new("bake")
+    """O tronco do pinheiro (veja tronco_generico)."""
     alturas = [-0.15, 0.0, 0.08, 0.18, 0.3, 0.45, 0.65, 0.9, 1.2, 1.6]
     z = 1.6
     while z < ALTURA - 0.3:
         z += 0.45 if z < CASCA_METROS else 0.7
         alturas.append(min(z, ALTURA - 0.3))
     alturas.append(ALTURA - 0.05)
+    return tronco_generico(alturas, eixo, raio_do_tronco, eixo(ALTURA), CASCA_METROS,
+                           semente, lados)
+
+
+def tronco_generico(alturas, eixo_de, raio_de, ponta_em, casca_metros, semente, lados,
+                    raizes=(0.32, 0.35, 0.9), escala_veio=0.45):
+    """Um tronco num bmesh: anéis nas "alturas", o meio em eixo_de(z) e o raio
+    raio_de(z), fechado num cone até "ponta_em". As raízes (altura, base,
+    lobos) alargam o pé em cinco "pés". Leva o veio da casca (gA/gB, para o
+    comum.material_madeira) e o UV "bake" cilíndrico (sobe casca_metros m por
+    volta da textura)."""
+    rnd = random.Random(semente)
+    bm = bmesh.new()
+    ga = bm.loops.layers.uv.new("gA")
+    gb = bm.loops.layers.uv.new("gB")
+    uv = bm.loops.layers.uv.new("bake")
     fase = rnd.uniform(0, math.tau)
     aneis = []
     for z in alturas:
         anel = []
-        meio = eixo(max(z, 0.0))
-        r = raio_do_tronco(max(z, 0.0))
+        meio = eixo_de(max(z, 0.0))
+        r = raio_de(max(z, 0.0))
         # As raízes: cinco "pés" que alargam o tronco perto do chão.
-        pe = math.exp(-max(z, 0.0) / 0.32)
+        pe = math.exp(-max(z, 0.0) / raizes[0])
         for k in range(lados):
             a = math.tau * k / lados
             lobo = max(0.0, math.cos(5 * a + fase)) ** 2
             casca = 1.0 + 0.04 * noise.noise(Vector((math.cos(a) * 3, math.sin(a) * 3, z * 2.0)))
-            rr = r * casca * (1.0 + pe * (0.35 + 0.9 * lobo))
+            rr = r * casca * (1.0 + pe * (raizes[1] + raizes[2] * lobo))
             anel.append(bm.verts.new(meio + Vector((math.cos(a) * rr, math.sin(a) * rr, 0.0))))
         aneis.append(anel)
     for i in range(len(aneis) - 1):
@@ -116,27 +136,27 @@ def tronco(semente=3, lados=14):
             f.smooth = True
             for canto, (kk, ii) in zip(f.loops, ((k, i), (k + 1, i), (k + 1, i + 1), (k, i + 1))):
                 p = canto.vert.co
-                # Veio: ao longo = z; "através" = x e y (escala 0,45: as placas
-                # da casca do pinheiro são maiores que as da lenha).
-                canto[ga].uv = (p.z * 0.45, p.x * 0.45)
-                canto[gb].uv = (p.y * 0.45, comum.CASCA)
-                canto[uv].uv = (kk / lados, alturas[ii] / CASCA_METROS)
+                # Veio: ao longo = z; "através" = x e y (escala 0,45 no pinheiro:
+                # as placas da casca dele são maiores que as da lenha).
+                canto[ga].uv = (p.z * escala_veio, p.x * escala_veio)
+                canto[gb].uv = (p.y * escala_veio, comum.CASCA)
+                canto[uv].uv = (kk / lados, alturas[ii] / casca_metros)
     # A ponta fecha num cone curto.
-    ponta = bm.verts.new(eixo(ALTURA))
+    ponta = bm.verts.new(ponta_em)
     for k in range(lados):
         k2 = (k + 1) % lados
         f = bm.faces.new((aneis[-1][k], aneis[-1][k2], ponta))
         f.smooth = True
         for canto, uu in zip(f.loops, (k / lados, (k + 1) / lados, (k + 0.5) / lados)):
             p = canto.vert.co
-            canto[ga].uv = (p.z * 0.45, p.x * 0.45)
-            canto[gb].uv = (p.y * 0.45, comum.CASCA)
-            canto[uv].uv = (uu, alturas[-1] / CASCA_METROS)
+            canto[ga].uv = (p.z * escala_veio, p.x * escala_veio)
+            canto[gb].uv = (p.y * escala_veio, comum.CASCA)
+            canto[uv].uv = (uu, alturas[-1] / casca_metros)
     bm.normal_update()
     return bm
 
 
-def tubo_por(bm, pontos, raios, lados, uv_base):
+def tubo_por(bm, pontos, raios, lados, uv_base, casca_metros=CASCA_METROS):
     """Um galho (tubo fino) ao longo de "pontos", com o raio de cada ponto.
     O UV cai numa faixa estreita da casca do tronco ("uv_base" = (u, v))."""
     ga = bm.loops.layers.uv["gA"]
@@ -169,7 +189,7 @@ def tubo_por(bm, pontos, raios, lados, uv_base):
                 canto[gb].uv = (p.y * 0.45, comum.CASCA)
                 # Fora do quadrado (u + 10) enquanto a casca é assada: o galho
                 # não escreve na textura do tronco; depois volta para dentro.
-                canto[uv].uv = (uv_base[0] + 0.08 * kk / lados + 10.0, uv_base[1] + passos[ii] / CASCA_METROS)
+                canto[uv].uv = (uv_base[0] + 0.08 * kk / lados + 10.0, uv_base[1] + passos[ii] / casca_metros)
     ponta = bm.verts.new(pontos[-1] + (pontos[-1] - pontos[-2]).normalized() * raios[-1] * 2.0)
     for k in range(lados):
         bm.faces.new((aneis[-1][k], aneis[-1][(k + 1) % lados], ponta)).smooth = True
@@ -212,7 +232,9 @@ def galhos(semente=11):
                 pontos.append(inicio + direcao * d + lado * torto * comprimento * t * t + Vector((0, 0, h)))
             raio = 0.008 + 0.022 * comprimento / COPA_RAIO
             raios = [raio * (1.0 - 0.8 * i / 4.0) for i in range(5)]
-            tubo_por(bm, pontos, raios, 5 if comprimento > 1.2 else 4, (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)))
+            # 19.3: os galhos curtos (no alto, finos e cobertos de agulhas) com 3
+            # lados, para o modelo caber no orçamento com a foto das agulhas em 1024.
+            tubo_por(bm, pontos, raios, 5 if comprimento > 1.2 else 3, (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)))
             lista.append(pontos)
         z += ANDAR * rnd.uniform(0.85, 1.15) * (1.0 - 0.35 * alto)
     # Tocos secos no tronco, abaixo da copa (os galhos que caíram).
@@ -268,7 +290,7 @@ def raminho(bm_por_cor, centro_y, semente):
     def ramo(inicio, direcao, comprimento, nivel, z):
         """Um ramo com agulhas dos dois lados; os ramos dão filhos (até o
         nível 2). Nenhuma agulha sai da faixa da foto (|y - centro_y| < 0,24)."""
-        passos = max(4, int(comprimento / 0.0055))
+        passos = max(4, int(comprimento / AGULHA_PASSO))
         curva = rnd.uniform(-0.3, 0.3)
         pontos = []
         d = direcao.copy()
@@ -301,14 +323,14 @@ def raminho(bm_por_cor, centro_y, semente):
                     continue
                 angulo = math.radians(rnd.uniform(50, 80))
                 dn = (d * math.cos(angulo) + lado * s * math.sin(angulo)).normalized()
-                agulha(p, dn, tamanho, 0.0075, tom, z + rnd.uniform(-0.002, 0.002))
+                agulha(p, dn, tamanho, AGULHA_LARGURA, tom, z + rnd.uniform(-0.002, 0.002))
             # Uma fileira de cima, mais curta e mais para a frente (o abeto tem
             # agulhas viradas para cima no meio do ramo).
             if i % 2 == 0:
                 s = rnd.choice((-1.0, 1.0))
                 angulo = math.radians(rnd.uniform(20, 45))
                 dn = (d * math.cos(angulo) + lado * s * math.sin(angulo)).normalized()
-                agulha(p, dn, tamanho * 0.75, 0.007, tom + 1, z + 0.004)
+                agulha(p, dn, tamanho * 0.75, AGULHA_LARGURA * 0.95, tom + 1, z + 0.004)
         if nivel >= 2:
             return
         # Os filhos: alternados, abertos para a frente, mais curtos na ponta.
@@ -335,9 +357,11 @@ def textura_de_agulhas():
     """Fotografa dois raminhos (um em cada metade da foto) e devolve a imagem
     (RGBA, com a cor espalhada por baixo do transparente), já embutida."""
     # Os tons (cor linear): do verde-escuro velho ao broto claro; e o talo.
-    tons = [(0.018, 0.045, 0.024), (0.026, 0.062, 0.03), (0.034, 0.078, 0.034),
-            (0.045, 0.095, 0.038), (0.06, 0.115, 0.042), (0.09, 0.16, 0.055),
-            (0.07, 0.045, 0.025)]
+    # 19.3: verde de abeto, escuro e puxado para o azul (na 19.2 era um verde
+    # vivo e claro, que de dia saía saturado demais).
+    tons = [(0.014, 0.024, 0.019), (0.018, 0.031, 0.025), (0.023, 0.038, 0.030),
+            (0.028, 0.046, 0.035), (0.035, 0.055, 0.040), (0.052, 0.074, 0.048),
+            (0.055, 0.04, 0.026)]
     bms = [bmesh.new() for _ in tons]
     raminho(bms, -0.25, 21)
     raminho(bms, 0.25, 34)
@@ -484,17 +508,30 @@ def pinheiro(saida, previas):
     img_folhas = textura_de_agulhas()
     madeira_bm = tronco()
     galhos_bm, lista = galhos()
+    bark = casca_assada(madeira_bm, galhos_bm, (0.19, 0.115, 0.075), (0.075, 0.045, 0.03), 0.12,
+                        256, 1024)
+    leaves = comum.objeto("leaves", folhas(lista))
+    leaves.data.materials.append(material_folhas(img_folhas))
+    # WEBP a 60 (e não 85): a foto das agulhas (1024) cabe no orçamento de 800 KB.
+    comum.exportar_com_alfa([bark, leaves], saida, qualidade=60)
+    if previas:
+        previa(bark, leaves, previas, "pinheiro", ALTURA)
+
+
+def casca_assada(madeira_bm, galhos_bm, clara, escura, cinza, largura, altura, raio_chao=6.0):
+    """O tronco e os galhos num objeto "bark": a casca do comum.material_madeira
+    (só o tipo CASCA) assada no tronco, numa textura alta e estreita; os galhos
+    usam faixas dessa mesma textura (ficam fora do quadrado enquanto ela é
+    assada, para não escrever nela, e depois voltam para dentro)."""
     madeira = comum.objeto("tronco", madeira_bm)
     ramos = comum.objeto("galhos", galhos_bm)
-    chao = comum.chao(6.0, 0.0)
-    # A casca: o material de lenha do comum, só com o tipo CASCA, assado no
-    # tronco (os galhos ficam fora do quadrado e não escrevem nele).
-    mat = comum.material_madeira("casca_procedural", clara=(0.19, 0.115, 0.075), escura=(0.075, 0.045, 0.03),
-                                 cinza=0.12, aneis=120.0, gasto=0.2)
+    chao = comum.chao(raio_chao, 0.0)
+    mat = comum.material_madeira("casca_procedural", clara=clara, escura=escura,
+                                 cinza=cinza, aneis=120.0, gasto=0.2)
     for ob in (madeira, ramos):
         ob.data.materials.append(mat)
         ob.data.uv_layers.active = ob.data.uv_layers["bake"]
-    comum.assar_textura_retangular([madeira], mat, 256, 1024, "bark")
+    comum.assar_textura_retangular([madeira], mat, largura, altura, "bark")
     bpy.data.objects.remove(chao)
     ramos.data.materials.clear()
     ramos.data.materials.append(bpy.data.materials["bark"])
@@ -508,14 +545,364 @@ def pinheiro(saida, previas):
     bark.data.materials.append(bpy.data.materials["bark"])
     # A casca é de um lado só (o glTF diria "doubleSided" e a Godot desenharia o dentro).
     bpy.data.materials["bark"].use_backface_culling = True
-    leaves = comum.objeto("leaves", folhas(lista))
+    return bark
+
+
+# --- A árvore de rua (19.3) ---------------------------------------------------------
+# Uma árvore de folha larga, de copa oval (como as tílias e os plátanos das
+# calçadas), para as floreiras e a praça: um tronco curto e limpo que abre em
+# cinco galhos grossos; cada galho dá ramos, e cada ramo, raminhos, até a casca
+# da copa (um elipsoide). As folhas são cartões com a foto de um raminho de
+# folhas (feito aqui, como o das agulhas), nas pontas dos ramos e raminhos.
+
+RUA_ALTURA = 6.0          # m, do chão ao alto da copa
+RUA_TRONCO = 2.0          # m, onde o tronco abre nos galhos
+RUA_RAIO_BASE = 0.13      # m, o tronco logo acima das raízes
+RUA_COPA_CENTRO = 3.85    # m, o meio da copa
+RUA_COPA_RAIO = 2.5       # m, a copa para os lados
+RUA_COPA_METADE = 2.15    # m, do meio da copa até o alto
+# m de tronco por volta da textura da casca: o tronco (até 2,55 m) cobre a
+# textura inteira, e os galhos (que usam faixas dela) não caem num pedaço vazio.
+RUA_CASCA_METROS = 2.4
+RUA_FOTO = 512            # a foto do raminho de folhas (a folha é grande: 512 basta)
+
+
+def rua_eixo(z):
+    """O meio do tronco: quase reto, com uma curva leve."""
+    t = z / RUA_TRONCO
+    return Vector((0.05 * noise.noise(Vector((t * 1.5, 3.0, 0.0))) * t,
+                   0.05 * noise.noise(Vector((t * 1.5, 9.0, 0.0))) * t, z))
+
+
+def rua_raio(z):
+    """O tronco afina pouco até a forquilha e engrossa nela (onde os galhos saem)."""
+    t = max(0.0, min(1.0, z / RUA_TRONCO))
+    forquilha = math.exp(-((z - RUA_TRONCO) / 0.25) ** 2) * 0.25
+    return RUA_RAIO_BASE * (1.0 - 0.28 * t + forquilha)
+
+
+def ate_a_copa(p, d):
+    """Quanto falta (m) de p, na direção d, até a casca da copa (o elipsoide).
+    0 se p já está fora e d aponta para fora."""
+    c = Vector((0.0, 0.0, RUA_COPA_CENTRO))
+    s = Vector((1.0 / RUA_COPA_RAIO, 1.0 / RUA_COPA_RAIO, 1.0 / RUA_COPA_METADE))
+    q = (p - c) * s
+    e = d * s
+    a = e.dot(e)
+    b = 2.0 * q.dot(e)
+    cc = q.dot(q) - 1.0
+    disc = b * b - 4.0 * a * cc
+    if disc < 0.0 or a <= 0.0:
+        return 0.0
+    return max(0.0, (-b + math.sqrt(disc)) / (2.0 * a))
+
+
+def dentro_da_copa(p):
+    """0 no meio da copa, 1 na casca dela (pode passar de 1 fora)."""
+    q = p - Vector((0.0, 0.0, RUA_COPA_CENTRO))
+    return math.sqrt((q.x / RUA_COPA_RAIO) ** 2 + (q.y / RUA_COPA_RAIO) ** 2 + (q.z / RUA_COPA_METADE) ** 2)
+
+
+def para_fora(p):
+    """A direção para fora da copa em p (a normal do elipsoide que passa por p)."""
+    q = p - Vector((0.0, 0.0, RUA_COPA_CENTRO))
+    n = Vector((q.x / RUA_COPA_RAIO ** 2, q.y / RUA_COPA_RAIO ** 2, q.z / RUA_COPA_METADE ** 2))
+    if n.length < 1e-4:
+        return Vector((0.0, 0.0, 1.0))
+    return n.normalized()
+
+
+def curva_de_galho(inicio, direcao, comprimento, rnd, subir, pontos=5):
+    """A linha de um galho: começa em "direcao" e vai se virando para cima
+    ("subir") e um pouco para o lado (ao acaso)."""
+    lado = direcao.cross(Vector((0.0, 0.0, 1.0)))
+    if lado.length < 0.01:
+        lado = Vector((1.0, 0.0, 0.0))
+    lado.normalize()
+    torto = rnd.uniform(-0.25, 0.25)
+    linha = [inicio.copy()]
+    p = inicio.copy()
+    d = direcao.normalized()
+    passo = comprimento / (pontos - 1)
+    for i in range(1, pontos):
+        d = (d + Vector((0.0, 0.0, subir / (pontos - 1))) + lado * torto / (pontos - 1)).normalized()
+        p = p + d * passo
+        linha.append(p.copy())
+    return linha
+
+
+def direcao_ao_longo(linha, t):
+    """O ponto e a direção da linha em t (0 a 1, pelo comprimento)."""
+    total = sum((linha[i + 1] - linha[i]).length for i in range(len(linha) - 1))
+    resto = t * total
+    for i in range(len(linha) - 1):
+        seg = (linha[i + 1] - linha[i]).length
+        if resto <= seg or i == len(linha) - 2:
+            u = min(1.0, resto / max(seg, 1e-6))
+            return linha[i].lerp(linha[i + 1], u), (linha[i + 1] - linha[i]).normalized()
+        resto -= seg
+    return linha[-1], (linha[-1] - linha[-2]).normalized()
+
+
+def galhos_rua(semente=5):
+    """Os galhos da árvore de rua: cinco grossos e um "líder" no meio; cada um
+    dá ramos e cada ramo dá raminhos, todos até perto da casca da copa.
+    Devolve (bmesh, lista de [linha, nível]) para as folhas."""
+    rnd = random.Random(semente)
+    bm = bmesh.new()
+    bm.loops.layers.uv.new("gA")
+    bm.loops.layers.uv.new("gB")
+    bm.loops.layers.uv.new("bake")
+    lista = []
+
+    def ramificar(linha, raio, nivel):
+        if nivel > 3:
+            return
+        quantos = (0, 5, 4, 0)[nivel]
+        lado_alterna = rnd.choice((-1.0, 1.0))
+        for k in range(quantos):
+            t = 0.25 + 0.7 * (k + rnd.uniform(0.2, 0.8)) / quantos
+            p, d = direcao_ao_longo(linha, t)
+            lado = d.cross(Vector((0.0, 0.0, 1.0)))
+            if lado.length < 0.05:
+                lado = d.cross(Vector((1.0, 0.0, 0.0)))
+            lado.normalize()
+            lado_alterna = -lado_alterna
+            giro = Matrix.Rotation(rnd.uniform(-1.2, 1.2), 3, d)
+            abre = math.radians(rnd.uniform(35.0, 60.0))
+            dn = (d * math.cos(abre) + (giro @ lado) * lado_alterna * math.sin(abre)
+                  + Vector((0.0, 0.0, 0.25))).normalized()
+            falta = ate_a_copa(p, dn)
+            comprimento = min(falta * rnd.uniform(0.75, 0.95), (1.7, 0.9)[nivel - 1])
+            if comprimento < 0.2:
+                continue
+            filho = curva_de_galho(p, dn, comprimento, rnd, 0.15, 4 if nivel == 1 else 3)
+            r = raio * (0.5 + 0.1 * (1.0 - t))
+            raios = [r * (1.0 - 0.75 * i / (len(filho) - 1)) for i in range(len(filho))]
+            tubo_por(bm, filho, raios, 5 if nivel == 1 else 4,
+                     (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+            lista.append((filho, nivel + 1))
+            ramificar(filho, r, nivel + 1)
+
+    giro = rnd.uniform(0, math.tau)
+    quantos = 5
+    for k in range(quantos):
+        a = giro + math.tau * k / quantos + rnd.uniform(-0.25, 0.25)
+        z0 = RUA_TRONCO + rnd.uniform(-0.12, 0.3)
+        sobe = math.radians(rnd.uniform(38.0, 55.0))
+        d = Vector((math.cos(a) * math.cos(sobe), math.sin(a) * math.cos(sobe), math.sin(sobe)))
+        inicio = rua_eixo(z0) + Vector((math.cos(a), math.sin(a), 0.0)) * rua_raio(z0) * 0.4
+        comprimento = ate_a_copa(inicio, d) * rnd.uniform(0.7, 0.82)
+        linha = curva_de_galho(inicio, d, comprimento, rnd, 0.2)
+        raio = RUA_RAIO_BASE * rnd.uniform(0.5, 0.6)
+        raios = [raio * (1.0 - 0.7 * i / (len(linha) - 1)) for i in range(len(linha))]
+        tubo_por(bm, linha, raios, 6, (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+        lista.append((linha, 1))
+        ramificar(linha, raio, 1)
+    # O líder: sobe pelo meio da copa.
+    inicio = rua_eixo(RUA_TRONCO - 0.1)
+    d = Vector((rnd.uniform(-0.1, 0.1), rnd.uniform(-0.1, 0.1), 1.0)).normalized()
+    linha = curva_de_galho(inicio, d, ate_a_copa(inicio, d) * 0.72, rnd, 0.0)
+    raio = RUA_RAIO_BASE * 0.55
+    tubo_por(bm, linha, [raio * (1.0 - 0.75 * i / (len(linha) - 1)) for i in range(len(linha))], 6,
+             (rnd.uniform(0.0, 0.9), rnd.uniform(0.05, 0.6)), RUA_CASCA_METROS)
+    lista.append((linha, 1))
+    ramificar(linha, raio, 1)
+    for f in bm.faces:
+        f.smooth = True
+    bm.normal_update()
+    return bm, lista
+
+
+def tronco_rua(semente=8):
+    """O tronco curto da árvore de rua, até um pouco acima da forquilha."""
+    alturas = [-0.12, 0.0, 0.06, 0.14, 0.26, 0.45, 0.8, 1.2, 1.5, 1.75, 1.95, 2.15, 2.35]
+    topo = 2.55
+    return tronco_generico(alturas, rua_eixo, rua_raio, rua_eixo(topo), RUA_CASCA_METROS,
+                           semente, 12, raizes=(0.2, 0.2, 0.55), escala_veio=0.9)
+
+
+def raminho_folhoso(bm_por_cor, centro_y, semente):
+    """Um raminho de folhas largas, chato, com a base em x = 0 e a ponta em
+    x = 1 (a foto cobre y de centro_y - 0,25 a centro_y + 0,25). As folhas
+    alternam dos dois lados, cada uma num talinho; perto da base saem dois ou
+    três raminhos de lado. bm_por_cor: os tons das folhas, do mais escuro ao
+    mais claro, e por último o do talo."""
+    rnd = random.Random(semente)
+    tons = len(bm_por_cor) - 1
+    talo = bm_por_cor[-1]
+
+    def folha(base, direcao, comprimento, tom, z):
+        """Uma folha oval de ponta fina (12 pontos em volta), e a nervura do meio."""
+        bm = bm_por_cor[max(0, min(tons - 1, tom))]
+        lado = Vector((-direcao.y, direcao.x, 0.0))
+        largura = comprimento * rnd.uniform(0.42, 0.52)
+        borda_dir = []
+        borda_esq = []
+        for i in range(1, 7):
+            s = i / 7.0
+            # Mais larga perto de 40% do comprimento; a ponta afina.
+            w = largura / 2.0 * math.sin(math.pi * s ** 0.8) ** 0.9
+            meio = base + direcao * comprimento * s
+            borda_dir.append(meio + lado * w)
+            borda_esq.append(meio - lado * w)
+        contorno = [base] + borda_dir + [base + direcao * comprimento] + list(reversed(borda_esq))
+        vs = [bm.verts.new(p + Vector((0.0, 0.0, z))) for p in contorno]
+        bm.faces.new(vs)
+        # A nervura: um traço fino um tom mais claro, por cima.
+        nervura = bm_por_cor[max(0, min(tons - 1, tom + 2))]
+        lado_n = lado * 0.0022
+        fim = base + direcao * comprimento * 0.85
+        nervura.faces.new([nervura.verts.new(p + Vector((0.0, 0.0, z + 0.0008)))
+                           for p in (base - lado_n, base + lado_n, fim + lado_n * 0.3, fim - lado_n * 0.3)])
+
+    def ramo(inicio, direcao, comprimento, largura_talo, folha_max, z):
+        linha = []
+        d = direcao.normalized()
+        p = inicio.copy()
+        curva = rnd.uniform(-0.25, 0.25)
+        passos = 24
+        for i in range(passos + 1):
+            if abs(p.y - centro_y) > 0.2 or p.x > 0.97:
+                break
+            linha.append((p.copy(), d.copy()))
+            d = (d + Vector((-d.y, d.x, 0.0)) * curva / passos).normalized()
+            p = p + d * comprimento / passos
+        if len(linha) < 3:
+            return []
+        for i in range(len(linha) - 1):
+            (pa, da), (pb, _) = linha[i], linha[i + 1]
+            w = largura_talo * (1.0 - 0.6 * i / len(linha))
+            lado = Vector((-da.y, da.x, 0.0)) * w
+            talo.faces.new([talo.verts.new(q + Vector((0.0, 0.0, z))) for q in (pa - lado, pa + lado, pb + lado, pb - lado)])
+        # As folhas: alternadas, a cada ~1/12 do ramo, maiores no meio.
+        lado_s = rnd.choice((-1.0, 1.0))
+        cada = max(1, len(linha) // 12)
+        for i in range(1, len(linha)):
+            if i % cada:
+                continue
+            t = i / (len(linha) - 1)
+            p, d = linha[i]
+            lado_s = -lado_s
+            lado = Vector((-d.y, d.x, 0.0))
+            ang = math.radians(rnd.uniform(35.0, 60.0))
+            dn = (d * math.cos(ang) + lado * lado_s * math.sin(ang)).normalized()
+            pecolo = 0.02 + 0.01 * rnd.random()
+            base = p + dn * pecolo
+            lado_p = Vector((-dn.y, dn.x, 0.0)) * 0.0018
+            talo.faces.new([talo.verts.new(q + Vector((0.0, 0.0, z + 0.001)))
+                            for q in (p - lado_p, p + lado_p, base + lado_p, base - lado_p)])
+            tamanho = folha_max * (0.65 + 0.35 * math.sin(math.pi * min(1.0, t * 1.2))) * rnd.uniform(0.85, 1.1)
+            # Folha que não cabe na faixa da foto encolhe.
+            for _ in range(4):
+                ponta = base + dn * tamanho
+                if abs(ponta.y - centro_y) < 0.235 and ponta.x < 0.995:
+                    break
+                tamanho *= 0.75
+            tom = int(rnd.uniform(0.0, tons - 2.0) + 0.8 * t)
+            folha(base, dn, tamanho, tom, z + 0.002 + rnd.uniform(0.0, 0.004))
+        # A folha da ponta.
+        p, d = linha[-1]
+        folha(p, d, folha_max * 0.8, tons - 2, z + 0.006)
+        return linha
+
+    principal = ramo(Vector((0.015, centro_y + rnd.uniform(-0.02, 0.02), 0.0)),
+                     Vector((1.0, rnd.uniform(-0.05, 0.05), 0.0)), 0.95, 0.0055, 0.13, 0.0)
+    # Os raminhos de lado (atrás do principal: z mais baixo), alternados.
+    lado_s = rnd.choice((-1.0, 1.0))
+    for k in range(6):
+        t = 0.08 + 0.13 * k + rnd.uniform(-0.03, 0.03)
+        i = int(t * (len(principal) - 1))
+        p, d = principal[i]
+        lado_s = -lado_s
+        ang = math.radians(rnd.uniform(30.0, 45.0))
+        dn = (d * math.cos(ang) + Vector((-d.y, d.x, 0.0)) * lado_s * math.sin(ang)).normalized()
+        ramo(p, dn, rnd.uniform(0.32, 0.45) * (1.0 - 0.1 * k), 0.0035, 0.11, -0.012)
+
+
+def textura_de_folhas():
+    """Fotografa dois raminhos de folhas (um em cada metade da foto) e devolve
+    a imagem (RGBA, com a cor espalhada por baixo do transparente)."""
+    # Os tons (cor linear): verdes de folha de rua, um pouco puxados para o
+    # oliva (de dia, a copa não fica verde-limão); e o talo.
+    tons = [(0.022, 0.036, 0.014), (0.028, 0.046, 0.017), (0.036, 0.057, 0.02),
+            (0.045, 0.068, 0.023), (0.056, 0.08, 0.027), (0.07, 0.094, 0.032),
+            (0.085, 0.108, 0.04), (0.06, 0.045, 0.028)]
+    bms = [bmesh.new() for _ in tons]
+    raminho_folhoso(bms, -0.25, 41)
+    raminho_folhoso(bms, 0.25, 58)
+    objetos = []
+    for i, (bm, cor) in enumerate(zip(bms, tons)):
+        ob = comum.objeto("folhas%d" % i, bm)
+        ob.data.materials.append(material_emissao("tom_folha%d" % i, cor))
+        objetos.append(ob)
+    pasta = tempfile.mkdtemp(prefix="arvore_")
+    caminho = comum.foto_de_cima(objetos, os.path.join(pasta, "folhas.png"), RUA_FOTO, RUA_FOTO, 1.0, (0.5, 0.0))
+    for ob in objetos:
+        bpy.data.objects.remove(ob)
+    img = bpy.data.images.load(caminho)
+    img.name = "leaves_cor"
+    comum.sangrar_cor(img)
+    img.pack()
+    return img
+
+
+def folhas_rua(lista, semente=29):
+    """Os cartões de folhas: nas pontas dos ramos e raminhos, virados para
+    fora da copa (e um pouco para cima), com a ponta caída."""
+    rnd = random.Random(semente)
+    bm = bmesh.new()
+    bm.loops.layers.uv.new("bake")
+    cor = bm.loops.layers.color.new("Color")
+
+    def cor_de(p):
+        # O miolo da copa e a parte de baixo ficam na sombra; a casca de fora, clara.
+        fora = max(0.0, min(1.0, dentro_da_copa(p)))
+        alto = max(0.0, min(1.0, (p.z - (RUA_COPA_CENTRO - RUA_COPA_METADE)) / (2.0 * RUA_COPA_METADE)))
+        v = (0.34 + 0.66 * fora ** 1.3) * (0.78 + 0.22 * alto)
+        return (v, v, v * 0.96)
+
+    for linha, nivel in lista:
+        if nivel < 2:
+            continue
+        # Os raminhos (nível 3) levam folhas da metade para fora; os ramos (2),
+        # no terço de fora.
+        posicoes = (0.3, 0.55, 0.8, 1.0) if nivel == 3 else (0.55, 0.8, 1.0)
+        for t in posicoes:
+            p, d = direcao_ao_longo(linha, t)
+            for k in range(2):
+                fora = para_fora(p)
+                normal = (fora * 0.65 + Vector((0.0, 0.0, 0.45))
+                          + Vector((rnd.uniform(-0.5, 0.5), rnd.uniform(-0.5, 0.5), rnd.uniform(-0.3, 0.3)))).normalized()
+                # Ao longo do raminho (no plano do cartão), girado ao acaso.
+                ao_longo = d - normal * d.dot(normal)
+                if ao_longo.length < 0.05:
+                    ao_longo = normal.orthogonal()
+                ao_longo = Matrix.Rotation(rnd.uniform(-1.0, 1.0), 3, normal) @ ao_longo.normalized()
+                c = rnd.uniform(0.7, 1.0)
+                cartao(bm, cor, p - ao_longo * c * 0.35 + normal * rnd.uniform(-0.08, 0.08), ao_longo,
+                       normal, c, rnd.randint(0, 1), c * 0.12, cor_de, 2 if k == 0 else 1)
+    bm.normal_update()
+    return bm
+
+
+def arvore_de_rua(saida, previas):
+    comum.iniciar()
+    img_folhas = textura_de_folhas()
+    galhos_bm, lista = galhos_rua()
+    # Casca de rua: marrom-acinzentada, em placas mais finas que as do pinheiro.
+    bark = casca_assada(tronco_rua(), galhos_bm, (0.13, 0.1, 0.075), (0.05, 0.04, 0.03), 0.1,
+                        256, 512, raio_chao=4.0)
+    leaves = comum.objeto("leaves", folhas_rua(lista))
     leaves.data.materials.append(material_folhas(img_folhas))
     comum.exportar_com_alfa([bark, leaves], saida)
     if previas:
-        previa(bark, leaves, img_folhas, previas)
+        previa(bark, leaves, previas, "rua", RUA_ALTURA)
 
 
-def previa(bark, leaves, img_folhas, pasta):
+# --- A prévia ---------------------------------------------------------------------
+
+def previa(bark, leaves, pasta, nome, altura):
     """Duas vistas no Cycles (de perto e de longe), com sol e céu: só para
     conferir a forma. Não entram no .glb (que já foi gravado)."""
     os.makedirs(pasta, exist_ok=True)
@@ -531,7 +918,7 @@ def previa(bark, leaves, img_folhas, pasta):
     arv.links.new(tinta.outputs["Color"], mult.inputs[2])
     arv.links.new(mult.outputs[0], bsdf.inputs["Base Color"])
     piso = comum.chao(60.0, 0.0)
-    piso.data.materials.append(comum.material_simples("neve_previa", (0.75, 0.78, 0.82)))
+    piso.data.materials.append(comum.material_simples("piso_previa", (0.5, 0.5, 0.5)))
     cena = bpy.context.scene
     cena.render.engine = 'CYCLES'
     cena.cycles.samples = 48
@@ -553,15 +940,17 @@ def previa(bark, leaves, img_folhas, pasta):
     ob = bpy.data.objects.new("camera_previa", camera)
     cena.collection.objects.link(ob)
     cena.camera = ob
-    for rotulo, pos, alvo in (("perto", (4.5, -3.0, 1.7), (0.0, 0.0, 3.2)),
-                              ("longe", (18.0, -12.0, 2.0), (0.0, 0.0, 4.8))):
+    k = altura / 10.0
+    for rotulo, pos, alvo in (("perto", (4.5 * k, -3.0 * k, 1.7), (0.0, 0.0, 3.2 * k)),
+                              ("longe", (18.0 * k, -12.0 * k, 2.0), (0.0, 0.0, 4.8 * k))):
         ob.location = pos
         ob.rotation_euler = (Vector(alvo) - Vector(pos)).to_track_quat('-Z', 'Y').to_euler()
-        cena.render.filepath = os.path.join(os.path.abspath(pasta), "pinheiro_%s.png" % rotulo)
+        cena.render.filepath = os.path.join(os.path.abspath(pasta), "%s_%s.png" % (nome, rotulo))
         bpy.ops.render.render(write_still=True)
 
 
-ESPECIES = {"pinheiro": pinheiro}
+ESPECIES = {"pinheiro": pinheiro, "rua": arvore_de_rua}
+ARQUIVOS = {"pinheiro": "pine", "rua": "street_tree"}
 
 
 def main():

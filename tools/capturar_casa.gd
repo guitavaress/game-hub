@@ -9,11 +9,12 @@ extends SceneTree
 ##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim.
 ##   tema       loft | cabana (padrão: loft). O do usuário volta no fim.
-##   vista      tema | retrato | floresta (padrão: tema, a vista do perfil). Fase
-##              17.9.1: troca só nesta captura a vista da janela, para comparar
-##              (retrato = o mundo de verdade pelo WindowView; floresta = o
-##              desenho da cabana). Nada é gravado no perfil. Com outra vista
-##              que não a do tema, os arquivos levam o nome dela (cabana-retrato_...).
+##   vista      tema | retrato (padrão: tema, a vista do perfil). Fase 17.9.1:
+##              troca só nesta captura a vista da janela (retrato = o mundo de
+##              verdade pelo WindowView). Nada é gravado no perfil. Com outra
+##              vista que não a do tema, os arquivos levam o nome dela
+##              (cabana-retrato_...). A vista "floresta" (o desenho da cabana)
+##              saiu na 19.3: a cabana usa o retrato desde a 17.9.2.
 ##
 ## Pontos (um PNG por ponto e hora, ex.: loft_nascer_22h.png):
 ##   nascer   posição e giro de nascer da disposição atual
@@ -33,7 +34,6 @@ const WINDOW_WAIT_SECONDS: float = 8.0
 ## As vistas da janela que dá para escolher na captura (Fase 17.9.1).
 const VIEWS: Dictionary[String, String] = {
 	"retrato": "res://worlds/home/home_window.gdshader",
-	"floresta": "res://worlds/home/home_window_forest.gdshader",
 }
 
 var _original_settings: Dictionary = {}
@@ -73,7 +73,7 @@ func _run() -> void:
 		quit(1)
 		return
 	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)):
-		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana e vista tema|retrato|floresta.")
+		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana e vista tema|retrato.")
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":

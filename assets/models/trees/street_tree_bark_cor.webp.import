@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3hq0035ousby"
-path="res://.godot/imported/pine_blender_impostor.png-b85b65bcbea5179ef30ba0c4feb4ca76.ctex"
+uid="uid://dqgb02lpucnsu"
+path="res://.godot/imported/street_tree_bark_cor.webp-b9e2b4591b332692b6f1c5361b0c4eb7.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "438bab97fa333ae6deafc4ec52947b11"
 }
 
 [deps]
 
-source_file="res://assets/generated/pine_blender_impostor.png"
-dest_files=["res://.godot/imported/pine_blender_impostor.png-b85b65bcbea5179ef30ba0c4feb4ca76.ctex"]
+source_file="res://assets/models/trees/street_tree_bark_cor.webp"
+dest_files=["res://.godot/imported/street_tree_bark_cor.webp-b9e2b4591b332692b6f1c5361b0c4eb7.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

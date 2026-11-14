@@ -146,7 +146,8 @@ func _run() -> void:
 	_check("o chão de neve da cidade não vai para a montanha", cover != null and cover_outside == 0)
 	var scatter_outside := 0
 	for child: Node in city.get_children():
-		if child.has_method("get_transforms"):
+		# Só os enfeites do bioma (o BiomeScatter; 19.3: as árvores de rua são um TreeModel, sem família).
+		if child.has_method("get_transforms") and String(child.name).begins_with("BiomeScatter_"):
 			for index in 8:
 				for item: Transform3D in child.get_transforms(index):
 					if maxf(absf(item.origin.x), absf(item.origin.z)) > half:

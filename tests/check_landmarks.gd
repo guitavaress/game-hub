@@ -280,7 +280,8 @@ func _check_landmark_without_mountain() -> void:
 	var world_base := Rect2(Vector2(center.x, center.z) + base.position, base.size)
 	var inside := 0
 	for child: Node in city.get_children():
-		if child.has_method("get_transforms"):
+		# Só os enfeites do bioma (o BiomeScatter; 19.3: as árvores de rua são um TreeModel, sem família).
+		if child.has_method("get_transforms") and String(child.name).begins_with("BiomeScatter_"):
 			for index in 8:
 				for item: Transform3D in child.get_transforms(index):
 					if world_base.grow(0.5).has_point(Vector2(item.origin.x, item.origin.z)):

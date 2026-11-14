@@ -30,6 +30,9 @@ uniform float sway_height = 1.0;
 // 0 = sempre visível (as árvores da cidade e o pinheiro de hoje).
 uniform float near_hide = 0.0;
 uniform float near_band = 4.0;
+// 19.3: quanto a distância da troca de cada árvore varia (fração, para cada
+// lado; a mesma conta do tree_model.gdshader).
+uniform float near_jitter = 0.0;
 
 varying flat float frame;
 // 0 = o modelo desenha esta cópia; 1 = a impostora (só com near_hide > 0).
@@ -40,11 +43,18 @@ float dither(vec2 pixel) {
 	return fract(52.9829189 * fract(dot(pixel, vec2(0.06711056, 0.00583715))));
 }
 
+// A distância da troca desta árvore (a mesma conta do tree_model.gdshader).
+float own_swap_distance(vec3 origin, float base, float jitter) {
+	float pick = fract(sin(dot(origin.xz, vec2(39.3468, 11.1353))) * 24634.6345);
+	return base * (1.0 + jitter * (pick * 2.0 - 1.0));
+}
+
 void vertex() {
 	far_weight = 1.0;
 	if (near_hide > 0.0) {
 		float d = distance(MAIN_CAM_INV_VIEW_MATRIX[3].xyz, MODEL_MATRIX[3].xyz);
-		far_weight = smoothstep(near_hide - near_band, near_hide + near_band, d);
+		float own = own_swap_distance(MODEL_MATRIX[3].xyz, near_hide, near_jitter);
+		far_weight = smoothstep(own - near_band, own + near_band, d);
 		if (far_weight <= 0.0) {
 			// Perto: a cópia vira um ponto (o modelo desenha).
 			VERTEX = vec3(0.0);

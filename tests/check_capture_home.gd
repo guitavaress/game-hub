@@ -62,7 +62,7 @@ func _check_home() -> void:
 	_check("a vista trocada vale para a captura", cabin.get("window_shader") == VIEWS["retrato"])
 	_restore_settings()
 	_check("a vista do perfil volta no fim", cabin.get("window_shader") == cabin_view)
-	_check("as duas vistas existem", VIEWS.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)))
+	_check("as vistas existem", VIEWS.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)))
 	_check("recusa a raiz do repositório", not _folder_allowed("res://"))
 	_check("recusa pasta relativa dentro do repositório", not _folder_allowed("capturas"))
 	_check("recusa a raiz relativa", not _folder_allowed("."))

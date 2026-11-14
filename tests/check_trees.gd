@@ -1,5 +1,16 @@
 extends SceneTree
-## Teste das árvores impostoras (P2.22) e do TreeModel (Fase 19.2).
+## Teste das árvores: as impostoras (P2.22) viraram o TreeModel (Fase 19.2, a
+## amostra; 19.3, todas as árvores do jogo).
+##   - na cidade: uma árvore de rua por floreira, todas num TreeModel só
+##     (StreetTrees), entre 5 e 6,5 m; nenhuma árvore só de foto;
+##   - no bairro do RPG: os pinheiros são um TreeModel (o modelo do Blender);
+##   - os dois modelos (pine.glb e street_tree.glb) dentro do orçamento, com as
+##     malhas bark e leaves e o atlas de longe tirado deles;
+##   - o TreeModel monta as células, aceita árvores aos poucos (add) e troca
+##     modelo e foto na mesma distância, com a variação por árvore.
+
+const PINE := "res://assets/models/trees/pine.glb"
+const STREET_TREE := "res://assets/models/trees/street_tree.glb"
 
 var failures := 0
 
@@ -15,89 +26,118 @@ func _run() -> void:
 	while not city.is_city_ready():
 		await process_frame
 	await process_frame
-
-	var trees := city.find_children("*", "TreeImpostor", true, false)
-	var planters := 0
-	for child in city.get_children():
-		if child is CSGBox3D and is_equal_approx(child.size.x, 1.8) and is_equal_approx(child.size.y, 0.55):
-			planters += 1
-	print("   árvores: %d | floreiras: %d" % [trees.size(), planters])
-	_check("uma árvore por floreira", trees.size() == planters and planters > 0)
-	var ok_size := true
-	var shared := true
-	for tree in trees:
-		var quad: QuadMesh = tree.mesh
-		# Altura da árvore dentro do quadro: 5 a 6,5 m.
-		var info: Dictionary = load("res://assets/generated/tree_impostor.json").data
-		var height: float = quad.size.y * float(info["tree_height"]) / float(info["frame_meters"])
-		if height < 4.99 or height > 6.51:
-			ok_size = false
-		if tree.material_override != trees[0].material_override:
-			shared = false
-	_check("altura entre 5 e 6,5 m", ok_size)
-	_check("um material só para todas (2 triângulos cada)", shared and (trees[0].mesh as QuadMesh).subdivide_width == 0)
-	var atlas: Texture2D = trees[0].material_override.get_shader_parameter("atlas")
-	_check("atlas 2048 x 1024", atlas.get_width() == 2048 and atlas.get_height() == 1024)
-	var models := 0
-	for node in city.find_children("*", "Node3D", true, false):
-		if node.scene_file_path.contains("tree_"):
-			models += 1
-	_check("nenhum modelo de árvore pesado na cena", models == 0)
-	# Fase 19.2: o TreeModel existe, mas o jogo de hoje ainda não o usa.
-	_check("nenhum TreeModel na cidade (a troca é da 19.3)",
-			city.find_children("*", "TreeModel", true, false).is_empty())
-	var old_pines_ok := true
-	for node in city.find_children("Scatter_*", "MultiMeshInstance3D", true, false):
-		var material := (node as MultiMeshInstance3D).material_override as ShaderMaterial
-		if material != null and material.shader == TreeImpostor.SHADER:
-			var hide: Variant = material.get_shader_parameter("near_hide")
-			if hide != null and float(hide) != 0.0:
-				old_pines_ok = false
-	_check("as impostoras de hoje não somem de perto (near_hide = 0)", old_pines_ok)
+	_check_city(city)
 	city.queue_free()
 	await process_frame
+	for model: String in [PINE, STREET_TREE]:
+		_check_species(model)
 	await _check_tree_model()
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
 
 
-## O TreeModel (19.2): o pinheiro do Blender perto e a foto dele longe.
-func _check_tree_model() -> void:
-	const MODEL := "res://assets/models/trees/pine.glb"
-	const ATLAS := "res://assets/generated/pine_blender_impostor.png"
-	print("  -- TreeModel (pinheiro do Blender)")
-	var bytes := FileAccess.get_file_as_bytes(MODEL).size()
-	print("   pine.glb: %d KB" % (bytes / 1024))
-	_check("pine.glb dentro do orçamento (até 800 KB)", bytes > 0 and bytes <= 800 * 1024)
-	var data := TreeModel.species(MODEL, ATLAS)
-	_check("a espécie carrega (malhas bark e leaves, atlas novo)", not data.is_empty())
+## As árvores do jogo: as das floreiras e as do bairro do RPG.
+func _check_city(city: Node) -> void:
+	print("  -- na cidade")
+	var planters := 0
+	for child in city.get_children():
+		if child is CSGBox3D and is_equal_approx(child.size.x, 1.8) and is_equal_approx(child.size.y, 0.55):
+			planters += 1
+	var street: TreeModel = city.get_node_or_null("StreetTrees")
+	var transforms: Array[Transform3D] = street.get_transforms() if street != null else []
+	print("   floreiras: %d | árvores de rua: %d" % [planters, transforms.size()])
+	_check("as árvores de rua num TreeModel só (StreetTrees)",
+			street != null and city.find_children("*", "TreeModel", true, false).size() >= 1)
+	_check("uma árvore por floreira", planters > 0 and transforms.size() == planters)
+	var heights_ok := street != null
+	var on_planter := true
+	for item in transforms:
+		var meters := item.basis.get_scale().y * street.model_height()
+		heights_ok = heights_ok and meters > 4.99 and meters < 6.51
+		# O pé da árvore fica na terra da floreira (0,5 m acima do chão).
+		on_planter = on_planter and is_equal_approx(item.origin.y, 0.5)
+	_check("altura entre 5 e 6,5 m", heights_ok)
+	_check("o pé de cada árvore na terra da floreira", on_planter)
+	var counts := {"Bark": 0, "Leaves": 0, "Impostor": 0}
+	if street != null:
+		for cell: Node in street.get_children():
+			for part: String in counts:
+				var instance := cell.get_node_or_null(part) as MultiMeshInstance3D
+				if instance != null:
+					counts[part] += instance.multimesh.instance_count
+	_check("as três partes com todas as árvores de rua (%s)" % str(counts),
+			counts["Bark"] == transforms.size() and counts["Leaves"] == transforms.size()
+			and counts["Impostor"] == transforms.size())
+	# Nenhuma árvore só de foto: nenhuma MultiMesh fora de um TreeModel usa o shader da impostora.
+	var photos := 0
+	for node in city.find_children("*", "GeometryInstance3D", true, false):
+		var material := (node as GeometryInstance3D).material_override as ShaderMaterial
+		if material != null and material.shader == TreeImpostor.SHADER and not node.get_parent().get_parent() is TreeModel:
+			photos += 1
+	_check("nenhuma árvore que seja só a foto (%d)" % photos, photos == 0)
+	var models := 0
+	for node in city.find_children("*", "Node3D", true, false):
+		if node.scene_file_path.contains("tree"):
+			models += 1
+	_check("nenhuma cena de árvore instanciada (tudo em MultiMesh)", models == 0)
+	# Os pinheiros do RPG (o bioma da montanha: família "tree").
+	var scatter: Node = city.find_child("BiomeScatter_rpg", true, false)
+	var pines: TreeModel = scatter.get_node_or_null("Scatter_0") if scatter != null else null
+	_check("os pinheiros do RPG são um TreeModel com cópias",
+			pines != null and pines.get_transforms().size() > 0)
+
+
+## Um modelo do gerar_arvore.py: orçamento, malhas, medidas e o atlas dele.
+func _check_species(model: String) -> void:
+	var name := model.get_file()
+	print("  -- %s" % name)
+	var bytes := FileAccess.get_file_as_bytes(model).size()
+	print("   %s: %d KB" % [name, bytes / 1024])
+	_check("%s dentro do orçamento (até 800 KB)" % name, bytes > 0 and bytes <= 800 * 1024)
+	var data := TreeModel.species(model)
+	_check("%s carrega (malhas bark e leaves, atlas)" % name, not data.is_empty())
 	if data.is_empty():
 		return
 	var bark: Mesh = data["bark_mesh"]
 	var leaves: Mesh = data["leaves_mesh"]
-	_check("uma superfície por malha (um desenho por material)",
+	_check("%s: uma superfície por malha (um desenho por material)" % name,
 			bark.get_surface_count() == 1 and leaves.get_surface_count() == 1)
 	var leaf_arrays := leaves.surface_get_arrays(0)
-	_check("as folhas têm UV e a cor dos vértices (o miolo escuro)",
+	_check("%s: as folhas têm UV e a cor dos vértices (o miolo escuro)" % name,
 			leaf_arrays[Mesh.ARRAY_TEX_UV] != null and leaf_arrays[Mesh.ARRAY_COLOR] != null)
 	var height := float(data["height"])
 	var radius := float(data["radius"])
 	print("   altura %.2f m | raio da copa %.2f m" % [height, radius])
-	_check("o pinheiro tem uns 10 m e a copa de 2 a 3,5 m de raio",
-			height > 9.5 and height < 10.6 and radius > 2.0 and radius < 3.5)
+	if model == PINE:
+		_check("o pinheiro tem uns 10 m e a copa de 2 a 3,5 m de raio",
+				height > 9.5 and height < 10.6 and radius > 2.0 and radius < 3.5)
+	else:
+		_check("a árvore de rua tem uns 6 m e a copa de 2 a 3,2 m de raio",
+				height > 5.5 and height < 6.6 and radius > 2.0 and radius < 3.2)
 	var leaves_material: ShaderMaterial = data["leaves_material"]
 	var bark_material: ShaderMaterial = data["bark_material"]
-	_check("folhas e casca no shader da árvore, com textura",
+	_check("%s: folhas e casca no shader da árvore, com textura" % name,
 			leaves_material.shader == TreeModel.SHADER and bark_material.shader == TreeModel.SHADER
 			and leaves_material.get_shader_parameter("albedo_texture") != null
 			and bark_material.get_shader_parameter("albedo_texture") != null
 			and bool(leaves_material.get_shader_parameter("foliage"))
 			and not bool(bark_material.get_shader_parameter("foliage")))
+	var atlas := TreeModel.impostor_path(model)
+	var info := TreeImpostor.info_for(atlas)
+	_check("%s: o atlas de longe (%s) foi tirado dele" % [name, atlas.get_file()],
+			String(info.get("source", "")) == name and is_equal_approx(float(info["tree_height"]), height))
+
+
+## O TreeModel sozinho: células, add aos poucos e a troca.
+func _check_tree_model() -> void:
+	print("  -- TreeModel")
 	_check("a distância da troca cresce com a qualidade",
 			TreeModel.swap_distance("leve") < TreeModel.swap_distance("media")
 			and TreeModel.swap_distance("media") < TreeModel.swap_distance("alta"))
-
+	_check("o atlas de um modelo é <nome>_impostor.png em assets/generated",
+			TreeModel.impostor_path(PINE) == "res://assets/generated/pine_impostor.png")
+	var data := TreeModel.species(PINE)
 	# 40 árvores espalhadas em 100 x 100 m: várias células, cada uma com o
 	# modelo (casca e folhas) e a impostora, as mesmas cópias nas três.
 	var transforms: Array[Transform3D] = []
@@ -108,14 +148,20 @@ func _check_tree_model() -> void:
 		transforms.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), spot))
 	var trees := TreeModel.new()
 	root.add_child(trees)
-	_check("o setup monta", trees.setup(MODEL, ATLAS, transforms))
-	_check("guarda as 40 cópias", trees.get_transforms().size() == 40)
-	_check("várias células", trees.get_cell_count() > 1)
+	var first: Array[Transform3D] = transforms.slice(0, 25)
+	var rest: Array[Transform3D] = transforms.slice(25)
+	_check("o setup monta", trees.setup(PINE, first))
+	var cells_before := trees.get_cell_count()
+	trees.add(rest)
+	_check("o add acrescenta (40 cópias, na ordem)", trees.get_transforms() == transforms)
+	_check("várias células, e o add só cria as que faltam", trees.get_cell_count() > 1 and trees.get_cell_count() >= cells_before)
 	var counts := {"Bark": 0, "Leaves": 0, "Impostor": 0}
 	var shared := true
 	var ranges := true
 	var quality: String = root.get_node("AppConfig").get_quality()
 	var distance := TreeModel.swap_distance(quality)
+	var nearest := distance * (1.0 - TreeModel.SWAP_JITTER) - TreeModel.SWAP_BAND
+	var farthest := distance * (1.0 + TreeModel.SWAP_JITTER) + TreeModel.SWAP_BAND
 	for cell: Node in trees.get_children():
 		for part: String in counts:
 			var instance := cell.get_node_or_null(part) as MultiMeshInstance3D
@@ -126,18 +172,26 @@ func _check_tree_model() -> void:
 			if instance.material_override != data[part.to_lower() + "_material"]:
 				shared = false
 			if part == "Impostor":
-				ranges = ranges and instance.visibility_range_begin < distance
+				ranges = ranges and instance.visibility_range_begin < nearest
 			else:
-				ranges = ranges and instance.visibility_range_end > distance
+				ranges = ranges and instance.visibility_range_end > farthest
 	_check("as três partes com as 40 cópias", counts["Bark"] == 40 and counts["Leaves"] == 40 and counts["Impostor"] == 40)
 	_check("um material por parte, o mesmo em todas as células", shared)
-	_check("as células cobrem a faixa da troca", ranges)
+	_check("as células cobrem a faixa da troca, com a variação por árvore", ranges)
+	var leaves_material: ShaderMaterial = data["leaves_material"]
 	var impostor_material: ShaderMaterial = data["impostor_material"]
 	_check("modelo e impostora trocam na mesma distância (%.0f m, %s)" % [distance, quality],
 			is_equal_approx(float(leaves_material.get_shader_parameter("swap_distance")), distance)
 			and is_equal_approx(float(impostor_material.get_shader_parameter("near_hide")), distance))
-	var info := TreeImpostor.info_for(ATLAS)
-	_check("o atlas novo é do pine.glb", String(info.get("source", "")) == "pine.glb")
+	_check("e com a mesma variação por árvore (%.0f%%)" % (TreeModel.SWAP_JITTER * 100.0),
+			is_equal_approx(float(leaves_material.get_shader_parameter("swap_jitter")), TreeModel.SWAP_JITTER)
+			and is_equal_approx(float(impostor_material.get_shader_parameter("near_jitter")), TreeModel.SWAP_JITTER))
+	# O setup de novo troca tudo (nada das 40 fica).
+	var one: Array[Transform3D] = [Transform3D.IDENTITY]
+	trees.setup(PINE, one)
+	await process_frame
+	_check("um setup novo troca as árvores (1 cópia, 1 célula)",
+			trees.get_transforms().size() == 1 and trees.get_cell_count() == 1 and trees.get_child_count() == 1)
 	trees.queue_free()
 	await process_frame
 

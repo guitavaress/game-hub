@@ -375,9 +375,8 @@ func _check_daylight(home: Node3D, title: String) -> void:
 	home.set_night(night_before)
 
 
-## As duas vistas da cabana (17.9.1), para o dono escolher: a floresta do
-## shader (a do perfil) e o retrato do mundo (o mesmo do loft). As duas
-## carregam, a casa monta com cada uma, e só o retrato liga o WindowView.
+## A vista da cabana (17.9.1; 17.9.2): a do perfil é o retrato do mundo (o mesmo
+## do loft) e liga o WindowView. A vista "floresta" (o desenho) saiu na 19.3.
 func _check_cabin_views(cabin: HomeProfile) -> void:
 	print("== as vistas da cabana (17.9.1) ==")
 	var original := cabin.window_shader

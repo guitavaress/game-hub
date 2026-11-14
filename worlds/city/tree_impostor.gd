@@ -1,37 +1,15 @@
 class_name TreeImpostor
-extends MeshInstance3D
-## Uma árvore da cidade, feita como "impostora": só um retângulo com a foto da
-## árvore (tree_impostor.gdshader escolhe a foto certa para o ângulo de quem
-## olha). A árvore de verdade (jacarandá da Poly Haven, CC0, ~4 milhões de
-## triângulos) só foi usada para tirar as fotos, com tools/make_tree_impostor.gd.
+extends RefCounted
+## As árvores "impostoras": só um retângulo com a foto da árvore
+## (tree_impostor.gdshader escolhe a foto certa para o ângulo de quem olha).
+## As fotos (8 ângulos num atlas) são tiradas por tools/make_tree_impostor.gd.
 ##
-## Uso:  var tree := TreeImpostor.new();  tree.height = 6.0;  add_child(tree)
-## A origem do nó fica no chão, na base do tronco. Gire o nó para variar a
-## árvore (cada giro mostra outro lado).
-##
-## Fase 15.7: outro atlas (ex.: o pinheiro do bioma, numa MultiMesh) usa as
-## funções estáticas info_for(), make_quad() e make_material(). O nó de sempre
-## continua com a jacarandá, sem tinta e sem vento.
+## Fase 15.7: o atlas do pinheiro do bioma, numa MultiMesh. Fase 19.3: não há
+## mais árvore que seja SÓ a foto (a jacarandá das floreiras saiu): a foto é a
+## árvore de longe, e o modelo do Blender, a de perto (veja TreeModel). Aqui
+## ficam só as funções que montam a foto: info_for(), make_quad() e make_material().
 
-const ATLAS: Texture2D = preload("res://assets/generated/tree_impostor.png")
-## Medidas gravadas pelo gerador junto com a imagem.
-const INFO: JSON = preload("res://assets/generated/tree_impostor.json")
 const SHADER: Shader = preload("res://worlds/city/tree_impostor.gdshader")
-
-## Altura da árvore, em metros.
-var height: float = 6.0
-
-static var _material: ShaderMaterial
-
-
-func _ready() -> void:
-	var info: Dictionary = INFO.data
-	var quad := make_quad(info, height)
-	mesh = quad
-	material_override = _shared_material(info)
-	# Um retângulo que gira pode sair do "volume" que a Godot calcula para
-	# decidir se desenha: aumentamos a margem.
-	extra_cull_margin = quad.size.x / 2.0
 
 
 ## As medidas de um atlas: o .json que o gerador grava ao lado da imagem
@@ -67,13 +45,3 @@ static func make_material(atlas: Texture2D, info: Dictionary, tint: Color = Colo
 	material.set_shader_parameter("sway_amount", sway)
 	material.set_shader_parameter("sway_height", maxf(sway_height, 0.01))
 	return material
-
-
-static func _shared_material(info: Dictionary) -> ShaderMaterial:
-	if _material == null:
-		_material = ShaderMaterial.new()
-		_material.shader = SHADER
-		_material.set_shader_parameter("atlas", ATLAS)
-		_material.set_shader_parameter("frames", float(info["frames"]))
-		_material.set_shader_parameter("columns", float(info["columns"]))
-	return _material

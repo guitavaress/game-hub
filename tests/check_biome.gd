@@ -241,18 +241,25 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 	var town_specs := 0
 	for i in biome.scatter.size():
 		var spec = biome.scatter[i]
-		var family: MultiMeshInstance3D = scatter.get_node_or_null("Scatter_%d" % i)
+		# A família: uma MultiMesh (rochas) ou um TreeModel (árvores, 19.3).
+		var family: Node = scatter.get_node_or_null("Scatter_%d" % i)
 		if not spec.in_town:
 			_check("família %d (só da montanha) fica fora do bairro" % i, family == null)
 			continue
 		town_specs += 1
-		var label := "pinheiros" if spec.kind == "impostor" else "rochas"
-		_check("%s: uma MultiMesh com cópias" % label, family != null and family.multimesh.instance_count > 0)
+		var label := "pinheiros" if spec.kind != "mesh" else "rochas"
+		var drawn := 0
+		if family is MultiMeshInstance3D:
+			drawn = (family as MultiMeshInstance3D).multimesh.instance_count
+		elif family is TreeModel:
+			drawn = (family as TreeModel).get_transforms().size()
+		_check("%s: desenhados com cópias (%s)" % [label, family.get_class() if family != null else "nada"],
+				family != null and drawn > 0 and (family is TreeModel) == (spec.kind == "tree"))
 		if family == null:
 			continue
 		var transforms: Array[Transform3D] = scatter.get_transforms(i)
 		var count := transforms.size()
-		_check("%s: a MultiMesh tem todas as cópias (%d)" % [label, count], family.multimesh.instance_count == count)
+		_check("%s: o desenho tem todas as cópias (%d)" % [label, count], drawn == count)
 		var outside_snow := 0
 		var near_walk := 0
 		var in_door := 0
@@ -317,26 +324,27 @@ func _check_scatter(city: Node, builder: GDScript) -> void:
 			_check("%s: um cilindro de colisão por cópia" % label, body != null and body.get_child_count() == count)
 			_check("%s: cada cilindro no lugar da cópia, do chão para cima%s (%d errados)"
 					% [label, ", cobrindo a pedra até o topo desenhado" if spec.kind == "mesh" else "", bad_body], bad_body == 0)
-		if spec.kind == "impostor":
-			var material: ShaderMaterial = family.material_override
-			var tint: Color = material.get_shader_parameter("tint")
-			_check("pinheiros: atlas do pinheiro, tinta do perfil e vento ligado",
-					material.get_shader_parameter("atlas").resource_path == spec.source
-					and tint.is_equal_approx(spec.tint)
-					and float(material.get_shader_parameter("sway_amount")) > 0.0)
+		if spec.kind == "tree":
+			# 19.3: o pinheiro do Blender (o modelo perto e a foto dele longe).
+			var trees := family as TreeModel
+			var species := TreeModel.species(spec.source, spec.tint)
+			var leaves: ShaderMaterial = species["leaves_material"]
+			var tint: Color = leaves.get_shader_parameter("tint")
+			_check("pinheiros: o modelo do perfil, a tinta dele e o vento ligado",
+					trees.get_transforms() == transforms and tint.is_equal_approx(spec.tint)
+					and float(leaves.get_shader_parameter("sway_amount")) > 0.0)
 			var heights_ok := true
 			for k in count:
-				var height: float = transforms[k].basis.get_scale().y \
-						* float(load("res://assets/generated/pine_impostor.json").data["tree_height"])
+				var height: float = transforms[k].basis.get_scale().y * trees.model_height()
 				heights_ok = heights_ok and height >= spec.height_range.x - 0.01 and height <= spec.height_range.y + 0.01
 			_check("pinheiros: altura entre %.0f e %.0f m" % [spec.height_range.x, spec.height_range.y], heights_ok)
 		else:
-			var material: ShaderMaterial = family.material_override
+			var material: ShaderMaterial = (family as MultiMeshInstance3D).material_override
 			_check("rochas: pedra com neve por cima",
 					material != null and material.shader.resource_path.ends_with("snow_cover.gdshader")
 					and is_equal_approx(float(material.get_shader_parameter("snow_cover")), biome.snow_cover))
-	_check("uma MultiMesh por família do bairro (%d)" % town_specs,
-			scatter.find_children("*", "MultiMeshInstance3D", false, false).size() == town_specs)
+	_check("um desenho (MultiMesh ou TreeModel) por família do bairro (%d)" % town_specs,
+			scatter.find_children("Scatter_*", "Node3D", false, false).size() == town_specs)
 
 	# O sorteio é sempre igual (mesma entrada, mesmo resultado).
 	var first: Array = scatter_script.plan(biome.scatter[0], regions, keep_out, [] as Array[Vector3], 7, 8.8, 0.44, stations)

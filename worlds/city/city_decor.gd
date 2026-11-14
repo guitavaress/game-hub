@@ -4,9 +4,10 @@ extends RefCounted
 ## floreiras e o chafariz. Só visual (e um pouco de colisão); nada de lógica.
 ##
 ## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Plantas: nas
-## floreiras de concreto, uma árvore "impostora" (a foto de uma jacarandá de
-## verdade, veja TreeImpostor) e arbustos baixos (Kenney Nature Kit, CC0,
-## recoloridos num verde escuro; abaixo de 1 m o "low-poly" não aparece).
+## floreiras de concreto, a árvore de rua (19.3: o modelo do Blender perto e a
+## foto dele longe, veja TreeModel; todas as da cidade num TreeModel só) e
+## arbustos baixos (Kenney Nature Kit, CC0, recoloridos num verde escuro;
+## abaixo de 1 m o "low-poly" não aparece).
 ## Uso:  CityDecor.add_park(self, lote)  — cada função acrescenta nós ao "parent".
 
 const AMBIENTCG: String = "res://assets/ambientcg/"
@@ -22,6 +23,10 @@ const BUSH: PackedScene = preload("res://assets/kenney/nature-kit/plant_bushLarg
 const BUSH_SCALE: float = 2.2
 ## Altura das árvores das floreiras (sorteada entre os dois valores, em metros).
 const TREE_HEIGHT_RANGE: Vector2 = Vector2(5.0, 6.5)
+## A árvore de rua (19.3), feita por tools/blender/gerar_arvore.py.
+const STREET_TREE: String = "res://assets/models/trees/street_tree.glb"
+## O nome do TreeModel que junta as árvores de rua de um "parent" (a cidade).
+const STREET_TREES_NODE: String = "StreetTrees"
 ## Onde ficam os arbustos dentro da floreira (a partir do centro, em metros).
 const PLANTER_BUSH_SPOTS: Array[Vector2] = [Vector2(-0.4, -0.35), Vector2(0.42, -0.2), Vector2(-0.05, 0.42)]
 
@@ -134,9 +139,9 @@ static func add_park(parent: Node3D, lot: Transform3D) -> void:
 				Vector3(side * 1.2, 0.0, 0.0)))
 
 
-## Floreira de concreto (com colisão) com uma árvore (impostora: só uma foto,
-## veja TreeImpostor) e, se with_bushes, três arbustos baixos em volta (a praça
-## fica só com a árvore).
+## Floreira de concreto (com colisão) com uma árvore de rua e, se with_bushes,
+## três arbustos baixos em volta (a praça fica só com a árvore). A árvore entra
+## no TreeModel do "parent" (street_trees): um desenho por material para todas.
 static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator, with_bushes: bool = true) -> void:
 	var planter := CSGBox3D.new()
 	planter.size = Vector3(1.8, 0.55, 1.8)
@@ -149,11 +154,26 @@ static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerato
 		for spot in PLANTER_BUSH_SPOTS:
 			add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
 					BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
-	var tree := TreeImpostor.new()
-	tree.height = rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
-	tree.position = base + Vector3(0.0, 0.5, 0.0)
-	tree.rotation.y = rng.randf() * TAU  # cada árvore mostra outro lado
-	parent.add_child(tree)
+	var height := rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
+	var yaw := rng.randf() * TAU  # cada árvore mostra outro lado
+	var trees := street_trees(parent)
+	if trees != null and trees.model_height() > 0.0:
+		var basis := Basis(Vector3.UP, yaw).scaled(Vector3.ONE * height / trees.model_height())
+		var one: Array[Transform3D] = [Transform3D(basis, base + Vector3(0.0, 0.5, 0.0))]
+		trees.add(one)
+
+
+## O TreeModel das árvores de rua do "parent" (criado na primeira floreira).
+## null se o modelo não carregar.
+static func street_trees(parent: Node3D) -> TreeModel:
+	var trees := parent.get_node_or_null(STREET_TREES_NODE) as TreeModel
+	if trees == null:
+		trees = TreeModel.new()
+		trees.name = STREET_TREES_NODE
+		parent.add_child(trees)
+		var none: Array[Transform3D] = []
+		trees.setup(STREET_TREE, none)
+	return trees if trees.model_height() > 0.0 else null
 
 
 ## Banco simples: base de concreto e assento de madeira escura.

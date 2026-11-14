@@ -32,7 +32,7 @@ func _run() -> void:
 		for file in DirAccess.get_files_at("res://assets/ambientcg/" + folder):
 			if file.ends_with(".import"):
 				imports.append("res://assets/ambientcg/%s/%s" % [folder, file])
-	imports.append("res://assets/generated/tree_impostor.png.import")
+	imports.append("res://assets/generated/street_tree_impostor.png.import")
 	# Fase 15.0 (bioma montanha): o atlas do pinheiro e as texturas da rocha 3D.
 	imports.append("res://assets/generated/pine_impostor.png.import")
 	for folder in DirAccess.get_directories_at("res://assets/polyhaven/models"):
@@ -74,7 +74,7 @@ func _run() -> void:
 		"res://assets/ambientcg/Road012A/Road012A_1K-JPG_Color.jpg",
 		"res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_NormalGL.jpg",
 		"res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Roughness.jpg",
-		"res://assets/generated/tree_impostor.png",
+		"res://assets/generated/street_tree_impostor.png",
 		"res://assets/ambientcg/Snow010A/Snow010A_1K-JPG_Color.jpg",
 		"res://assets/generated/pine_impostor.png",
 	]

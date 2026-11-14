@@ -276,7 +276,10 @@ func _check_biomes() -> void:
 			if scatter == null:
 				continue
 			var source := load(scatter.source)
-			_check("tipo de asset", (scatter.kind == "impostor" and source is Texture2D) or (scatter.kind == "mesh" and source is PackedScene))
+			# 19.3: "tree" é um modelo do Blender, com o atlas de longe ao lado (TreeModel.impostor_path).
+			_check("tipo de asset", (scatter.kind == "impostor" and source is Texture2D) or (scatter.kind == "mesh" and source is PackedScene)
+					or (scatter.kind == "tree" and source is PackedScene
+						and ResourceLoader.exists(TreeModel.impostor_path(scatter.source))))
 			_check("intervalos do scatter", scatter.height_range.x > 0 and scatter.height_range.y >= scatter.height_range.x and scatter.density >= 0 and scatter.walkable_clearance >= 0 and scatter.collision_radius >= 0)
 		if biome.ambience_bed != null:
 			for sound in biome.ambience_bed.files:

@@ -8,7 +8,7 @@ extends SceneTree
 ##   - o retrato é refeito só na troca de fase do dia (dia, pôr do sol, noite),
 ##     nunca a cada aviso de hora; sem ponto, volta a vista de reserva, mesmo
 ##     se o ponto sair no meio de uma captura;
-##   - o shader da floresta não usa o retrato;
+##   - um shader sem o retrato (sem view_mix) não tira retrato nenhum;
 ##   - o enquadramento de quem usa a janela (17.9.2, set_framing): a lente fecha
 ##     com o zoom e o olhar sobe, do mesmo ponto; sem mudança, nada é refeito;
 ##   - as camadas escondidas pelo ponto (WindowViewPoint.hidden_layers) também
@@ -21,7 +21,6 @@ const CONFIG := "user://config.cfg"
 const VIEW_SCRIPT := "res://components/window_view/window_view.gd"
 const POINT_SCRIPT := "res://components/window_view/window_view_point.gd"
 const CITY_SHADER := "res://worlds/home/home_window.gdshader"
-const FOREST_SHADER := "res://worlds/home/home_window_forest.gdshader"
 ## A camada da casa (Home.INTERIOR_LAYER = 20).
 const HOME_LAYER_MASK: int = 1 << 19
 ## Uma camada que o MUNDO esconde do retrato (aqui a 18, como as placas da cidade).
@@ -73,8 +72,8 @@ func _check_component() -> void:
 	_check("sem ponto: nenhum retrato, a janela fica com a vista de reserva",
 			view.capture_count == 0 and not view.has_portrait() and float(material.get_shader_parameter("view_mix")) == 0.0)
 	var WindowViewScript: GDScript = load(VIEW_SCRIPT)
-	_check("o shader da cidade usa o retrato; o da floresta, não",
-			WindowViewScript.uses_view(load(CITY_SHADER)) and not WindowViewScript.uses_view(load(FOREST_SHADER)))
+	_check("o shader da cidade usa o retrato; um sem view_mix, não",
+			WindowViewScript.uses_view(load(CITY_SHADER)) and not WindowViewScript.uses_view(_plain_shader()))
 
 	print("== com ponto ==")
 	var point = load(POINT_SCRIPT).new()
@@ -157,16 +156,27 @@ func _check_component() -> void:
 			and float(material.get_shader_parameter("view_mix")) == 0.0)
 	point.free()
 	captures = view.capture_count
-	var forest := ShaderMaterial.new()
-	forest.shader = load(FOREST_SHADER)
-	view.set_material(forest)
+	var no_view := ShaderMaterial.new()
+	no_view.shader = _plain_shader()
+	view.set_material(no_view)
 	var point2 = load(POINT_SCRIPT).new()
 	world.add_child(point2)
 	view.set_night(1.0)
 	await _frames(3)
-	_check("com o shader da floresta, nenhum retrato", view.capture_count == captures)
+	_check("com um shader sem o retrato, nenhum retrato", view.capture_count == captures)
 	world.queue_free()
 	await _frames(2)
+
+
+## Um shader de janela que não usa o retrato (sem view_mix): o lugar do antigo
+## desenho da floresta da cabana, que saiu na 19.3.
+func _plain_shader() -> Shader:
+	var shader := Shader.new()
+	shader.code = "shader_type spatial;
+uniform float night = 0.0;
+void fragment() { ALBEDO = vec3(0.2, 0.3, 0.2); }
+"
+	return shader
 
 
 func _on_view_child(node: Node) -> void:

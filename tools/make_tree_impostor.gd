@@ -8,20 +8,23 @@ extends SceneTree
 ## Roda uma vez, COM janela (precisa da placa de vídeo), a partir da pasta do
 ## projeto:
 ##   Godot --path . -s res://tools/make_tree_impostor.gd -- <arquivo.gltf> [saída.png] [nó]
-## Saída padrão: res://assets/generated/tree_impostor.png (+ .json com as medidas).
+## Saída padrão (19.3): res://assets/generated/<nome do modelo>_impostor.png (+
+## .json com as medidas), o atlas que o TreeModel procura (TreeModel.impostor_path).
 ## Fase 19.2: um modelo do Blender (malhas "bark" e "leaves", feito por
 ## tools/blender/gerar_arvore.py) é fotografado com os materiais do TreeModel
 ## (o mesmo recorte das folhas e a mesma normal da copa de perto), sem vento:
-##   ... -- res://assets/models/trees/pine.glb res://assets/generated/pine_blender_impostor.png
+##   ... -- res://assets/models/trees/pine.glb          (-> pine_impostor.png)
+##   ... -- res://assets/models/trees/street_tree.glb   (-> street_tree_impostor.png)
 ## "nó" (opcional): quando o glTF traz várias árvores lado a lado, o nome da
-## que vai na foto (as outras são apagadas). Ex. do pinheiro da Fase 15:
+## que vai na foto (as outras são apagadas). Ex. do pinheiro da Fase 15 (a
+## fir_sapling_medium da Poly Haven, que não é mais usada desde a 19.3):
 ##   ... -- ~/git/game-hub-fontes/polyhaven/fir_sapling_medium/fir_sapling_medium_1k.gltf \
 ##          res://assets/generated/pine_impostor.png fir_sapling_medium_a_LOD0
 
 const FRAMES: int = 8
 const COLUMNS: int = 4
 const FRAME_SIZE: int = 512
-const DEFAULT_OUTPUT: String = "res://assets/generated/tree_impostor.png"
+const GENERATED: String = "res://assets/generated/"
 
 
 func _initialize() -> void:
@@ -35,7 +38,8 @@ func _run() -> void:
 		quit(1)
 		return
 	var source: String = args[0]
-	var output: String = args[1] if args.size() > 1 else DEFAULT_OUTPUT
+	var output: String = args[1] if args.size() > 1 \
+			else GENERATED + source.get_file().get_basename() + "_impostor.png"
 	var keep: String = args[2] if args.size() > 2 else ""
 	await process_frame  # a janela principal precisa estar pronta
 

@@ -49,6 +49,8 @@ func _biomes() -> Dictionary[String, Callable]:
 
 ## A montanha nevada do RPG (15.6; ligada na 15.6, afinada até a 15.13).
 ## Os valores são os do montanha.tres de hoje: regravar dá o mesmo dado.
+## 19.3: os pinheiros passam a ser o modelo do Blender (tipo "tree"; a foto de
+## longe é a do mesmo modelo). A cor já vem certa do modelo: tinta branca.
 func _montanha() -> BiomeSpec:
 	var biome := BiomeSpec.new()
 	biome.id = "montanha"
@@ -82,10 +84,10 @@ func _montanha() -> BiomeSpec:
 	biome.ambience_bed.volume_db = -22.0
 	for outside: bool in [false, true]:
 		var pine := ScatterSpec.new()
-		pine.source = "res://assets/generated/pine_impostor.png"
-		pine.kind = "impostor"
+		pine.source = "res://assets/models/trees/pine.glb"
+		pine.kind = "tree"
 		pine.height_range = Vector2(10, 18) if outside else Vector2(8, 14)
-		pine.tint = Color(0.45, 0.55, 0.55)
+		pine.tint = Color.WHITE
 		pine.walkable_clearance = 6.0
 		pine.collision_radius = 0.4
 		pine.in_town = not outside

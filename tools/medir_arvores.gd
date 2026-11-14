@@ -1,22 +1,21 @@
 extends SceneTree
-## A MEDIDA do pinheiro do Blender (Fase 19.2): o custo de desenhar os
-## pinheiros do bairro (as mesmas cópias, nos mesmos lugares) como são hoje
-## (impostoras) e com o TreeModel (modelo perto, impostora longe). Rode COM
-## JANELA, à mão, com o PC parado:
+## A MEDIDA das árvores (Fase 19.2; 19.3: o jogo como está, com o TreeModel
+## nas floreiras e no bairro do RPG). Rode COM JANELA, à mão, com o PC parado:
 ##
 ##   godot --path . -s tools/medir_arvores.gd -- [jogos] [qualidade] [hora] [bairro]
 ##   (padrão: 200 alta 13 rpg)
 ##
 ## Em cada ponto, a câmera dá uma volta de 360° em SPIN_SECONDS e anota o tempo
-## de cada quadro, as chamadas de desenho e os triângulos. A ordem é hoje → novo
-## → hoje (a segunda medida de hoje mostra quanto a máquina variou). Sai uma
-## linha MEDIDA_ARVORES por modo e ponto. O vsync é desligado só aqui.
+## de cada quadro, as chamadas de desenho e os triângulos. Os pontos são
+## medidos duas vezes ("1" e "2": a segunda mostra quanto a máquina variou).
+## Sai uma linha MEDIDA_ARVORES por volta e ponto. O vsync é desligado só aqui.
+## Para comparar com as impostoras da 19.2, rode a versão desta ferramenta do
+## commit de antes da 19.3 (lá, o modo "hoje").
 ## Pontos:
 ##   portico  12 m antes do pórtico, na altura dos olhos
 ##   dentro   no miolo do bairro, no meio dos pinheiros
 ##   praca    perto do meio da praça, olhando o bairro
 
-const SAMPLE: GDScript = preload("res://tools/amostra_arvore.gd")
 const SPIN_SECONDS: float = 6.0
 const WARMUP_FRAMES: int = 90
 const EYE_HEIGHT: float = 1.7
@@ -61,16 +60,10 @@ func _run() -> void:
 		push_error("Bairro %s não existe." % district)
 		quit(1)
 		return
-	# Sem o tipo BiomeScatter (depende dos autoloads, que não existem quando este script compila).
-	var scatter: Node = city.find_child("BiomeScatter_" + district, true, false)
-	var old_instances: Array[MultiMeshInstance3D] = []
-	for child: Node in scatter.get_children():
-		var instance := child as MultiMeshInstance3D
-		if instance != null and instance.material_override is ShaderMaterial \
-				and (instance.material_override as ShaderMaterial).shader == TreeImpostor.SHADER:
-			old_instances.append(instance)
-	var trees: TreeModel = SAMPLE.swap_pines(city, district)
-	var copies := trees.get_transforms().size()
+	# As árvores do jogo: as do bairro (BiomeScatter) e as das floreiras.
+	var copies := 0
+	for trees: Node in city.find_children("*", "TreeModel", true, false):
+		copies += (trees as TreeModel).get_transforms().size()
 
 	var player: Node3D = city.get_node("Player")
 	var camera := Camera3D.new()
@@ -80,12 +73,9 @@ func _run() -> void:
 	camera.make_current()
 
 	var points := _points(area)
-	print("MEDIDA_ARVORES_AMBIENTE | %s | %d jogos | %s | %02d h | %d pinheiros no bairro | %s" % [
+	print("MEDIDA_ARVORES_AMBIENTE | %s | %d jogos | %s | %02d h | %d árvores na cidade | %s" % [
 			RenderingServer.get_video_adapter_name(), count, quality, int(hour), copies, district])
-	for mode in ["hoje", "novo", "hoje"]:
-		trees.visible = mode == "novo"
-		for instance in old_instances:
-			instance.visible = mode == "hoje"
+	for mode in ["1", "2"]:
 		for point: Dictionary in points:
 			var eye: Vector3 = point["eye"]
 			player.teleport_to(Transform3D(Basis.IDENTITY, Vector3(eye.x, 0.1, eye.z)))

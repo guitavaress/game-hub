@@ -4,9 +4,11 @@ extends Node3D
 ##
 ## Cada família do bioma (BiomeSpec.scatter, as que têm in_town) vira UMA
 ## MultiMesh (um só desenho para todas as cópias) e, se tiver colisão, um
-## corpo com um cilindro por cópia. Os pinheiros são impostores (a foto de
-## TreeImpostor, com a tinta e o vento do pinheiro); as rochas são a malha do
-## glTF com o material de pedra com neve por cima (BiomeBuilder.snow_cover_material).
+## corpo com um cilindro por cópia. As rochas são a malha do glTF com o
+## material de pedra com neve por cima (BiomeBuilder.snow_cover_material).
+## As árvores (tipo "tree", 19.3) são um TreeModel (o modelo do Blender perto,
+## a foto dele longe), com a tinta do perfil; o tipo "impostor" (só a foto,
+## TreeImpostor, como os pinheiros até a 19.2) continua valendo.
 ##
 ## Onde pode: só nas "regiões", o miolo de neve de cada quarteirão e de cada
 ## vaga, onde não passa calçada nem rua. Cada família fica a
@@ -23,7 +25,7 @@ extends Node3D
 ##
 ## A conta (plan) é pura e estática: a 15.9 reaproveita para a encosta.
 
-## Distância mínima entre dois troncos de pinheiro, além dos raios.
+## Distância mínima entre dois troncos de árvore (impostora ou modelo), além dos raios.
 const IMPOSTOR_SPACING: float = 3.0
 ## Distância mínima entre duas rochas (ou entre uma rocha e um tronco).
 const MESH_SPACING: float = 0.8
@@ -90,7 +92,8 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 	var items: Array[Dictionary] = []
 	if spec.density <= 0.0 or amount <= 0.0 or base_height <= 0.0:
 		return items
-	var impostor := spec.kind == "impostor"
+	# Árvore (só foto ou modelo): conta do tronco, sem esticar para os lados.
+	var impostor := spec.kind != "mesh"
 	var spacing := IMPOSTOR_SPACING if impostor else MESH_SPACING
 	var clearance := spec.walkable_clearance
 	# Escala de referência: a da menor altura, sem esticar (o raio de colisão
@@ -176,6 +179,16 @@ static func area_distance(area: Rect2, point: Vector2) -> float:
 
 ## Malha, material e medidas de uma família. {} se a origem não carregar.
 static func _source(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
+	if spec.kind == "tree":
+		var species := TreeModel.species(spec.source, spec.tint)
+		if species.is_empty():
+			return {}
+		var model_height := float(species["height"])
+		return {
+			"height": model_height,
+			# O raio do tronco é o de colisão do perfil (na menor altura).
+			"radius": spec.collision_radius * model_height / spec.height_range.x,
+		}
 	if spec.kind == "impostor":
 		var atlas := load(spec.source) as Texture2D
 		var info := TreeImpostor.info_for(spec.source)
@@ -237,14 +250,11 @@ static func _mesh_of(path: String) -> Dictionary:
 	return result
 
 
-## Uma família: a MultiMesh e, se houver, o corpo com os cilindros.
+## Uma família: a MultiMesh (ou o TreeModel, nas árvores) e, se houver, o
+## corpo com os cilindros. O nó se chama Scatter_<índice> nos dois casos.
 func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array[Dictionary]) -> void:
 	if items.is_empty():
 		return
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = source["mesh"]
-	multimesh.instance_count = items.size()
 	var largest := 1.0
 	var transforms: Array[Transform3D] = []
 	for k in items.size():
@@ -256,17 +266,28 @@ func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array
 			origin.y = -float(source["bottom"]) * item_scale.y - MESH_SINK * float(item["height"])
 		var basis := Basis(Vector3.UP, item["yaw"]) * Basis.from_scale(item_scale)
 		transforms.append(Transform3D(basis, origin))
-		multimesh.set_instance_transform(k, transforms[k])
 		largest = maxf(largest, item_scale.x)
 	_transforms[index] = transforms
-	var instance := MultiMeshInstance3D.new()
-	instance.name = "Scatter_%d" % index
-	instance.multimesh = multimesh
-	if source["material"] != null:
-		instance.material_override = source["material"]
-	# O impostor gira para a câmera: a caixa da Godot precisa de folga.
-	instance.extra_cull_margin = float(source["cull"]) * largest
-	add_child(instance)
+	if spec.kind == "tree":
+		var trees := TreeModel.new()
+		trees.name = "Scatter_%d" % index
+		add_child(trees)
+		trees.setup(spec.source, transforms, spec.tint)
+	else:
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.mesh = source["mesh"]
+		multimesh.instance_count = items.size()
+		for k in transforms.size():
+			multimesh.set_instance_transform(k, transforms[k])
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "Scatter_%d" % index
+		instance.multimesh = multimesh
+		if source["material"] != null:
+			instance.material_override = source["material"]
+		# O impostor gira para a câmera: a caixa da Godot precisa de folga.
+		instance.extra_cull_margin = float(source["cull"]) * largest
+		add_child(instance)
 
 	if spec.collision_radius <= 0.0:
 		return
