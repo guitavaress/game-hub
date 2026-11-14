@@ -2,7 +2,7 @@ extends SceneTree
 ## Tira as CAPTURAS dos pontos de vista de referência de um bairro (Fase 15:
 ## brief do bioma montanha; depois, a revisão visual). Rode COM JANELA, à mão:
 ##
-##   ~/.local/bin/godot --path . -s tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [chuva]
+##   ~/.local/bin/godot --path . -s tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
@@ -12,10 +12,12 @@ extends SceneTree
 ##              hora quebrada vira minutos no nome (6.5 dá rpg_praca_06h30.png)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim.
 ##   céu        fotos | sky3d (padrão: o do usuário, que volta no fim; Fase 19.4)
-##   chuva      fraca | forte (Fase 19.5): força a chuva em toda a cidade, a
-##              qualquer hora (ex.: de dia na praça), com o chão já molhado. O
-##              nome ganha a força (sobrevivencia-forte_praca_13h.png) e entra
-##              o ponto "rua". Para pular o céu, use "-" (ex.: alta - forte).
+##   tempo      limpo | nublado | chuva_fraca | chuva_forte (Fase 19.6; padrão:
+##              limpo). Fixa o tempo da cidade toda (o WeatherDirector), com o
+##              céu e o chão já no ponto. "fraca" e "forte" (da 19.5) valem
+##              como chuva_fraca e chuva_forte. Fora do limpo, o nome ganha o
+##              tempo (sobrevivencia-chuva_forte_praca_13h.png) e entra o ponto
+##              "rua". Para pular o céu, use "-" (ex.: alta - chuva_forte).
 ##
 ## Pontos (um PNG por ponto e por hora, ex.: rpg_praca_13h.png):
 ##   praca    no meio da praça, olhando para o bairro
@@ -40,8 +42,8 @@ const SETTLE_FRAMES: int = 90
 ## primeiro ponto saía no meio da troca (Fase 17.5).
 const HOUR_SETTLE_SECONDS: float = 3.5
 
-## A força da chuva forçada ("" = o tempo da cidade; Fase 19.5).
-var _rain: String = ""
+## O tempo fixado (Fase 19.6; "limpo" = como as capturas de antes da chuva).
+var _weather: String = "limpo"
 
 ## Nome do bairro nos arquivos; uma amostra pode trocar no _prepare (Fase 19.2:
 ## "rpg-novo"). Vazio = o id do bairro.
@@ -56,7 +58,7 @@ func _run() -> void:
 	await process_frame
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s res://tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [chuva]")
+		push_error("Uso: -s res://tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo]")
 		quit(1)
 		return
 	var folder := String(args[0])
@@ -73,9 +75,10 @@ func _run() -> void:
 		push_error("O céu deve ser fotos ou sky3d.")
 		quit(1)
 		return
-	_rain = String(args[6]) if args.size() > 6 else ""
-	if _rain not in ["", "fraca", "forte"]:
-		push_error("A chuva deve ser fraca ou forte.")
+	_weather = String(args[6]) if args.size() > 6 else "limpo"
+	_weather = {"fraca": "chuva_fraca", "forte": "chuva_forte"}.get(_weather, _weather)
+	if _weather not in ["limpo", "nublado", "chuva_fraca", "chuva_forte"]:
+		push_error("O tempo deve ser limpo, nublado, chuva_fraca ou chuva_forte.")
 		quit(1)
 		return
 	if (ProjectSettings.globalize_path(folder) + "/").begins_with(ProjectSettings.globalize_path("res://")):
@@ -135,10 +138,10 @@ func _run() -> void:
 	twin.make_current()
 
 	_prepare(city, area)
-	if not _rain.is_empty():
-		_force_rain(city, _rain)
+	_force_weather(city, _weather)
+	if _weather != "limpo":
 		if _district_label.is_empty():
-			_district_label = "%s-%s" % [district, _rain]
+			_district_label = "%s-%s" % [district, _weather]
 	var day_night = city._day_night
 	# Calcula uma vez: o aviso de mirante ausente também sai só uma vez.
 	var points: Array[Dictionary] = _points(area)
@@ -176,12 +179,12 @@ func _prepare(_city: Node, _area: Dictionary) -> void:
 	pass
 
 
-## A chuva forçada (19.5): em todos os climas de chuva da cidade, a qualquer
-## hora e em qualquer lugar. Uma amostra pode trocar (ex.: o "antes").
-func _force_rain(city: Node, strength: String) -> void:
-	for node: Node in city.get_children():
-		if node.has_method("force_rain"):
-			node.call("force_rain", strength)
+## O tempo fixado (19.6): o WeatherDirector da cidade põe o céu, o chão e a
+## chuva na hora. Uma amostra pode trocar.
+func _force_weather(city: Node, state: String) -> void:
+	var director: Node = city.get_node_or_null("WeatherDirector")
+	if director != null:
+		director.call("force", state)
 
 
 ## Ponto de extensão (19.2): depois de cada captura, a amostra pode salvar
@@ -225,7 +228,7 @@ func _points(area: Dictionary) -> Array[Dictionary]:
 			side = 1.0
 		points.append({"name": "portico", "eye": Vector3(gate.x + side * 12.0, EYE_HEIGHT, gate.y),
 				"target": Vector3(gate.x - side * 30.0, EYE_HEIGHT + 2.0, gate.y)})
-		if not _rain.is_empty():
+		if _weather != "limpo":
 			points.append({"name": "rua", "eye": Vector3(gate.x + side * 12.0, EYE_HEIGHT, gate.y),
 					"target": Vector3(gate.x + side * 6.0, 0.0, gate.y + 1.5)})
 

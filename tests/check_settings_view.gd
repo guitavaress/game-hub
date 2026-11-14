@@ -36,6 +36,16 @@ func _run() -> void:
 	_check("mudou na memória", app.get_quality() == other)
 	_check("gravou no config.cfg", ('quality="%s"' % other) in FileAccess.get_file_as_string(CONFIG))
 
+	print("\n== clima (19.6) ==")
+	_check("a linha Clima tem os modos do AppConfig", view._weather_buttons.keys() == Array(app.WEATHER_MODES))
+	view._weather_buttons["limpo"].pressed.emit()
+	_check("sempre limpo: mudou na memória", app.get_weather() == "limpo")
+	_check("gravou no config.cfg", 'weather="limpo"' in FileAccess.get_file_as_string(CONFIG))
+	view.refresh()
+	_check("refresh() marca o modo escolhido", view._weather_buttons["limpo"].button_pressed)
+	view._weather_buttons["dinamico"].pressed.emit()
+	_check("dinâmico de novo", app.get_weather() == "dinamico")
+
 	print("\n== bússola e mapa ==")
 	view._map_check.button_pressed = not shown
 	_check("mudou na memória", app.get_show_map() == (not shown))

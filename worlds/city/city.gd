@@ -66,6 +66,11 @@ const METRO_MAX_PER_DISTRICT: int = 4
 ## A CASA (Fase 9): fica longe da cidade (fora de qualquer tamanho de
 ## cidade), ao sul. Ninguém a vê de fora: entra-se pela porta "Casa" da praça.
 const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
+## A chuva da cidade (19.6): o nó que mostra o tempo fora dos bairros com
+## clima próprio. E o nome de cada tempo no aviso do tempo acelerado.
+const CITY_WEATHER_NAME: String = "DistrictWeather_cidade"
+const WEATHER_NAMES: Dictionary = {"limpo": "limpo", "nublado": "nublado",
+		"chuva_fraca": "chuva fraca", "chuva_forte": "chuva forte"}
 ## Porta "Casa" na praça: na beira sul, a leste do eixo, de frente para o
 ## norte (o chafariz). Fica fora dos caminhos de quem anda pela praça (os
 ## eixos que levam às quatro ruas e o lado sul do chafariz), longe da estação
@@ -121,6 +126,8 @@ var _plaza_friends: Array[FriendNpc] = []
 var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
+## O tempo da cidade (Fase 19.6: limpo, nublado, chuva), um só para o mundo.
+var _weather_director: WeatherDirector
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
 ## O céu de fotos: o WorldEnvironment, o sol (que de noite vira a "lua") e o
@@ -201,8 +208,7 @@ func _ready() -> void:
 	_build_ground_and_walls(half, openings)
 	# O clima vem com todos os bairros e a montanha prontos: ele cobre as zonas
 	# do bairro (quarteirões, vagas e a montanha).
-	for district in districts:
-		_build_weather(district["id"])
+	_build_weather(districts)
 	await _keep_frame_light()
 	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
 	var covered := _build_biome_covers(districts, half, player)
@@ -231,6 +237,13 @@ func _ready() -> void:
 	# 19.4: sem isso, ela ficava com o retrato da manhã até o pôr do sol).
 	_day_night.moment_changed.connect(func(_id: String) -> void:
 		get_tree().call_group_flags(SceneTree.GROUP_CALL_DEFERRED, WindowView.GROUP, &"on_world_changed"))
+	# E a cada tempo novo, quando a passagem termina (19.6: a janela mostra o
+	# tempo fechado). Com o tempo acelerado (teste), um aviso diz qual é.
+	_weather_director.weather_changed.connect(func(state: String) -> void:
+		get_tree().call_group_flags(SceneTree.GROUP_CALL_DEFERRED, WindowView.GROUP, &"on_world_changed")
+		if _weather_director.time_scale > 1.0:
+			player.get_hud().show_message("Tempo: %s" % WEATHER_NAMES.get(state, state),
+					"--clima-rapido (teste) acelera o tempo.", Toast.Kind.INFO, 3.0))
 
 	if play_intro:
 		# A cidade lá fora está pronta: a porta da rua destranca.
@@ -584,18 +597,31 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 	return []
 
 
-## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
-## todas as zonas dele (quarteirões e vagas, cada uma com meia rua em volta).
-func _build_weather(category_id: String) -> void:
-	var profile := Profiles.district(category_id)
-	var zones := _map.zone_rects(category_id)
-	if profile == null or profile.effective_weather() == null or zones.is_empty():
-		return
+## O clima (19.6): o WeatherDirector decide o tempo da cidade toda; aqui
+## ficam os que MOSTRAM o tempo. Um por bairro com clima no perfil (a neve da
+## montanha), nas zonas dele (quarteirões e vagas, cada uma com meia rua em
+## volta, e a montanha); e a chuva da cidade, em todo o resto (as outras ruas,
+## a praça e a casa, que ouve a chuva pela janela).
+func _build_weather(districts: Array[Dictionary]) -> void:
+	var own: Array[Rect2] = []
+	for district in districts:
+		var profile := Profiles.district(district["id"])
+		var zones := _map.zone_rects(district["id"])
+		if profile == null or profile.effective_weather() == null or zones.is_empty():
+			continue
+		_add_weather("DistrictWeather_%s" % district["id"], profile.effective_weather(), zones.duplicate(), [])
+		own.append_array(zones)
+	_add_weather(CITY_WEATHER_NAME, WeatherSpec.new(), [], own)
+	# Os que acabaram de nascer recebem o tempo de agora.
+	_weather_director.publish(true)
+
+
+func _add_weather(node_name: String, spec: WeatherSpec, areas: Array[Rect2], exclude: Array[Rect2]) -> void:
 	var weather := DistrictWeather.new()
-	weather.name = "DistrictWeather_%s" % category_id
-	weather.spec = profile.effective_weather()
-	weather.areas = zones.duplicate()
-	weather.day_night = _day_night
+	weather.name = node_name
+	weather.spec = spec
+	weather.areas = areas
+	weather.exclude = exclude
 	add_child(weather)
 
 
@@ -1000,6 +1026,11 @@ func _build_environment() -> void:
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	_apply_sky(AppConfig.get_sky())
 	add_child(_day_night)
+	# O tempo vem logo depois do relógio: o céu já abre com ele.
+	_weather_director = WeatherDirector.new()
+	_weather_director.name = "WeatherDirector"
+	_weather_director.day_night = _day_night
+	add_child(_weather_director)
 
 
 ## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).

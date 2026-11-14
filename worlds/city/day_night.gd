@@ -18,6 +18,9 @@ extends Node
 ##
 ## F8 adianta o relógio da cidade em 3 horas (para testar sem esperar).
 ##
+## O tempo (nublado, chuva) fecha o céu por cima do momento: veja
+## set_weather_overlay (quem chama é o WeatherDirector, Fase 19.6).
+##
 ## Com o céu "sky3d" (opção Céu do menu), o sol, a lua, as estrelas e o céu
 ## são do addon Sky3D: este relógio repassa a hora a ele, a força e a cor do
 ## sol do momento, e continua cuidando da neblina, da exposição e do aviso
@@ -52,7 +55,7 @@ const MOONLIGHT_ENERGY: float = 0.4
 ## De onde vem o luar: a mesma lua do céu de fotos (50° de altura).
 const MOONLIGHT_ELEVATION_DEG: float = 50.0
 const MOONLIGHT_YAW_DEG: float = 30.0
-## O céu fechado (set_overcast = 1): o que sobra da força do sol, da sombra e
+## O céu fechado (set_weather_overlay = 1): o que sobra da força do sol, da sombra e
 ## do brilho do céu; quanto a névoa engrossa e puxa para o cinza; quanto a cor
 ## perde de saturação.
 const OVERCAST_SUN: float = 0.3
@@ -74,7 +77,7 @@ const OVERCAST_SKY3D_TINT: Color = Color(0.62, 0.64, 0.67)
 ## O momento de agora (a mistura do de antes com o de depois). Antes da
 ## primeira hora, um meio-dia (os valores padrão do DayMoment).
 var _moment: DayMoment = DayMoment.new()
-## O céu fechado da chuva (0 a 1; Fase 19.5, a amostra). Veja set_overcast.
+## O céu fechado pelo tempo (0 a 1; Fase 19.6). Veja set_weather_overlay.
 var _overcast: float = 0.0
 ## As nuvens e o tom do Sky3D antes do céu fechado (para voltar a eles).
 var _sky3d_base: Dictionary = {}
@@ -329,22 +332,27 @@ func _apply_moonlight(weight: float) -> void:
 	moonlight.visible = energy > 0.001
 
 
-## O céu fechado da chuva (Fase 19.5, a amostra; 0 = o céu do momento, 1 =
-## fechado): menos sol e sombra mais fraca, céu mais escuro, névoa mais grossa
-## e cinza, cor menos viva. Não escreve no momento (get_moment continua sendo o
-## do relógio) e com 0 tudo fica exatamente como sem chuva. Quem chama é o
-## DistrictWeather, que sobe e desce o valor aos poucos. A 19.6 troca isto pelo
-## contrato do clima com o céu (set_weather_overlay).
-func set_overcast(amount: float) -> void:
-	amount = clampf(amount, 0.0, 1.0)
-	if amount == _overcast:
+## O TEMPO por cima do céu do momento (Fase 19.6; 0 = o céu do momento, 1 =
+## fechado): menos sol e sombra mais fraca, céu mais escuro e cinza (nas fotos
+## e no Sky3D, onde as nuvens cobrem quase tudo), névoa mais grossa e cinza,
+## cor menos viva. Quem chama é o WeatherDirector (o tempo da cidade toda), que
+## sobe e desce o valor aos poucos.
+## O contrato: NÃO escreve no momento (get_moment() continua sendo o do
+## relógio; no meio-dia parado ele é o próprio momento do day_cycle.tres) e com
+## 0 tudo fica exatamente como sem tempo nenhum. A névoa do bioma
+## (set_fog_overlay) vem por cima desta. A janela da casa refaz o retrato pelo
+## aviso do WeatherDirector (weather_changed), e não por aqui.
+func set_weather_overlay(cover: float) -> void:
+	cover = clampf(cover, 0.0, 1.0)
+	if cover == _overcast:
 		return
-	_overcast = amount
+	_overcast = cover
 	if environment != null:
 		apply_hour(current_hour())
 
 
-func get_overcast() -> float:
+## Quanto o tempo fecha o céu agora (0 a 1).
+func get_weather_overlay() -> float:
 	return _overcast
 
 

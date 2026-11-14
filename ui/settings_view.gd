@@ -29,6 +29,9 @@ const VOLUME_ROWS: Array[Array] = [["Master", "Geral"], ["Efeitos", "Efeitos"], 
 const QUALITY_OPTIONS: Array[Array] = [["leve", "Leve"], ["media", "Média"], ["alta", "Alta"]]
 const TIME_OPTIONS: Array[Array] = [["relogio", "Relógio"], ["dia", "Dia"], ["noite", "Noite"]]
 const SKY_OPTIONS: Array[Array] = [["fotos", "Fotos"], ["sky3d", "Sky3D"]]
+## O tempo da cidade (Fase 19.6): "dinâmico" muda sozinho; os outros ficam fixos.
+const WEATHER_OPTIONS: Array[Array] = [["dinamico", "Dinâmico"], ["limpo", "Limpo"], ["nublado", "Nublado"],
+		["chuva_fraca", "Chuva"], ["chuva_forte", "Forte"]]
 ## [tecla, botão do controle (Xbox), o que faz]. Esta lista mostra os dois
 ## ao mesmo tempo (as dicas soltas pela tela é que trocam conforme o aparelho).
 ## Textos curtos: cada linha cabe numa linha do painel.
@@ -77,6 +80,7 @@ var _quality_buttons: Dictionary[String, Button] = {}
 var _quality_hint: Label
 var _time_buttons: Dictionary[String, Button] = {}
 var _sky_buttons: Dictionary[String, Button] = {}
+var _weather_buttons: Dictionary[String, Button] = {}
 var _friends_check: CheckButton
 var _key_field: LineEdit
 var _steam_id_field: LineEdit
@@ -305,7 +309,8 @@ func _choose(buttons: Dictionary[String, Button], value: String) -> void:
 
 func _build_sound_page() -> Control:
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
+	# 8 (era 12): com a linha Clima (19.6), a página ainda cabe numa tela de 900 px.
+	page.add_theme_constant_override("separation", 8)
 	page.add_child(_section("SOM"))
 	for row_info in VOLUME_ROWS:
 		var bus: String = row_info[0]
@@ -360,6 +365,10 @@ func _build_sound_page() -> Control:
 	var sky_row := _row("Céu")
 	sky_row.add_child(_segmented(SKY_OPTIONS, _sky_buttons, AppConfig.set_sky))
 	page.add_child(sky_row)
+
+	var weather_row := _row("Clima")
+	weather_row.add_child(_segmented(WEATHER_OPTIONS, _weather_buttons, AppConfig.set_weather))
+	page.add_child(weather_row)
 	return page
 
 
@@ -627,6 +636,7 @@ func refresh() -> void:
 	_quality_hint.text = GraphicsQuality.describe(quality)
 	_choose(_time_buttons, AppConfig.get_time_of_day())
 	_choose(_sky_buttons, AppConfig.get_sky())
+	_choose(_weather_buttons, AppConfig.get_weather())
 	_refresh_friends_fields()
 	_update_friends_status()
 	for i in range(TAB_NAMES.size(), _pages.size()):
