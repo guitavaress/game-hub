@@ -5,10 +5,10 @@
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** árvores de verdade (feitas no Blender) nas floreiras, no RPG e na vista da cabana. O dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo. O tempo muda sozinho (abre, fecha, chove) e a chuva é outra: riscos de verdade, respingo, chão molhado e som. A Aventura é uma floresta e a Sobrevivência, um deserto. O bairro que você mais joga ocupa mais terreno e tem o marco mais alto.
-- **Agora:** 19.2 feita (`32658f1`): o pinheiro do Blender existe como amostra, e o jogo ainda não mudou. As capturas estão em `C:\Projetos\game-hub-referenciasase-199.2\`. **Falta a sua decisão** para a 19.3 trocar todas as árvores.
+- **Agora:** 19.2 feita (`32658f1`): o pinheiro do Blender existe como amostra, e o jogo ainda não mudou. As capturas estão em `C:\Projetos\game-hub-referenciasase-199.2\`. Você aprovou seguir **por script** (2026-11-13). A 19.3, em andamento, troca todas as árvores e corrige a cor e as agulhas do pinheiro.
 - **Ordem:** o código deixa de ser "só neve" → a amostra de uma árvore → todas as árvores → o dia em gradiente → a chuva nova → o clima dinâmico → a floresta → o deserto → os bairros crescem → o marco cresce → as sobras da montanha → fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
-- **Decisões que esperam você:** aprovar a árvore da amostra (19.2); aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
+- **Decisões que esperam você:** aprovar a chuva da amostra (19.5); prédios ou arcos no bairro com bioma (19.7); os downloads das 2 texturas de chão (19.7 e 19.8).
 
 ## Contexto
 É a fase [3. Biomas baratos (PoC)](../ROADMAP.md#3-biomas-baratos-poc): provar o coração da V3 ("o que você joga molda o lugar") sem o custo da montanha. Ela passou à frente de "Visitar amigos" em 2026-11-12, quando o dono viu que o jogo do V-Sekai está parado (o registro está na ROADMAP). No planejamento, o dono pediu mais duas coisas, que entram aqui porque mexem nas mesmas peças: **todas as árvores como modelos do Blender** (inclusive as da janela da cabana) e **o céu vivo** (o dia em gradiente, com nascer e pôr do sol e uma tarde; o clima dinâmico; a chuva refeita, que hoje "está horrível").
@@ -155,6 +155,11 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-13 (respostas do dono, depois da 19.2 e do teste da 19.11):
+  - **Pinheiro: segue por script.** A 19.3 corrige a tinta e as agulhas e troca todas as árvores. A regra das plantas no AGENTS.md foi acertada: as árvores são por script; as outras plantas seguem de preferência CC0.
+  - **Worktree `divisa`:** apagado, com a branch `worktree/divisa` (só tinha o commit reprovado `9964a37`).
+  - **Trilha grátis:** outro modelo grátis será testado mais adiante, numa subetapa pequena, com as mesmas regras (revisão do Opus antes do merge). A 19.11 continua com o Sonnet.
+  - **`opencode.json`:** saíram os modelos da OpenAI (o `model` da raiz, dos agentes e dos comandos). Sem modelo fixado, o `--model` da linha de comando passa a valer.
 - 2026-11-13 (19.2): a amostra do pinheiro.
   - **O que existe:** `tools/blender/gerar_arvore.py` (pinheiro), `assets/models/trees/pine.glb` (677 KB, 11,8 mil triângulos, casca e agulhas com textura assada), o `TreeModel` (`worlds/city/tree_model.gd`), o atlas distante novo (`assets/generated/pine_blender_impostor.png`) e as ferramentas de amostra (`tools/amostra_arvore.gd`, `tools/amostra_arvore_casa.gd`). O jogo não usa nada disso ainda.
   - **Medida** (desktop, Alta, 200 jogos, 13 h, os 62 pinheiros do RPG, volta de 360°; hoje → novo → hoje): pórtico 194 → 195 → 201 FPS; miolo do bairro 192 → 182 → 193 FPS (p99 13,2 → 14,4 → 12,9 ms); praça 195 → 192 → 196. O custo aparece no meio das árvores: cerca de 5%, +90 desenhos, +0,6 milhão de triângulos.

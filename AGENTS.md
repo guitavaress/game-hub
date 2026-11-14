@@ -108,7 +108,7 @@ painel/        o painel visual do cofre (React + Motion, no Docker; http://local
   - **Um script refazível por modelo** em `tools/blender/` (as peças comuns em `comum.py`), sem `.blend` no repositório. O `.glb` vai para `assets/models/<grupo>/`, e entra junto o `.import` que a Godot gerar.
   - **Materiais compartilhados:** uma malha por material, com o nome dele (`stone`, `wood`...), para a Godot juntar as peças num desenho por material. As texturas PBR do projeto servem a todos, e nada de textura nova por modelo sem necessidade.
   - **Orçamento:** cerca de 300 KB por peça pequena e 800 KB por peça grande, com a malha reduzida só onde a forma não muda. **A qualidade vem antes:** se reduzir piorar a forma visível, o orçamento cede, e isso fica registrado no plano.
-  - **Plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
+  - **Árvores** são feitas por script (`tools/blender/gerar_arvore.py`; dono, 2026-11-13, depois da amostra da 19.2). As **outras plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
   - Fora do Blender, até virar fase própria: os prédios da cidade e o terreno.
 
 ## Addons (código de terceiros)

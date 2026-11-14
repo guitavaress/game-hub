@@ -7,8 +7,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 ## Agora
 - **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), na branch `fase-19`: árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Última subetapa feita:** 19.2 (2026-11-13, `32658f1`): a amostra do pinheiro feito no Blender. O jogo ainda não mudou; as capturas lado a lado estão em `C:\Projetos\game-hub-referenciasase-199.2\`.
-  - **Espera você:** aprovar o pinheiro (seguir por script, trocar por modelo CC0, ou ficar como está). Aprovado, a 19.3 troca todas as árvores.
-  - **Teste do modelo grátis (OpenCode):** reprovado na 19.11; ela passa ao Sonnet.
+  - **Em andamento:** a 19.3, todas as árvores. Você aprovou o pinheiro por script (2026-11-13); a 19.3 corrige a cor e as agulhas dele e troca as árvores das floreiras, da praça e do RPG.
+  - **Teste do modelo grátis (OpenCode):** reprovado na 19.11; ela passa ao Sonnet. Outro modelo grátis será testado mais adiante, numa subetapa pequena.
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).
   - **Falta:** 2 ou 3 amigos usarem e mandarem o resumo do botão "Contar o que achei". Cole o resumo (sem o nome) para um agente registrar no plano; aí a fase fecha.
 - **Próxima fase:** [Visitar amigos](ROADMAP.md#4-visitar-amigos), adiada em 2026-11-12 (o jogo do V-Sekai está parado desde junho de 2025).
