@@ -120,7 +120,7 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
   - Arquivos: `worlds/city/district_landmarks/district_landmark.gd`, `worlds/city/city.gd` (`_build_landmark`), `tests/check_landmarks.gd`.
   - Teste: `check_landmarks check_city_map`; captura da praça.
   - Commit: `Fase 19.10: o marco cresce com as horas`
-- [ ] **19.11 Canto côncavo e torre de dia** (pequena · Sonnet, A · medium) — o teste do modelo grátis (OpenCode, `omniroute/free-coding`) foi reprovado em 2026-11-13; veja as decisões da fase
+- [x] **19.11 Canto côncavo e torre de dia** (pequena · Sonnet, B no worktree `divisa2` · medium) — `cd94c4e`, 2026-11-14, juntada em `e06b2e5` depois da revisão da coordenadora; `check_divisa check_biome check_landmarks check_city_map check_sector_layout` ok depois do merge; o teste do modelo grátis (OpenCode, `omniroute/free-coding`) foi reprovado em 2026-11-13; veja as decisões da fase
   - Faz: `covered_rects` sem o quadrado de neve no cruzamento cercado por três zonas; a `RpgTower` ganha a bandeira grande para se destacar de dia.
   - Arquivos: `worlds/city/biome/biome_builder.gd` (só `covered_rects`), `worlds/city/district_landmarks/rpg_tower.gd`, `tests/check_divisa.gd` (novo). Sem `.tres`, sem `city.gd`.
   - Teste: `check_divisa check_biome check_landmarks`; capturas do canto e da torre às 13 h.
@@ -155,6 +155,9 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-14 (19.11, trilha B com o Sonnet, revisada pela coordenadora): o cruzamento cercado por três zonas do bioma fica inteiro com o chão do bioma (dois retângulos a mais por canto côncavo no `covered_rects`, sem sobreposição; a cidade de 200 jogos tem quatro desses cantos), e a `RpgTower` ganhou bandeiras carmim com faixa dourada nas quatro faces, abaixo da coroa de néon, sem luz nova (as frestas de néon atrás do pano saíram).
+  - Rodou em paralelo com a 19.9 porque os arquivos não se cruzam. A B rodou os testes com uma Godot da A aberta (deslize, sem efeito); a coordenadora rodou de novo depois do merge.
+  - **Não conferido:** a bandeira na torre ancorada no quarteirão (a variante sem montanha, de 1000 jogos) e a torre à noite. Capturas das 13 h, antes e depois, na pasta `19.11` das referências da fase.
 - 2026-11-14 (19.9): o bairro cresce com as horas. **Foi adiantada** em relação à 19.7 e à 19.8, que esperam o dono (pedem o download das texturas); o dono estava fora e pediu para as trilhas andarem. O que saiu diferente do plano:
   - **O nível** (`LibraryStats.district_levels(districts)`, função pura sobre a lista do `compute()`): pela fatia das horas, a partir de **10%** é o nível 1, de **20%** o 2 e de **40%** o 3 (conta inteira, sem arredondamento). Com **menos de 10 h** na biblioteca toda, ninguém cresce (senão um jogo de uma tarde faria o bairro dele dominar a cidade). Sem horas conhecidas ou com tudo em 0, todos ficam no 0.
   - **Quanto cresce** (`SectorLayout.demands`): cada nível pede **+25% dos quarteirões** do bairro em território, arredondado para cima, e no mínimo uma vaga por nível (nível 3 = +75%). Essa "demanda" toma o lugar dos quarteirões em três pontos da conta: o tamanho do anel (R), a partilha da borda e o lugar garantido no crescimento do território. Os quarteirões continuam seguindo os jogos, e o resto vira vaga. Sem nível, a demanda é a própria contagem e a planta é a de antes (o teste compara).
