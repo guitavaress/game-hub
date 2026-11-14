@@ -86,6 +86,14 @@ func _check_city(city: Node) -> void:
 	var pines: TreeModel = scatter.get_node_or_null("Scatter_0") if scatter != null else null
 	_check("os pinheiros do RPG são um TreeModel com cópias",
 			pines != null and pines.get_transforms().size() > 0)
+	# Revisão da 19.3: os pinheiros são montados antes de entrar na cena e
+	# precisam seguir a qualidade do mesmo jeito (vale com qualquer config).
+	var config: Node = city.get_node("/root/AppConfig")
+	for trees: TreeModel in [street, pines]:
+		if trees == null:
+			continue
+		_check("%s ouve a troca de qualidade do menu" % trees.name,
+				config.settings_changed.is_connected(trees._on_settings_changed))
 
 
 ## Um modelo do gerar_arvore.py: orçamento, malhas, medidas e o atlas dele.
@@ -193,6 +201,20 @@ func _check_tree_model() -> void:
 	_check("um setup novo troca as árvores (1 cópia, 1 célula)",
 			trees.get_transforms().size() == 1 and trees.get_cell_count() == 1 and trees.get_child_count() == 1)
 	trees.queue_free()
+	await process_frame
+
+	# Montado FORA da cena e só depois posto nela (como o BiomeScatter faz):
+	# tem de ouvir a qualidade e usar a distância dela.
+	var outside := TreeModel.new()
+	outside.setup(PINE, one)
+	root.add_child(outside)
+	var outside_ok: bool = root.get_node("AppConfig").settings_changed.is_connected(outside._on_settings_changed)
+	for cell: Node in outside.get_children():
+		var bark := cell.get_node_or_null("Bark") as GeometryInstance3D
+		outside_ok = outside_ok and bark != null and bark.visibility_range_end > farthest \
+				and bark.visibility_range_end < farthest + TreeModel.CELL_METERS + float(data["height"]) * 2.0 + 0.01
+	_check("montado fora da cena, segue a qualidade ao entrar nela", outside_ok)
+	outside.queue_free()
 	await process_frame
 
 

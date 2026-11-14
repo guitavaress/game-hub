@@ -150,13 +150,26 @@ func setup(model_path: String, transforms: Array[Transform3D], tint: Color = Col
 	_transforms.clear()
 	_by_cell.clear()
 	for key: Vector2i in _cells:
-		(_cells[key] as Node3D).queue_free()
+		# Sai da cena já, para as células velhas e as novas não ficarem juntas um quadro.
+		var old: Node3D = _cells[key]
+		remove_child(old)
+		old.queue_free()
 	_cells.clear()
+	add(transforms)
+	return true
+
+
+## Ao entrar na cena: passa a ouvir a qualidade do menu e usa a distância dela.
+## Fica aqui, e não no setup, porque quem monta as árvores pode montá-las
+## antes de pô-las na cena (o BiomeScatter faz assim); fora da cena não há
+## AppConfig para perguntar (revisão da 19.3).
+func _enter_tree() -> void:
 	var config := _config()
 	if config != null and not config.settings_changed.is_connected(_on_settings_changed):
 		config.settings_changed.connect(_on_settings_changed)
-	add(transforms)
-	return true
+	var data: Dictionary = _species.get(_species_key, {})
+	if not data.is_empty():
+		_apply_distance(data)
 
 
 ## Acrescenta árvores à espécie do setup (só as células que ganharam árvore são

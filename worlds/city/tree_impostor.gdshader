@@ -38,22 +38,13 @@ varying flat float frame;
 // 0 = o modelo desenha esta cópia; 1 = a impostora (só com near_hide > 0).
 varying flat float far_weight;
 
-// O mesmo ruído de tela do tree_model.gdshader.
-float dither(vec2 pixel) {
-	return fract(52.9829189 * fract(dot(pixel, vec2(0.06711056, 0.00583715))));
-}
-
-// A distância da troca desta árvore (a mesma conta do tree_model.gdshader).
-float own_swap_distance(vec3 origin, float base, float jitter) {
-	float pick = fract(sin(dot(origin.xz, vec2(39.3468, 11.1353))) * 24634.6345);
-	return base * (1.0 + jitter * (pick * 2.0 - 1.0));
-}
+#include "res://worlds/city/tree_swap.gdshaderinc"
 
 void vertex() {
 	far_weight = 1.0;
 	if (near_hide > 0.0) {
 		float d = distance(MAIN_CAM_INV_VIEW_MATRIX[3].xyz, MODEL_MATRIX[3].xyz);
-		float own = own_swap_distance(MODEL_MATRIX[3].xyz, near_hide, near_jitter);
+		float own = tree_swap_distance(MODEL_MATRIX[3].xyz, near_hide, near_jitter);
 		far_weight = smoothstep(own - near_band, own + near_band, d);
 		if (far_weight <= 0.0) {
 			// Perto: a cópia vira um ponto (o modelo desenha).
@@ -98,7 +89,7 @@ void fragment() {
 	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz, 0.5));
 	BACKLIGHT = vec3(0.25, 0.3, 0.2) * tint;
 	// Na faixa da troca: os pontos do modelo saem daqui.
-	if (near_hide > 0.0 && dither(FRAGCOORD.xy) >= far_weight) {
+	if (near_hide > 0.0 && tree_swap_dither(FRAGCOORD.xy) >= far_weight) {
 		discard;
 	}
 }

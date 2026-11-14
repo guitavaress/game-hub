@@ -7,7 +7,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 ## Agora
 - **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), na branch `fase-19`: árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Última subetapa feita:** 19.3 (2026-11-13, `17a6a14`): todas as árvores viraram modelos do Blender. As floreiras e a praça ganharam a árvore de rua nova (copa oval de folhas largas), e os pinheiros do RPG são o abeto corrigido (verde de abeto mais escuro, agulhas finas). As capturas estão em `C:\Projetos\game-hub-referencias\fase-19\19.3\`.
-  - **Próxima subetapa:** a 19.4, o dia em gradiente (nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo). Antes, a revisão do segundo Opus olha o custo das árvores na cidade inteira.
+  - **Revisão da 19.3:** nada grave. Os pinheiros do RPG não seguiam a qualidade gráfica (na Leve e na Média trocavam a foto pelo modelo longe demais); corrigido, com teste.
+  - **Próxima subetapa:** a 19.4, o dia em gradiente (nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo).
   - **Teste do modelo grátis (OpenCode):** reprovado na 19.11; ela passa ao Sonnet. Outro modelo grátis será testado mais adiante, numa subetapa pequena.
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).
   - **Falta:** 2 ou 3 amigos usarem e mandarem o resumo do botão "Contar o que achei". Cole o resumo (sem o nome) para um agente registrar no plano; aí a fase fecha.
