@@ -103,9 +103,6 @@ const SKY_NIGHT: Texture2D = preload("res://assets/polyhaven/hdri/rogland_clear_
 ## (ganho), e o brilho do sol fica em u = 0,607 da foto panorâmica.
 const SKY_SUNSET_GAIN: float = 0.27
 const SKY_SUNSET_GLOW_U: float = 0.607
-## Rugosidade do asfalto: seco de dia, "molhado" (reflete o néon) à noite.
-const ASPHALT_ROUGHNESS_DAY: float = 0.55
-const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
 ## Som do aviso "A cidade está pronta" (Kenney Music Jingles, CC0).
 const CITY_READY_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI00.ogg")
 
@@ -396,9 +393,10 @@ func _rebuild_backdrop() -> void:
 
 func _on_night_changed(night: float) -> void:
 	get_tree().call_group("city_night", "set_night", night)
-	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon.
+	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon (o
+	# CityDecor junta a noite com a chuva, 19.5).
 	if _asphalt != null:
-		_asphalt.roughness = lerpf(ASPHALT_ROUGHNESS_DAY, ASPHALT_ROUGHNESS_NIGHT, night)
+		CityDecor.set_ground_night(night)
 	for district_sign in _district_signs:
 		district_sign.set_night(night)
 
@@ -597,6 +595,7 @@ func _build_weather(category_id: String) -> void:
 	weather.name = "DistrictWeather_%s" % category_id
 	weather.spec = profile.effective_weather()
 	weather.areas = zones.duplicate()
+	weather.day_night = _day_night
 	add_child(weather)
 
 
@@ -1189,7 +1188,7 @@ func _build_ground_and_walls(half: float, openings: Array[Rect2] = []) -> void:
 	ground.size = Vector3(half * 2.0, 1.0, half * 2.0)
 	ground.position = Vector3(0.0, -0.5, 0.0)
 	# Asfalto realista (ambientCG, CC0), repetido a cada 6 m.
-	_asphalt = CityDecor.pbr_material("Road012A", 6.0, Color(0.75, 0.75, 0.75))
+	_asphalt = CityDecor.asphalt_material()
 	ground.material = _asphalt
 	ground.use_collision = true
 	add_child(ground)

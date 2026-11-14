@@ -52,10 +52,32 @@ const MOONLIGHT_ENERGY: float = 0.4
 ## De onde vem o luar: a mesma lua do céu de fotos (50° de altura).
 const MOONLIGHT_ELEVATION_DEG: float = 50.0
 const MOONLIGHT_YAW_DEG: float = 30.0
+## O céu fechado (set_overcast = 1): o que sobra da força do sol, da sombra e
+## do brilho do céu; quanto a névoa engrossa e puxa para o cinza; quanto a cor
+## perde de saturação.
+const OVERCAST_SUN: float = 0.3
+const OVERCAST_SHADOW: float = 0.35
+const OVERCAST_SKY: float = 0.5
+## Quanto a foto do céu perde a cor no céu fechado (0 a 1; sky_blend.gdshader).
+const OVERCAST_SKY_GREY: float = 0.9
+const OVERCAST_FOG: float = 2.6
+const OVERCAST_FOG_GREY: Color = Color(0.56, 0.59, 0.63)
+const OVERCAST_FOG_GREY_AMOUNT: float = 0.6
+const OVERCAST_SATURATION: float = 0.78
+## Quanto da névoa cobre o céu fechado (0 a 1).
+const OVERCAST_SKY_FOG: float = 0.85
+## No Sky3D, o céu fechado são as nuvens cobrindo quase tudo e o azul do ar
+## puxado para o cinza (o reflexo no asfalto molhado vem desse céu).
+const OVERCAST_SKY3D_CLOUDS: float = 0.95
+const OVERCAST_SKY3D_TINT: Color = Color(0.62, 0.64, 0.67)
 
 ## O momento de agora (a mistura do de antes com o de depois). Antes da
 ## primeira hora, um meio-dia (os valores padrão do DayMoment).
 var _moment: DayMoment = DayMoment.new()
+## O céu fechado da chuva (0 a 1; Fase 19.5, a amostra). Veja set_overcast.
+var _overcast: float = 0.0
+## As nuvens e o tom do Sky3D antes do céu fechado (para voltar a eles).
+var _sky3d_base: Dictionary = {}
 var _fog_overlay_weight: float = 0.0
 var _fog_overlay_scale: float = 1.0
 var _fog_overlay_tint: Color = Color.WHITE
@@ -223,7 +245,8 @@ func apply_hour(hour: float) -> void:
 	if sky3d != null:
 		# O Sky3D calcula o sol, a lua e as estrelas pela hora e pela data.
 		sky3d.current_time = hour
-		sky3d.sun_energy = moment.sky3d_sun_energy
+		sky3d.sun_energy = moment.sky3d_sun_energy * lerpf(1.0, OVERCAST_SUN, _overcast)
+		_apply_sky3d_overcast()
 		if sky3d.sky != null:
 			sky3d.sky.sun_light_color = moment.sky3d_sun_color
 	elif sky_material != null and sun != null:
@@ -236,7 +259,8 @@ func apply_hour(hour: float) -> void:
 	environment.ambient_light_energy = moment.ambient_sky3d if sky3d != null else moment.ambient
 	_apply_day_contrast(moment)
 	environment.glow_intensity = moment.glow
-	environment.fog_sky_affect = moment.fog_sky_affect
+	# Céu fechado: a névoa cinza cobre a maior parte da foto do céu.
+	environment.fog_sky_affect = lerpf(moment.fog_sky_affect, OVERCAST_SKY_FOG, _overcast)
 
 	if absf(night - _night) > 0.005:
 		_night = night
@@ -255,7 +279,8 @@ func _apply_photo_sky(hour: float, daylight: float, moment: DayMoment) -> void:
 	sky_material.set_shader_parameter("day_weight", moment.sky_day)
 	sky_material.set_shader_parameter("sunset_weight", moment.sky_sunset)
 	sky_material.set_shader_parameter("night_weight", moment.sky_night)
-	sky_material.set_shader_parameter("energy", moment.sky_energy)
+	sky_material.set_shader_parameter("energy", moment.sky_energy * lerpf(1.0, OVERCAST_SKY, _overcast))
+	sky_material.set_shader_parameter("overcast_grey", OVERCAST_SKY_GREY * _overcast)
 	sky_material.set_shader_parameter("tint", moment.sky_tint)
 	# O brilho da foto do pôr do sol fica do lado do sol: leste de manhã (o
 	# nascer do sol), oeste à tarde. Na foto, o oeste (-X) fica em u = 0,25 e o
@@ -274,8 +299,8 @@ func _apply_photo_sky(hour: float, daylight: float, moment: DayMoment) -> void:
 	var moon_yaw := deg_to_rad(MOONLIGHT_YAW_DEG)
 	sun.rotation = Vector3(-lerpf(moon_elevation, elevation, daylight), lerp_angle(moon_yaw, sun_yaw, daylight), 0.0)
 	sun.light_color = moment.sun_color
-	sun.light_energy = moment.sun_energy
-	sun.shadow_opacity = moment.shadow_opacity
+	sun.light_energy = moment.sun_energy * lerpf(1.0, OVERCAST_SUN, _overcast)
+	sun.shadow_opacity = moment.shadow_opacity * lerpf(1.0, OVERCAST_SHADOW, _overcast)
 
 
 ## O contraste e a saturação do momento (o dia com contraste é da Fase 17.6,
@@ -285,7 +310,7 @@ func _apply_photo_sky(hour: float, daylight: float, moment: DayMoment) -> void:
 func _apply_day_contrast(moment: DayMoment) -> void:
 	environment.tonemap_agx_contrast = moment.agx_contrast
 	environment.adjustment_enabled = true
-	environment.adjustment_saturation = moment.saturation
+	environment.adjustment_saturation = moment.saturation * lerpf(1.0, OVERCAST_SATURATION, _overcast)
 
 
 ## O luar: acende com a noite (o "moonlight" do momento, que segue o peso das
@@ -302,6 +327,43 @@ func _apply_moonlight(weight: float) -> void:
 	moonlight.light_color = MOONLIGHT_COLOR
 	moonlight.rotation = Vector3(-deg_to_rad(MOONLIGHT_ELEVATION_DEG), deg_to_rad(MOONLIGHT_YAW_DEG), 0.0)
 	moonlight.visible = energy > 0.001
+
+
+## O céu fechado da chuva (Fase 19.5, a amostra; 0 = o céu do momento, 1 =
+## fechado): menos sol e sombra mais fraca, céu mais escuro, névoa mais grossa
+## e cinza, cor menos viva. Não escreve no momento (get_moment continua sendo o
+## do relógio) e com 0 tudo fica exatamente como sem chuva. Quem chama é o
+## DistrictWeather, que sobe e desce o valor aos poucos. A 19.6 troca isto pelo
+## contrato do clima com o céu (set_weather_overlay).
+func set_overcast(amount: float) -> void:
+	amount = clampf(amount, 0.0, 1.0)
+	if amount == _overcast:
+		return
+	_overcast = amount
+	if environment != null:
+		apply_hour(current_hour())
+
+
+func get_overcast() -> float:
+	return _overcast
+
+
+## O céu fechado no Sky3D: guarda as nuvens e o tom dele na primeira vez (de
+## cada Sky3D) e mistura com os do céu fechado. Com 0, volta aos guardados.
+func _apply_sky3d_overcast() -> void:
+	var dome := sky3d.sky
+	if dome == null:
+		return
+	if _sky3d_base.get("owner") != sky3d:
+		if _overcast == 0.0:
+			return
+		_sky3d_base = {"owner": sky3d, "clouds": dome.cumulus_coverage, "tint": dome.atm_day_tint}
+	var clouds := lerpf(_sky3d_base["clouds"], OVERCAST_SKY3D_CLOUDS, _overcast)
+	if dome.cumulus_coverage != clouds:
+		dome.cumulus_coverage = clouds
+	var tint: Color = (_sky3d_base["tint"] as Color).lerp(OVERCAST_SKY3D_TINT, _overcast)
+	if dome.atm_day_tint != tint:
+		dome.atm_day_tint = tint
 
 
 ## Mistura sobre a névoa do relógio, sem multiplicar o resultado anterior.
@@ -329,8 +391,11 @@ static func tint_keeping_brightness(base: Color, tint: Color) -> Color:
 func _apply_fog() -> void:
 	if environment == null:
 		return
-	var density: float = _moment.fog_density
+	var density: float = _moment.fog_density * lerpf(1.0, OVERCAST_FOG, _overcast)
 	var color: Color = _moment.fog_color
+	if _overcast > 0.0:
+		color = color.lerp(tint_keeping_brightness(color, OVERCAST_FOG_GREY),
+				OVERCAST_FOG_GREY_AMOUNT * _overcast)
 	# Peso zero restaura os valores exatos, inclusive a névoa de altura original.
 	environment.fog_density = density
 	environment.fog_light_color = color

@@ -6,11 +6,13 @@ extends SceneTree
 ## a nova LADO A LADO, no mesmo dia. Com outra coisa rodando, o FPS cai pela
 ## metade e até os desenhos por quadro mudam, sem nenhuma mudança no código.
 ##
-##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>
+##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [chuva]
 ##
 ##   jogos      0 = a biblioteca de verdade; N = N jogos falsos (tests/fake_library.gd)
 ##   qualidade  leve | media | alta        (padrão: leve)
 ##   hora       hora da cidade, 0 a 24     (padrão: 22, noite)
+##   chuva      fraca | forte (Fase 19.5): força a chuva na cidade toda, com o
+##              chão molhado e o céu fechado (padrão: o tempo de sempre)
 ##
 ## A caminhada é sempre a mesma: da praça até a rua mais longe do mapa e de
 ## volta, a 9 m/s (correndo), olhando para onde anda. Imprime uma linha com o
@@ -44,6 +46,7 @@ func _run() -> void:
 	var count := int(args[0]) if args.size() > 0 else 0
 	var quality := String(args[1]) if args.size() > 1 else "leve"
 	var hour := float(args[2]) if args.size() > 2 else 22.0
+	var rain := String(args[3]) if args.size() > 3 else ""
 
 	var config := root.get_node("AppConfig")
 	var original_quality: String = config.get_quality()
@@ -74,6 +77,11 @@ func _run() -> void:
 	var day_night = city._day_night
 	day_night.hour_offset = hour - day_night.current_hour()
 	day_night.update_now()
+	if not rain.is_empty():
+		for node: Node in city.get_children():
+			if node.has_method("force_rain"):
+				node.call("force_rain", rain)
+		print("MEDIDA_CHUVA ", rain)
 
 	var player = city.get_node("Player")
 	# A abertura (tela GAME HUB) termina antes de andar; a caminhada é na rua.

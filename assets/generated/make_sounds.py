@@ -9,6 +9,8 @@ Cria, nesta mesma pasta:
                        rumor de trânsito distante que sobe e desce
   - fire_crackle.wav   lareira da cabana (6 s, emenda sem "pulo"): chiado
                        baixo do fogo + estalos da lenha (Fase 13.12)
+  - rain_loop.wav      chuva (10 s, emenda sem "pulo"): chiado da chuva +
+                       milhares de pingos no chão + rajadas (Fase 19.5)
 
 Para gerar só alguns:  python assets/generated/make_sounds.py fire_crackle.wav
 
@@ -185,11 +187,64 @@ def fire_crackle(seconds=6.0):
     return [s * 0.7 / peak for s in samples]
 
 
+def rain_loop(seconds=10.0):
+    """Chuva: um chiado largo (o "shhh" da chuva longe), um corpo grave
+    (água correndo) e milhares de pingos curtos no chão, uns perto (mais
+    graves e fortes) e muitos longe (agudos e fracos). Rajadas lentas sobem e
+    descem o volume, fechando ciclos inteiros em "seconds"; a emenda é
+    misturada como no vento."""
+    rng = random.Random(41)
+    count = int(seconds * RATE)
+    fade = int(1.0 * RATE)
+    samples = []
+    low = 0.0
+    high_prev = 0.0
+    high = 0.0
+    hiss = 0.0
+    body = 0.0
+    body_smooth = 0.0
+    for i in range(count):
+        t = i / RATE
+        white = rng.uniform(-1.0, 1.0)
+        # Passa-alta (tira o grave) e passa-baixa leve (tira o chiado de rádio).
+        high = 0.97 * (high + white - high_prev)
+        high_prev = white
+        hiss += (high - hiss) * 0.45
+        body = (body + rng.uniform(-0.02, 0.02)) * 0.996
+        body_smooth += (body - body_smooth) * 0.05
+        gust = 0.8 + 0.12 * math.sin(2 * math.pi * t / seconds + 0.4)             + 0.08 * math.sin(2 * math.pi * 3 * t / seconds + 1.9)
+        samples.append((hiss * 0.32 + body_smooth * 2.2) * gust)
+    # Pingos: um "tic" que some em poucos milésimos. Nenhum no trecho da emenda.
+    drops = int(seconds * 260)
+    for _ in range(drops):
+        near = rng.random() < 0.06
+        start = int(rng.uniform(0.0, seconds - 1.05) * RATE)
+        tone = rng.uniform(700, 1900) if near else rng.uniform(1800, 5200)
+        decay = rng.uniform(140, 260) if near else rng.uniform(380, 900)
+        strength = rng.uniform(0.18, 0.4) if near else rng.uniform(0.02, 0.1)
+        length = int(5.0 / decay * RATE)
+        phase = rng.uniform(0.0, 2 * math.pi)
+        for k in range(length):
+            if start + k >= count:
+                break
+            kt = k / RATE
+            # O tom cai um pouco (a gota "afunda"), com um pouco de ruído.
+            wave_value = math.sin(phase + 2 * math.pi * tone * kt * (1.0 - kt * 8.0)) * 0.8                 + rng.uniform(-1.0, 1.0) * 0.2
+            samples[start + k] += wave_value * math.exp(-kt * decay) * strength
+    for i in range(fade):
+        w = i / fade
+        samples[i] = samples[i] * w + samples[count - fade + i] * (1 - w)
+    samples = samples[: count - fade]
+    peak = max(abs(s) for s in samples)
+    return [s * 0.7 / peak for s in samples]
+
+
 SOUNDS = {
     "wind_loop.wav": wind,
     "metro_ride.wav": metro_ride,
     "city_bed.wav": city_bed,
     "fire_crackle.wav": fire_crackle,
+    "rain_loop.wav": rain_loop,
 }
 for _n in range(1, 5):
     SOUNDS["bird_chirp_%d.wav" % _n] = (lambda n: lambda: chirp(n))(_n)

@@ -88,19 +88,39 @@ func _run() -> void:
 	_check("de dia: não chove", not weather.is_raining())
 	weather.set_night(1.0)
 	await process_frame
-	_check("a chuva acompanha o jogador", weather.get_node("Rain").global_position.distance_to(inside + Vector3(0, weather.RAIN_HEIGHT, 0)) < 0.1)
-	_check("não mexe na neblina da cidade", is_equal_approx(city._environment.fog_density, fog_before))
+	_check("a chuva acompanha o jogador (acima e contra o vento)",
+			weather.get_node("Rain").global_position.distance_to(weather.rain_origin(inside)) < 0.1
+			and weather.rain_origin(inside).y > inside.y + 9.0)
+	_check("chuva de sempre: fraca", weather.current_strength() == "fraca" and weather.forced_strength() == "")
 
 	print("== qualidade ==")
+	var quality_script: GDScript = load("res://autoload/graphics_quality.gd")
 	var rain: GPUParticles3D = weather.get_node("Rain")
+	var splashes: GPUParticles3D = weather.get_node("Splashes")
 	_check_rain_appearance(weather, rain)
-	for pair in [["alta", 1.0], ["media", 0.6], ["leve", 0.25]]:
-		config.set_quality(pair[0])
+	for level: String in ["alta", "media", "leve"]:
+		config.set_quality(level)
 		await process_frame
-		var expected := roundi(weather.BASE_AMOUNT * pair[1])
-		_check("%s: %d gotas" % [pair[0], expected], rain.amount == expected)
+		var layers: Dictionary = quality_script.rain_layers(level)
+		var streaks := roundi(1800 * float(layers["riscos"]))
+		var drops := roundi(180 * float(layers["respingo"]))
+		_check("%s: %d riscos" % [level, streaks], rain.amount == streaks)
+		_check("%s: respingos %s" % [level, str(drops) if drops > 0 else "desligados"],
+				splashes.visible == (drops > 0) and (drops == 0 or splashes.amount == drops))
+	var leve: Dictionary = quality_script.rain_layers("leve")
+	_check("as camadas por qualidade: a Leve tem menos riscos e nenhum respingo",
+			float(leve["riscos"]) < float(quality_script.rain_layers("media")["riscos"])
+			and float(leve["respingo"]) == 0.0 and float(quality_script.rain_layers("alta")["riscos"]) == 1.0)
 	config.set_quality(original_quality)
-	_check("sem sombra e sem luz", rain.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	_check("sem sombra", rain.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			and splashes.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	await _check_forced(city, weather, player, outside, config, fog_before)
+	config.set_quality(original_quality)
+	var no_lights := true
+	for node: Node in city.get_children():
+		if node.get_script() == weather_script:
+			no_lights = no_lights and node.find_children("*", "Light3D", true, false).is_empty()
+	_check("nenhuma luz nova no clima", no_lights)
 	_check_snow(weather_script, city, player, config)
 	config.set_quality(original_quality)
 
@@ -109,19 +129,89 @@ func _run() -> void:
 
 
 func _check_rain_appearance(weather: Node, rain: GPUParticles3D) -> void:
-	print("== garoa preservada ==")
-	var process: ParticleProcessMaterial = rain.process_material
-	var drop: BoxMesh = rain.draw_pass_1 as BoxMesh
-	_check("tipo padrão é garoa", weather.current_kind() == "garoa" and WeatherSpec.new().kind == "garoa")
+	print("== a chuva em camadas (19.5) ==")
+	var quad: QuadMesh = rain.draw_pass_1 as QuadMesh
+	_check("tipo padrão é a chuva (garoa no perfil)", weather.current_kind() == "garoa" and WeatherSpec.new().kind == "garoa")
 	_check("padrões do perfil preservados", WeatherSpec.new().night_only and WeatherSpec.new().intensity == 1.0)
-	_check("base continua com 900 gotas", weather.WEATHER_TYPES["garoa"]["amount"] == 900)
-	_check("caixa de emissão e direção preservadas", process.emission_shape == ParticleProcessMaterial.EMISSION_SHAPE_BOX and process.emission_box_extents == Vector3(15.0, 0.2, 15.0) and process.direction == Vector3.DOWN)
-	_check("queda e dispersão preservadas", is_equal_approx(process.initial_velocity_min, 14.0) and is_equal_approx(process.initial_velocity_max, 16.8) and is_equal_approx(process.spread, 2.0) and process.gravity == Vector3.ZERO)
-	_check("duração e limites preservados", is_equal_approx(rain.lifetime, 16.0 / 14.0) and rain.visibility_aabb == AABB(Vector3(-30.0, -18.0, -30.0), Vector3(60.0, 36.0, 60.0)) and not rain.local_coords)
-	_check("mesma caixa fina", drop != null and drop.size == Vector3(0.015, 0.6, 0.015))
-	if drop != null:
-		var material: StandardMaterial3D = drop.material
-		_check("mesma cor, transparência e material sem luz", material.albedo_color.is_equal_approx(Color(0.8, 0.88, 1.0, 0.45)) and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED)
+	var material: ShaderMaterial = quad.material as ShaderMaterial if quad != null else null
+	_check("riscos: quads com o shader da chuva", material != null
+			and material.shader.resource_path == "res://worlds/city/rain_streak.gdshader")
+	var process: ParticleProcessMaterial = rain.process_material
+	_check("a queda vem inclinada pelo vento", process.direction.y < -0.9 and absf(process.direction.x) > 0.0
+			and process.gravity == Vector3.ZERO)
+	if material != null:
+		var fall: Vector3 = material.get_shader_parameter("fall_direction")
+		_check("o risco estica na direção da queda", fall.is_equal_approx(process.direction))
+	_check("partículas no mundo", not rain.local_coords)
+	var splashes: GPUParticles3D = weather.get_node("Splashes")
+	_check("respingos no chão, curtos", splashes.lifetime < 0.5 and not splashes.local_coords)
+	var sound: AudioStreamPlayer = weather.get_node("RainSound")
+	_check("o loop de som existe (gerado pelo make_sounds.py)",
+			ResourceLoader.exists("res://assets/generated/rain_loop.wav"))
+	var wav: AudioStreamWAV = sound.stream as AudioStreamWAV
+	_check("o som repete sem parar, no barramento Ambiente", wav != null
+			and wav.loop_mode == AudioStreamWAV.LOOP_FORWARD and sound.bus == &"Ambiente")
+	var fraca: Dictionary = weather.RAIN_STRENGTHS["fraca"]
+	var forte: Dictionary = weather.RAIN_STRENGTHS["forte"]
+	var stronger := true
+	for key: String in ["streaks", "splashes", "speed", "wet", "volume_db", "overcast"]:
+		stronger = stronger and float(forte[key]) > float(fraca[key])
+	_check("a forte tem mais de tudo que a fraca", stronger)
+
+
+## Forçar a chuva (capturas, medida e F9): em qualquer lugar e hora, com o chão
+## e o céu na hora; voltar ao tempo do bairro devolve tudo.
+func _check_forced(city: Node, weather: Node, player: Node3D, outside: Vector3, config: Node, fog_before: float) -> void:
+	print("== as duas forças ==")
+	var rain: GPUParticles3D = weather.get_node("Rain")
+	var day_night: Node = city._day_night
+	# Por load: este teste compila antes dos autoloads (o CityDecor usa o AppConfig).
+	var decor: GDScript = load("res://worlds/city/city_decor.gd")
+	var asphalt: StandardMaterial3D = decor.asphalt_material()
+	weather.set_night(0.0)
+	city._on_night_changed(0.0)
+	var dry_roughness: float = asphalt.roughness
+	player.global_position = outside
+	weather.call("_process", 0.0)
+	_check("de dia e fora do bairro, sem forçar: não chove", not weather.is_raining())
+	config.set_quality("alta")
+	weather.force_rain("forte")
+	weather.call("_process", 0.0)
+	_check("forte forçada: chove em qualquer lugar, de dia", weather.is_raining() and weather.current_strength() == "forte")
+	_check("forte: 5000 riscos na Alta", rain.amount == 5000)
+	_check("forte: chão encharcado na hora", is_equal_approx(decor.ground_wetness(), 1.0)
+			and asphalt.roughness < dry_roughness and asphalt.albedo_color.v < decor.ASPHALT_TINT.v)
+	var puddle: Decal = get_first_node_in_group(decor.PUDDLE_GROUP) as Decal
+	_check("as poças crescem e escurecem", puddle != null
+			and puddle.size.x > Vector3(puddle.get_meta(&"dry_size")).x
+			and puddle.albedo_mix > decor.PUDDLE_ALBEDO_MIX_DRY)
+	_check("forte: o céu fecha", is_equal_approx(day_night.get_overcast(), 0.9)
+			and city._environment.fog_density > fog_before)
+	_check("o som toca", weather.get_node("RainSound").playing)
+	weather.force_rain("fraca")
+	weather.call("_process", 0.0)
+	_check("fraca forçada: menos riscos, o céu e o chão menos", rain.amount == 1800
+			and day_night.get_overcast() < 0.9 and decor.ground_wetness() < 1.0)
+	weather.force_rain("")
+	weather.call("_process", 0.0)
+	_check("voltar ao tempo do bairro: para de chover", not weather.is_raining()
+			and weather.current_strength() == "fraca")
+	# O som e o céu levam FADE_SECONDS; o chão, DRY_SECONDS: dois passos grandes bastam.
+	weather.call("_process", 100.0)
+	weather.call("_process", 100.0)
+	_check("volta: chão seco e céu aberto", decor.ground_wetness() == 0.0 and day_night.get_overcast() == 0.0)
+	_check("volta: a névoa de antes (%f, %f)" % [city._environment.fog_density, fog_before],
+			is_equal_approx(city._environment.fog_density, fog_before))
+	# O relógio de verdade pode ter avisado a noite no meio: a hora fixa de novo.
+	city._on_night_changed(0.0)
+	_check("volta: o asfalto de antes (%f, %s)" % [asphalt.roughness, asphalt.albedo_color],
+			is_equal_approx(asphalt.roughness, decor.ASPHALT_ROUGHNESS_DAY)
+			and asphalt.albedo_color.is_equal_approx(decor.ASPHALT_TINT))
+	_check("volta: sem som", not weather.get_node("RainSound").playing)
+	_check("as poças voltam ao tamanho", puddle == null or puddle.size.is_equal_approx(puddle.get_meta(&"dry_size")))
+	weather.force_rain("granizo")
+	_check("força desconhecida é ignorada", weather.forced_strength() == "")
+	await process_frame
 
 
 func _check_snow(weather_script: GDScript, city: Node, player: Node3D, config: Node) -> void:
@@ -139,6 +229,10 @@ func _check_snow(weather_script: GDScript, city: Node, player: Node3D, config: N
 	var process: ParticleProcessMaterial = particles.process_material
 	var flake: QuadMesh = particles.draw_pass_1 as QuadMesh
 	_check("consulta informa neve", snow.current_kind() == "neve")
+	_check("a neve não tem respingo nem som", snow.get_node_or_null("Splashes") == null
+			and snow.get_node_or_null("RainSound") == null)
+	snow.force_rain("forte")
+	_check("forçar a chuva não mexe na neve", snow.forced_strength() == "")
 	_check("flocos pequenos em quad", flake != null and flake.size == Vector2(0.09, 0.09))
 	_check("queda lenta com deriva lateral leve", is_equal_approx(process.initial_velocity_min, 1.5) and is_equal_approx(process.initial_velocity_max, 2.5) and process.direction.y == -1.0 and process.direction.x > 0.0 and process.direction.x <= 0.1 and process.spread > 2.0 and process.spread <= 15.0 and process.gravity == Vector3.ZERO)
 	_check("neve sem sombra, partículas no mundo", particles.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF and not particles.local_coords)
@@ -181,8 +275,8 @@ func _check_snow(weather_script: GDScript, city: Node, player: Node3D, config: N
 	no_spec.set_night(1.0)
 	_move_weather(no_spec, player, Vector2(1010.0, 1010.0))
 	var idle_particles: GPUParticles3D = no_spec.get_node("Rain")
-	_check("spec nulo usa garoa sem emitir", no_spec.current_kind() == "garoa" and not no_spec.is_raining())
-	_check("spec nulo mantém quantidade padrão pela qualidade", idle_particles.amount == roundi(900 * 0.25))
+	_check("spec nulo usa chuva sem emitir", no_spec.current_kind() == "garoa" and not no_spec.is_raining())
+	_check("spec nulo mantém quantidade padrão pela qualidade", idle_particles.amount == roundi(1800 * 0.25))
 	snow.free()
 	no_spec.free()
 

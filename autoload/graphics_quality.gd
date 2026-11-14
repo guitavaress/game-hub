@@ -83,6 +83,23 @@ static func weather_amount(level: String) -> float:
 	return 1.0
 
 
+## As camadas da chuva (Fase 19.5) que cada qualidade liga:
+##   riscos   quanto dos riscos que caem (a mesma conta do weather_amount);
+##   respingo quanto dos respingos no chão perto do jogador (0 = desligado);
+##   chao     o asfalto fica mais liso e escuro e as poças crescem (quase
+##            de graça: só muda o material e as poças que já existem);
+##   som      o som da chuva;
+##   ceu      o céu fecha (menos sol, mais névoa).
+## Nenhuma camada acende luz nova.
+static func rain_layers(level: String) -> Dictionary:
+	match level:
+		"leve":
+			return {"riscos": 0.25, "respingo": 0.0, "chao": true, "som": true, "ceu": true}
+		"media":
+			return {"riscos": 0.6, "respingo": 0.5, "chao": true, "som": true, "ceu": true}
+	return {"riscos": 1.0, "respingo": 1.0, "chao": true, "som": true, "ceu": true}
+
+
 ## Tamanho do quadrado da grade da montanha (m): 4 na Leve, 3 na Média, 2 na
 ## Alta (quanto menor, mais fina a encosta e mais triângulos). Fase 15.14.
 static func terrain_cell_meters(level: String) -> float:
