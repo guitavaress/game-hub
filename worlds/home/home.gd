@@ -152,6 +152,13 @@ var _lamps: Array[Light3D] = []
 const NIGHT_ENERGY_META: StringName = &"night_energy"
 ## 0 = dia, 1 = noite (a cidade avisa pelo grupo city_night).
 var _night: float = 1.0
+## Quanto o céu lá fora está fechado (0 a 1; o mundo avisa pelo grupo
+## WEATHER_COVER_GROUP). Com o céu fechado, o sol que entra pela janela quase
+## some e a luz do céu enfraquece (revisão da 19.6).
+const WEATHER_COVER_GROUP: StringName = &"weather_cover"
+const COVERED_SUN: float = 0.1
+const COVERED_DAYLIGHT: float = 0.6
+var _weather_cover: float = 0.0
 
 
 func _ready() -> void:
@@ -159,6 +166,7 @@ func _ready() -> void:
 	# O mundo avisa a hora pelo grupo city_night (set_night): a janela e a luz
 	# do dia acompanham.
 	add_to_group("city_night")
+	add_to_group(WEATHER_COVER_GROUP)
 	_read_choices()
 	_build_environment()
 	_build_window_view()
@@ -213,17 +221,19 @@ func set_night(night: float) -> void:
 		_window_view.set_night(_night)  # na troca de fase do dia, o retrato é refeito
 	var day := 1.0 - _night
 	var lit := _night < DAY_LIGHTS_UNTIL
+	# O tempo fechado lá fora: menos sol direto e um pouco menos de luz do céu.
+	var sun_cover := lerpf(1.0, COVERED_SUN, _weather_cover)
 	if _daylight != null:
-		_daylight.light_energy = _profile.daylight_energy * day
+		_daylight.light_energy = _profile.daylight_energy * day * lerpf(1.0, COVERED_DAYLIGHT, _weather_cover)
 		_daylight.visible = lit
 	if _sunlight != null:
 		# No pôr do sol (noite perto de 0,5) o sol esquenta.
 		var dusk := 1.0 - absf(_night * 2.0 - 1.0)
 		_sunlight.light_color = _profile.sun_color.lerp(SUN_DUSK_COLOR, dusk)
-		_sunlight.light_energy = _profile.sun_energy * day
+		_sunlight.light_energy = _profile.sun_energy * day * sun_cover
 		_sunlight.visible = lit
 		_sun_bounce.light_color = _sunlight.light_color
-		_sun_bounce.light_energy = _profile.sun_energy * _profile.sun_bounce * day
+		_sun_bounce.light_energy = _profile.sun_energy * _profile.sun_bounce * day * sun_cover
 		_sun_bounce.visible = lit
 	# As luminárias: inteiras à noite; de dia, só o apoio quente.
 	var lamp_scale := lerpf(_profile.lamp_day_scale, 1.0, _night)
@@ -237,6 +247,13 @@ func set_night(night: float) -> void:
 
 func get_night() -> float:
 	return _night
+
+
+## Quanto o céu lá fora está fechado (0 = limpo, 1 = todo fechado): as luzes
+## do dia que entram pela janela acompanham. A casa não sabe o que é o clima.
+func set_weather_cover(cover: float) -> void:
+	_weather_cover = clampf(cover, 0.0, 1.0)
+	set_night(_night)
 
 
 ## O sol que entra pela janela de dia (Fase 17.9.1; os testes conferem).

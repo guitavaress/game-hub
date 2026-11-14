@@ -34,6 +34,9 @@ signal weather_changed(state: String)
 
 ## Quem mostra o tempo (set_weather(estado: String, força: float)).
 const GROUP: StringName = &"city_weather"
+## Quem só precisa saber quanto o céu fechou (set_weather_cover(0 a 1)): a
+## casa, para o sol que entra pela janela enfraquecer junto (revisão da 19.6).
+const COVER_GROUP: StringName = &"weather_cover"
 ## Os tempos. cover: quanto o céu fecha (0 a 1); strength: a força da chuva;
 ## minutes: quanto dura (mínimo, máximo); next: a chance de cada tempo seguinte
 ## (sempre um vizinho: do limpo não se vai direto à chuva forte).
@@ -187,6 +190,7 @@ func force(state: String) -> void:
 		_wet = wet_for(_strength)
 		publish()
 	else:
+		_remaining = 0.0  # o dinâmico sorteia de novo quanto dura o tempo de agora
 		_set_mode(_mode, false)
 
 
@@ -248,9 +252,11 @@ func publish(everything: bool = false) -> void:
 	var settled := not is_passing()
 	var layers := GraphicsQuality.rain_layers(AppConfig.get_quality())
 	var cover := _cover if bool(layers.get("ceu", true)) else 0.0
-	if is_instance_valid(day_night) and (everything or _changed(cover, _sent_cover, settled)):
+	if everything or _changed(cover, _sent_cover, settled):
 		_sent_cover = cover
-		day_night.set_weather_overlay(cover)
+		if is_instance_valid(day_night):
+			day_night.set_weather_overlay(cover)
+		get_tree().call_group(COVER_GROUP, &"set_weather_cover", cover)
 	var wet := _wet if bool(layers.get("chao", true)) else 0.0
 	var wet_done := _wet == wet_for(_strength)
 	if (everything or _changed(wet, _sent_wet, wet_done)) and (wet > 0.0 or _touched_ground):
@@ -286,6 +292,10 @@ func _effective_mode() -> String:
 ## Põe o modo: um tempo fixo passa a ele (devagar, a não ser na abertura); o
 ## dinâmico continua de onde está.
 func _set_mode(mode: String, instant: bool) -> void:
+	# Voltando ao dinâmico vindo de um tempo fixo, a duração é sorteada de novo
+	# (revisão da 19.6: sobrava a da abertura, e a chuva forte durava 20 min).
+	if mode == "dinamico" and _mode != "dinamico":
+		_remaining = 0.0
 	_mode = mode
 	if _forced != "":
 		return

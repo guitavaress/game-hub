@@ -49,6 +49,10 @@ func _run() -> void:
 	var hour := float(args[2]) if args.size() > 2 else 22.0
 	var rain := String(args[3]) if args.size() > 3 else "limpo"
 	rain = {"fraca": "chuva_fraca", "forte": "chuva_forte"}.get(rain, rain)
+	if rain not in ["limpo", "nublado", "chuva_fraca", "chuva_forte"]:
+		push_error("O tempo deve ser limpo, nublado, chuva_fraca (ou fraca) ou chuva_forte (ou forte).")
+		quit(1)
+		return
 
 	var config := root.get_node("AppConfig")
 	var original_quality: String = config.get_quality()

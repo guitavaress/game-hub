@@ -179,6 +179,18 @@ func _check_fixed_modes(app: Node) -> void:
 	_check("e seca de todo", director.current_wetness() == 0.0)
 	director.force("granizo")
 	_check("tempo desconhecido é ignorado", director.forced_state() == "")
+	# Revisão da 19.6: voltando ao dinâmico, a duração é a do tempo de agora
+	# (sobrava a sorteada na abertura, e a chuva forte durava até 20 min).
+	director._remaining = 20.0 * 60.0
+	director._set_mode("chuva_forte", true)
+	director._set_mode("dinamico", false)
+	_check("de um tempo fixo ao dinâmico: a chuva forte dura de 2 a 4 min (%.0f s)" % director._remaining,
+			director._remaining >= 120.0 and director._remaining <= 240.0)
+	director._remaining = 20.0 * 60.0
+	director.force("chuva_forte")
+	director.force("")
+	_check("soltar um tempo forçado no dinâmico: a duração também é sorteada de novo",
+			director._remaining >= 120.0 and director._remaining <= 240.0)
 	director.free()
 
 
@@ -259,6 +271,21 @@ func _check_city(app: Node) -> void:
 	_check("soltar: volta ao limpo", director.current_state() == "limpo" and not director.is_passing()
 			and day_night.get_weather_overlay() == 0.0)
 
+	print("== a luz de dentro de casa ==")
+	# Revisão da 19.6: com o céu fechado, o sol não pode entrar forte pela janela.
+	var home: Node = city._home
+	home.set_night(0.0)
+	var sun: Light3D = home.get_sunlight()
+	var clear_energy := sun.light_energy if sun != null else 0.0
+	_check("a casa tem sol entrando pela janela de dia", sun != null and clear_energy > 0.0)
+	director.force("chuva_forte")
+	_check("chuva forte: o sol de dentro de casa quase some (%.2f de %.2f)" % [sun.light_energy, clear_energy],
+			sun.light_energy < clear_energy * 0.3)
+	director.force("")
+	director.step(WD.MENU_PASSAGE_SECONDS + 1.0)
+	_check("tempo limpo de novo: o sol volta inteiro", is_equal_approx(sun.light_energy, clear_energy))
+	home.set_night(day_night.get_night())
+
 	print("== a janela da casa ==")
 	var fake := Node.new()
 	fake.set_script(_window_probe())
@@ -277,6 +304,28 @@ func _check_city(app: Node) -> void:
 			and director.current_strength() == 0.0)
 	fake.free()
 	app.set_weather("dinamico")
+
+	print("== o dinâmico na cena ==")
+	# Revisão da 19.6: o sorteio só era testado num diretor solto. Aqui ele anda
+	# na cidade, do nublado ao tempo seguinte, e o céu e os lugares acompanham
+	# em passos pequenos.
+	_check("no menu, dinâmico", director.current_mode() == "dinamico" and director.current_state() == "nublado")
+	var last_cover: float = day_night.get_weather_overlay()
+	var biggest := 0.0
+	var followed := true
+	var moved := false
+	for second in 10 * 60:
+		director.step(1.0)
+		var cover_now: float = day_night.get_weather_overlay()
+		biggest = maxf(biggest, absf(cover_now - last_cover))
+		last_cover = cover_now
+		moved = moved or director.current_state() != "nublado"
+		for node: Node in weathers:
+			followed = followed and absf(node.current_strength() - director.current_strength()) <= WD.PUBLISH_STEP
+	_check("em 10 min o tempo mudou sozinho (%s)" % director.current_state(), moved)
+	_check("o céu acompanhou sem pulo (maior passo %.3f por segundo)" % biggest, biggest > 0.0 and biggest <= 0.03)
+	_check("os lugares receberam a força, inclusive no meio da passagem", followed)
+	_check("o céu está onde o diretor diz", absf(day_night.get_weather_overlay() - director.current_cover()) <= WD.PUBLISH_STEP)
 
 	print("== sair da cena ==")
 	director.force("chuva_forte")

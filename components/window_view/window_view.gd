@@ -13,8 +13,9 @@ extends Node
 ##     chega uns quadros depois), vira uma textura comum, e o SubViewport é
 ##     desfeito (assim os buffers do 3D não ficam ocupando a placa);
 ##   - o retrato é refeito só quando a fase do dia muda (dia, pôr do sol,
-##     noite), quando o ponto muda ou quando a qualidade gráfica muda. Nunca a
-##     cada quadro;
+##     noite), quando o ponto muda, quando a qualidade gráfica muda ou quando
+##     o mundo avisa que mudou (on_world_changed: um momento novo do dia, um
+##     tempo novo). Nunca a cada quadro;
 ##   - a janela (um ShaderMaterial, em set_material) recebe a textura e amostra
 ##     o retrato pela direção do olhar, como um céu. Sem ponto, ou enquanto o
 ##     mundo monta, ela fica com a vista de reserva do próprio shader; quando o
