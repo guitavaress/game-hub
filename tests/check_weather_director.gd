@@ -11,7 +11,11 @@ extends SceneTree
 ##      o momento do relógio (get_moment e o .tres) não muda;
 ##   6. na cidade: rodando um teste, o tempo abre limpo; forçar põe o céu e o
 ##      chão na hora; o fim de uma passagem avisa a janela da casa (adiado);
-##      sair da cena devolve o céu aberto e o chão seco.
+##      sair da cena devolve o céu aberto e o chão seco;
+##   7. a chuva no vidro da casa (19.6.1, set_weather_rain pelo grupo
+##      weather_cover): a força chega ao vidro (1 na forte, 0,5 na fraca, 0
+##      com tempo limpo ou nublado), na hora com o jogo pausado, e acompanha a
+##      passagem sem pulo.
 
 const CONFIG := "user://config.cfg"
 
@@ -281,6 +285,13 @@ func _check_city(app: Node) -> void:
 	app.set_weather("limpo")
 	_check("pausado: volta ao limpo na hora", director.current_state() == "limpo"
 			and day_night.get_weather_overlay() == 0.0 and decor.ground_wetness() == 0.0)
+	# 19.6.1: a chuva no vidro da casa também vale na hora, atrás do menu.
+	var home_glass: Node = city._home
+	app.set_weather("chuva_forte")
+	_check("pausado: a chuva chega ao vidro da casa na hora (%.2f)" % home_glass.get_weather_rain(),
+			home_glass.get_weather_rain() == 1.0)
+	app.set_weather("limpo")
+	_check("pausado: tempo limpo, o vidro seco na hora", home_glass.get_weather_rain() == 0.0)
 	var paused_probe := Node.new()
 	paused_probe.set_script(_window_probe())
 	paused_probe.add_to_group(&"window_view")
@@ -306,9 +317,15 @@ func _check_city(app: Node) -> void:
 	director.force("chuva_forte")
 	_check("chuva forte: o sol de dentro de casa quase some (%.2f de %.2f)" % [sun.light_energy, clear_energy],
 			sun.light_energy < clear_energy * 0.3)
+	_check("chuva forte: a força 1 chega ao vidro da janela", home.get_weather_rain() == 1.0)
+	director.force("chuva_fraca")
+	_check("chuva fraca: a força 0,5 chega ao vidro", is_equal_approx(home.get_weather_rain(), 0.5))
+	director.force("nublado")
+	_check("nublado: o vidro fica seco (0)", home.get_weather_rain() == 0.0)
 	director.force("")
 	director.step(WD.MENU_PASSAGE_SECONDS + 1.0)
 	_check("tempo limpo de novo: o sol volta inteiro", is_equal_approx(sun.light_energy, clear_energy))
+	_check("tempo limpo de novo: o vidro seco (0)", home.get_weather_rain() == 0.0)
 	home.set_night(day_night.get_night())
 
 	print("== a janela da casa ==")
@@ -347,6 +364,8 @@ func _check_city(app: Node) -> void:
 		moved = moved or director.current_state() != "nublado"
 		for node: Node in weathers:
 			followed = followed and absf(node.current_strength() - director.current_strength()) <= WD.PUBLISH_STEP
+		# 19.6.1: o vidro da casa acompanha a passagem do mesmo jeito (sem pulo).
+		followed = followed and absf(city._home.get_weather_rain() - director.current_strength()) <= WD.PUBLISH_STEP
 	_check("em 10 min o tempo mudou sozinho (%s)" % director.current_state(), moved)
 	_check("o céu acompanhou sem pulo (maior passo %.3f por segundo)" % biggest, biggest > 0.0 and biggest <= 0.03)
 	_check("os lugares receberam a força, inclusive no meio da passagem", followed)

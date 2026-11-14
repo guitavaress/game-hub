@@ -34,8 +34,10 @@ signal weather_changed(state: String)
 
 ## Quem mostra o tempo (set_weather(estado: String, força: float)).
 const GROUP: StringName = &"city_weather"
-## Quem só precisa saber quanto o céu fechou (set_weather_cover(0 a 1)): a
-## casa, para o sol que entra pela janela enfraquecer junto (revisão da 19.6).
+## Quem só precisa de dois números, e não do tempo inteiro: quanto o céu fechou
+## (set_weather_cover(0 a 1); a casa, para o sol que entra pela janela
+## enfraquecer junto, revisão da 19.6) e quanto chove (set_weather_rain(a
+## força, 0 a 1); a casa, para a chuva no vidro da janela, Fase 19.6.1).
 const COVER_GROUP: StringName = &"weather_cover"
 ## Os tempos. cover: quanto o céu fecha (0 a 1); strength: a força da chuva;
 ## minutes: quanto dura (mínimo, máximo); next: a chance de cada tempo seguinte
@@ -267,6 +269,7 @@ func publish(everything: bool = false) -> void:
 		_sent_state = _state
 		_sent_strength = _strength
 		get_tree().call_group(GROUP, &"set_weather", _state, _strength)
+		get_tree().call_group(COVER_GROUP, &"set_weather_rain", _strength)
 
 
 # --- Por dentro -------------------------------------------------------------------

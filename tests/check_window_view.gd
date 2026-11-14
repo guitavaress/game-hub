@@ -15,6 +15,10 @@ extends SceneTree
 ##     somem da câmera do retrato, junto com a da casa;
 ##   - na cidade: um ponto só, posto quando ela fica pronta, alto e virado para
 ##     a montanha; a casa tira um retrato só;
+##   - a lente (19.6.1): de onde se anda pela sala, a janela fica fora da faixa
+##     em que o shader aperta a vista, e o meio do retrato segue nítido;
+##   - a chuva no vidro (19.6.1): a força chega ao shader sem refazer o
+##     retrato, e continua depois de trocar o tema;
 ##   - nenhum arquivo de worlds/home nem de components cita worlds/city.
 
 const CONFIG := "user://config.cfg"
@@ -74,6 +78,12 @@ func _check_component() -> void:
 	var WindowViewScript: GDScript = load(VIEW_SCRIPT)
 	_check("o shader da cidade usa o retrato; um sem view_mix, não",
 			WindowViewScript.uses_view(load(CITY_SHADER)) and not WindowViewScript.uses_view(_plain_shader()))
+	_check_lens(view)
+	var rain_uniform := false
+	for uniform: Dictionary in (load(CITY_SHADER) as Shader).get_shader_uniform_list():
+		rain_uniform = rain_uniform or uniform["name"] == "rain"
+	_check("o shader da janela tem a chuva no vidro (rain), desligada por padrão",
+			rain_uniform and material.get_shader_parameter("rain") in [null, 0.0])
 
 	print("== com ponto ==")
 	var point = load(POINT_SCRIPT).new()
@@ -176,6 +186,46 @@ func _check_component() -> void:
 	await _frames(2)
 
 
+## A lente do retrato (Fase 19.6.1): de onde se anda pela sala, a janela fica
+## dentro dela, longe da faixa em que o shader aperta a vista (a partir de 92%
+## do ângulo da lente, como o fit_angle do home_window.gdshader); e o meio do
+## retrato tem quase os mesmos pixels por grau de antes, em toda qualidade.
+func _check_lens(view: Node) -> void:
+	print("== a lente (19.6.1) ==")
+	const KNEE := 0.92
+	const EYE := 1.7
+	var home_script: GDScript = load("res://worlds/home/home.gd")
+	var room: Vector3 = home_script.ROOM_SIZE
+	var size: Vector2 = home_script.WINDOW_SIZE
+	var center_x: float = home_script.WINDOW_CENTER_X
+	var bottom: float = home_script.WINDOW_SILL_Y
+	var lens: Vector2 = view.tan_half_fov()
+	var limit := Vector2(tan(atan(lens.x) * KNEE), tan(atan(lens.y) * KNEE))
+	# De pé a 1,2 m do vidro (o ponto "perto" das capturas), o alto e o pé da
+	# janela. Com a lente de 100°, o aperto começava a 2,2 m.
+	var vertical := maxf(absf(bottom + size.y - EYE), absf(bottom - EYE)) / 1.2
+	_check("a 1,2 m do vidro, o alto e o pé da janela ficam fora do aperto (%.2f < %.2f)" % [vertical, limit.y],
+			vertical < limit.y)
+	# Perto de uma parede de lado (a 0,9 m dela), a 3 m do vidro, a outra ponta
+	# da janela. Mais perto do vidro, a ponta de lá entra no começo do aperto.
+	var side := room.x / 2.0 - 0.9
+	var across := (side + absf(center_x) + size.x / 2.0) / 3.0
+	_check("de lado, a 3 m do vidro, a janela toda fica fora do aperto (%.2f < %.2f)" % [across, limit.x],
+			across < limit.x)
+	var old_widths := {"leve": 1024, "media": 1536, "alta": 2048}
+	var old_half := tan(deg_to_rad(100.0) / 2.0)
+	var sharp := true
+	var quality: GDScript = load("res://autoload/graphics_quality.gd")
+	for level: String in old_widths:
+		var viewport := SubViewport.new()
+		quality.apply_to_window_view(viewport, level)
+		var now := float(viewport.size.x) / (2.0 * lens.x)
+		var before := float(old_widths[level]) / (2.0 * old_half)
+		sharp = sharp and now >= before * 0.95 and viewport.size.x == viewport.size.y * 2
+		viewport.free()
+	_check("o meio do retrato segue nítido: pelo menos 95% dos pixels por grau de antes, em 2:1", sharp)
+
+
 ## Um shader de janela que não usa o retrato (sem view_mix): o lugar do antigo
 ## desenho da floresta da cabana, que saiu na 19.3.
 func _plain_shader() -> Shader:
@@ -252,6 +302,23 @@ func _check_city() -> void:
 	home.set_night(0.02)
 	await _frames(3)
 	_check("a casa refaz o retrato só na troca de fase", view.capture_count == 2)
+
+	print("== a chuva no vidro (19.6.1) ==")
+	var captures: int = view.capture_count
+	home.set_weather_rain(0.7)
+	await _frames(2)
+	_check("a força da chuva chega ao vidro, sem refazer o retrato",
+			is_equal_approx(float(home._window_material.get_shader_parameter("rain")), 0.7)
+			and view.capture_count == captures)
+	var app = root.get_node("AppConfig")
+	app.set_home_theme("cabana")
+	await _frames(3)
+	_check("trocar o tema refaz o vidro e a chuva continua nele",
+			is_equal_approx(float(home._window_material.get_shader_parameter("rain")), 0.7))
+	app.set_home_theme("")
+	await _frames(3)
+	home.set_weather_rain(0.0)
+	_check("sem chuva, o vidro volta a 0", float(home._window_material.get_shader_parameter("rain")) == 0.0)
 	_check_sign_layers(city)
 	city.queue_free()
 	await _frames(3)

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Tira as CAPTURAS da casa por pontos (Fase 17.1b). Rode COM JANELA:
 ##
-##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu]
+##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu] [tempo]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
@@ -17,12 +17,18 @@ extends SceneTree
 ##              (cabana-retrato_...). A vista "floresta" (o desenho da cabana)
 ##              saiu na 19.3: a cabana usa o retrato desde a 17.9.2.
 ##   céu        fotos | sky3d (padrão: o do usuário, que volta no fim; Fase 19.4)
+##   tempo      limpo | nublado | chuva_fraca | chuva_forte (padrão: limpo;
+##              Fase 19.6.1): o tempo lá fora, forçado pelo WeatherDirector.
+##              Fora do limpo, o nome leva o tempo (loft-chuva_forte_janela_13h)
 ##
 ## Pontos (um PNG por ponto e hora, ex.: loft_nascer_22h.png):
 ##   nascer   posição e giro de nascer da disposição atual
 ##   janela   de frente, a cerca de 3 m, com o janelão inteiro
 ##   sofa     do meio da sala para o canto de estar do tema
 ##   estante  de frente para as capas, na âncora da disposição atual
+##   perto    a 1,2 m do meio da janela (Fase 19.6.1: a vista de perto)
+##   oeste    encostado na parede oeste, a 2,7 m da janela, olhando para ela
+##   leste    o mesmo na parede leste (os dois cantos: a vista de lado)
 ##
 ## Para montar uma amostra sem mexer no jogo, estenda este script
 ## (extends "res://tools/capturar_casa.gd"), monte-a em _prepare(city, home)
@@ -55,7 +61,7 @@ func _run() -> void:
 	await process_frame
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu]")
+		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu] [tempo]")
 		quit(1)
 		return
 	var folder: String = _absolute_folder(String(args[0]))
@@ -71,12 +77,13 @@ func _run() -> void:
 	var theme: String = String(args[4]) if args.size() > 4 else "loft"
 	var view: String = String(args[5]) if args.size() > 5 else "tema"
 	var sky: String = String(args[6]) if args.size() > 6 else ""
+	var weather: String = String(args[7]) if args.size() > 7 else "limpo"
 	if not _folder_allowed(folder):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
 		quit(1)
 		return
-	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)) or sky not in ["", "fotos", "sky3d"]:
-		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana, vista tema|retrato e céu fotos|sky3d.")
+	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)) or sky not in ["", "fotos", "sky3d"] 			or weather not in ["limpo", "nublado", "chuva_fraca", "chuva_forte"]:
+		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana, vista tema|retrato, céu fotos|sky3d e tempo limpo|nublado|chuva_fraca|chuva_forte.")
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
@@ -90,6 +97,8 @@ func _run() -> void:
 
 	_choose_settings(quality, theme, sky)
 	var prefix: String = theme if view == "tema" else "%s-%s" % [theme, view]
+	if weather != "limpo":
+		prefix += "-" + weather
 	if view != "tema":
 		_choose_view(theme, VIEWS[view])
 	if count > 0:
@@ -129,6 +138,9 @@ func _run() -> void:
 	twin.environment = camera.environment
 	city.add_child(twin)
 	twin.make_current()
+	var director: Node = city.get_node_or_null("WeatherDirector")
+	if director != null:
+		director.call("force", weather)
 	_prepare(city, home)
 	var day_night: Node = city.get("_day_night")
 	var points: Array[Dictionary] = _points(home)
@@ -241,6 +253,13 @@ func _points(home: Node3D) -> Array[Dictionary]:
 	local_eye.x = clampf(local_eye.x, -room.x / 2.0 + float(home.get("WALL_THICKNESS")), room.x / 2.0 - float(home.get("WALL_THICKNESS")))
 	points.append({"name": "estante", "eye": home.to_global(local_eye),
 		"target": shelf.to_global(Vector3(0.0, EYE_HEIGHT, float(home.get("WALL_THICKNESS"))))})
+	# Fase 19.6.1: a vista de perto e de lado (onde a lente do retrato aperta).
+	var glass: Vector3 = window + Vector3.BACK * 0.01
+	points.append({"name": "perto", "eye": home.to_global(Vector3(window.x, EYE_HEIGHT, window.z + 1.2)),
+		"target": home.to_global(glass)})
+	for side: Array in [["oeste", -1.0], ["leste", 1.0]]:
+		var corner := Vector3(float(side[1]) * (room.x / 2.0 - 0.9), EYE_HEIGHT, window.z + 2.7)
+		points.append({"name": side[0], "eye": home.to_global(corner), "target": home.to_global(glass)})
 	return points
 
 

@@ -45,8 +45,9 @@ func _check_home() -> void:
 				var target: Vector3 = home.to_local(point["target"])
 				_check(label + ": olho dentro da sala", bounds.has_point(eye))
 				_check(label + ": olha para dentro da sala", bounds.has_point(target) and eye.distance_to(target) > 0.01)
-			var expected: Array[String] = ["nascer", "janela", "sofa", "estante"]
-			_check("quatro pontos com nomes únicos", names == expected)
+			# 19.6.1: perto, oeste e leste (a vista da janela de perto e de lado).
+			var expected: Array[String] = ["nascer", "janela", "sofa", "estante", "perto", "oeste", "leste"]
+			_check("sete pontos com nomes únicos", names == expected)
 			var spawn: Transform3D = home.call("get_spawn_transform")
 			_check("nascer preserva o giro da disposição",
 				Vector3(points[0]["eye"] - points[0]["target"]).normalized().is_equal_approx(spawn.basis.z))

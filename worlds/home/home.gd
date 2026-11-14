@@ -159,6 +159,10 @@ const WEATHER_COVER_GROUP: StringName = &"weather_cover"
 const COVERED_SUN: float = 0.1
 const COVERED_DAYLIGHT: float = 0.6
 var _weather_cover: float = 0.0
+## Quanto chove lá fora (0 = nada, 0,5 = chuva fraca, 1 = forte; o mundo avisa
+## pelo mesmo grupo, set_weather_rain): o vidro da janela mostra a chuva caindo
+## e as gotas escorrendo (Fase 19.6.1). A casa não sabe o que é o clima.
+var _weather_rain: float = 0.0
 
 
 func _ready() -> void:
@@ -254,6 +258,18 @@ func get_night() -> float:
 func set_weather_cover(cover: float) -> void:
 	_weather_cover = clampf(cover, 0.0, 1.0)
 	set_night(_night)
+
+
+## Quanto chove lá fora (0 a 1; veja _weather_rain): vale na hora, sem
+## refazer o retrato (a chuva é desenhada no próprio vidro).
+func set_weather_rain(strength: float) -> void:
+	_weather_rain = clampf(strength, 0.0, 1.0)
+	if _window_material != null:
+		_window_material.set_shader_parameter("rain", _weather_rain)
+
+
+func get_weather_rain() -> float:
+	return _weather_rain
 
 
 ## O sol que entra pela janela de dia (Fase 17.9.1; os testes conferem).
@@ -456,6 +472,7 @@ func _build_window() -> void:
 	var inner_z := -ROOM_SIZE.z / 2.0
 	_window_material = ShaderMaterial.new()
 	_window_material.shader = load(_profile.window_shader) as Shader
+	_window_material.set_shader_parameter("rain", _weather_rain)  # a casca refeita mantém a chuva
 	var glass := MeshInstance3D.new()
 	glass.name = "WindowView"
 	var quad := QuadMesh.new()
