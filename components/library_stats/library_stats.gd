@@ -2,8 +2,8 @@ class_name LibraryStats
 extends RefCounted
 ## Os NÚMEROS da biblioteca (Fase 13.5): horas totais, os mais jogados, horas
 ## por bairro e o jogado por último. Só funções estáticas, sem tela, como o
-## GameInfo. O quadro de estatísticas da casa desenha o resultado, e a Fase 16
-## (o bairro cresce com as horas) vai reaproveitar a conta.
+## GameInfo. O quadro de estatísticas da casa desenha o resultado, e a cidade
+## (Fase 19.9: o bairro cresce com as horas) usa o district_levels().
 ##
 ## Conta SÓ os jogos instalados (os mesmos da cidade). O localconfig.vdf também
 ## tem jogos desinstalados e ferramentas, e contar esses deixaria o quadro
@@ -11,6 +11,14 @@ extends RefCounted
 
 ## Quantos jogos entram no "mais jogados".
 const TOP_COUNT: int = 5
+## Faixas da fatia de horas que dão o NÍVEL do bairro (Fase 19.9), em por cento
+## do total: a partir de 10% é o nível 1, de 20% o 2 e de 40% o 3. São faixas,
+## e não a conta exata, para a planta da cidade não mudar a cada hora jogada:
+## ela só muda quando um bairro passa de uma faixa para outra.
+const LEVEL_PERCENTS: Array[int] = [10, 20, 40]
+## Abaixo disto (10 h na biblioteca toda), ninguém cresce: com poucas horas, um
+## jogo de uma tarde faria o bairro dele dominar a cidade.
+const LEVEL_MIN_TOTAL_MINUTES: int = 600
 
 
 ## Calcula tudo de uma vez. Devolve um Dictionary com:
@@ -69,6 +77,28 @@ static func compute() -> Dictionary:
 		"districts": _sorted_districts(by_district, hours_known),
 		"last_played": last,
 	}
+
+
+## O nível de cada bairro (0 a 3) pela fatia de horas dele (Fase 19.9: o bairro
+## cresce com as horas). Função pura: recebe a lista "districts" do compute()
+## (ou qualquer lista de {id, minutes}) e devolve id → nível, com TODOS os
+## bairros da lista. Sem horas conhecidas, com tudo em 0 ou com menos de 10 h
+## no total, todos ficam no nível 0 (a cidade fica como era antes da 19.9).
+static func district_levels(districts: Array[Dictionary]) -> Dictionary[String, int]:
+	var total := 0
+	for district in districts:
+		total += maxi(int(district.get("minutes", 0)), 0)
+	var levels: Dictionary[String, int] = {}
+	for district in districts:
+		var minutes := maxi(int(district.get("minutes", 0)), 0)
+		var level := 0
+		if total >= LEVEL_MIN_TOTAL_MINUTES:
+			# Conta inteira (sem arredondar): minutos / total >= faixa / 100.
+			for percent in LEVEL_PERCENTS:
+				if minutes * 100 >= total * percent:
+					level += 1
+		levels[String(district["id"])] = level
+	return levels
 
 
 ## Os bairros com jogos, já na ordem do quadro. A ordem do mundo

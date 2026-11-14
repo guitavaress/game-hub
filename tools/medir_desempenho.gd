@@ -6,7 +6,7 @@ extends SceneTree
 ## a nova LADO A LADO, no mesmo dia. Com outra coisa rodando, o FPS cai pela
 ## metade e até os desenhos por quadro mudam, sem nenhuma mudança no código.
 ##
-##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [tempo]
+##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [tempo] [horas]
 ##
 ##   jogos      0 = a biblioteca de verdade; N = N jogos falsos (tests/fake_library.gd)
 ##   qualidade  leve | media | alta        (padrão: leve)
@@ -14,6 +14,10 @@ extends SceneTree
 ##   tempo      limpo | nublado | chuva_fraca | chuva_forte (Fase 19.6; padrão:
 ##              limpo): fixa o tempo da cidade toda, com o chão e o céu no ponto.
 ##              "fraca" e "forte" (da 19.5) valem como chuva_fraca e chuva_forte
+##   horas      - | falsas (Fase 19.9; padrão: -). Só com jogos falsos: "-" deixa
+##              as horas desconhecidas (a planta de antes da 19.9); "falsas" usa
+##              as horas falsas da tests/fake_library.gd (o RPG no nível 3: a
+##              planta com os bairros crescidos)
 ##
 ## A caminhada é sempre a mesma: da praça até a rua mais longe do mapa e de
 ## volta, a 9 m/s (correndo), olhando para onde anda. Imprime uma linha com o
@@ -53,13 +57,18 @@ func _run() -> void:
 		push_error("O tempo deve ser limpo, nublado, chuva_fraca (ou fraca) ou chuva_forte (ou forte).")
 		quit(1)
 		return
+	var hours := String(args[4]) if args.size() > 4 else "-"
+	if hours not in ["-", "falsas"]:
+		push_error("As horas devem ser - (desconhecidas) ou falsas.")
+		quit(1)
+		return
 
 	var config := root.get_node("AppConfig")
 	var original_quality: String = config.get_quality()
 	config.set_quality(quality)
 	if count > 0:
 		var library_script: GDScript = load("res://tests/fake_library.gd")
-		library_script.install(root, count)
+		library_script.install(root, count, hours == "falsas")
 	var games: int = root.get_node("SteamLibrary").get_installed_games().size()
 
 	_print_environment()

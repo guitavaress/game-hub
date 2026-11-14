@@ -15,11 +15,24 @@ extends RefCounted
 ##   5. os quarteirões crescem de dentro para fora a partir da célula do
 ##      território mais perto da praça; o resto vira vaga, perto da borda;
 ##   6. se um bairro ficar cercado sem lugar, R cresce e a conta recomeça.
+##
+## O bairro cresce com as horas (Fase 19.9): cada bairro pode ter um NÍVEL (0 a
+## 3, do LibraryStats.district_levels). O nível não dá prédio: dá TERRITÓRIO.
+## O bairro passa a "pedir" mais células do que tem quarteirões (a demanda),
+## e a demanda, no lugar dos quarteirões, decide o tamanho R, a partilha da
+## borda e o lugar garantido no passo 4. Os quarteirões continuam seguindo os
+## jogos; o que sobra vira vaga. Sem nível (ou tudo 0), a conta é a de antes.
 
 ## Folga para comparar ângulos (uma célula exatamente em cima do limite).
 const ANGLE_EPSILON: float = 1e-6
 ## Quantos anéis a mais a conta tenta antes de desistir (o teste exige até 2).
 const MAX_EXTRA_RINGS: int = 8
+## Quanto território a mais cada nível de horas pede (19.9), em quartos dos
+## quarteirões do bairro: nível 1 = +25%, 2 = +50%, 3 = +75%, e no mínimo uma
+## vaga por nível (um bairro de 1 quarteirão no nível 3 ganha 3 vagas).
+const LEVEL_GROWTH_QUARTERS: int = 1
+## O maior nível que a conta aceita.
+const MAX_LEVEL: int = 3
 const SIDES: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 const CORNERS: Array[Vector2i] = [Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
 const NEIGHBORS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
@@ -29,12 +42,15 @@ const NEIGHBORS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0,
 ## A planta: um setor por entrada de "counts" (quarteirões por bairro), na
 ## mesma ordem. Contagem 0 mantém o lugar, com um setor vazio. "focus" é o
 ## índice do bairro cuja fatia deve ficar centrada no norte (-1 = nenhum).
-static func plan(counts: Array[int], focus: int = -1) -> Array[DistrictSector]:
-	var base: int = base_ring(counts)
+## "levels" (19.9) é o nível de horas de cada bairro, na mesma ordem (vazio ou
+## faltando = 0): mais nível, mais território (veja demands).
+static func plan(counts: Array[int], focus: int = -1, levels: Array[int] = []) -> Array[DistrictSector]:
+	var wanted: Array[int] = demands(counts, levels)
+	var base: int = base_ring(wanted)
 	if base == 0:
 		return _empty_plan(counts.size())
 	for ring: int in range(base, base + MAX_EXTRA_RINGS + 1):
-		var result: Array[DistrictSector] = _plan_with_ring(counts, focus, ring)
+		var result: Array[DistrictSector] = _plan_with_ring(counts, wanted, focus, ring)
 		if not result.is_empty():
 			if ring > base + 2:
 				push_warning("SectorLayout: a planta precisou crescer %d anéis" % (ring - base))
@@ -44,8 +60,26 @@ static func plan(counts: Array[int], focus: int = -1) -> Array[DistrictSector]:
 	return CityLayout.ring_plan(counts)
 
 
-## O anel da borda antes de qualquer crescimento: o menor R em que cabem todos
-## os quarteirões (4R² + 4R células) e em que cada bairro tem 1 célula de borda.
+## Quantas células cada bairro pede (19.9): os quarteirões, mais o território
+## do nível de horas (LEVEL_GROWTH_QUARTERS). Bairro sem quarteirão pede 0
+## (mesmo com nível); sem nível, a demanda é a própria contagem.
+@warning_ignore("integer_division")
+static func demands(counts: Array[int], levels: Array[int] = []) -> Array[int]:
+	var result: Array[int] = []
+	for i: int in counts.size():
+		var count: int = maxi(counts[i], 0)
+		var level: int = clampi(levels[i], 0, MAX_LEVEL) if i < levels.size() else 0
+		var extra: int = 0
+		if count > 0 and level > 0:
+			# Arredonda para cima: (count * level * quartos) / 4.
+			extra = maxi(level, (count * level * LEVEL_GROWTH_QUARTERS + 3) / 4)
+		result.append(count + extra)
+	return result
+
+
+## O anel da borda antes de qualquer crescimento: o menor R em que cabem todas
+## as células pedidas (4R² + 4R células) e em que cada bairro tem 1 célula de
+## borda. Recebe os quarteirões ou, com horas, as demandas (demands).
 static func base_ring(counts: Array[int]) -> int:
 	var total: int = 0
 	var districts: int = 0
@@ -69,15 +103,17 @@ static func _empty_plan(size: int) -> Array[DistrictSector]:
 
 
 ## Uma tentativa com a borda no anel "ring". Devolve vazio se faltar lugar.
+## "wanted" são as demandas (demands): elas repartem a borda e o território;
+## "counts" diz quantos quarteirões cada bairro monta dentro do seu.
 @warning_ignore("integer_division")
-static func _plan_with_ring(counts: Array[int], focus: int, ring: int) -> Array[DistrictSector]:
+static func _plan_with_ring(counts: Array[int], wanted: Array[int], focus: int, ring: int) -> Array[DistrictSector]:
 	# Só os bairros com quarteirões entram na conta; "active" guarda o índice original.
 	var active: Array[int] = []
 	var sizes: Array[int] = []
 	for i: int in counts.size():
 		if counts[i] > 0:
 			active.append(i)
-			sizes.append(counts[i])
+			sizes.append(wanted[i])
 	var border: Array[Vector2i] = CityLayout.ring_cells(ring)
 	var slots: int = border.size()
 	var quotas: Array[int] = _border_quotas(sizes, slots)
@@ -132,7 +168,7 @@ static func _plan_with_ring(counts: Array[int], focus: int, ring: int) -> Array[
 		var bisector: float = bisectors[k]
 		var sector: DistrictSector = result[active[k]]
 		sector.wedge = wedges[k]
-		sector.blocks = _grow(territory, sizes[k], bisector)
+		sector.blocks = _grow(territory, counts[active[k]], bisector)
 		# Território: os quarteirões e depois as vagas (por anel, depois por ângulo).
 		sector.territory = sector.blocks.duplicate()
 		for cell: Vector2i in territory:

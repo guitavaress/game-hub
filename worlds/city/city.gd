@@ -159,6 +159,9 @@ var _map: CityMap
 var _district_cells: Dictionary[String, Array] = {}
 ## O setor (fatia) de cada bairro, do SectorLayout.
 var _sectors: Dictionary[String, DistrictSector] = {}
+## O nível de horas de cada bairro (19.9, de 0 a 3; LibraryStats.district_levels),
+## lido uma vez ao montar a cidade. Dá o território a mais na planta.
+var _district_levels: Dictionary[String, int] = {}
 ## A montanha (15.14): o bairro dela e como foi montada, para refazer na troca
 ## da qualidade.
 var _backdrop_district: String = ""
@@ -275,6 +278,12 @@ func _ready() -> void:
 
 func is_city_ready() -> bool:
 	return _is_ready
+
+
+## O nível de horas do bairro (19.9, de 0 a 3) com que a planta foi montada.
+## Bairro sem jogos ou desconhecido = 0.
+func district_level(category_id: String) -> int:
+	return _district_levels.get(category_id, 0)
 
 
 # --- Abertura ----------------------------------------------------------------
@@ -463,11 +472,15 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
 	var counts: Array[int] = []
 	var ids: Array[String] = []
+	# O nível de horas de cada bairro (19.9): mais horas, mais território.
+	_district_levels = LibraryStats.district_levels(LibraryStats.compute()["districts"])
+	var levels: Array[int] = []
 	for district in districts:
 		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
 		ids.append(district["id"])
+		levels.append(_district_levels.get(district["id"], 0))
 	# O bairro com terreno de fundo (a montanha) fica com a fatia no norte.
-	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
+	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids), levels)
 	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.

@@ -2,7 +2,7 @@ extends SceneTree
 ## Tira as CAPTURAS dos pontos de vista de referência de um bairro (Fase 15:
 ## brief do bioma montanha; depois, a revisão visual). Rode COM JANELA, à mão:
 ##
-##   ~/.local/bin/godot --path . -s tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo]
+##   ~/.local/bin/godot --path . -s tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo] [horas]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
@@ -18,6 +18,10 @@ extends SceneTree
 ##              como chuva_fraca e chuva_forte. Fora do limpo, o nome ganha o
 ##              tempo (sobrevivencia-chuva_forte_praca_13h.png) e entra o ponto
 ##              "rua". Para pular o céu, use "-" (ex.: alta - chuva_forte).
+##   horas      - | falsas (Fase 19.9; padrão: -). Só com jogos falsos: "-" deixa
+##              as horas desconhecidas (a planta de antes da 19.9); "falsas" usa
+##              as horas falsas da tests/fake_library.gd (o RPG no nível 3).
+##              Com "falsas", o nome ganha "-horas" (rpg-horas_cima_13h.png).
 ##
 ## Pontos (um PNG por ponto e por hora, ex.: rpg_praca_13h.png):
 ##   praca    no meio da praça, olhando para o bairro
@@ -58,7 +62,7 @@ func _run() -> void:
 	await process_frame
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s res://tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo]")
+		push_error("Uso: -s res://tools/capturar_pontos.gd -- <pasta> [jogos] [bairro] [horas] [qualidade] [céu] [tempo] [horas]")
 		quit(1)
 		return
 	var folder := String(args[0])
@@ -81,6 +85,11 @@ func _run() -> void:
 		push_error("O tempo deve ser limpo, nublado, chuva_fraca ou chuva_forte.")
 		quit(1)
 		return
+	var fake_hours := String(args[7]) if args.size() > 7 else "-"
+	if fake_hours not in ["-", "falsas"]:
+		push_error("As horas devem ser - (desconhecidas) ou falsas.")
+		quit(1)
+		return
 	if (ProjectSettings.globalize_path(folder) + "/").begins_with(ProjectSettings.globalize_path("res://")):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
 		quit(1)
@@ -95,7 +104,7 @@ func _run() -> void:
 		config.set_sky(sky)
 	if count > 0:
 		var library_script: GDScript = load("res://tests/fake_library.gd")
-		library_script.install(root, count)
+		library_script.install(root, count, fake_hours == "falsas")
 
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
@@ -142,6 +151,8 @@ func _run() -> void:
 	if _weather != "limpo":
 		if _district_label.is_empty():
 			_district_label = "%s-%s" % [district, _weather]
+	if fake_hours == "falsas":
+		_district_label = "%s-horas" % (_district_label if not _district_label.is_empty() else district)
 	var day_night = city._day_night
 	# Calcula uma vez: o aviso de mirante ausente também sai só uma vez.
 	var points: Array[Dictionary] = _points(area)

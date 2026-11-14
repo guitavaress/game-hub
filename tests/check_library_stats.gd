@@ -115,6 +115,21 @@ func _run() -> void:
 	_check("horas falsas automáticas: conhecidas e com total", result["hours_known"] == true and result["total_minutes"] > 0)
 	_check("horas falsas automáticas: top de 5 e último jogado", result["top"].size() == 5 and not result["last_played"].is_empty())
 	_check("com 200 jogos o cálculo leva menos de 5 ms", elapsed_ms < 5.0)
+	var fake_levels: Dictionary = stats.district_levels(result["districts"])
+	print("  (níveis das horas falsas: %s)" % fake_levels)
+	_check("horas falsas: RPG 3, Ação 2, Aventura 1, Sobrevivência 0",
+			fake_levels.get("rpg", -1) == 3 and fake_levels.get("acao", -1) == 2
+			and fake_levels.get("aventura", -1) == 1 and fake_levels.get("sobrevivencia", -1) == 0)
+	_check("horas falsas: um nível para cada bairro com jogos", fake_levels.size() == result["districts"].size())
+
+	# --- Os níveis do bairro (19.9): função pura, por faixas ---
+	_check_levels(stats)
+	# Sem o terceiro argumento, as horas ficam desconhecidas (19.9): nada da Steam de verdade.
+	fake.install(root, 200)
+	_check("biblioteca falsa sem horas: a Steam responde -1", library.get_playtime_minutes(games[0].app_id) == -1)
+	var unknown_levels: Dictionary = stats.district_levels(stats.compute()["districts"])
+	_check("biblioteca falsa sem horas: todos no nível 0", unknown_levels.values().all(func(l: int) -> bool: return l == 0)
+			and not unknown_levels.is_empty())
 
 	# --- Biblioteca vazia ---
 	fake.install(root, 0)
@@ -126,6 +141,36 @@ func _run() -> void:
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
+
+
+## Os níveis de bairro (19.9) com listas feitas à mão.
+func _check_levels(stats: GDScript) -> void:
+	var list := func(pairs: Array) -> Array[Dictionary]:
+		var result: Array[Dictionary] = []
+		for pair: Array in pairs:
+			result.append({"id": pair[0], "minutes": pair[1]})
+		return result
+	_check("níveis: lista vazia, nenhum nível", stats.district_levels([] as Array[Dictionary]).is_empty())
+	# 1000 min: 40% = nível 3, 20% = 2, 10% = 1, logo abaixo de 10% = 0.
+	var levels: Dictionary = stats.district_levels(list.call([["a", 400], ["b", 200], ["c", 100], ["d", 99], ["e", 201]]))
+	_check("níveis: as faixas de 10, 20 e 40%% (%s)" % levels,
+			levels == {"a": 3, "b": 2, "c": 1, "d": 0, "e": 2})
+	levels = stats.district_levels(list.call([["a", 399], ["b", 601]]))
+	_check("níveis: logo abaixo de 40% fica no 2", levels == {"a": 2, "b": 3})
+	levels = stats.district_levels(list.call([["a", 599], ["b", 0]]))
+	_check("níveis: menos de 10 h no total, ninguém cresce", levels == {"a": 0, "b": 0})
+	levels = stats.district_levels(list.call([["a", 600], ["b", 0]]))
+	_check("níveis: com 10 h, o único jogado vai ao 3", levels == {"a": 3, "b": 0})
+	levels = stats.district_levels(list.call([["a", 0], ["b", 0]]))
+	_check("níveis: tudo 0, todos no 0", levels == {"a": 0, "b": 0})
+	levels = stats.district_levels(list.call([["a", -1], ["b", 700]]))
+	_check("níveis: minuto negativo conta como 0", levels == {"a": 0, "b": 3})
+	# Faixas: jogar mais uma hora num bairro longe da faixa não muda nenhum nível.
+	var before: Dictionary = stats.district_levels(list.call([["a", 3000], ["b", 2500], ["c", 1500], ["d", 3000]]))
+	var after: Dictionary = stats.district_levels(list.call([["a", 3060], ["b", 2500], ["c", 1500], ["d", 3000]]))
+	_check("níveis: uma hora a mais longe da faixa não muda a planta (%s)" % before, before == after)
+	_check("níveis: mesma lista, mesmos níveis", stats.district_levels(list.call([["a", 3000], ["b", 2500]]))
+			== stats.district_levels(list.call([["a", 3000], ["b", 2500]])))
 
 
 func _check(label: String, ok: bool) -> void:
