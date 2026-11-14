@@ -108,7 +108,13 @@ O V-Sekai entra como leitura de ideias (o código é MIT e continua aberto), e n
 
 **A primeira subetapa é uma medida no desktop**, que compara dois caminhos:
 - a vista ao vivo em baixa taxa (a janela redesenha a cidade algumas vezes por segundo, em resolução menor);
-- o vidro transparente olhando a cidade real (a casa num lugar de verdade da cidade, e a cidade desenhada enquanto você está em casa).
+- o vidro transparente olhando a cidade real (a casa num lugar de verdade da cidade, e a cidade desenhada enquanto você está em casa). **É o caminho preferido do dono** (2026-11-14): a casa ou a cabana vira parte da cidade, entra-se pela porta andando, sem a tela escurecer, e a cidade não é desenhada duas vezes.
+
+O que o vidro transparente tem de resolver, e o teste da primeira subetapa já mostra:
+- a luz de dentro: hoje a câmera troca para o ambiente da casa ao entrar; com o vidro, a sala usa o céu, a névoa e a exposição da cidade, e o visual da casa à noite é refeito só com luzes;
+- o custo de desenhar a cidade o tempo todo de dentro de casa;
+- onde a casa fica, para a janela ter vista (andar alto ou ponto elevado), e o prédio por fora, que muda com o tema (a cabana talvez na beira da trilha);
+- a chuva, a névoa e o som da rua não entram na sala.
 
 A foto continua como reserva na qualidade Leve e enquanto a cidade monta.
 
