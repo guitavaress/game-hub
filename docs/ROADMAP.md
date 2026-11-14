@@ -82,7 +82,7 @@ Os planos e as revisões antigas citam outros números: a "Fase 16" deles é a f
 
 **Pronto quando:** um bioma novo é um perfil novo, e dá para ver um bairro maior que outro pelas horas jogadas.
 
-**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1, a 19.2 e a 19.3 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe). A próxima é a 19.4, o dia em gradiente.
+**Andamento:** é a [Fase 19](plans/fase-19.md), aprovada em 2026-11-12. A 19.1 a 19.4 estão feitas (o código aceita mais de um bioma; o dono aprovou o pinheiro por script em 2026-11-13; todas as árvores do hub são modelos do Blender, com a foto do mesmo modelo de longe; o dia passa por nascer do sol, manhã, tarde, pôr do sol e noite, sem pulo). A próxima é a 19.5, a chuva nova.
 
 ### 4. Visitar amigos
 **Objetivo:** o encontro com os amigos acontece **dentro do hub**: avatar próprio, espelho, voz, sala de encontro e uma rede simples. Substitui a "visita sem servidor" de antes.
