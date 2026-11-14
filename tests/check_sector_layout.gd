@@ -3,8 +3,11 @@ extends SceneTree
 ## Confere casos fixos, os 200 jogos falsos (com e sem foco) e listas
 ## sorteadas, e imprime o mapa ASCII da planta dos 200 falsos.
 ## Fase 19.9 (o bairro cresce com as horas): os níveis por bairro. Sem nível
-## (ou tudo 0) a planta é idêntica; com nível, as mesmas propriedades valem,
-## o território cobre a demanda e o bairro de nível 3 tem mais território.
+## (ou tudo 0) a planta é idêntica; com nível, as mesmas propriedades valem e o
+## bairro de nível 3 tem mais território. Revisão de risco da 19.9: com nível,
+## o anel R, as cunhas e a borda de cada bairro são os da planta sem nível (a
+## mureta, o metrô e a montanha não mudam), e nenhum bairro de nível 0 ganha
+## mais de 1 célula.
 
 const FIXTURE := "res://tests/fixtures/planta_atual.json"
 const RANDOM_LISTS := 300
@@ -118,7 +121,9 @@ func _property_names() -> Array[String]:
 			"mesma lista, mesma planta",
 			"R cresceu no máximo 2",
 			"foco centrado no norte",
-			"território cobre a demanda do nível"]
+			"com nível: o mesmo R da planta sem nível",
+			"com nível: as mesmas cunhas e a mesma borda",
+			"com nível: nível 0 ganha no máximo 1 célula"]
 
 
 ## Confere todas as propriedades de uma planta. Devolve {"checks", "growth", "plan"}.
@@ -127,10 +132,12 @@ func _verify(counts: Array[int], focus: int, levels: Array[int] = []) -> Diction
 	var names: Array[String] = _property_names()
 	var checks: Dictionary = {}
 	for name: String in names:
+		# As comparações "com nível" só entram quando a lista tem níveis.
+		if levels.is_empty() and name.begins_with("com nível"):
+			continue
 		checks[name] = true
 	var plan: Array[DistrictSector] = SectorLayout.plan(counts, focus, levels)
-	var wanted: Array[int] = SectorLayout.demands(counts, levels)
-	var base: int = SectorLayout.base_ring(wanted)
+	var base: int = SectorLayout.base_ring(counts)
 	var ring: int = 0
 	for sector: DistrictSector in plan:
 		for cell: Vector2i in sector.territory:
@@ -147,14 +154,12 @@ func _verify(counts: Array[int], focus: int, levels: Array[int] = []) -> Diction
 	var all_territory: Dictionary[Vector2i, bool] = {}
 	var territory_cells: int = 0
 	var bisectors: Array[float] = []
-	var demand_ok: bool = true
 	for i: int in mini(plan.size(), counts.size()):
 		var sector: DistrictSector = plan[i]
 		if counts[i] <= 0:
 			shape_ok = shape_ok and sector.blocks.is_empty() and sector.territory.is_empty() and sector.wedge == Vector2.ZERO
 			continue
 		counts_ok = counts_ok and sector.blocks.size() == counts[i]
-		demand_ok = demand_ok and sector.territory.size() >= wanted[i]
 		for cell: Vector2i in sector.blocks:
 			counts_ok = counts_ok and not all_blocks.has(cell) and cell != Vector2i.ZERO
 			all_blocks[cell] = true
@@ -187,7 +192,23 @@ func _verify(counts: Array[int], focus: int, levels: Array[int] = []) -> Diction
 	if focus >= 0 and focus < counts.size() and counts[focus] > 0:
 		var off_north: float = absf(wrapf(plan[focus].bisector(), -PI, PI))
 		checks[names[10]] = off_north <= atan2(0.5, float(ring)) + 1e-4
-	checks[names[11]] = demand_ok
+	if not levels.is_empty():
+		# Com nível, comparado com a mesma lista sem nível (revisão da 19.9).
+		var plain: Array[DistrictSector] = SectorLayout.plan(counts, focus)
+		var plain_ring: int = 0
+		for sector: DistrictSector in plain:
+			for cell: Vector2i in sector.territory:
+				plain_ring = maxi(plain_ring, CityLayout.ring_of(cell))
+		checks[names[11]] = ring == plain_ring
+		var slices_ok: bool = plain.size() == plan.size()
+		var level0_ok: bool = true
+		for i: int in mini(plan.size(), plain.size()):
+			slices_ok = slices_ok and plan[i].wedge == plain[i].wedge 					and _sorted(plan[i].border_cells(ring)) == _sorted(plain[i].border_cells(plain_ring))
+			var level: int = levels[i] if i < levels.size() else 0
+			if level <= 0:
+				level0_ok = level0_ok and plan[i].territory.size() <= plain[i].territory.size() + 1
+		checks[names[12]] = slices_ok
+		checks[names[13]] = level0_ok
 	return {"checks": checks, "growth": ring - base, "plan": plan}
 
 
@@ -262,6 +283,12 @@ func _connected(cells: Array[Vector2i]) -> bool:
 				pending.erase(cell + step)
 				queue.append(cell + step)
 	return pending.is_empty()
+
+
+func _sorted(cells: Array[Vector2i]) -> Array[Vector2i]:
+	var result: Array[Vector2i] = cells.duplicate()
+	result.sort()
+	return result
 
 
 func _same_plan(a: Array[DistrictSector], b: Array[DistrictSector]) -> bool:

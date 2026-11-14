@@ -181,9 +181,15 @@ func _check_divisa(town: Array[Rect2], rects: Array[Rect2], half: float, dashes:
 		block_kept = block_kept and rects[i].encloses(town[i].grow(-curb))
 	_check("o quarteirão de cada zona continua coberto", block_kept)
 	# Entre dois quarteirões do bairro a rua continua coberta inteira.
+	# Conta só a neve DENTRO das zonas (revisão da 19.9): a neve até a mureta e
+	# os cantos côncavos da 19.11 ficam fora delas e não entram na comparação.
+	# Os retângulos não se sobrepõem, e as zonas também não.
 	var covered_area := 0.0
 	for rect in rects:
-		covered_area += rect.get_area()
+		for zone in town:
+			var inside := rect.intersection(zone)
+			if inside.has_area():
+				covered_area += inside.get_area()
 	var total := 0.0
 	for zone in town:
 		total += zone.get_area()
