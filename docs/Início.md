@@ -6,9 +6,9 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 
 ## Agora
 - **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), na branch `fase-19`: árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
-  - **Última subetapa feita:** 19.5 (2026-11-14, `cf26181`): a amostra da chuva nova. Riscos inclinados pelo vento, respingo no chão, asfalto molhado refletindo o néon, som de chuva e céu fechado, em duas forças (fraca e forte). Ainda só na Sobrevivência à noite; **F9** força a chuva em qualquer lugar. Capturas e vídeos (antes e depois, com som) em `C:\Projetos\game-hub-referencias\fase-19\19.5\`.
-  - **Espera você:** aprovar a chuva (vídeos e F9 no jogo). Da 19.4, falta ainda medir o F8 das 16 às 19 h com o F3 aberto (veja o plano).
-  - **Próxima subetapa:** a 19.6, o clima dinâmico (depois da sua aprovação da chuva).
+  - **Última subetapa feita:** 19.6 (2026-11-14, `5a1e679`): o clima dinâmico. O tempo muda sozinho na cidade toda (limpo, nublado, chuva fraca, chuva forte), com passagens suaves; o céu fecha, o chão molha, a montanha neva (nevasca na chuva forte) e a janela da casa mostra o tempo fechado, com a chuva abafada lá dentro. **Esc › Som e vídeo › Clima** escolhe dinâmico ou um tempo fixo (o F9 saiu). Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.6\`.
+  - **Espera você:** duas perguntas da chuva (o piso claro da praça não parece molhado; do alto não se vê a chuva caindo), com o custo de cada uma nas decisões da 19.6. Da 19.4, falta ainda medir o F8 das 16 às 19 h com o F3 aberto (veja o plano).
+  - **Próxima subetapa:** a revisão de risco da 19.6 (segundo Opus); depois, a 19.7 (a floresta na Aventura).
   - **Teste do modelo grátis (OpenCode):** o `free-coding` reprovou na 19.11 (ela passa ao Sonnet). O `free-reasoning` foi aprovado para pesquisa e texto com revisão: escreveu a ideia do [fork da NVIDIA](ideias/godot-fork-nvidia.md).
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).
   - **Falta:** 2 ou 3 amigos usarem e mandarem o resumo do botão "Contar o que achei". Cole o resumo (sem o nome) para um agente registrar no plano; aí a fase fecha.
