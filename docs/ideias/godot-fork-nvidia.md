@@ -27,7 +27,7 @@ O fork da NVIDIA (NVIDIA-RTX/godot, branch `nvidia-pt-dlss`) adiciona **path tra
 |-------------|-------|------------------------|
 | Godot 4.7.2 do projeto vs base do fork | **Alto**: fork pode estar em 4.7-dev ou 4.8-dev; API pode ter mudado | Abrir `project.godot` no fork; ver erros de import; rodar `tests/run_tests.sh` |
 | GDScript tipado estático | Baixo: linguagem não muda | A importação do `run_tests.sh` acusa erro de script |
-| Física Jolt | Baixo: Jolt é módulo separado | `check_first_person`, e andar na cidade |
+| Física Jolt | Baixo: Jolt é módulo separado | Andar na cidade (colisão, escadas do metrô); a bateria completa |
 | Renderer Forward+ | **Médio**: path tracing substitui o pipeline; shaders de tela podem quebrar | Ligar path tracing off (se houver fallback) e comparar visual |
 | Shaders próprios (`.gdshader`/`gdshaderinc` em `worlds/`) | **Alto**: os shaders do hub (`building_facade`, `sky_blend`, `tree_model`, `tree_impostor`, `rain_streak`, `snow_cover`, a janela da casa) assumem rasterização | Carregar a cidade e a casa; ver erros de shader; `check_textures`, `check_trees`, `check_window_view` |
 | MultiMesh das árvores | Baixo: MultiMesh é instancing de malha | `check_trees` ou captura da praça |
