@@ -156,6 +156,22 @@ Estudo de partida, com a menor versão testável ("um terreno que instala") e o 
 
 **Pronto quando:** você entra num terreno de um jogo não instalado, manda instalar, vê o portal subir junto com a porcentagem do download e, ao terminar, ele está pronto na cidade e abre o jogo.
 
+### 8. Primeira e terceira pessoa
+**Objetivo:** uma tecla (e um botão do controle) alterna entre a primeira e a terceira pessoa. Na terceira, a câmera fica atrás do seu avatar e você o vê andar pela cidade. Na primeira, **ao olhar para baixo você vê o próprio corpo** (tronco, braços, pernas e pés), andando junto.
+
+**Pedida pelo dono em 2026-11-15.** Hoje o hub é só primeira pessoa e o jogador não tem corpo no mundo: o avatar (`AvatarBody`, com as cores e as peças que você escolhe na casa) aparece só no espelho e nos hologramas dos amigos. Ele já tem as animações de parado e de andar.
+
+O que a fase tem de resolver (o plano decide):
+- **o corpo em primeira pessoa:** o avatar preso ao jogador, **sem a cabeça** na visão de quem olha (senão a câmera fica dentro dela), com os pés no lugar certo e o passo casado com a velocidade, para não parecer que desliza;
+- **a câmera em terceira pessoa:** atrás e acima do ombro, girando com o mouse e o controle, **sem atravessar parede** (ela se aproxima quando bate em prédio, árvore ou no teto da casa) e com a mesma suavidade da câmera de hoje (`player/camera_feel.gd`);
+- **o que depende de para onde você olha:** a mira do "E para interagir", olhar para a porta de um jogo, a luneta do mirante, sentar na mesa e os monitores. Tudo isso tem de funcionar nas duas visões (ou voltar sozinho à primeira onde só ela faz sentido, como na mesa);
+- **dentro de casa:** a sala é pequena para uma câmera atrás do corpo, e o espelho passa a ter o seu corpo de verdade na frente dele;
+- **a sombra e o reflexo:** o corpo faz sombra no chão nas duas visões;
+- **a escolha fica guardada** (`config.cfg`) e aparece no menu e nas dicas de tecla;
+- **serve aos amigos:** o corpo que anda aqui é a mesma peça dos [amigos andando](#6-amigos-andando-pela-cidade) e do "V4 ao vivo"; vale fazer o andar uma vez só, em `components/avatar/`.
+
+**Pronto quando:** você aperta a tecla e passa a ver o seu avatar por trás, anda pela cidade e pela casa sem a câmera entrar em parede, volta à primeira pessoa, olha para baixo e vê o seu corpo andando; abrir um jogo, o mapa e a busca funcionam igual nas duas.
+
 ## Dia de conferência
 
 As fases feitas que diziam "falta a conferência no desktop" viram **um checklist único, feito num dia só**: [plans/conferencia-desktop.md](plans/conferencia-desktop.md).
