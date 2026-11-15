@@ -120,6 +120,22 @@ A foto continua como reserva na qualidade Leve e enquanto a cidade monta.
 
 **Pronto quando:** de dentro de casa, na Alta, dá para ver a chuva cair lá fora e a vista não deforma ao andar, sem a casa perder a meta de desempenho do desktop.
 
+### 6. Amigos andando pela cidade
+**Objetivo:** os amigos que hoje ficam parados em roda no chafariz passam a andar livremente pela cidade: pelas calçadas, de bairro em bairro, parando de vez em quando. A cidade deixa de parecer vazia.
+
+**Pedida pelo dono em 2026-11-15.** Hoje, o amigo online que não está num jogo da sua biblioteca vira um holograma parado na praça (`_update_plaza_friends`, em `worlds/city/city.gd`). Quem está jogando um jogo seu continua na porta desse jogo: isso não muda.
+
+O que a fase tem de resolver (o plano decide):
+- **por onde andam:** só nas calçadas e na praça, sem atravessar prédio, porta, boca do metrô, marco, árvore nem rocha. A planta da cidade (`CityMap`) e as áreas de desvio dos biomas já existem;
+- **o corpo andando:** o holograma hoje é parado; precisa de um passo que não pareça deslizar;
+- **achar o amigo:** com ele andando, o mapa (M) e o minimapa mostram onde ele está, e a busca leva até ele;
+- **a regra de arquitetura:** o andar é uma peça genérica em `components/` (serve a qualquer mundo); a cidade só diz onde se pode andar;
+- **o custo:** muitos amigos online não podem derrubar a medida do desktop.
+
+É um passeio **inventado pelo hub**, e não a posição real do amigo: ver o amigo de verdade andando é a "V4 ao vivo" do [Horizonte](#horizonte-sem-compromisso), que pede servidor.
+
+**Pronto quando:** com amigos online, você os vê andando pelas ruas, nenhum atravessa nada, e dá para achar qualquer um pelo mapa.
+
 ## Dia de conferência
 
 As fases feitas que diziam "falta a conferência no desktop" viram **um checklist único, feito num dia só**: [plans/conferencia-desktop.md](plans/conferencia-desktop.md).
