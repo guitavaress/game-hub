@@ -24,7 +24,13 @@ O mural reúne os amigos online. Na parede, suas estatísticas mostram as horas 
 
 Os jogos se agrupam em **dez bairros por categoria**, com arquitetura, cores, marcos e sons próprios. Cartas tem luzes de cassino; Terror tem néon falhando, névoa e garoa à noite. Fachadas mostram a arte dos jogos, e olhar para uma porta revela as horas jogadas e os amigos que estão ali.
 
-A cidade acompanha o relógio do computador: o céu muda, as janelas acendem e o néon toma conta da noite. Você também pode fixar dia ou noite pelo menu.
+A cidade acompanha o relógio do computador, e o dia passa **sem pulos**: nascer do sol rosado, manhã fria e limpa, tarde dourada com sombras longas, pôr do sol e noite. As janelas acendem e o néon toma conta quando escurece. Para ver tudo depressa, aperte **F8**, que adianta o relógio em três horas. Você também pode fixar dia ou noite pelo menu.
+
+**O tempo muda sozinho.** Ele abre, fecha e chove, com passagens suaves. O céu fecha, o chão molha e a chuva tem riscos, respingo no chão e som. O mesmo tempo aparece de um jeito em cada lugar: chuva na cidade, nevasca na montanha, poeira no deserto, folhas na floresta. Dentro de casa, a **janela** mostra o tempo lá fora, com a chuva escorrendo no vidro. Para parar tudo isso, ou fixar um tempo, use **Esc › Som e vídeo › Clima** (Dinâmico, Limpo, Nublado, Chuva ou Forte).
+
+**As árvores são modelos de verdade**, de perto e de longe: nas floreiras da cidade, nos pinheiros do RPG e na vista da janela da cabana.
+
+**O que você joga cresce.** O bairro com mais horas jogadas ganha mais terreno, e o marco dele fica mais alto (até 45% a mais). Sem horas conhecidas, a cidade fica como era. Confira no mapa (**M**).
 
 Quer ir direto ao que interessa? **Tab** encontra o jogo e desenha uma rota no chão. **Shift + Enter**, na busca, leva direto até a porta. Há bússola, minimapa, mapa grande e **metrô entre os bairros**.
 
@@ -32,7 +38,10 @@ Quer ir direto ao que interessa? **Tab** encontra o jogo e desenha uma rota no c
 
 No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
 
-Esse é o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**.
+Esse foi o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**. Agora ele tem companhia:
+
+- **Aventura é uma floresta.** Grama no chão, árvores altas de mata com árvores novas por baixo, rochas com musgo, passarinhos, folhas na chuva e uma névoa verde leve. Os passos soam na grama, e os prédios dão lugar a arcos.
+- **Sobrevivência é um deserto.** Areia no chão e nas ruas, rochas grandes cobertas de areia, nenhuma árvore, vento e uma névoa quente e leve. Onde chove na cidade, aqui sobe poeira. Os passos usam, por enquanto, o som da neve.
 
 ### Veja onde os amigos estão
 
@@ -268,6 +277,7 @@ No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://g
 - **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
 - O estalo da lareira da cabana (`fire_crackle.wav`) é gerado por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
 - **A fogueira, o terraço de pedra, os bancos e o monte de pedras da trilha** (Fase 17.7.1) são modelos feitos no [Blender](https://www.blender.org) só por script, por [`tools/blender/`](tools/blender/README.md) (os scripts são GPL-3.0, porque usam a API do Blender; os `.glb` gerados, em `assets/models/trail/`, são nossos, MIT). Nada baixado: a textura da lenha e da brasa é assada no próprio Blender, e os bancos usam a madeira feita por código da casa.
+- O som da chuva (`rain_loop.wav`), junto com o resto dos sons gerados, também sai de [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py) (Fase 19.5), CC0. A chuva, os riscos, o respingo e o vidro molhado da janela são shaders e partículas feitos por código (nada baixado).
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 
 ## Licença
