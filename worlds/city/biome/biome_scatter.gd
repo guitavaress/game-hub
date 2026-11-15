@@ -33,6 +33,13 @@ extends Node3D
 ## de quem anda (a da floresta começa acima de 3,5 m). As rochas usam a pasta
 ## do material do perfil (ScatterSpec.material_folder), com o chão do bioma
 ## por cima, sem depender da montanha.
+##
+## 19.12 (a encosta): as famílias on_backdrop vão para a montanha pelo MESMO
+## plan(), chamado pela BackdropTerrain. Para isso, o plan() aceita um filtro
+## ("accept": quem chama diz se o lugar serve: na encosta, longe da trilha, do
+## mirante e da vista da luneta) e o add_on_ground() assenta cada cópia no
+## chão de um terreno: a árvore em pé, com o pé no ponto mais baixo em volta do
+## tronco; a rocha deitada na inclinação do chão. Na cidade, nada muda.
 
 ## Distância mínima entre dois troncos de árvore (impostora ou modelo), além dos raios.
 const IMPOSTOR_SPACING: float = 3.0
@@ -56,6 +63,16 @@ const AREA_GAP: float = 1.5
 ## Folga entre a beira da copa de uma árvore e um prédio, uma boca do metrô,
 ## um marco ou uma porta (19.7).
 const CROWN_GAP: float = 0.5
+## No chão de um terreno (19.12): quantos pontos em volta da cópia medem o chão.
+const GROUND_SAMPLES: int = 8
+## Quanto o pé da árvore desce abaixo do ponto mais baixo em volta do tronco.
+const TREE_SINK: float = 0.05
+## Lado (m) das células em que as rochas de um terreno são repartidas: cada
+## célula é uma MultiMesh, para a Godot cortar o que está fora da tela e
+## escolher o detalhe (LOD) pela distância de cada célula.
+const GROUND_CELL: float = 32.0
+## O BiomeBuilder (o material da rocha com neve), lido pelo caminho (_source).
+const BUILDER_PATH: String = "res://worlds/city/biome/biome_builder.gd"
 
 ## Malhas já lidas dos glTF (caminho -> {mesh, aabb}).
 static var _meshes: Dictionary = {}
@@ -100,9 +117,14 @@ func setup(category_id: String, biome: BiomeSpec, regions: Array[Rect2], keep_ou
 ## "base_radius": altura e raio da malha (ou do tronco) sem escala.
 ## "base_crown" (19.7): o raio da copa sem escala (0 = sem copa; só nas
 ## árvores), que fica a CROWN_GAP dos pontos e das áreas livres.
+## "accept" (19.12, opcional): func(spot: Vector2, footprint: float, crown:
+## float, height: float) -> bool, chamada depois das conferências de sempre;
+## false descarta o lugar (o sorteio segue na mesma ordem, então o resultado
+## continua o mesmo para a mesma semente). "crown" já vem com a CROWN_GAP.
 static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vector3],
 		occupied: Array[Vector3], seed_value: int, base_height: float, base_radius: float,
-		keep_out_areas: Array[Rect2] = [], amount: float = 1.0, base_crown: float = 0.0) -> Array[Dictionary]:
+		keep_out_areas: Array[Rect2] = [], amount: float = 1.0, base_crown: float = 0.0,
+		accept: Callable = Callable()) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	if spec.density <= 0.0 or amount <= 0.0 or base_height <= 0.0:
 		return items
@@ -117,6 +139,10 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 	var largest := base_radius * spec.height_range.y / base_height * spread.y
 	# A maior copa (na maior altura), para achar os pontos e as áreas perto.
 	var largest_crown := base_crown * spec.height_range.y / base_height + CROWN_GAP if base_crown > 0.0 else 0.0
+	# O maior "footprint" possível de uma cópia desta família (19.12: para
+	# achar o que já foi posto perto de cada região).
+	var largest_collision := spec.collision_radius * spec.height_range.y / base_height * spread.y / reference
+	var largest_footprint := maxf(maxf(largest, largest_collision), 0.5)
 	for region in regions:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([seed_value, region.position])
@@ -134,6 +160,13 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 		for area in keep_out_areas:
 			if usable.grow(maxf(maxf(AREA_GAP, clearance) + largest, largest_crown)).intersects(area):
 				near_areas.append(area)
+		# 19.12: só o que já foi posto perto desta região pode atrapalhar (a
+		# encosta tem centenas de cópias). Quem fica de fora está longe demais
+		# de qualquer ponto da região: o resultado é o mesmo de olhar todos.
+		var near_occupied: Array[Vector3] = []
+		for other in occupied:
+			if area_distance(usable, Vector2(other.x, other.y)) < other.z + largest_footprint + spacing:
+				near_occupied.append(other)
 		var placed := 0
 		var tries := 0
 		while placed < wanted and tries < wanted * ATTEMPTS_PER_ITEM:
@@ -157,9 +190,12 @@ static func plan(spec: ScatterSpec, regions: Array[Rect2], keep_out: Array[Vecto
 				continue
 			var spot := inner.position + Vector2(u, v) * inner.size
 			var crown := base_crown * scale_xz + CROWN_GAP if base_crown > 0.0 else 0.0
-			if _blocked(spot, footprint, clearance, spacing, near_keep, occupied, near_areas, crown):
+			if _blocked(spot, footprint, clearance, spacing, near_keep, near_occupied, near_areas, crown):
+				continue
+			if accept.is_valid() and not bool(accept.call(spot, footprint, crown, height)):
 				continue
 			occupied.append(Vector3(spot.x, spot.y, footprint))
+			near_occupied.append(Vector3(spot.x, spot.y, footprint))
 			items.append({
 				"position": Vector3(spot.x, 0.0, spot.y),
 				"height": height,
@@ -194,6 +230,69 @@ static func _blocked(spot: Vector2, radius: float, clearance: float, spacing: fl
 static func area_distance(area: Rect2, point: Vector2) -> float:
 	var nearest := point.clamp(area.position, area.end)
 	return point.distance_to(nearest)
+
+
+## Malha, material e medidas de uma família (19.12: a encosta usa as mesmas).
+## {} se a origem não carregar. Para o plan(): height, radius e (árvores) crown.
+static func source_of(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
+	return _source(spec, biome)
+
+
+## A direção "para cima" do chão num ponto (19.12): a normal do terreno pela
+## diferença das alturas a "step" metros para cada lado. "surface" é
+## func(ponto: Vector2) -> float, a altura do chão.
+static func ground_normal(surface: Callable, spot: Vector2, step: float) -> Vector3:
+	var dx := float(surface.call(spot + Vector2(step, 0.0))) - float(surface.call(spot - Vector2(step, 0.0)))
+	var dz := float(surface.call(spot + Vector2(0.0, step))) - float(surface.call(spot - Vector2(0.0, step)))
+	return Vector3(-dx, 2.0 * step, -dz).normalized()
+
+
+## Uma família num terreno (19.12, a encosta): as cópias do plan() assentadas
+## no chão de "surface" (func(ponto: Vector2) -> float). Sem colisão: ninguém
+## anda fora da trilha. O nó se chama Scatter_<índice>, como na cidade.
+func add_on_ground(index: int, spec: ScatterSpec, source: Dictionary, items: Array[Dictionary],
+		surface: Callable) -> void:
+	_add_family(index, spec, source, items, surface)
+
+
+## Onde fica uma cópia no chão de um terreno. A árvore fica em pé, com o pé no
+## ponto mais baixo em volta do tronco (do lado de baixo da encosta ela não
+## flutua; do lado de cima, o chão cobre um pouco do tronco, como numa árvore
+## de verdade). A rocha deita na inclinação do chão embaixo dela, enterrada
+## MESH_SINK da altura, e desce mais se alguma beirada da base ficasse acima do
+## chão (onde o chão faz curva).
+static func _seat(spec: ScatterSpec, source: Dictionary, item: Dictionary, surface: Callable) -> Transform3D:
+	var item_scale: Vector3 = item["scale"]
+	var position: Vector3 = item["position"]
+	var spot := Vector2(position.x, position.z)
+	var radius := float(item["radius"])
+	var yaw_basis := Basis(Vector3.UP, item["yaw"]) * Basis.from_scale(item_scale)
+	if spec.kind != "mesh":
+		var low := float(surface.call(spot))
+		for k in GROUND_SAMPLES:
+			low = minf(low, float(surface.call(spot + Vector2.from_angle(TAU * k / GROUND_SAMPLES) * radius)))
+		return Transform3D(yaw_basis, Vector3(spot.x, low - TREE_SINK, spot.y))
+	# O chão medido em pelo menos 1 m em volta: a inclinação média, e não a
+	# irregularidade embaixo de uma pedra pequena.
+	var up := ground_normal(surface, spot, maxf(radius, 1.0))
+	# "tilt" (opcional, a encosta põe nas rochas): (direção, ângulo) a mais
+	# sobre a inclinação do chão, para nem toda rocha deitar igual.
+	var tilt: Vector2 = item.get("tilt", Vector2.ZERO)
+	if tilt.y > 0.0:
+		up = up.rotated(Vector3(cos(tilt.x), 0.0, sin(tilt.x)), tilt.y).normalized()
+	var basis := Basis(Quaternion(Vector3.UP, up)) * yaw_basis
+	var bottom := float(source["bottom"]) * item_scale.y
+	var sink := MESH_SINK * float(item["height"])
+	# O meio da base fica "sink" abaixo do chão, na direção da normal.
+	var base := Vector3(spot.x, float(surface.call(spot)), spot.y) - up * sink
+	var lift := 0.0
+	for k in GROUND_SAMPLES:
+		var rim := spot + Vector2.from_angle(TAU * k / GROUND_SAMPLES) * radius
+		# A altura do plano da base sobre este ponto da beirada.
+		var plane := base.y - (up.x * (rim.x - base.x) + up.z * (rim.y - base.z)) / up.y
+		lift = maxf(lift, plane - float(surface.call(rim)))
+	base.y -= lift
+	return Transform3D(basis, base - up * bottom)
 
 
 ## Malha, material e medidas de uma família. {} se a origem não carregar.
@@ -236,7 +335,11 @@ static func _source(spec: ScatterSpec, biome: BiomeSpec) -> Dictionary:
 	if folder.is_empty() and biome.backdrop != null:
 		folder = biome.backdrop.rock_folder
 	if not folder.is_empty():
-		material = BiomeBuilder.snow_cover_material(biome, folder, spec.tint, ROCK_METERS)
+		# O BiomeBuilder pelo caminho, e não pelo nome (19.12): a montanha usa o
+		# BiomeScatter, e o nome puxaria na compilação o BiomeBuilder e, por
+		# ele, os autoloads (os testes do mirante carregam a montanha antes deles).
+		var builder: GDScript = load(BUILDER_PATH)
+		material = builder.snow_cover_material(biome, folder, spec.tint, ROCK_METERS)
 	return {
 		"mesh": loaded["mesh"],
 		"material": material,
@@ -277,27 +380,37 @@ static func _mesh_of(path: String) -> Dictionary:
 
 ## Uma família: a MultiMesh (ou o TreeModel, nas árvores) e, se houver, o
 ## corpo com os cilindros. O nó se chama Scatter_<índice> nos dois casos.
-func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array[Dictionary]) -> void:
+## "surface" (19.12): com ela, as cópias vão para o chão de um terreno
+## (_seat), as rochas são repartidas em células e não há colisão.
+func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array[Dictionary],
+		surface: Callable = Callable()) -> void:
 	if items.is_empty():
 		return
+	var on_ground := surface.is_valid()
 	var largest := 1.0
 	var transforms: Array[Transform3D] = []
 	for k in items.size():
 		var item: Dictionary = items[k]
 		var item_scale: Vector3 = item["scale"]
+		largest = maxf(largest, item_scale.x)
+		if on_ground:
+			transforms.append(_seat(spec, source, item, surface))
+			continue
 		var origin: Vector3 = item["position"]
 		if spec.kind == "mesh":
 			# A rocha desce até a base encostar no chão, e um pouco mais.
 			origin.y = -float(source["bottom"]) * item_scale.y - MESH_SINK * float(item["height"])
 		var basis := Basis(Vector3.UP, item["yaw"]) * Basis.from_scale(item_scale)
 		transforms.append(Transform3D(basis, origin))
-		largest = maxf(largest, item_scale.x)
 	_transforms[index] = transforms
 	if spec.kind == "tree":
 		var trees := TreeModel.new()
 		trees.name = "Scatter_%d" % index
 		add_child(trees)
 		trees.setup(spec.source, transforms, spec.tint)
+	elif on_ground:
+		_add_ground_cells(index, source, transforms, largest)
+		return
 	else:
 		var multimesh := MultiMesh.new()
 		multimesh.transform_format = MultiMesh.TRANSFORM_3D
@@ -314,7 +427,7 @@ func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array
 		instance.extra_cull_margin = float(source["cull"]) * largest
 		add_child(instance)
 
-	if spec.collision_radius <= 0.0:
+	if spec.collision_radius <= 0.0 or on_ground:
 		return
 	var body := StaticBody3D.new()
 	body.name = "ScatterCollision_%d" % index
@@ -331,3 +444,34 @@ func _add_family(index: int, spec: ScatterSpec, source: Dictionary, items: Array
 		collision.shape = shape
 		collision.position = (item["position"] as Vector3) + Vector3(0.0, height / 2.0, 0.0)
 		body.add_child(collision)
+
+
+## As rochas num terreno (19.12), uma MultiMesh por célula de GROUND_CELL m,
+## todas debaixo do nó Scatter_<índice>: a Godot corta a célula fora da tela
+## e escolhe o detalhe da malha pela distância DELA (numa MultiMesh só, a
+## encosta inteira teria um detalhe só, o da rocha mais perto).
+func _add_ground_cells(index: int, source: Dictionary, transforms: Array[Transform3D], largest: float) -> void:
+	var family := Node3D.new()
+	family.name = "Scatter_%d" % index
+	add_child(family)
+	var cells: Dictionary = {}
+	for item in transforms:
+		var key := Vector2i(floori(item.origin.x / GROUND_CELL), floori(item.origin.z / GROUND_CELL))
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(item)
+	for key: Vector2i in cells:
+		var items: Array = cells[key]
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.mesh = source["mesh"]
+		multimesh.instance_count = items.size()
+		for k in items.size():
+			multimesh.set_instance_transform(k, items[k])
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "Cell_%d_%d" % [key.x, key.y]
+		instance.multimesh = multimesh
+		if source["material"] != null:
+			instance.material_override = source["material"]
+		instance.extra_cull_margin = float(source["cull"]) * largest
+		family.add_child(instance)

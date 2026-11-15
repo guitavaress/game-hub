@@ -199,6 +199,9 @@ static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, 
 	terrain.footstep = biome.footstep
 	terrain.cell_meters = GraphicsQuality.terrain_cell_meters(level)
 	terrain.casts_shadow = GraphicsQuality.terrain_casts_shadow(level)
+	# 19.12: os pinheiros e as rochas da encosta, na quantidade da qualidade.
+	terrain.biome = biome
+	terrain.scatter_amount = GraphicsQuality.scatter_amount(level)
 	if not terrain.setup(biome.backdrop, sector, half):
 		terrain.free()
 		return null
