@@ -1,5 +1,12 @@
 # Estudo: Fase 6 — Amigos andando pela cidade
 
+> **Revisão da coordenadora (2026-11-15).** Este estudo foi escrito por um modelo grátis (OpenCode, `omniroute/free-reasoning`) e serve de ponto de partida, não de plano. Conferi por amostra o que ele cita do código (as animações `Idle` e `Walk` do `AvatarBody`, o `route_points` e o `street_line` do `CityRouteGuide`, a praça em `city.gd`): bate. O que **não** vale como dado:
+> - **A tabela de custo da seção 6.1 é chute:** nada foi medido (a trilha não abriu a Godot), nem o "custo atual". A medida é do plano, no desktop.
+> - **O "144 FPS (p99 13 ms)"** citado como base não foi conferido contra a ROADMAP.
+> - **O IK dos pés** (`Skeleton3DIK`) é um nome que não conferi na Godot 4.7; a calçada é plana, então a primeira versão não precisa dele.
+> - **O corte das trilhas tem uma contradição:** a 6.4 põe o `ui/map_view.gd` na trilha B, e a tabela de arquivos o põe na A. O plano decide.
+> - **O número da fase:** não é "fase-6"; a fase ganha o próximo número livre (a partir de 20) quando começar.
+
 > **Arquivo:** `docs/design/estudo-amigos-andando-2026-11-15.md`  
 > **Data:** 2026-11-15  
 > **Escopo:** apenas leitura — nenhum código muda.  

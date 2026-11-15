@@ -134,6 +134,8 @@ O que a fase tem de resolver (o plano decide):
 
 É um passeio **inventado pelo hub**, e não a posição real do amigo: ver o amigo de verdade andando é a "V4 ao vivo" do [Horizonte](#horizonte-sem-compromisso), que pede servidor.
 
+Estudo de partida (modelo grátis, revisado): [estudo-amigos-andando](design/estudo-amigos-andando-2026-11-15.md).
+
 **Pronto quando:** com amigos online, você os vê andando pelas ruas, nenhum atravessa nada, e dá para achar qualquer um pelo mapa.
 
 ### 7. Instalar jogos pelo hub
@@ -142,13 +144,15 @@ O que a fase tem de resolver (o plano decide):
 **Pedida pelo dono em 2026-11-15** (a ideia é de 2026-11-02: [instalar-jogos-pelo-hub](ideias/instalar-jogos-pelo-hub.md)). O crescimento **já existe**: a cidade é montada a partir da biblioteca, e os testes com a biblioteca falsa de 200 jogos mostram os bairros maiores e com mais quarteirões. Com poucos jogos instalados, o que é o seu caso, a cidade real fica pequena; esta fase deixa você enchê-la por dentro.
 
 O que a fase tem de resolver (o plano decide):
-- **de onde vem a lista dos jogos não instalados:** os arquivos locais da Steam só listam os instalados. A Steam Web API (`GetOwnedGames`) dá a lista, com a chave que o hub já usa para os amigos; sem chave, a fase precisa de outro caminho ou a função fica desligada;
+- **de onde vem a lista dos jogos não instalados:** o [estudo](design/estudo-instalar-jogos-2026-11-15.md) mostrou que dá para tirar dos arquivos locais da Steam, **sem chave** (`appcache/packageinfo.vdf` e `appinfo.vdf`), mas o formato é interno da Steam e pode mudar; a Steam Web API (`GetOwnedGames`, com a chave que o hub já usa para os amigos) fica como segunda fonte;
 - **como instalar:** o hub pede à Steam (`steam://install/<id>`), e a Steam mostra a própria janela de instalação. O hub não baixa nada sozinho. Só `autoload/platform/` fala com a Steam;
 - **como o jogo não instalado aparece:** um lugar que se lê de longe como "ainda não instalado" (terreno com tapume, fachada apagada), sem confundir com um jogo pronto, e que não esconde os instalados no meio de centenas de terrenos;
-- **o portal em obras (dono, 2026-11-15):** a porcentagem da instalação é ao vivo, e o portal vai sendo construído com ela: do terreno vazio ao prédio (ou arco) pronto, que só abre o jogo aos 100%. A porcentagem vem dos arquivos da Steam (o `appmanifest` do jogo guarda os bytes baixados e o total), lidos só por `autoload/platform/`. A obra é uma peça genérica do portal (regra 3): vale para prédio, arco e o que vier;
+- **o portal em obras (dono, 2026-11-15):** a porcentagem da instalação é ao vivo, e o portal vai sendo construído com ela: do terreno vazio ao prédio (ou arco) pronto, que só abre o jogo aos 100%. A porcentagem vem do `appmanifest` do jogo (os campos de bytes baixados e gravados existem; o comportamento durante um download de verdade ainda precisa ser observado: é a primeira subetapa). A obra é uma peça genérica do portal (regra 3): vale para prédio, arco e o que vier;
 - **a cidade crescer na hora:** quando a instalação acaba, o prédio aparece sem reabrir o hub. Hoje a cidade é montada uma vez, ao abrir;
 - **a planta não pode pular:** com a biblioteca inteira, os bairros mudam de tamanho. Decidir se os não instalados já reservam o lugar deles (a planta fica estável) ou se o bairro cresce a cada instalação;
 - **o custo:** uma biblioteca de centenas de jogos não pode derrubar a medida do desktop (os 200 falsos são a referência).
+
+Estudo de partida, com a menor versão testável ("um terreno que instala") e o corte em duas trilhas: [estudo-instalar-jogos](design/estudo-instalar-jogos-2026-11-15.md). A decisão que mais pesa é sua: **quantos terrenos** (a conta tem muito mais jogos do que os instalados, e a cidade cresceria várias vezes).
 
 **Pronto quando:** você entra num terreno de um jogo não instalado, manda instalar, vê o portal subir junto com a porcentagem do download e, ao terminar, ele está pronto na cidade e abre o jogo.
 
