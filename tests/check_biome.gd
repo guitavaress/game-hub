@@ -3,6 +3,8 @@ extends SceneTree
 ## bioma mudam. O RPG (a montanha) fica com a fatia no norte, arcos no
 ## lugar dos prédios, neve nos quarteirões e nas ruas (setor coberto com a
 ## marca "snow"), e as faixas e poças da cidade pulam as zonas dele.
+## 19.8: a Sobrevivência é o deserto (areia, passos de neve, poeira no lugar da
+## chuva, vento, névoa quente, sem árvores), pelas mesmas conferências.
 ## 19.7: a Aventura é a floresta (grama, passos "grass", folhas na chuva,
 ## pássaros de fundo); os enfeites dos dois biomas passam pelas mesmas
 ## conferências, e a copa das árvores fica longe dos prédios, das portas, do
@@ -31,7 +33,7 @@ func _run() -> void:
 			biome_ids.append(district.id)
 	print("bairros com bioma: ", biome_ids)
 	biome_ids.sort()
-	_check("só o RPG e a Aventura têm bioma", biome_ids == (["aventura", "rpg"] as Array[String]))
+	_check("só o RPG, a Aventura e a Sobrevivência têm bioma", biome_ids == (["aventura", "rpg", "sobrevivencia"] as Array[String]))
 
 	print("\n== cascas ==")
 	var arches := 0
@@ -65,7 +67,7 @@ func _run() -> void:
 	var others := 0
 	for child: Node in city.get_children():
 		if String(child.name).begins_with("BiomeCover_") and child != cover \
-				and String(child.name) != "BiomeCover_aventura":
+				and String(child.name) not in ["BiomeCover_aventura", "BiomeCover_sobrevivencia"]:
 			others += 1
 	_check("nenhum bairro sem bioma tem setor coberto", others == 0)
 	var half: float = (city.get_node("CityMap").get_map_data()["bounds"] as Rect2).size.x / 2.0
@@ -162,6 +164,8 @@ func _run() -> void:
 	_check_scatter(city, builder, "rpg")
 	await _check_forest(city, builder, half)
 	_check_scatter(city, builder, "aventura")
+	await _check_desert(city, builder, half)
+	_check_scatter(city, builder, "sobrevivencia")
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit(0 if failures == 0 else 1)
@@ -256,6 +260,55 @@ func _check_forest(city: Node, builder: GDScript, half: float) -> void:
 			and biome.fog_tint_amount > 0.0 and biome.fog_tint_amount < 0.5)
 	# O gerador fica com a casca recomendada (19.7); o teste aceita as duas.
 	_check("a casca da floresta é arcos ou prédios (%s)" % biome.shell, biome.shell in ["arch", "building"])
+
+
+## O deserto da Sobrevivência (19.8): o chão, os passos, o clima, o som de
+## fundo, a névoa e as rochas sem árvores.
+func _check_desert(city: Node, builder: GDScript, half: float) -> void:
+	print("\n== o deserto (19.8) ==")
+	var biome = builder.biome_of("sobrevivencia")
+	_check("a Sobrevivência usa o bioma do deserto", biome != null and biome.id == "deserto")
+	if biome == null:
+		return
+	_check("chão de areia e calçada de pedra",
+			biome.ground_folder == "Ground093C" and biome.path_folder == "PavingStones070")
+	var cover: StaticBody3D = city.get_node_or_null("BiomeCover_sobrevivencia")
+	_check("o setor coberto da Sobrevivência tem a marca \"snow\" (passos da neve, sem som de areia)",
+			cover != null and cover.get_meta("footstep", "") == "snow")
+	var bounds := Rect2(-half, -half, half * 2.0, half * 2.0)
+	var town: Array[Rect2] = []
+	town.assign(city.get_node("CityMap").zone_rects("sobrevivencia").filter(func(r: Rect2) -> bool: return bounds.encloses(r)))
+	var rects: Array[Rect2] = builder.covered_rects(town, half, biome.cover_streets)
+	_check("o deserto cobre ao menos uma zona", not rects.is_empty())
+	if not rects.is_empty():
+		var player = city.get_node("Player")
+		var spot := rects[0].position + Vector2(1.5, 1.5)
+		player.global_position = Vector3(spot.x, 0.5, spot.y)
+		player.velocity = Vector3.ZERO
+		for i in 30:
+			await physics_frame
+		_check("na rua da Sobrevivência a superfície é \"snow\" (%s)" % player.get_surface(), player.get_surface() == "snow")
+	var weather: Node = city.get_node_or_null("DistrictWeather_sobrevivencia")
+	_check("na chuva, a Sobrevivência mostra poeira", weather != null and weather.spec.kind == "poeira")
+	_check("a Sobrevivência tem a atmosfera do bioma", city.get_node_or_null("BiomeAtmosphere_sobrevivencia") != null)
+	_check("o fundo do deserto é o vento em loop", biome.ambience_bed != null and biome.ambience_bed.kind == "loop"
+			and biome.ambience_bed.files.size() == 1 and biome.ambience_bed.files[0].contains("wind_loop"))
+	_check("névoa quente e leve", biome.fog_tint.r > biome.fog_tint.b and biome.fog_tint_amount > 0.0
+			and biome.fog_tint_amount < 0.5 and biome.fog_density_scale <= 1.0)
+	var trees := 0
+	var rocks := 0
+	for spec in biome.scatter:
+		if spec.kind == "tree" or spec.kind == "impostor":
+			trees += 1
+		else:
+			rocks += 1
+			_check("as rochas do deserto são maiores que as da floresta e levam areia por cima",
+					spec.height_range.y > 1.4 and spec.material_folder == "Rock058" and biome.snow_cover > 0.0)
+	_check("o deserto não tem árvores, só rochas", trees == 0 and rocks > 0)
+	_check("a casca do deserto é arcos ou prédios (%s)" % biome.shell, biome.shell in ["arch", "building"])
+	var scatter = city.get_node_or_null("BiomeScatter_sobrevivencia")
+	_check("nenhuma árvore desenhada no deserto",
+			scatter != null and scatter.find_children("*", "TreeModel", true, false).is_empty())
 
 
 func _check_scatter(city: Node, builder: GDScript, id: String) -> void:

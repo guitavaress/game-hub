@@ -41,7 +41,7 @@ func _run() -> void:
 	var weathers: Array[Node] = city.get_children().filter(func(n: Node) -> bool: return n.get_script() == weather_script)
 	var names := weathers.map(func(n: Node) -> String: return String(n.name))
 	names.sort()
-	# Os bairros com clima próprio no perfil (o RPG, com a neve; a Aventura, com as folhas).
+	# Os bairros com clima próprio no perfil (o RPG, com a neve; a Aventura, com as folhas; a Sobrevivência, com a poeira).
 	var own: Array[String] = []
 	for id: String in city._district_cells:
 		var profile = load("res://profiles/profiles.gd").district(id)
@@ -51,13 +51,15 @@ func _run() -> void:
 	for id in own:
 		expected_names.append("DistrictWeather_%s" % id)
 	expected_names.sort()
-	_check("a chuva da cidade, a neve do RPG e as folhas da Aventura %s" % str(names), names == expected_names)
+	_check("a chuva da cidade, a neve do RPG, as folhas da Aventura e a poeira da Sobrevivência %s" % str(names), names == expected_names)
 	var weather: Node = city.get_node("DistrictWeather_cidade")
 	var snow: Node = city.get_node_or_null("DistrictWeather_rpg")
 	var leaves: Node = city.get_node_or_null("DistrictWeather_aventura")
-	_check("a cidade mostra chuva; o RPG, neve; a Aventura, folhas", weather.current_kind() == "garoa"
+	var dust: Node = city.get_node_or_null("DistrictWeather_sobrevivencia")
+	_check("a cidade mostra chuva; o RPG, neve; a Aventura, folhas; a Sobrevivência, poeira", weather.current_kind() == "garoa"
 			and (snow == null or snow.current_kind() == "neve")
-			and (leaves == null or leaves.current_kind() == "folhas"))
+			and (leaves == null or leaves.current_kind() == "folhas")
+			and (dust == null or dust.current_kind() == "poeira"))
 	var map: Node = get_first_node_in_group("world_map")
 	var own_areas := 0
 	var all_out := true
@@ -68,8 +70,8 @@ func _run() -> void:
 			all_out = all_out and weather.exclude.has(area)
 	_check("a chuva da cidade vale em todo lugar, menos nos bairros com clima próprio", weather.areas.is_empty()
 			and weather.exclude.size() == own_areas and all_out)
-	_check("o perfil do bairro ficou sem a garoa (mostra a da cidade)",
-			load("res://profiles/profiles.gd").district("sobrevivencia").effective_weather() == null)
+	_check("o perfil do bairro ficou sem a garoa: a Sobrevivência mostra a poeira do deserto (19.8)",
+			load("res://profiles/profiles.gd").district("sobrevivencia").effective_weather().kind == "poeira")
 
 	var player: Node3D = city.get_node("Player")
 	var bounds: Rect2 = map.get_map_data()["bounds"]

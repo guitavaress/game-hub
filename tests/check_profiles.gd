@@ -295,7 +295,8 @@ func _check_biomes() -> void:
 	_scan_ids("res://worlds", ids, offenders)
 	_check("mundos não fixam ids de bioma", offenders.is_empty())
 	# Desde a 15.6, o RPG tem bioma (a montanha, com neve, arcos e passos na neve);
-	# desde a 19.7, a Aventura (a floresta, com grama, passos na grama e folhas na chuva).
+	# desde a 19.7, a Aventura (a floresta, com grama, passos na grama e folhas na chuva);
+	# desde a 19.8, a Sobrevivência (o deserto, com areia, passos da neve e poeira).
 	for district in Profiles.districts():
 		if district.id == "rpg":
 			_check("o RPG usa a montanha", district.biome != null and district.biome.id == "montanha"
@@ -305,6 +306,10 @@ func _check_biomes() -> void:
 			_check("a Aventura usa a floresta", district.biome != null and district.biome.id == "floresta"
 					and district.effective_shell() == district.biome.shell and district.footstep() == "grass"
 					and district.effective_weather() != null and district.effective_weather().kind == "folhas")
+		elif district.id == "sobrevivencia":
+			_check("a Sobrevivência usa o deserto", district.biome != null and district.biome.id == "deserto"
+					and district.effective_shell() == district.biome.shell and district.footstep() == "snow"
+					and district.effective_weather() != null and district.effective_weather().kind == "poeira")
 		else:
 			_check("bairro sem bioma: " + district.id, district.biome == null and district.effective_shell() == district.shell and district.effective_weather() == district.weather and district.footstep() == "concrete")
 	var sample := DistrictProfile.new()

@@ -42,8 +42,8 @@ func _run() -> void:
 		for file in DirAccess.get_files_at(textures):
 			if file.ends_with(".import"):
 				imports.append("%s/%s" % [textures, file])
-	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3; 19.7: a Grass001, com as suas 3.
-	_check("achou as 33 texturas da ambientCG, os 3 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 39)
+	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3; 19.7: a Grass001; 19.8: a Ground093C (areia), com as suas 3.
+	_check("achou as 36 texturas da ambientCG, os 3 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 42)
 	var bad: Array[String] = []
 	var bad_normals: Array[String] = []
 	for path in imports:

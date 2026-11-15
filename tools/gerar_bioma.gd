@@ -12,7 +12,7 @@ extends SceneTree
 ## Bioma novo (Fase 19.1): escreva a função dele e ponha em _biomes().
 ##
 ## 19.7: --casca=<arch|building> escolhe a casca das portas dos biomas que não
-## têm uma fixa (hoje, a floresta; a montanha é sempre de arcos). Sem ele, vale
+## têm uma fixa (a floresta e o deserto; a montanha é sempre de arcos). Sem ele, vale
 ## CASCA_PADRAO. Para trocar a casca da floresta:
 ##   godot --headless --path . -s res://tools/gerar_bioma.gd -- --refazer=floresta --casca=building
 ## Depois de gravar, cada bioma de BAIRROS é ligado ao perfil do bairro dele
@@ -27,6 +27,7 @@ const CASCA_PADRAO: String = "arch"
 const BAIRROS: Dictionary[String, String] = {
 	"montanha": "rpg",
 	"floresta": "aventura",
+	"deserto": "sobrevivencia",
 }
 
 ## A casca pedida na linha de comando (vazio = CASCA_PADRAO).
@@ -73,6 +74,7 @@ func _biomes() -> Dictionary[String, Callable]:
 	return {
 		"montanha": _montanha,
 		"floresta": _floresta,
+		"deserto": _deserto,
 	}
 
 
@@ -220,5 +222,50 @@ func _floresta() -> BiomeSpec:
 	rock.height_range = Vector2(0.5, 1.4)
 	rock.density = 0.5
 	rock.collision_radius = 0.3
+	biome.scatter.append(rock)
+	return biome
+
+
+## O deserto da Sobrevivência (19.8): chão de areia (Ground093C), calçada de
+## pedra com areia por cima, nenhuma árvore, rochas maiores de pedra com areia
+## nas faces de cima, vento de fundo, poeira no lugar da chuva e uma névoa
+## quente e leve. Os passos são os da neve (não há som de areia CC0 no
+## projeto). A casca das portas vem de --casca, como na floresta.
+func _deserto() -> BiomeSpec:
+	var biome := BiomeSpec.new()
+	biome.id = "deserto"
+	biome.display_name = "Deserto"
+	biome.ground_folder = "Ground093C"
+	biome.ground_meters = 3.0
+	biome.ground_tint = Color(0.95, 0.85, 0.68)
+	biome.ground_normal_strength = 1.3
+	biome.path_folder = "PavingStones070"
+	biome.path_tint = Color(0.78, 0.68, 0.52)
+	biome.footstep = "snow"
+	biome.cover_streets = true
+	biome.shell = _casca if not _casca.is_empty() else CASCA_PADRAO
+	# A areia por cima da pedra (nos arcos e nas rochas), nas faces de cima.
+	biome.snow_cover = 0.5
+	# A névoa é quente e leve: o ar seco do deserto.
+	biome.fog_density_scale = 0.9
+	biome.fog_tint = Color(0.9, 0.74, 0.52)
+	biome.fog_tint_amount = 0.25
+	biome.fog_height_density = 0.004
+	# No deserto, a chuva da cidade vira poeira levada pelo vento (19.6).
+	biome.weather = WeatherSpec.new()
+	biome.weather.kind = "poeira"
+	biome.ambience_bed = AmbienceSpec.new()
+	biome.ambience_bed.kind = "loop"
+	biome.ambience_bed.files = PackedStringArray(["res://assets/generated/wind_loop.wav"])
+	biome.ambience_bed.volume_db = -20.0
+	# Sem árvores. Só rochas, maiores que as da floresta, com a pedra do
+	# Rock058 e a areia por cima (ScatterSpec.material_folder, da 19.7).
+	var rock := ScatterSpec.new()
+	rock.source = "res://assets/polyhaven/models/moon_rock_02/moon_rock_02_1k.gltf"
+	rock.material_folder = "Rock058"
+	rock.tint = Color(0.9, 0.78, 0.62)
+	rock.height_range = Vector2(0.9, 2.4)
+	rock.density = 0.55
+	rock.collision_radius = 0.5
 	biome.scatter.append(rock)
 	return biome

@@ -257,6 +257,7 @@ No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://g
 - **Bioma montanha (Fase 15):** neve `Snow010A` e rocha `Rock058` da [ambientCG](https://ambientcg.com), em 1K; rocha 3D `moon_rock_02` da [Poly Haven](https://polyhaven.com). Tudo **CC0**.
 - **Pedra de calçamento (bairro Aventura):** `PavingStones070`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K.
 - **Bioma floresta (Fase 19.7):** grama `Grass001`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K (só os mapas Color, NormalGL e Roughness).
+- **Bioma deserto (Fase 19.8):** areia `Ground093C`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K (só os mapas Color, NormalGL e Roughness).
 - **Madeira dos modelos (Fase 17):** `Wood049`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K: o veio dos modelos feitos no Blender (deque, abrigo, bancos).
 - **Ícone (Fase 18):** o símbolo casa-portal do estudo de marca do próprio Game Hub (versão flat), em `assets/brand/icone.svg`. É arte do projeto, sob a mesma licença **MIT** (`assets/brand/LICENSE.txt`).
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
