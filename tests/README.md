@@ -22,7 +22,15 @@ Primeiro o script importa o projeto (erro de script para tudo). Depois roda cada
 
 **Quando rodar:** antes de cada commit. Durante uma subetapa, rode só os testes ligados a ela e deixe a bateria inteira para o fim.
 
-**Duas sessões em paralelo (worktrees):** o `user://` é um só para todos os worktrees, por isso o `run_tests.sh` usa uma trava (`flock`). Se outra bateria estiver rodando, aparece "outra bateria está rodando; esperando ela terminar" e esta começa depois. A trava só vale para o `run_tests.sh`: um `godot -s` rodado à mão não espera. No Git Bash do Windows, sem `flock`, o script segue sem trava.
+**Duas sessões em paralelo (worktrees): a fila da Godot.** O `user://` é um só para todos os worktrees, então só uma Godot de teste ou captura roda por vez. O `run_tests.sh` e o `tools/com_trava.sh` usam a **mesma trava** (uma pasta `game-hub-godot.lock` em `/tmp`, fora do repositório), que funciona no Git Bash do Windows e no Linux. Quem chega com a Godot ocupada avisa uma vez ("outra Godot de teste está rodando; esperando") e segue sozinho quando ela soltar. A trava se solta no fim, em erro, em Ctrl+C e em kill. Se o processo que travou não existe mais, a trava é tomada (não prende ninguém).
+
+Capturas e medidas (que são `godot -s` à mão) entram na fila assim:
+
+```bash
+bash tools/com_trava.sh "$GODOT" --path . -s tools/capturar_pontos.gd -- ...
+```
+
+O `com_trava.sh` roda qualquer comando dentro da trava e devolve o código de saída dele. Chamar o `run_tests.sh` por dentro dele funciona (não trava duas vezes).
 
 ## Escrever um teste novo
 
