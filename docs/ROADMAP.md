@@ -136,6 +136,22 @@ O que a fase tem de resolver (o plano decide):
 
 **Pronto quando:** com amigos online, você os vê andando pelas ruas, nenhum atravessa nada, e dá para achar qualquer um pelo mapa.
 
+### 7. Instalar jogos pelo hub
+**Objetivo:** os jogos que você tem na Steam, mas não instalou, ganham um lugar na cidade, e dá para mandar instalar de dentro do hub. Quando o jogo termina de instalar, a cidade cresce: ele vira um prédio (ou arco) de verdade no bairro dele.
+
+**Pedida pelo dono em 2026-11-15** (a ideia é de 2026-11-02: [instalar-jogos-pelo-hub](ideias/instalar-jogos-pelo-hub.md)). O crescimento **já existe**: a cidade é montada a partir da biblioteca, e os testes com a biblioteca falsa de 200 jogos mostram os bairros maiores e com mais quarteirões. Com poucos jogos instalados, o que é o seu caso, a cidade real fica pequena; esta fase deixa você enchê-la por dentro.
+
+O que a fase tem de resolver (o plano decide):
+- **de onde vem a lista dos jogos não instalados:** os arquivos locais da Steam só listam os instalados. A Steam Web API (`GetOwnedGames`) dá a lista, com a chave que o hub já usa para os amigos; sem chave, a fase precisa de outro caminho ou a função fica desligada;
+- **como instalar:** o hub pede à Steam (`steam://install/<id>`), e a Steam mostra a própria janela de instalação. O hub não baixa nada sozinho. Só `autoload/platform/` fala com a Steam;
+- **como o jogo não instalado aparece:** um lugar que se lê de longe como "ainda não instalado" (terreno com tapume, fachada apagada), sem confundir com um jogo pronto, e que não esconde os instalados no meio de centenas de terrenos;
+- **o andamento:** ver que o jogo está baixando e quando terminou;
+- **a cidade crescer na hora:** quando a instalação acaba, o prédio aparece sem reabrir o hub. Hoje a cidade é montada uma vez, ao abrir;
+- **a planta não pode pular:** com a biblioteca inteira, os bairros mudam de tamanho. Decidir se os não instalados já reservam o lugar deles (a planta fica estável) ou se o bairro cresce a cada instalação;
+- **o custo:** uma biblioteca de centenas de jogos não pode derrubar a medida do desktop (os 200 falsos são a referência).
+
+**Pronto quando:** você entra num terreno de um jogo não instalado, manda instalar, a Steam baixa e, ao terminar, o prédio aparece na cidade e abre o jogo.
+
 ## Dia de conferência
 
 As fases feitas que diziam "falta a conferência no desktop" viram **um checklist único, feito num dia só**: [plans/conferencia-desktop.md](plans/conferencia-desktop.md).
