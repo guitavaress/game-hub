@@ -873,6 +873,7 @@ func _build_landmark(category_id: String, buildings: Array[CityBuilding],
 	landmark.category_id = category_id
 	landmark.buildings = buildings
 	landmark.anchor = anchor
+	landmark.level = district_level(category_id)  # 19.10: o marco cresce com as horas
 	add_child(landmark)
 	return landmark
 

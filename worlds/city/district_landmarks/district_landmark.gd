@@ -37,6 +37,10 @@ const KEEP_OUT_GROUP: StringName = &"scatter_keep_out"
 const BASE_REACH: float = 1.0
 ## Altura da colisão da base de um marco ancorado sem colisão própria (m).
 const BASE_SOLID_HEIGHT: float = 4.0
+## 19.10: quanto o marco cresce por nível de horas do bairro (0 a 3): a altura
+## é multiplicada por 1 + LEVEL_GROWTH * nível (nível 0 = como sempre; nível 3 =
+## 1,45 vez). Só a altura cresce: a base (planta e colisão) não muda.
+const LEVEL_GROWTH: float = 0.15
 
 ## O bairro e os prédios do quarteirão (a cidade preenche antes de adicionar).
 var category_id: String = ""
@@ -44,6 +48,9 @@ var buildings: Array[CityBuilding] = []
 ## O ponto do chão (no mundo) onde o marco fica. INF = no telhado do prédio
 ## mais alto do quarteirão (o de sempre).
 var anchor: Vector3 = Vector3.INF
+## O nível de horas do bairro, de 0 a 3 (LibraryStats.district_levels; a cidade
+## preenche ANTES de adicionar). 0 = a altura de sempre.
+var level: int = 0
 
 var _target: CityBuilding
 var _height: float = 0.0
@@ -71,7 +78,7 @@ func _ready() -> void:
 	_neon_material.emission_enabled = true
 	_neon_material.emission = neon
 	_concrete_material = CityDecor.make_material(CONCRETE_COLOR)
-	_height = min_height()
+	_height = height_for_level()
 	if is_anchored():
 		global_transform = _anchor_transform()
 	else:
@@ -110,6 +117,16 @@ func roof_of_tallest() -> Vector3:
 ## todos os prédios possíveis do bairro.
 func min_height() -> float:
 	return maxf(MIN_HEIGHT, BuildingVariant.max_total_height() + CLEARANCE - roof_of_tallest().y)
+
+
+## A altura do marco no nível dele (19.10): a mínima vezes o fator do nível.
+func height_for_level() -> float:
+	return min_height() * level_factor(level)
+
+
+## O fator de altura de um nível (0 a 3; fora disso, é limitado): 1,0 a 1,45.
+static func level_factor(of_level: int) -> float:
+	return 1.0 + LEVEL_GROWTH * float(clampi(of_level, 0, 3))
 
 
 ## Altura do topo do marco (y do mundo). 0 = sem marco (quarteirão sem prédio).
