@@ -52,6 +52,28 @@ func _run() -> void:
 		if not InputMap.has_action(action) or not _has_event(action, wanted[action]):
 			missing.append(action)
 	_check("as 16 ações têm o botão ou eixo certo (faltando: %s)" % str(missing), missing.is_empty())
+	# Fase 20.2: a tecla da visão (V no teclado, clique do analógico direito no controle).
+	_check("toggle_view: tecla V e o botão do analógico direito (índice 8)",
+			InputMap.has_action("toggle_view") and _has_key("toggle_view", KEY_V)
+			and _has_event("toggle_view", [&"button", JOY_BUTTON_RIGHT_STICK]))
+	var view_before: String = app.get_view()
+	var view_signals: Array = []
+	var on_changed := func(section: String, key: String) -> void:
+		if section == "controls" and key == "view":
+			view_signals.append(key)
+	app.settings_changed.connect(on_changed)
+	app.set_view("third")
+	_check("set_view('third') vale e avisa", app.get_view() == "third" and view_signals.size() == 1)
+	app.set_view("first")
+	_check("set_view('first') volta", app.get_view() == "first")
+	app.set_view("lado")
+	_check("valor inválido não muda nada", app.get_view() == "first")
+	app.settings_changed.disconnect(on_changed)
+	app._config.set_value("controls", "view", "lado")
+	_check("valor inválido no arquivo vale 'first'", app.get_view() == "first")
+	app._config.erase_section_key("controls", "view")
+	_check("sem a chave, o padrão é 'first'", app.get_view() == "first")
+	app.set_view(view_before)
 	_check("o B é ui_cancel e o A, ui_accept (e o Esc, o Enter e o Espaço continuam)",
 			_has_event("ui_cancel", [&"button", JOY_BUTTON_B]) and _has_event("ui_accept", [&"button", JOY_BUTTON_A])
 			and _has_key("ui_cancel", KEY_ESCAPE) and _has_key("ui_accept", KEY_ENTER) and _has_key("ui_accept", KEY_SPACE))

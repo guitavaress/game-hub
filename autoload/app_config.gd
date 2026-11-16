@@ -91,6 +91,9 @@ const CONTROLS_SECTION_TEXT: String = """
 ; true = a câmera balança ao andar, afunda ao pousar e abre o campo de visão
 ; correndo. Desligue se isso der enjoo.
 camera_motion=true
+; Visão do jogador: "first" (primeira pessoa) ou "third" (terceira pessoa).
+; A tecla V (ou clicar o analógico direito) alterna.
+view="first"
 ; Sensibilidade do mouse: multiplicador de 0.5 (lento) a 2.0 (rápido).
 mouse_sensitivity=1.0
 ; Campo de visão em graus, de 60 a 100.
@@ -316,6 +319,23 @@ func get_camera_motion() -> bool:
 
 func set_camera_motion(on: bool) -> void:
 	_set_option("controls", "camera_motion", on)
+
+
+## As duas visões do jogador (Fase 20): primeira ou terceira pessoa.
+const VIEW_FIRST: String = "first"
+const VIEW_THIRD: String = "third"
+
+
+## A visão escolhida. Padrão (ou valor inválido no arquivo): primeira pessoa.
+func get_view() -> String:
+	var view := str(_config.get_value("controls", "view", VIEW_FIRST))
+	return view if view == VIEW_THIRD else VIEW_FIRST
+
+
+## Só "first" e "third" valem; qualquer outra coisa é ignorada.
+func set_view(view: String) -> void:
+	if view == VIEW_FIRST or view == VIEW_THIRD:
+		_set_option("controls", "view", view)
 
 
 ## Limites e padrões da sensibilidade do mouse (multiplicador) e do FOV (graus).
