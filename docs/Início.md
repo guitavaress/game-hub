@@ -7,7 +7,8 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 ## Agora
 - **Fase atual:** [Fase 20, Primeira e terceira pessoa](plans/fase-20.md), aprovada em 2026-11-16, na branch `fase-20`. Uma tecla (V) vai alternar a visão: na terceira pessoa você vê o seu avatar por trás; na primeira, vê o próprio corpo ao olhar para baixo.
   - **Feita:** 20.1 (2026-11-16, `aee6ef2`): o corpo do avatar anda, corre e pula pela velocidade (ainda sem mudança na tela).
-  - **Próxima subetapa:** 20.2, a tecla V, a opção "Visão" em Esc › Controles e a dica no cartão de controles.
+  - **Feita:** 20.2 (2026-11-16, `f3e3b44`): Esc › Controles tem a linha "Visão" (primeira ou terceira pessoa), e a tecla V (R3 no controle) aparece na lista de teclas e no cartão "COMO JOGAR". Apertar V ainda não faz nada: a câmera chega na 20.4.
+  - **Próxima subetapa:** 20.3, o seu corpo em primeira pessoa (olhar para baixo e ver o corpo; a sombra; o espelho com o corpo de verdade).
   - **Espera você:** nada agora. Na 20.4 você escolhe o jeito da terceira pessoa pelas capturas.
 - **Fase anterior:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), **fechada em 2026-11-15 e na `main`** (PR #5, 2026-11-16), com o [Release 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0) publicado em 2026-11-16 (zip de 83 MB): árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Fechamento (19.13, 2026-11-15):** bateria completa ok. No desktop (Alta, 200 jogos), a caminhada não caiu em relação ao começo da fase: 132 FPS antes e 136 agora, medidos na mesma hora. A chuva forte custa cerca de 1%. A cidade leva cerca de 1 s a mais para montar (de ~9,3 para ~10,2 s). Os números estão no [plano](plans/fase-19.md).

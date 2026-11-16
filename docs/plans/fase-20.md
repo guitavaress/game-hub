@@ -64,7 +64,8 @@ Trilha A: checkout principal (Opus coordena e faz as grandes, uma por vez). Tril
   - Arquivos: `components/avatar/avatar_body.gd`, `tests/check_avatar.gd`.
   - Teste: `check_avatar` (a animação certa por velocidade; o `speed_scale` cresce com a velocidade; a cabeça encolhe e volta), mais `check_mirror` e `check_friends_wall` (nada quebrou).
   - Commit: `Fase 20.1: o avatar anda, corre e pula pela velocidade`
-- [ ] **20.2 A tecla, a opção e as dicas** (pequena · Sonnet, trilha B, depois da 20.1 · medium)
+- [x] **20.2 A tecla, a opção e as dicas** (pequena · Sonnet, trilha B, depois da 20.1 · medium) — 2026-11-16; `f3e3b44` (trilha B), merge `1e466c3`, bateria completa ok
+  - **Entregue:** a ação `toggle_view` (V e o botão 8, o clique do analógico direito, "R3"); `AppConfig.VIEW_FIRST`/`VIEW_THIRD`, `get_view()` e `set_view()` (`[controls] view`); a linha "Visão" em Esc › Controles; "V / R3 — trocar a visão" na lista de teclas; "V visão" no cartão de controles (`InputDevice.HINTS["view"]`). O `Player` ainda não reage (20.4). Mexeu também em `autoload/input_device.gd`. Capturas em `C:\Projetos\game-hub-referencias\fase-20\20.2\`.
   - Faz: ação `toggle_view`; `AppConfig.get_view()/set_view()`; a linha "Visão" em Esc › Controles; a tecla no cartão de controles e no `KeyHint`. O `Player` ainda não reage.
   - Arquivos: `project.godot`, `autoload/app_config.gd`, `ui/settings_view.gd`, o cartão de controles em `ui/`, `tests/check_gamepad.gd`, `tests/check_menu_keyboard.gd`.
   - Teste: os dois acima.
