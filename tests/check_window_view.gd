@@ -282,7 +282,8 @@ func _check_city() -> void:
 	_check("o ponto só entra com a cidade pronta", before_ready == 0)
 	_check("a cidade oferece um ponto só", points.size() == 1)
 	_check("a casa tirou um retrato só (e a janela usa o da cidade)", view.capture_count == 1 and view.has_portrait())
-	_check("a câmera do retrato não vê a casa", view.hidden_layers == home.INTERIOR_LAYER_MASK)
+	_check("a câmera do retrato não vê a casa nem o corpo do jogador (20.3)",
+			view.hidden_layers == home.INTERIOR_LAYER_MASK | AvatarBody.player_layers())
 	if points.size() == 1:
 		var point: Node3D = points[0]
 		_check("o ponto fica alto, acima dos letreiros dos bairros", point.global_position.y >= 30.0)

@@ -6,7 +6,9 @@ extends SceneTree
 ##   - um visual pronto troca as 5 cores de uma vez;
 ##   - teclado: ↓ passa pelas 6 linhas, → anda pelas amostras, Enter escolhe;
 ##   - Esc fecha o painel e devolve a câmera; o menu de pausa não abre durante o foco;
-##   - ao reabrir a casa (cena nova), o avatar escolhido continua.
+##   - ao reabrir (cena nova), o corpo do jogador nasce com o avatar escolhido;
+##   - Fase 20.3: no provador, o inteiro do jogador fica no lugar e a câmera do
+##     jogador o vê; o de primeira pessoa some; ao sair, tudo volta.
 
 const CONFIG := "user://config.cfg"
 
@@ -72,6 +74,12 @@ func _run() -> void:
 			mirror.get_body().global_position.distance_to(mirror.to_global(Vector3(0.0, 0.0, mirror.FITTING_SPOT))) < 0.01
 			and (mirror.get_body().global_basis.z).dot(-mirror.get_normal()) > 0.999)
 	_check("o espelho desenha", mirror.is_active())
+	var avatar = player.get_avatar()
+	_check("o corpo pediu a pose do provador", avatar.is_posed())
+	_check("a câmera do jogador vê o inteiro (e o espelho também)",
+			mirror.get_body().get_meshes()[0].layers & camera.cull_mask != 0
+			and mirror.get_body().get_meshes()[0].layers & mirror.get_mirror_camera().cull_mask != 0)
+	_check("o corpo de primeira pessoa some", not avatar.get_first_person_body().visible)
 	var focus_owner := root.gui_get_focus_owner()
 	_check("o foco do teclado começa no primeiro visual", focus_owner == panel.get_preset_buttons()[0])
 
@@ -126,16 +134,19 @@ func _run() -> void:
 	_check("o Esc devolve a câmera", not player.is_focused() and not mirror.is_focused())
 	_check("o painel some", not panel.visible)
 	_check("o menu de pausa não abriu com esse Esc", not player.get_pause_menu().is_open())
-	_check("o corpo voltou a seguir o jogador", mirror.get_body().global_position.distance_to(player.global_position) < 0.05)
+	_check("o corpo voltou a seguir o jogador", not avatar.is_posed()
+			and mirror.get_body().global_position.distance_to(player.to_global(Vector3(0.0, 0.0, avatar.FIRST_PERSON_BACK))) < 0.05)
+	_check("a câmera do jogador volta a não ver o inteiro", mirror.get_body().get_meshes()[0].layers & camera.cull_mask == 0)
+	_check("o de primeira pessoa volta", avatar.get_first_person_body().visible)
 
 	print("== reabrir a casa ==")
 	var saved := AvatarSpec.from_dict(app.get_avatar())
 	city.queue_free()
 	await _frames(3)
-	var again: Node3D = (load("res://worlds/home/home.gd") as GDScript).new()
+	var again: Node3D = (load("res://player/player_avatar.gd") as GDScript).new()
 	root.add_child(again)
 	await _frames(3)
-	var color: Color = again.get_furniture("espelho").get_body().get_palette().get_shader_parameter("skin_color")
+	var color: Color = again.get_full_body().get_palette().get_shader_parameter("skin_color")
 	_check("o avatar escolhido continua (pele %s)" % color.to_html(false), color.to_html(false) == saved.get_color("skin").to_html(false))
 
 	var file := FileAccess.open(CONFIG, FileAccess.WRITE)

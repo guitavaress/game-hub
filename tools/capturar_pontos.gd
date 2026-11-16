@@ -133,6 +133,10 @@ func _run() -> void:
 	root.add_child(frame)
 	var player: Node3D = city.get_node("Player")
 	var player_camera: Camera3D = player.get_node("Head/Camera3D")
+	# O corpo do jogador (Fase 20.3) fica fora: estas fotos são do cenário, de
+	# uma câmera que não é a do jogador.
+	if player.has_method("get_avatar"):
+		(player.call("get_avatar") as Node3D).visible = false
 	var camera := Camera3D.new()
 	camera.fov = player_camera.fov
 	camera.far = player_camera.far

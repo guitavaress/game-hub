@@ -4,7 +4,7 @@ extends Node3D
 ## em pé na origem deste nó e olhando para +Z, pinta cada parte com a cor do
 ## AvatarSpec e toca as animações (Idle e Walk). Os hologramas dos amigos
 ## (FriendNpc) usam este corpo com o material de holograma por cima, e o seu
-## avatar no espelho usa com as cores.
+## corpo (PlayerAvatar, Fase 20.3: a primeira pessoa e o espelho) usa com as cores.
 ##
 ## Fase 20.1: o corpo também anda sozinho pela velocidade (animate), esconde a
 ## cabeça (set_head_hidden, para a primeira pessoa) e escolhe como faz sombra
@@ -30,10 +30,12 @@ const DEFAULT_HEIGHT: float = 1.7
 ## sombra fica; é como a sombra com cabeça aparece mesmo na primeira pessoa).
 enum ShadowMode { NORMAL, OFF, SHADOWS_ONLY }
 
-## Velocidades horizontais (m/s). O jogador anda a 5 e corre a 9; o espelho
-## considera 0,6 como "começou a andar".
+## Velocidades horizontais (m/s). O jogador anda a 5 e corre a 9.
+## Fase 20.3: a corrida começa em 3,5. Com o Walk até 5 m/s, o passo ficava a
+## 3,15 vezes a velocidade normal (um desenho animado); a 5 m/s o Run fica a
+## 1,32 e a 9 m/s, a 2,38. Andar a 5 m/s é, de fato, um trote.
 const MOVE_THRESHOLD: float = 0.6   # abaixo disto: parado (Idle)
-const RUN_THRESHOLD: float = 7.0    # a meio caminho entre andar (5) e correr (9)
+const RUN_THRESHOLD: float = 3.5
 ## Quanto o pé anda por ciclo da animação, na altura padrão de 1,7 m. Medido
 ## amostrando o osso LeftFoot em 60 quadros de cada ciclo: nos quadros em que o
 ## pé está no chão (altura a até 4 cm do mínimo), ele corre para trás na
@@ -52,12 +54,22 @@ const MAX_SPEED_SCALE: float = 3.2
 const BLEND_TIME: float = 0.2
 ## Quanto o osso da cabeça encolhe ao esconder (não é zero, que quebra a matriz).
 const HIDDEN_HEAD_SCALE: float = 0.001
+## O osso encolhido ao esconder a cabeça (Fase 20.3): o pescoço, que leva a
+## cabeça junto. Só com o Head, olhando para baixo, a câmera via o toco do
+## pescoço e a cabeça num ponto em cima dele.
+const HIDDEN_HEAD_BONE: String = "Neck"
 ## Onde termina cada faixa do UV (v), na ordem do AvatarSpec.ZONES: abaixo de
 ## 0,2 é pele, até 0,36 olhos, até 0,5 cabelo, até 0,72 camiseta, e o resto calça.
 const ZONE_LIMITS: Array[float] = [0.2, 0.36, 0.5, 0.72]
 ## Camada de desenho (1 a 20) do que só aparece no reflexo: o seu próprio corpo
 ## fica nela, a câmera do espelho a enxerga e a do jogador não.
 const REFLECTION_LAYER: int = 19
+## Camadas do seu corpo que só a câmera do jogador enxerga (Fase 20.3): a do
+## espelho e as das janelas (WindowView) não. Uma para fora de casa (o sol do
+## mundo acende) e outra para dentro (o sol do mundo NÃO acende, para não
+## atravessar o telhado). A 18 já é das placas dos bairros (DistrictSign).
+const VIEW_LAYER: int = 17
+const INDOOR_VIEW_LAYER: int = 16
 
 ## As cores (null = as padrão do AvatarSpec).
 var spec: AvatarSpec
@@ -67,7 +79,7 @@ var height: float = DEFAULT_HEIGHT
 var override_material: Material
 ## Se tiver, é desenhado por cima da paleta (o holograma de um amigo com avatar).
 var overlay_material: Material
-## Falso = sem sombra (o FriendNpc e o espelho). Para o resto, set_shadow_mode.
+## Falso = sem sombra (o FriendNpc). Para o resto, set_shadow_mode.
 var cast_shadows: bool = true
 
 var _shadow_mode: ShadowMode = ShadowMode.NORMAL
@@ -77,12 +89,32 @@ var _model: Node3D
 var _skeleton: Skeleton3D
 var _animation_player: AnimationPlayer
 var _meshes: Array[MeshInstance3D] = []
+## As cópias "só sombra" das malhas (set_shadow_twin_layers), criadas na
+## primeira vez que alguém pede.
+var _shadow_twins: Array[MeshInstance3D] = []
 var _palette: ShaderMaterial
 
 
 ## A máscara de "layers" que deixa o corpo só no reflexo.
 static func reflection_layers() -> int:
 	return 1 << (REFLECTION_LAYER - 1)
+
+
+## A camada do seu corpo que só a câmera do jogador vê, em casa ou fora.
+static func view_layers(indoors: bool) -> int:
+	return 1 << ((INDOOR_VIEW_LAYER if indoors else VIEW_LAYER) - 1)
+
+
+## As camadas do seu corpo que ficam "dentro de casa": o sol e a lua do mundo
+## não as acendem (o mundo tira estas da luz do céu; a casa as acende).
+static func indoor_layers() -> int:
+	return view_layers(true) | reflection_layers()
+
+
+## Todas as camadas do seu corpo: quem tira um retrato do mundo (a janela da
+## casa) esconde estas.
+static func player_layers() -> int:
+	return view_layers(false) | indoor_layers()
 
 
 ## Em qual parte (índice no AvatarSpec.ZONES) cai a coordenada v do UV.
@@ -115,7 +147,7 @@ func _ready() -> void:
 		_shadow_mode = ShadowMode.OFF
 	_apply_shadow_mode()
 	_head_modifier = HeadHider.new()
-	_head_modifier.bone = _skeleton.find_bone("Head")
+	_head_modifier.bone = _skeleton.find_bone(HIDDEN_HEAD_BONE)
 	_head_modifier.active = _head_hidden
 	_skeleton.add_child(_head_modifier)
 	_fit()
@@ -185,11 +217,11 @@ func animate(horizontal_speed: float, on_floor: bool) -> void:
 
 
 ## Esconde a cabeça (a primeira pessoa não pode ver o próprio pescoço por dentro):
-## encolhe o osso Head. A animação escreve a pose do osso a cada quadro e
-## desfaria a escala, por isso quem encolhe é um SkeletonModifier3D, que roda
-## depois da animação (HeadHider, no fim do arquivo). O efeito vale só para o
-## desenho do quadro (a pose guardada do osso não muda); desligar volta ao normal
-## no quadro seguinte.
+## encolhe o osso do pescoço (HIDDEN_HEAD_BONE), que leva a cabeça. A animação
+## escreve a pose do osso a cada quadro e desfaria a escala, por isso quem
+## encolhe é um SkeletonModifier3D, que roda depois da animação (HeadHider, no
+## fim do arquivo). O efeito vale só para o desenho do quadro (a pose guardada
+## do osso não muda); desligar volta ao normal no quadro seguinte.
 func set_head_hidden(on: bool) -> void:
 	_head_hidden = on
 	if _head_modifier != null:
@@ -209,6 +241,40 @@ func set_shadow_mode(mode: ShadowMode) -> void:
 
 func get_shadow_mode() -> ShadowMode:
 	return _shadow_mode
+
+
+## A SOMBRA À PARTE (Fase 20.3): uma cópia "só sombra" de cada malha, no mesmo
+## esqueleto, desenhada nas camadas "layers" (0 = sem cópia). Serve para o corpo
+## ficar numa camada que a câmera não vê (o espelho) e mesmo assim fazer sombra
+## para ela: a Godot só faz a sombra de quem está numa camada que a câmera vê.
+## A cópia anda junto (é o mesmo esqueleto) e nunca é desenhada, só a sombra.
+func set_shadow_twin_layers(layers: int) -> void:
+	if layers != 0 and _shadow_twins.is_empty():
+		for mesh in _meshes:
+			var twin := mesh.duplicate() as MeshInstance3D
+			twin.name = mesh.name + "Shadow"
+			twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			mesh.add_sibling(twin)
+			_shadow_twins.append(twin)
+	for twin in _shadow_twins:
+		twin.visible = layers != 0
+		twin.layers = layers if layers != 0 else twin.layers
+
+
+## As camadas da sombra à parte (0 = sem ela).
+func get_shadow_twin_layers() -> int:
+	if _shadow_twins.is_empty() or not _shadow_twins[0].visible:
+		return 0
+	return _shadow_twins[0].layers
+
+
+## As malhas desenhadas (sem as cópias da sombra), para os testes.
+func get_meshes() -> Array[MeshInstance3D]:
+	return _meshes
+
+
+func get_shadow_twins() -> Array[MeshInstance3D]:
+	return _shadow_twins
 
 
 func _apply_shadow_mode() -> void:

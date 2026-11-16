@@ -12,6 +12,8 @@ extends CharacterBody3D
 ##   qualquer coisa olhável (portal hoje, NPC de amigo na fase 5) só precisa ter
 ##   esse método. Quem quiser um cartão mais completo (categoria, amigos, cor
 ##   da mira) tem get_look_info(), que devolve um dicionário.
+## - O seu corpo (Fase 20.3) é um PlayerAvatar, filho deste nó: olhando para
+##   baixo, você vê o tronco, os braços, as pernas e os pés, e ele faz sombra.
 ##
 ## A origem (posição) deste nó fica nos PÉS do jogador.
 
@@ -149,6 +151,8 @@ var _stride_progress: float = 0.0
 var _was_on_floor: bool = true
 ## Balanço, afundada e FOV da câmera (veja CameraFeel).
 var _camera_feel: CameraFeel
+## O seu corpo (veja PlayerAvatar).
+var _avatar: PlayerAvatar
 ## Correndo agora (andando com Shift apertado)?
 var _sprinting: bool = false
 ## Multiplicador da sensibilidade (Esc › Controles).
@@ -165,9 +169,13 @@ func _ready() -> void:
 	add_to_group("player")
 	_look_ray.target_position = Vector3(0.0, 0.0, -look_distance)
 	_outdoor_camera_far = _camera.far
-	# O seu corpo só aparece no espelho (Fase 13.10): a câmera não vê essa camada.
+	# O corpo inteiro só aparece no espelho (Fase 13.10): a câmera não vê essa
+	# camada. Ela vê o corpo de primeira pessoa (Fase 20.3).
 	_camera.cull_mask &= ~AvatarBody.reflection_layers()
 	_camera_rest = _camera.transform
+	_avatar = PlayerAvatar.new()
+	_avatar.name = "Avatar"
+	add_child(_avatar)
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
@@ -291,8 +299,13 @@ func _look_with_stick(delta: float) -> void:
 func _process(delta: float) -> void:
 	_look_with_stick(delta)
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	var free := _focus_screen == null and not _traveling and not in_intro
 	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
-			is_on_floor(), _sprinting, _focus_screen == null and not _traveling and not in_intro)
+			is_on_floor(), _sprinting, free)
+	# O corpo anda junto; no foco, na viagem e na abertura, o de primeira
+	# pessoa some (a câmera sai da cabeça).
+	_avatar.animate(horizontal_speed, is_on_floor())
+	_avatar.set_hidden(not free)
 
 
 ## Lê a marca do chão em que o jogador pisa (a colisão de baixo do
@@ -351,6 +364,11 @@ func _play_random(sound: AudioStreamPlayer, streams: Array) -> void:
 	sound.stream = streams.pick_random()
 	sound.pitch_scale = randf_range(0.9, 1.1)
 	sound.play()
+
+
+## O seu corpo (o espelho reflete o inteiro e pede a pose do provador).
+func get_avatar() -> PlayerAvatar:
+	return _avatar
 
 
 ## O HUD do jogador (para o mundo mostrar avisos, por exemplo).
@@ -427,9 +445,11 @@ func teleport_to(target: Transform3D) -> void:
 ##   - a câmera enxerga só INDOOR_CAMERA_FAR metros (o mundo lá fora fica longe
 ##     e nem é desenhado);
 ##   - o HUD esconde a bússola e o minimapa;
-##   - o som do mundo fica abafado.
+##   - o som do mundo fica abafado;
+##   - o corpo troca de camada (em casa, quem o acende são as luzes da casa).
 func set_indoors(environment: Environment) -> void:
 	_indoors = environment != null
+	_avatar.set_indoors(_indoors)
 	_camera.environment = environment
 	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
 	_hud.set_indoors(_indoors)

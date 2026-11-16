@@ -67,12 +67,12 @@ func _run() -> void:
 	var reflection_only := 0
 	for mesh in meshes:
 		if mesh.layers == REFLECTION_MASK:
-			reflection_only += 1  # o corpo do espelho (13.10): só o reflexo o vê
+			reflection_only += 1  # até a 20.3, o corpo do espelho morava aqui
 		elif mesh.layers != INTERIOR_MASK:
 			all_interior = false
 	_check("tudo o que a casa desenha está na camada do interior (%d peças)" % meshes.size(), all_interior)
-	_check("só o corpo do espelho fica na camada do reflexo (%d malhas)" % reflection_only, reflection_only >= 1
-			and home.get_furniture("espelho").get_body().find_children("*", "MeshInstance3D", true, false).size() == reflection_only)
+	# 20.3: o espelho usa o corpo do jogador (PlayerAvatar); a casa não tem corpo.
+	_check("a casa não tem corpo próprio na camada do reflexo (%d malhas)" % reflection_only, reflection_only == 0)
 	_check("o sol não ilumina o corpo do espelho", sun.light_cull_mask & REFLECTION_MASK == 0)
 	_check("as duas portas estão abertas", plaza_door.is_open() and front_door.is_open())
 

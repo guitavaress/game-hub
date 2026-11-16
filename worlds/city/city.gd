@@ -1117,11 +1117,12 @@ func _sky_lights() -> Array[DirectionalLight3D]:
 
 
 ## Toda luz do céu: sombra conforme a qualidade (mais curta na Leve) e sem
-## entrar na casa nem no corpo do espelho (que ficam "dentro de casa").
+## entrar na casa nem no corpo do jogador em casa (Fase 20.3: o de primeira
+## pessoa e o do espelho, que ficam "dentro de casa").
 func _setup_sky_light(light: DirectionalLight3D) -> void:
 	GraphicsQuality.apply_to_sun(light, AppConfig.get_quality())
 	light.light_cull_mask &= ~Home.INTERIOR_LAYER_MASK
-	light.light_cull_mask &= ~AvatarBody.reflection_layers()
+	light.light_cull_mask &= ~AvatarBody.indoor_layers()
 
 
 ## Onde e quando fica a cidade, para o Sky3D pôr o sol, a lua (com a fase

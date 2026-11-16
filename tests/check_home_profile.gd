@@ -318,8 +318,10 @@ func _check_daylight(home: Node3D, title: String) -> void:
 	var sun: SpotLight3D = home.get_sunlight()
 	var bounce: SpotLight3D = home.find_child("SunBounce", false, false)
 	var sky: SpotLight3D = home.get_node("Daylight")
-	_check("o sol existe, faz sombra e só acende a casa", sun != null and sun.shadow_enabled
-			and sun.light_cull_mask == home.INTERIOR_LAYER_MASK and bounce != null and not bounce.shadow_enabled)
+	_check("o sol existe, faz sombra e só acende a casa (e o corpo do jogador em casa, 20.3)", sun != null
+			and sun.shadow_enabled and sun.light_cull_mask == home.light_layers()
+			and home.light_layers() == home.INTERIOR_LAYER_MASK | AvatarBody.indoor_layers()
+			and bounce != null and not bounce.shadow_enabled)
 	var travel: Vector3 = -sun.transform.basis.z if sun != null else Vector3.ZERO
 	_check("o sol fica do lado de fora e entra para baixo e para dentro", sun != null
 			and sun.position.z < -room.z / 2.0 - 1.0 and travel.y < -0.3 and travel.z > 0.3)

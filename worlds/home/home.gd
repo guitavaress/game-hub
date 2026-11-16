@@ -18,7 +18,9 @@ extends Node3D
 ##
 ## Luz de fora: tudo o que a casa desenha fica na camada de render
 ## INTERIOR_LAYER. O mundo tira essa camada do sol dele (light_cull_mask),
-## para o sol não atravessar o telhado.
+## para o sol não atravessar o telhado. O corpo do jogador em casa fica nas
+## camadas AvatarBody.indoor_layers(), que o mundo também tira do sol; as luzes
+## da casa acendem as duas (light_layers, Fase 20.3).
 ##
 ## A vista da janela (Fase 17.3): um WindowView (components/window_view/) tira
 ## um retrato do mundo de um ponto que o próprio mundo oferece (grupo
@@ -529,7 +531,7 @@ func _build_sun() -> void:
 	var window := Vector3(WINDOW_CENTER_X, WINDOW_CENTER_Y, -ROOM_SIZE.z / 2.0)
 	_sunlight = SpotLight3D.new()
 	_sunlight.name = "Sunlight"
-	_sunlight.light_cull_mask = INTERIOR_LAYER_MASK
+	_sunlight.light_cull_mask = light_layers()
 	_sunlight.spot_attenuation = 0.0  # não enfraquece com a distância
 	_sunlight.spot_range = SUN_DISTANCE + ROOM_SIZE.z * 2.0
 	# Abre o bastante para pegar a janela inteira (a meia diagonal, vista de
@@ -544,7 +546,7 @@ func _build_sun() -> void:
 	var patch := window + travel * (WINDOW_CENTER_Y / -travel.y)
 	_sun_bounce = SpotLight3D.new()
 	_sun_bounce.name = "SunBounce"
-	_sun_bounce.light_cull_mask = INTERIOR_LAYER_MASK
+	_sun_bounce.light_cull_mask = light_layers()
 	_sun_bounce.spot_angle = SUN_BOUNCE_ANGLE
 	_sun_bounce.spot_range = SUN_BOUNCE_RANGE
 	_sun_bounce.spot_angle_attenuation = 0.8
@@ -552,6 +554,13 @@ func _build_sun() -> void:
 	_sun_bounce.position = Vector3(patch.x, 0.05, patch.z)
 	_sun_bounce.rotation.x = PI / 2.0  # o cone aponta para cima
 	add_child(_sun_bounce)
+
+
+## As camadas que as luzes da casa acendem: o interior e o corpo do jogador
+## dentro de casa (Fase 20.3). As luminárias acendem todas as camadas; quem
+## precisa de máscara (o sol pela janela e o rebote dele) usa esta.
+static func light_layers() -> int:
+	return INTERIOR_LAYER_MASK | AvatarBody.indoor_layers()
 
 
 ## Para onde os raios do sol andam, já dentro da sala (para baixo, para o sul
@@ -582,11 +591,11 @@ func _night_energy(light: Light3D) -> float:
 
 ## O retrato do mundo para a janela: não faz parte da casca (fica entre as
 ## trocas de tema, e o material novo recebe o retrato de agora). A câmera do
-## retrato não vê a camada da casa.
+## retrato não vê a camada da casa nem o corpo do jogador (Fase 20.3).
 func _build_window_view() -> void:
 	_window_view = WindowView.new()
 	_window_view.name = "WindowPortrait"
-	_window_view.hidden_layers = INTERIOR_LAYER_MASK
+	_window_view.hidden_layers = INTERIOR_LAYER_MASK | AvatarBody.player_layers()
 	add_child(_window_view)
 
 

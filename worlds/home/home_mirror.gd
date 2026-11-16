@@ -3,10 +3,10 @@ extends Node3D
 ## O ESPELHO da casa (Fase 13.10): você se vê nele, com o avatar escolhido.
 ##
 ## Como funciona (resolução baixa e só de perto, decisão 4 do plano da fase):
-##   - o jogador é só uma câmera, sem corpo. O espelho põe um corpo (AvatarBody)
-##     onde o jogador está, numa camada de desenho que só o espelho enxerga
-##     (AvatarBody.REFLECTION_LAYER): o jogador nunca vê o próprio corpo de
-##     dentro, mas o reflexo vê;
+##   - o reflexo mostra o corpo INTEIRO do jogador (Fase 20.3: o PlayerAvatar,
+##     pedido ao jogador do grupo "player"). Na primeira pessoa ele fica numa
+##     camada que só o espelho enxerga (AvatarBody.REFLECTION_LAYER): o jogador
+##     não vê a própria cabeça por dentro, mas o reflexo vê;
 ##   - uma segunda câmera fica no ponto "refletido" da câmera do jogador (atrás
 ##     da parede), virada de frente para o espelho, e desenha num SubViewport
 ##     pequeno. O recorte dela (projeção FRUSTUM com deslocamento) bate com a
@@ -18,7 +18,8 @@ extends Node3D
 ##
 ## O PROVADOR (Fase 13.11): olhar o espelho e apertar E foca nele
 ## (player.focus_on): a câmera recua e se afasta para o lado, o seu avatar fica
-## parado em frente ao vidro e o painel (AvatarPanel) aparece à direita, com os
+## parado em frente ao vidro (o corpo pede a pose: hold_pose; a câmera do
+## jogador também o vê) e o painel (AvatarPanel) aparece à direita, com os
 ## visuais e as cores prontas. Esc volta. Quem tem o foco é o espelho, que cumpre
 ## o mesmo contrato da tela do computador (get_camera_pose e set_focused).
 ##
@@ -43,8 +44,6 @@ const SCONCE_ENERGY: float = 1.1
 const ACTIVE_DISTANCE: float = 4.5
 ## Até onde (m) a câmera do espelho enxerga além do vidro.
 const MIRROR_FAR: float = 12.0
-## Velocidade (m/s) a partir da qual o corpo anda em vez de ficar parado.
-const WALK_SPEED: float = 0.6
 ## Provador: de quanto (m) a câmera recua do vidro, quanto ela se afasta para o
 ## lado (o espelho fica à esquerda, e o painel à direita) e a altura dela.
 const FOCUS_DISTANCE: float = 2.4
@@ -60,8 +59,6 @@ var _viewport: SubViewport
 var _camera: Camera3D
 var _environment: Environment
 var _glass: MeshInstance3D
-var _body: AvatarBody
-var _walking: bool = false
 var _active: bool = false
 var _every_other_frame: bool = false
 var _frame: int = 0
@@ -75,16 +72,12 @@ func _ready() -> void:
 	_build_frame()
 	_build_viewport()
 	_build_glass()
-	_build_body()
 	_build_look_area()
 	_panel = AvatarPanel.new()
 	_panel.name = "AvatarPanel"
 	add_child(_panel)
 	_apply_quality()
 	AppConfig.settings_changed.connect(_on_settings_changed)
-	# A casa põe tudo o que desenha na camada do interior DEPOIS dos móveis
-	# ficarem prontos: o corpo volta para a camada do reflexo logo em seguida.
-	_body.set_render_layers.call_deferred(AvatarBody.reflection_layers())
 
 
 ## Esc no provador volta para a sala (a tela do computador faz o mesmo).
@@ -104,10 +97,6 @@ func _process(_delta: float) -> void:
 	_set_active(on)
 	if not on:
 		return
-	if _focused:
-		_stand_in_fitting_spot()
-	else:
-		_follow(player)
 	_place_camera(camera.global_position)
 	_environment.background_color = _home_environment_value("background_color", Color.BLACK)
 	_environment.ambient_light_color = _home_environment_value("ambient_light_color", Color.WHITE)
@@ -142,6 +131,14 @@ func set_focused(on: bool, player: Node = null) -> void:
 	if on == _focused:
 		return
 	_focused = on
+	var avatar := _avatar_of(player if on else _player)
+	if avatar != null:
+		if on:
+			# O avatar fica parado na frente do vidro, de frente para ele (a
+			# câmera do jogador está noutro lugar). +Z do corpo = para o vidro.
+			avatar.hold_pose(Transform3D(Basis.looking_at(get_normal()), to_global(Vector3(0.0, 0.0, FITTING_SPOT))))
+		else:
+			avatar.release_pose()
 	_player = player if on else null
 	_panel.show_panel(on)
 	focus_changed.emit(on)
@@ -153,16 +150,6 @@ func is_focused() -> bool:
 
 func get_panel() -> AvatarPanel:
 	return _panel
-
-
-## O avatar fica parado na frente do vidro, de frente para ele (o jogador está
-## com a câmera noutro lugar).
-func _stand_in_fitting_spot() -> void:
-	_body.global_position = to_global(Vector3(0.0, 0.0, FITTING_SPOT))
-	_body.global_basis = Basis.looking_at(get_normal())  # +Z do corpo = para o vidro
-	if _walking:
-		_walking = false
-		_body.play_idle()
 
 
 ## O espelho está desenhando agora?
@@ -178,8 +165,10 @@ func get_mirror_camera() -> Camera3D:
 	return _camera
 
 
+## O corpo que o espelho reflete: o inteiro do jogador (null sem jogador).
 func get_body() -> AvatarBody:
-	return _body
+	var avatar := _avatar_of(_find_player())
+	return avatar.get_full_body() if avatar != null else null
 
 
 ## Meio do vidro e a frente dele (o lado da sala), no mundo.
@@ -226,28 +215,8 @@ func _set_active(on: bool) -> void:
 	if on == _active:
 		return
 	_active = on
-	_body.visible = on
-	_body.get_animation_player().active = on
 	if not on:
 		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
-
-
-## O corpo vai para onde o jogador está, virado para onde ele olha, andando
-## ou parado conforme a velocidade.
-func _follow(player: Node3D) -> void:
-	var forward: Vector3 = -player.global_basis.z
-	forward.y = 0.0
-	_body.global_position = player.global_position
-	if forward.length() > 0.001:
-		_body.global_basis = Basis.looking_at(-forward.normalized())  # o corpo olha para +Z
-	var velocity: Vector3 = player.get("velocity") if player.get("velocity") != null else Vector3.ZERO
-	var walking := Vector2(velocity.x, velocity.z).length() > WALK_SPEED
-	if walking != _walking:
-		_walking = walking
-		if walking:
-			_body.play_walk()
-		else:
-			_body.play_idle()
 
 
 ## Câmera do espelho no reflexo do olho, de frente para o vidro (olhando para
@@ -276,11 +245,16 @@ func _find_player() -> Node3D:
 	return get_tree().get_first_node_in_group("player") as Node3D
 
 
+## O corpo (PlayerAvatar) de um jogador, ou null.
+func _avatar_of(player: Node) -> Node3D:
+	if player != null and player.has_method("get_avatar"):
+		return player.get_avatar() as Node3D
+	return null
+
+
 func _on_settings_changed(section: String, key: String) -> void:
 	if section == "video" and key == "quality":
 		_apply_quality()
-	elif section == "avatar":
-		_body.apply_spec(AvatarSpec.from_dict(AppConfig.get_avatar()))
 
 
 ## Resolução do reflexo e o "um quadro sim, um não" vêm da qualidade.
@@ -346,7 +320,8 @@ func _build_viewport() -> void:
 	_camera.projection = Camera3D.PROJECTION_FRUSTUM
 	_camera.keep_aspect = Camera3D.KEEP_HEIGHT
 	_camera.environment = _environment
-	# Vê o interior da casa e o corpo do reflexo; nada da cidade.
+	# Vê o interior da casa e o corpo do reflexo; nada da cidade (nem o corpo
+	# de primeira pessoa, que fica noutra camada).
 	_camera.cull_mask = Home.INTERIOR_LAYER_MASK | AvatarBody.reflection_layers()
 	_viewport.add_child(_camera)
 
@@ -381,17 +356,3 @@ func _build_look_area() -> void:
 	shape.position = Vector3(0.0, GLASS_CENTER_Y, 0.1)
 	look.add_child(shape)
 	add_child(look)
-
-
-## O seu corpo, com as cores do config.cfg ([avatar]). Escondido e sem
-## animar enquanto o espelho não desenha.
-func _build_body() -> void:
-	_body = AvatarBody.new()
-	_body.name = "ReflectionBody"
-	_body.spec = AvatarSpec.from_dict(AppConfig.get_avatar())
-	_body.cast_shadows = false
-	_body.position = Vector3(0.0, 0.0, 1.0)
-	add_child(_body)
-	_body.play_idle()
-	_body.visible = false
-	_body.get_animation_player().active = false

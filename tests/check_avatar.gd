@@ -157,9 +157,14 @@ func _check_motion() -> void:
 	_check("parado: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
 	body.animate(0.3, true)
 	_check("abaixo do limiar de andar: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
-	body.animate(5.0, true)
-	_check("5 m/s: Walk", player.current_animation == AvatarBody.WALK_ANIMATION)
+	body.animate(3.0, true)
+	_check("3 m/s: Walk", player.current_animation == AvatarBody.WALK_ANIMATION)
 	var walk_scale := player.speed_scale
+	# 20.3: o andar do jogador (5 m/s) já é um trote, no Run.
+	body.animate(5.0, true)
+	_check("5 m/s (o andar do jogador): Run", player.current_animation == AvatarBody.RUN_ANIMATION)
+	var jog_scale := player.speed_scale
+	_check("5 m/s: passo perto do natural (%.2f)" % jog_scale, jog_scale > 1.0 and jog_scale < 1.6)
 	body.animate(9.0, true)
 	_check("9 m/s: Run", player.current_animation == AvatarBody.RUN_ANIMATION)
 	var run_scale := player.speed_scale
@@ -183,9 +188,9 @@ func _check_motion() -> void:
 	_check("cadência mínima respeitada", player.speed_scale >= AvatarBody.MIN_SPEED_SCALE - 0.0001)
 	body.animate(100.0, true)
 	_check("cadência máxima respeitada", is_equal_approx(player.speed_scale, AvatarBody.MAX_SPEED_SCALE))
-	_check("pelo passo medido: 5 m/s e 9 m/s dão cadência dentro da faixa",
-			walk_scale <= AvatarBody.MAX_SPEED_SCALE and run_scale <= AvatarBody.MAX_SPEED_SCALE
-			and walk_scale >= AvatarBody.MIN_SPEED_SCALE)
+	_check("pelo passo medido: 3, 5 e 9 m/s dão cadência dentro da faixa",
+			walk_scale <= AvatarBody.MAX_SPEED_SCALE and run_scale < AvatarBody.MAX_SPEED_SCALE
+			and walk_scale >= AvatarBody.MIN_SPEED_SCALE and jog_scale < run_scale)
 	body.animate(0.0, true)
 	_check("parado volta a cadência 1", is_equal_approx(player.speed_scale, 1.0))
 
@@ -235,6 +240,24 @@ func _check_motion() -> void:
 	body.set_shadow_mode(AvatarBody.ShadowMode.NORMAL)
 	_check("de volta ao normal", meshes.all(func(m: MeshInstance3D) -> bool:
 			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON))
+
+	# 20.3: a sombra à parte, uma cópia "só sombra" no mesmo esqueleto.
+	var view := AvatarBody.view_layers(false)
+	body.set_shadow_twin_layers(view)
+	var twins := body.get_shadow_twins()
+	_check("sombra à parte: uma cópia por malha", twins.size() == body.get_meshes().size() and not twins.is_empty())
+	_check("a cópia é só sombra, na camada pedida e no mesmo esqueleto", twins.all(func(t: MeshInstance3D) -> bool:
+			return (t.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY and t.layers == view
+					and t.visible and t.get_node(t.skeleton) == body.get_skeleton())))
+	_check("a malha desenhada não muda", body.get_meshes().all(func(m: MeshInstance3D) -> bool:
+			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON))
+	_check("a cópia usa a paleta (as cores mudam juntas)", twins[0].material_override == body.get_palette())
+	body.set_shadow_twin_layers(0)
+	_check("sem sombra à parte: a cópia some", body.get_shadow_twin_layers() == 0
+			and twins.all(func(t: MeshInstance3D) -> bool: return not t.visible))
+	_check("camadas do jogador: 16 em casa, 17 fora, e as de casa são 16 e 19",
+			AvatarBody.view_layers(true) == 1 << 15 and AvatarBody.view_layers(false) == 1 << 16
+			and AvatarBody.indoor_layers() == (1 << 15) | (1 << 18))
 	body.queue_free()
 
 	# cast_shadows = false (como o FriendNpc e o espelho usam) segue valendo.
