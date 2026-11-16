@@ -70,6 +70,14 @@ const FOOTSTEP_SURFACES: Dictionary[String, Array] = {
 		preload("res://assets/kenney/impact-sounds/footstep_snow_003.ogg"),
 		preload("res://assets/kenney/impact-sounds/footstep_snow_004.ogg"),
 	],
+	# A grama do bioma da floresta (19.7).
+	"grass": [
+		preload("res://assets/kenney/impact-sounds/footstep_grass_000.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_grass_001.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_grass_002.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_grass_003.ogg"),
+		preload("res://assets/kenney/impact-sounds/footstep_grass_004.ogg"),
+	],
 }
 const DEFAULT_SURFACE: String = "concrete"
 ## Eco dos passos em casa (canal "Passos"): sala pequena, pouco eco.

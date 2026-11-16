@@ -72,8 +72,12 @@ func _prepare(city: Node, area: Dictionary) -> void:
 
 ## Os pinheiros do bioma são a família de impostores (TreeImpostor, com "atlas") do
 ## BiomeScatter: some só ela. As rochas e as árvores da cidade ficam.
+## Fase 19.3: os pinheiros viraram um TreeModel ("Scatter_<n>" também).
 func _esconder_pinheiros(city: Node) -> bool:
 	var escondidos := 0
+	for node in city.find_children("Scatter_*", "TreeModel", true, false):
+		(node as Node3D).visible = false
+		escondidos += 1
 	# As famílias do BiomeScatter se chamam "Scatter_<n>" (biome_scatter.gd, _add_family).
 	for node in city.find_children("Scatter_*", "MultiMeshInstance3D", true, false):
 		var pai_script := node.get_parent().get_script() as Script

@@ -107,6 +107,8 @@ func _run() -> void:
 	advance.action = &"advance_time"
 	advance.pressed = true
 	day_night._unhandled_input(advance)
+	# Desde a 19.4 as 3 horas passam aos poucos (veja DayNight.ADVANCE_SECONDS).
+	await create_timer(clock.ADVANCE_SECONDS + 0.3).timeout
 	_check("F8: o Sky3D anda 3 horas (veio %.2f)" % sky3d.current_time,
 			is_equal_approx(sky3d.current_time, clock.FIXED_DAY_HOUR + clock.HOURS_PER_F8))
 

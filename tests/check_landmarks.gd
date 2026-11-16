@@ -96,6 +96,9 @@ func _run() -> void:
 	await process_frame
 	await _check_district_landmarks()
 	await _check_landmark_without_mountain()
+	await _check_anchored_bases()
+	await _check_level_growth()
+	await _check_city_levels()
 	_finish()
 
 
@@ -131,7 +134,10 @@ func _check_district_landmarks() -> void:
 				_check("%s (arcos) tem marco ancorado" % id, false)
 				continue
 			found += 1
-			_check_mountain_tower(city, id, landmark)
+			if profile.biome != null and profile.biome.backdrop != null:
+				_check_mountain_tower(city, id, landmark)
+			else:
+				_check_ground_landmark(city, id, landmark, variant_class, plate_half)
 			continue
 		_check("%s tem landmark_script no perfil" % id, profile != null and not profile.landmark_script.is_empty())
 		expected += 1
@@ -147,6 +153,23 @@ func _check_district_landmarks() -> void:
 	_check("todos os bairros, menos a Simulação, têm marco (%d)" % expected, expected == city._district_cells.size() - 1 and found == expected)
 	city.queue_free()
 	await process_frame
+
+
+## 19.7: com arcos e sem montanha (a floresta da Aventura), o marco fica no
+## chão, no meio do primeiro quarteirão, com base e colisão, e o letreiro sobe
+## para ficar acima dele.
+func _check_ground_landmark(city: Node, id: String, landmark: Node, variant_class: GDScript,
+		plate_half: float) -> void:
+	var first: Vector2i = city._district_cells[id][0]
+	var center := CityLayout.block_center(first)
+	_check("%s (arcos, sem montanha): o marco fica no chão, no meio do 1º quarteirão" % id,
+			landmark.is_anchored() and landmark.global_position.distance_to(center) < 0.01)
+	_check("%s: o marco no chão tem base e colisão" % id,
+			landmark.footprint().has_area() and landmark.get_node_or_null("Solid") != null)
+	var top: float = landmark.get_top_y()
+	_check("%s: o topo (%.1f m) passa do prédio mais alto possível" % [id, top], top > variant_class.max_total_height())
+	var district_sign: Node3D = city.get_node("DistrictSign_%s" % id)
+	_check("%s: o letreiro sobe para ficar acima do marco" % id, district_sign.position.y - plate_half > top)
 
 
 ## A torre ancorada no mirante (15.10): na base que a montanha dá, mais larga,
@@ -280,7 +303,8 @@ func _check_landmark_without_mountain() -> void:
 	var world_base := Rect2(Vector2(center.x, center.z) + base.position, base.size)
 	var inside := 0
 	for child: Node in city.get_children():
-		if child.has_method("get_transforms"):
+		# Só os enfeites do bioma (o BiomeScatter; 19.3: as árvores de rua são um TreeModel, sem família).
+		if child.has_method("get_transforms") and String(child.name).begins_with("BiomeScatter_"):
 			for index in 8:
 				for item: Transform3D in child.get_transforms(index):
 					if world_base.grow(0.5).has_point(Vector2(item.origin.x, item.origin.z)):
@@ -295,6 +319,120 @@ func _check_landmark_without_mountain() -> void:
 	query.exclude = [(landmark.get_node("Solid") as CollisionObject3D).get_rid()]
 	var hits: Array = city.get_world_3d().direct_space_state.intersect_shape(query, 4)
 	_check("nada sólido dentro da base da torre (%d)" % hits.size(), hits.is_empty())
+	city.queue_free()
+	await process_frame
+
+
+## 19.7: num bairro de arcos (a floresta da Aventura; o deserto da 19.8), o
+## marco de telhado fica no chão. Todo marco, ancorado, tem base (para as
+## árvores não nascerem dentro dele) e colisão (o jogador não o atravessa).
+func _check_anchored_bases() -> void:
+	print("== todo marco ancorado tem base e colisão (19.7) ==")
+	var holder := Node3D.new()
+	root.add_child(holder)
+	for district in Profiles.districts():
+		if district.landmark_script.is_empty():
+			continue
+		var landmark: Node3D = load(district.landmark_script).new()
+		landmark.category_id = district.id
+		landmark.anchor = Vector3(40.0, 0.0, 40.0)
+		holder.add_child(landmark)
+		var base: Rect2 = landmark.footprint()
+		var solid: StaticBody3D = landmark.get_node_or_null("Solid")
+		_check("%s: base %s e colisão" % [district.id, base.size],
+				landmark.is_anchored() and base.has_area() and base.get_area() >= 0.25 and solid != null)
+	holder.queue_free()
+	await process_frame
+
+
+## 19.10: o marco cresce com o nível de horas do bairro (0 a 3). Todo marco,
+## no chão: nível 0 = a altura de sempre; o nível 3 é mais alto que o 0 e a
+## altura sobe a cada nível; a mesma entrada dá o mesmo resultado; a base e a
+## colisão ficam iguais em todo nível (só a altura cresce; a planta não muda).
+func _check_level_growth() -> void:
+	print("== o marco cresce com o nível (19.10) ==")
+	var landmark_class: GDScript = load("res://worlds/city/district_landmarks/district_landmark.gd")
+	_check("o fator: 1,00 no nível 0 e 1,45 no 3; fora da faixa, limitado",
+			is_equal_approx(landmark_class.level_factor(0), 1.0)
+			and is_equal_approx(landmark_class.level_factor(3), 1.45)
+			and is_equal_approx(landmark_class.level_factor(-2), 1.0)
+			and is_equal_approx(landmark_class.level_factor(9), 1.45))
+	var holder := Node3D.new()
+	root.add_child(holder)
+	for district in Profiles.districts():
+		if district.landmark_script.is_empty():
+			continue
+		var tops: Array[float] = []
+		var bases: Array[Rect2] = []
+		var solids_ok := true
+		for level in 4:
+			var landmark: Node3D = load(district.landmark_script).new()
+			landmark.category_id = district.id
+			landmark.anchor = Vector3(40.0, 0.0, 40.0)
+			landmark.level = level
+			holder.add_child(landmark)
+			tops.append(landmark.get_top_y())
+			bases.append(landmark.footprint())
+			solids_ok = solids_ok and landmark.get_node_or_null("Solid") != null
+			if level == 0:
+				# O nível 0 é idêntico ao de antes: a altura mínima de sempre.
+				_check("%s: nível 0 = a altura de sempre (%.1f m)" % [district.id, tops[0]],
+						is_equal_approx(landmark.get_top_y(), landmark.min_height()))
+			if level == 3:
+				var again: Node3D = load(district.landmark_script).new()
+				again.category_id = district.id
+				again.anchor = Vector3(40.0, 0.0, 40.0)
+				again.level = 3
+				holder.add_child(again)
+				_check("%s: a mesma entrada dá a mesma altura" % district.id,
+						is_equal_approx(again.get_top_y(), landmark.get_top_y()))
+		_check("%s: a altura sobe a cada nível (%.1f, %.1f, %.1f, %.1f m)" % [district.id, tops[0], tops[1], tops[2], tops[3]],
+				tops[0] < tops[1] and tops[1] < tops[2] and tops[2] < tops[3])
+		_check("%s: o nível 3 tem ~1,45 vez a altura do 0" % district.id,
+				absf(tops[3] / tops[0] - 1.45) < 0.01)
+		_check("%s: base e colisão iguais em todo nível (até 5 cm: as pernas inclinadas)" % district.id,
+				solids_ok and bases[0].has_area() and bases.all(func(b: Rect2) -> bool:
+					return b.position.distance_to(bases[0].position) < 0.05 and b.size.distance_to(bases[0].size) < 0.05))
+	holder.queue_free()
+	await process_frame
+
+
+## 19.10: na cidade com as horas falsas (RPG 3, Ação 2, Aventura 1, o resto 0),
+## cada marco tem o nível do bairro e a altura certa, o letreiro continua acima
+## dele, e o marco de telhado continua assentado no prédio.
+func _check_city_levels() -> void:
+	print("== marcos na cidade com horas falsas (19.10) ==")
+	load("res://tests/fake_library.gd").install(root, 200, true)
+	var city: Node = load("res://worlds/city/city.tscn").instantiate()
+	city.play_intro = false
+	root.add_child(city)
+	while not city.is_city_ready():
+		await process_frame
+	await process_frame
+	var sign_class: GDScript = load("res://worlds/city/district_sign.gd")
+	var plate_half: float = sign_class.PLATE_HEIGHT * city.DISTRICT_SIGN_TEXT_HEIGHT / sign_class.TEXT_HEIGHT / 2.0
+	var grown := 0
+	for id: String in city._district_cells:
+		var landmark: Node = city.get_node_or_null("DistrictLandmark_%s" % id)
+		if landmark == null:
+			continue
+		var level: int = city.district_level(id)
+		_check("%s: o marco tem o nível do bairro (%d)" % [id, level], landmark.level == level)
+		var expected: float = landmark.min_height() * (1.0 + 0.15 * level)
+		_check("%s: a altura é a do nível (%.1f m)" % [id, expected], is_equal_approx(landmark.get_top_y() - landmark.global_position.y, expected))
+		if level > 0:
+			grown += 1
+		if not landmark.is_anchored():
+			# De telhado: continua com o pé no telhado do prédio mais alto.
+			var target: Node3D = landmark._tallest_building()
+			var roof: Vector3 = target.to_global(landmark.roof_of_tallest())
+			_check("%s: o marco de telhado continua assentado no prédio" % id, landmark.global_position.distance_to(roof) < 0.01)
+		var district_sign: Node3D = city.get_node_or_null("DistrictSign_%s" % id)
+		var terrain := city.get_node_or_null("BackdropTerrain_%s" % id)
+		if district_sign != null and terrain == null:
+			_check("%s: o letreiro fica acima do marco crescido" % id,
+					district_sign.position.y - plate_half > landmark.get_top_y())
+	_check("pelo menos um marco cresceu (%d)" % grown, grown >= 1)
 	city.queue_free()
 	await process_frame
 

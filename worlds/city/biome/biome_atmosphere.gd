@@ -1,11 +1,31 @@
 class_name BiomeAtmosphere
 extends Node
-## Névoa e vento de um bioma, sem conhecer a cidade que o montou.
-## Uma instância controla a mistura do DayNight; setup recebe zonas XZ globais.
-## Quem monta inclui as zonas da trilha/mirante e põe o fundo da cidade no grupo.
+## Névoa e som de fundo de um bioma, sem conhecer a cidade que o montou.
+## setup recebe zonas XZ globais; quem monta inclui as zonas da trilha/mirante
+## e põe o fundo da cidade no grupo CITY_AMBIENCE_GROUP.
+##
+## Fase 19.1: pode haver várias (uma por bairro com bioma), mas o céu tem uma
+## mistura de névoa só (DayNight.set_fog_overlay). Por isso só uma "fala" com o
+## DayNight: a de maior peso onde o jogador está (a "voz"). As outras cuidam só
+## do próprio som. A voz usa o quanto passa da segunda colocada, para a névoa
+## não dar degrau na divisa entre dois biomas (lá ela volta à da cidade e
+## segue para a do vizinho). Com um bioma só, é o peso dele, como antes.
+## O abafamento do fundo da cidade também é da voz.
+##
+## O som de fundo vem do perfil (BiomeSpec.ambience_bed, o primeiro arquivo,
+## em loop); quem não diz nada ganha o vento. A camada do vento alto (mais
+## forte perto da cota do mirante) só existe com terreno de fundo.
+## 19.7: um fundo "avulsos" (os pássaros da floresta) toca um dos arquivos de
+## tempos em tempos (o intervalo e o tom do perfil), na mesma camada baixa e
+## com o mesmo volume pelo peso; longe do bioma, não toca.
 
 const UPDATE_INTERVAL: float = 0.1
 const CITY_AMBIENCE_GROUP: StringName = &"city_ambience_bed"
+## Todas as atmosferas da cena, para escolher a voz.
+const GROUP: StringName = &"biome_atmosphere"
+## O volume original do fundo da cidade fica guardado no próprio nó: qualquer
+## atmosfera que vire a voz sabe para onde voltar.
+const BED_BASE_META: StringName = &"biome_bed_base_db"
 const CITY_DUCK_DB: float = -6.0
 const SNOW_ALBEDO_MAX: float = 0.85
 const WIND_STREAM: AudioStream = preload("res://assets/generated/wind_loop.wav")
@@ -21,10 +41,21 @@ var _player: Node3D
 var _day_night: DayNight
 var _base_height: float = 0.0
 var _weight: float = 0.0
+## O som de fundo (camada baixa) e o vento alto (só com terreno de fundo).
 var _wind_low: AudioStreamPlayer
 var _wind_high: AudioStreamPlayer
+## O arquivo original da camada baixa (antes da cópia em loop).
+var _bed_source: AudioStream
+## Os sons de um fundo "avulsos" (vazio = o fundo é um loop) e o relógio deles.
+var _shots: Array[AudioStream] = []
+var _shot_timer: Timer
+## Os sons avulsos que já tocaram (para os testes).
+var shots_played: int = 0
 var _audio_tween: Tween
-var _bed_volumes: Dictionary[AudioStreamPlayer, float] = {}
+## Os fundos da cidade que esta atmosfera abaixou (só enquanto é a voz).
+var _ducked_beds: Array[AudioStreamPlayer] = []
+## Se a última mistura de névoa do DayNight foi escrita por esta.
+var _has_voice: bool = false
 
 
 ## base_height é o Y global do chão do bairro (0 na cidade atual).
@@ -38,13 +69,22 @@ func setup(spec: BiomeSpec, zones: Array[Rect2], player: Node3D,
 	_day_night = day_night
 	_base_height = base_height
 	if is_inside_tree():
+		_sync_streams()
 		update_now()
 
 
+func _enter_tree() -> void:
+	add_to_group(GROUP)
+
+
 func _ready() -> void:
-	_wind_low = _make_wind("WindLow", 1.0, 0.0)
-	# Tom e ponto inicial diferentes evitam duas cópias tocando em coro.
-	_wind_high = _make_wind("WindHigh", 0.9, WIND_STREAM.get_length() * 0.5)
+	_wind_low = _make_player("WindLow", 1.0)
+	_wind_high = _make_player("WindHigh", 0.9)
+	_shot_timer = Timer.new()
+	_shot_timer.one_shot = true
+	_shot_timer.timeout.connect(_play_shot)
+	add_child(_shot_timer)
+	_sync_streams()
 	var timer: Timer = Timer.new()
 	timer.wait_time = UPDATE_INTERVAL
 	timer.timeout.connect(update_now)
@@ -55,6 +95,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_reset_effects()
+	remove_from_group(GROUP)
 	_wind_low.stop()
 	_wind_high.stop()
 
@@ -79,11 +120,26 @@ func get_weight() -> float:
 	return _weight
 
 
-## O segundo peso só chega a 1 na cota do mirante; fora do bioma ambos zeram.
+## O peso deste bioma num ponto (0 fora dele). Sem perfil, 0.
+func weight_at(position: Vector3) -> float:
+	if _spec == null:
+		return 0.0
+	return zone_weight(Vector2(position.x, position.z), _zones, _spec.fog_blend_meters)
+
+
+## Se esta atmosfera é a que fala com o DayNight agora.
+func has_voice() -> bool:
+	return _has_voice
+
+
+## O segundo peso só chega a 1 na cota do mirante e só existe com terreno de
+## fundo; fora do bioma ambos zeram.
 func wind_weights(position: Vector3) -> Vector2:
 	if _spec == null:
 		return Vector2.ZERO
-	var weight: float = zone_weight(Vector2(position.x, position.z), _zones, _spec.fog_blend_meters)
+	var weight: float = weight_at(position)
+	if _spec.backdrop == null:
+		return Vector2(weight, 0.0)
 	var height_weight: float = smoothstep(_base_height, _base_height + _lookout_height(), position.y)
 	return Vector2(weight, weight * height_weight)
 
@@ -96,11 +152,30 @@ func update_now() -> void:
 		return
 	var weights: Vector2 = wind_weights(_player.global_position)
 	_weight = weights.x
-	if is_instance_valid(_day_night):
-		_day_night.set_fog_overlay(_weight, _spec.fog_density_scale, _spec.fog_tint,
-				_spec.fog_tint_amount, _base_height + _lookout_height() * FOG_HEIGHT_FRACTION,
-				_spec.fog_height_density)
-	_mix_audio(weights)
+	var runner_up: float = _runner_up_weight()
+	var voice: bool = runner_up >= 0.0
+	if voice and is_instance_valid(_day_night):
+		# O quanto passa da segunda colocada (sozinha, o próprio peso).
+		_day_night.set_fog_overlay(maxf(_weight - runner_up, 0.0),
+				_spec.fog_density_scale, _spec.fog_tint, _spec.fog_tint_amount,
+				_base_height + _lookout_height() * FOG_HEIGHT_FRACTION, _spec.fog_height_density)
+	_has_voice = voice
+	_mix_audio(weights, voice)
+
+
+## O maior peso entre as outras atmosferas no mesmo ponto, ou -1 se outra
+## tem a voz (peso maior; no empate, a de menor id). Sem outras, 0.
+func _runner_up_weight() -> float:
+	var best: float = 0.0
+	for node: Node in get_tree().get_nodes_in_group(GROUP):
+		var other: BiomeAtmosphere = node as BiomeAtmosphere
+		if other == null or other == self or other._spec == null or not other.is_inside_tree():
+			continue
+		var weight: float = other.weight_at(_player.global_position)
+		if weight > _weight or (weight == _weight and other.get_instance_id() < get_instance_id()):
+			return -1.0
+		best = maxf(best, weight)
+	return best
 
 
 func _lookout_height() -> float:
@@ -109,19 +184,94 @@ func _lookout_height() -> float:
 	return DEFAULT_LOOKOUT_HEIGHT
 
 
-func _make_wind(node_name: String, pitch: float, offset: float) -> AudioStreamPlayer:
+func _make_player(node_name: String, pitch: float) -> AudioStreamPlayer:
 	var audio: AudioStreamPlayer = AudioStreamPlayer.new()
 	audio.name = node_name
 	audio.bus = &"Ambiente"
-	audio.stream = AmbientEmitter.looping(WIND_STREAM)
 	audio.pitch_scale = pitch
 	audio.volume_linear = 0.0
 	add_child(audio)
-	audio.play(offset)
 	return audio
 
 
-func _mix_audio(weights: Vector2) -> void:
+## Põe os sons do perfil nos dois tocadores: o fundo do bioma (ou o vento) na
+## camada baixa, e o vento alto só com terreno de fundo.
+func _sync_streams() -> void:
+	if _wind_low == null:
+		return
+	var shots: Array[AudioStream] = _bed_shots()
+	if shots != _shots:
+		_shots = shots
+		_shot_timer.stop()
+		if not _shots.is_empty():
+			# O fundo avulso não tem loop: a camada baixa toca um som por vez.
+			_bed_source = null
+			_wind_low.stop()
+			_wind_low.stream = null
+			_schedule_shot()
+	if _shots.is_empty():
+		var source: AudioStream = _bed_stream()
+		if source != _bed_source:
+			_bed_source = source
+			_wind_low.pitch_scale = 1.0
+			_wind_low.stream = AmbientEmitter.looping(source)
+			_wind_low.play()
+	var wants_high: bool = _spec != null and _spec.backdrop != null
+	if wants_high and _wind_high.stream == null:
+		_wind_high.stream = AmbientEmitter.looping(WIND_STREAM)
+		# Tom e ponto inicial diferentes evitam duas cópias tocando em coro.
+		_wind_high.play(WIND_STREAM.get_length() * 0.5)
+	elif not wants_high and _wind_high.stream != null:
+		_wind_high.stop()
+		_wind_high.stream = null
+
+
+## Os sons de um fundo "avulsos" do perfil (os que carregaram). Vazio se o
+## fundo é um loop, se não há perfil ou se nenhum arquivo carregou.
+func _bed_shots() -> Array[AudioStream]:
+	var result: Array[AudioStream] = []
+	if _spec == null or _spec.ambience_bed == null or _spec.ambience_bed.kind != "avulsos":
+		return result
+	for path: String in _spec.ambience_bed.files:
+		var stream: AudioStream = load(path) as AudioStream if ResourceLoader.exists(path) else null
+		if stream != null:
+			result.append(stream)
+		else:
+			push_warning("O som %s do bioma %s não carregou." % [path, _spec.id])
+	return result
+
+
+func _schedule_shot() -> void:
+	var interval: Vector2 = _spec.ambience_bed.interval
+	_shot_timer.start(randf_range(interval.x, maxf(interval.y, interval.x + 0.01)))
+
+
+## Um som avulso, se o jogador está no bioma (longe dele, só espera o próximo).
+func _play_shot() -> void:
+	if _shots.is_empty():
+		return
+	if _weight > 0.0:
+		var pitch: Vector2 = _spec.ambience_bed.pitch_range
+		_wind_low.stream = _shots.pick_random()
+		_wind_low.pitch_scale = randf_range(pitch.x, pitch.y)
+		_wind_low.play()
+		shots_played += 1
+	_schedule_shot()
+
+
+## O som de fundo do perfil (o primeiro arquivo); sem ele, o vento.
+func _bed_stream() -> AudioStream:
+	if _spec == null or _spec.ambience_bed == null or _spec.ambience_bed.files.is_empty():
+		return WIND_STREAM
+	var path: String = _spec.ambience_bed.files[0]
+	var stream: AudioStream = load(path) as AudioStream if ResourceLoader.exists(path) else null
+	if stream == null:
+		push_warning("O som de fundo %s do bioma %s não carregou; fica o vento." % [path, _spec.id])
+		return WIND_STREAM
+	return stream
+
+
+func _mix_audio(weights: Vector2, voice: bool) -> void:
 	if _audio_tween != null:
 		_audio_tween.kill()
 	_audio_tween = create_tween().set_parallel(true)
@@ -130,28 +280,37 @@ func _mix_audio(weights: Vector2) -> void:
 		low_db = _spec.ambience_bed.volume_db
 	# Ganho linear permite silêncio exato; a rampa evita degraus entre amostras.
 	_audio_tween.tween_property(_wind_low, "volume_linear", db_to_linear(low_db) * weights.x, UPDATE_INTERVAL)
-	_audio_tween.tween_property(_wind_high, "volume_linear",
-			db_to_linear(low_db + HIGH_WIND_BOOST_DB) * weights.y, UPDATE_INTERVAL)
+	if _wind_high.stream != null:
+		_audio_tween.tween_property(_wind_high, "volume_linear",
+				db_to_linear(low_db + HIGH_WIND_BOOST_DB) * weights.y, UPDATE_INTERVAL)
+	if not voice:
+		# Quem perdeu a voz deixa o fundo com a nova voz (sem restaurar: ela abaixa).
+		_ducked_beds.clear()
+		return
 	for node: Node in get_tree().get_nodes_in_group(CITY_AMBIENCE_GROUP):
 		var bed: AudioStreamPlayer = node as AudioStreamPlayer
 		if bed == null:
 			continue
-		if not _bed_volumes.has(bed):
-			_bed_volumes[bed] = bed.volume_db
+		if not bed.has_meta(BED_BASE_META):
+			bed.set_meta(BED_BASE_META, bed.volume_db)
+		if not _ducked_beds.has(bed):
+			_ducked_beds.append(bed)
 		_audio_tween.tween_property(bed, "volume_db",
-				_bed_volumes[bed] + CITY_DUCK_DB * weights.x, UPDATE_INTERVAL)
+				float(bed.get_meta(BED_BASE_META)) + CITY_DUCK_DB * weights.x, UPDATE_INTERVAL)
 
 
 func _reset_effects() -> void:
 	if _audio_tween != null:
 		_audio_tween.kill()
 	_weight = 0.0
-	if is_instance_valid(_day_night):
+	# Só a voz limpa a névoa: as outras não mexem na mistura de quem fala.
+	if _has_voice and is_instance_valid(_day_night):
 		_day_night.set_fog_overlay(0.0, 1.0, Color.WHITE, 0.0)
-	for bed: AudioStreamPlayer in _bed_volumes:
-		if is_instance_valid(bed):
-			bed.volume_db = _bed_volumes[bed]
-	_bed_volumes.clear()
+	_has_voice = false
+	for bed: AudioStreamPlayer in _ducked_beds:
+		if is_instance_valid(bed) and bed.has_meta(BED_BASE_META):
+			bed.volume_db = float(bed.get_meta(BED_BASE_META))
+	_ducked_beds.clear()
 	if is_instance_valid(_wind_low):
 		_wind_low.volume_linear = 0.0
 	if is_instance_valid(_wind_high):

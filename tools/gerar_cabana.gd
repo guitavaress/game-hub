@@ -40,7 +40,8 @@ func _run() -> void:
 	cabin.ambient_day_energy = 0.65
 	cabin.daylight_color = Color(0.96, 0.93, 0.82)
 	cabin.daylight_energy = 2.0
-	cabin.window_shader = "res://worlds/home/home_window_forest.gdshader"
+	# A janela é um retrato do mundo (17.9.2), como a do loft.
+	cabin.window_shader = "res://worlds/home/home_window.gdshader"
 	cabin.window_frame = _surface("wood", Color(0.25, 0.16, 0.09), 0.7)
 	cabin.window_sill = _surface("wood", Color(0.3, 0.2, 0.12), 0.6)
 	cabin.door = _surface("wood", Color(0.3, 0.18, 0.1), 0.6)

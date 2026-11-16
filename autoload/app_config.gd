@@ -62,6 +62,9 @@ quality="alta"
 time_of_day="relogio"
 ; Céu da cidade: "fotos" (fotos HDRI) ou "sky3d" (sol, lua e nuvens calculados).
 sky="fotos"
+; Tempo da cidade: "dinamico" (abre, fecha e chove sozinho) ou um tempo fixo:
+; "limpo" (sempre limpo), "nublado", "chuva_fraca" ou "chuva_forte".
+weather="dinamico"
 ; Bússola e minimapa na tela: true ou false.
 show_map=true
 """
@@ -157,6 +160,9 @@ const TIME_OF_DAY_MODES: Array[String] = ["relogio", "dia", "noite"]
 ## Céu da cidade: "fotos" (três fotos HDRI misturadas) ou "sky3d" (o addon
 ## Sky3D: sol, lua, estrelas e nuvens calculados). Spike de 2026-10.
 const SKY_MODES: Array[String] = ["fotos", "sky3d"]
+## Os modos do tempo (Fase 19.6; o primeiro é o padrão). Os tempos são os do
+## WeatherDirector da cidade (o check_weather_director confere que batem).
+const WEATHER_MODES: Array[String] = ["dinamico", "limpo", "nublado", "chuva_fraca", "chuva_forte"]
 
 ## Canais de áudio (default_bus_layout.tres) e a opção de volume de cada um.
 const VOLUME_KEYS: Dictionary[String, String] = {
@@ -281,6 +287,17 @@ func get_sky() -> String:
 func set_sky(mode: String) -> void:
 	if mode in SKY_MODES:
 		_set_option("video", "sky", mode)
+
+
+## Tempo da cidade: "dinamico" (padrão) ou um tempo fixo (WEATHER_MODES).
+func get_weather() -> String:
+	var mode := str(_config.get_value("video", "weather", "dinamico")).strip_edges().to_lower()
+	return mode if mode in WEATHER_MODES else "dinamico"
+
+
+func set_weather(mode: String) -> void:
+	if mode in WEATHER_MODES:
+		_set_option("video", "weather", mode)
 
 
 ## Bússola e minimapa ligados? (Padrão: sim.)

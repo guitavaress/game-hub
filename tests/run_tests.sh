@@ -28,17 +28,13 @@ if [ ! -x "$GODOT" ]; then
 	exit 1
 fi
 
-# Trava: o user:// (config.cfg, chave, cache) é um só para todos os worktrees
-# do claude-squad. Se outra bateria estiver rodando, esta espera ela acabar.
-# A trava se solta sozinha quando o script termina. Sem flock (Git Bash no
-# Windows), segue sem trava.
-if command -v flock >/dev/null 2>&1; then
-	TRAVA="${XDG_RUNTIME_DIR:-/tmp}/game-hub-testes.lock"
-	exec 9>"$TRAVA"
-	if ! flock -n 9; then
-		echo "== outra bateria está rodando; esperando ela terminar =="
-		flock 9
-	fi
+# Trava: o user:// (config.cfg, chave, cache) é um só para todos os worktrees.
+# Se outra Godot de teste ou captura estiver rodando, esta espera sozinha.
+# A trava é a mesma das capturas (tools/com_trava.sh), funciona no Git Bash do
+# Windows e no Linux, e se solta no fim, em erro e em Ctrl+C. Se já vier de um
+# com_trava.sh (GODOT_HUB_TRAVA), não trava de novo.
+if [ -z "$GODOT_HUB_TRAVA" ]; then
+	exec bash tools/com_trava.sh bash "tests/$(basename "$0")" "$@"
 fi
 
 if [ $# -gt 0 ]; then

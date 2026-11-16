@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8tcbwo4g6ano"
-path.s3tc="res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.s3tc.ctex"
+uid="uid://cyc2iybb00p5b"
+path.s3tc="res://.godot/imported/Ground093C_1K-JPG_Roughness.jpg-1608dcd271abcfa23565df20725ed210.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/generated/tree_impostor.png"
-dest_files=["res://.godot/imported/tree_impostor.png-a6bd7c9d3b2d603d26bf9503d3d14d52.s3tc.ctex"]
+source_file="res://assets/ambientcg/Ground093C/Ground093C_1K-JPG_Roughness.jpg"
+dest_files=["res://.godot/imported/Ground093C_1K-JPG_Roughness.jpg-1608dcd271abcfa23565df20725ed210.s3tc.ctex"]
 
 [params]
 

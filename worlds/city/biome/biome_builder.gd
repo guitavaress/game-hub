@@ -90,6 +90,53 @@ static func covered_rects(zones: Array[Rect2], half: float, cover_streets: bool)
 		if zone.end.y < edge and not _has_neighbor(zone, zones, Vector2.DOWN):
 			bottom -= curb
 		result.append(Rect2(left, top, right - left, bottom - top))
+	if cover_streets:
+		result.append_array(_concave_corner_rects(zones, edge, curb))
+	return result
+
+
+## O canto côncavo (19.11): num cruzamento de ruas cercado por três zonas (a
+## quarta, na diagonal, é de outro bairro ou está vazia), a zona de canto cobre
+## só o quarto do cruzamento que é dela, e a neve ficava num quadrado solto no
+## meio do asfalto. Aqui o cruzamento inteiro vira neve: as outras três quartas
+## partes entram em dois retângulos que não se sobrepõem (sem brilho duplo).
+static func _concave_corner_rects(zones: Array[Rect2], edge: float, curb: float) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	var seen: Dictionary = {}
+	for zone in zones:
+		for corner: Vector2 in [zone.position, Vector2(zone.end.x, zone.position.y),
+				Vector2(zone.position.x, zone.end.y), zone.end]:
+			# Só cruzamentos de dentro (na borda a neve já vai até a mureta).
+			if absf(corner.x) >= edge or absf(corner.y) >= edge:
+				continue
+			var key := Vector2i(roundi(corner.x * 4.0), roundi(corner.y * 4.0))
+			if seen.has(key):
+				continue
+			seen[key] = true
+			# Um ponto logo depois do cruzamento em cada diagonal: a zona que o cobre, ou nenhuma.
+			var owners := 0
+			var missing := Vector2.ZERO
+			for dir: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+				var probe := corner + dir * 0.5
+				var found := false
+				for other in zones:
+					if other.has_point(probe):
+						found = true
+						break
+				if found:
+					owners += 1
+				else:
+					missing = dir
+			if owners != 3:
+				continue
+			# A zona de canto fica na diagonal oposta à que falta: o quarto dela já é neve.
+			# Falta cobrir a metade do cruzamento do lado da diagonal vazia (em x, de
+			# ponta a ponta em y) e o quarto do lado da zona de canto, no lado vazio em y.
+			var x_far := Rect2(corner.x if missing.x > 0.0 else corner.x - curb, corner.y - curb, curb, curb * 2.0)
+			var x_near := Rect2(corner.x if missing.x < 0.0 else corner.x - curb,
+					corner.y if missing.y > 0.0 else corner.y - curb, curb, curb)
+			result.append(x_far)
+			result.append(x_near)
 	return result
 
 
@@ -126,8 +173,9 @@ static func add_cover(parent: Node3D, category_id: String, biome: BiomeSpec, rec
 	return body
 
 
-## A névoa e o vento do bioma (15.12) sobre as áreas cobertas. Só um por
-## cidade, por enquanto: o DayNight tem uma só mistura de névoa.
+## A névoa e o som de fundo do bioma (15.12) sobre as áreas cobertas. Um por
+## bairro com bioma (19.1); o DayNight tem uma só mistura de névoa, e quem
+## fala com ele é a atmosfera de maior peso onde o jogador está.
 static func add_atmosphere(parent: Node, category_id: String, biome: BiomeSpec, rects: Array[Rect2],
 		player: Node3D, day_night: DayNight) -> BiomeAtmosphere:
 	var atmosphere := BiomeAtmosphere.new()
@@ -151,6 +199,9 @@ static func add_backdrop(parent: Node3D, category_id: String, biome: BiomeSpec, 
 	terrain.footstep = biome.footstep
 	terrain.cell_meters = GraphicsQuality.terrain_cell_meters(level)
 	terrain.casts_shadow = GraphicsQuality.terrain_casts_shadow(level)
+	# 19.12: os pinheiros e as rochas da encosta, na quantidade da qualidade.
+	terrain.biome = biome
+	terrain.scatter_amount = GraphicsQuality.scatter_amount(level)
 	if not terrain.setup(biome.backdrop, sector, half):
 		terrain.free()
 		return null
@@ -226,13 +277,16 @@ static func keep_out_points(parent: Node) -> Array[Vector3]:
 
 
 ## As áreas que ficam livres (no chão): a boca de cada estação do metrô, com
-## a escada, o corrimão e o totem (a forma que a estação dá em footprint()), e
-## a base dos marcos ancorados no chão (15.10: a torre do RPG sem montanha).
+## a escada, o corrimão e o totem (a forma que a estação dá em footprint()),
+## a base dos marcos ancorados no chão (15.10: a torre do RPG sem montanha) e,
+## desde a 19.1, a planta de cada prédio (CityBuilding.footprint()), para um
+## bioma com prédios não pôr árvore dentro de um.
 static func keep_out_areas(parent: Node) -> Array[Rect2]:
 	var areas: Array[Rect2] = []
 	var tree := parent.get_tree()
-	# "scatter_keep_out" = DistrictLandmark.KEEP_OUT_GROUP (pelo nome: o
-	# DistrictLandmark usa autoloads, e os testes carregam este script sozinho).
+	# "scatter_keep_out" = DistrictLandmark.KEEP_OUT_GROUP e
+	# CityBuilding.KEEP_OUT_GROUP (pelo nome: os dois usam autoloads, e os
+	# testes carregam este script sozinho).
 	for node in tree.get_nodes_in_group("transit_stop") + tree.get_nodes_in_group(&"scatter_keep_out"):
 		var stop := node as Node3D
 		if stop == null or not parent.is_ancestor_of(stop):

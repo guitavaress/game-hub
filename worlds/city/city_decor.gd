@@ -4,9 +4,10 @@ extends RefCounted
 ## floreiras e o chafariz. Só visual (e um pouco de colisão); nada de lógica.
 ##
 ## Materiais realistas: ambientCG (CC0), em assets/ambientcg/. Plantas: nas
-## floreiras de concreto, uma árvore "impostora" (a foto de uma jacarandá de
-## verdade, veja TreeImpostor) e arbustos baixos (Kenney Nature Kit, CC0,
-## recoloridos num verde escuro; abaixo de 1 m o "low-poly" não aparece).
+## floreiras de concreto, a árvore de rua (19.3: o modelo do Blender perto e a
+## foto dele longe, veja TreeModel; todas as da cidade num TreeModel só) e
+## arbustos baixos (Kenney Nature Kit, CC0, recoloridos num verde escuro;
+## abaixo de 1 m o "low-poly" não aparece).
 ## Uso:  CityDecor.add_park(self, lote)  — cada função acrescenta nós ao "parent".
 
 const AMBIENTCG: String = "res://assets/ambientcg/"
@@ -22,6 +23,10 @@ const BUSH: PackedScene = preload("res://assets/kenney/nature-kit/plant_bushLarg
 const BUSH_SCALE: float = 2.2
 ## Altura das árvores das floreiras (sorteada entre os dois valores, em metros).
 const TREE_HEIGHT_RANGE: Vector2 = Vector2(5.0, 6.5)
+## A árvore de rua (19.3), feita por tools/blender/gerar_arvore.py.
+const STREET_TREE: String = "res://assets/models/trees/street_tree.glb"
+## O nome do TreeModel que junta as árvores de rua de um "parent" (a cidade).
+const STREET_TREES_NODE: String = "StreetTrees"
 ## Onde ficam os arbustos dentro da floreira (a partir do centro, em metros).
 const PLANTER_BUSH_SPOTS: Array[Vector2] = [Vector2(-0.4, -0.35), Vector2(0.42, -0.2), Vector2(-0.05, 0.42)]
 
@@ -43,12 +48,37 @@ const LANE_DASH_GAP: float = 3.5
 ## Poças: um sorteio a cada PUDDLE_STEP metros de rua, com esta chance.
 const PUDDLE_STEP: float = 12.0
 const PUDDLE_CHANCE: float = 0.4
+## O grupo das poças da rua (o chão molhado da chuva as faz crescer; 19.5).
+const PUDDLE_GROUP: StringName = &"city_puddles"
+## Poça com o chão encharcado: quanto cresce e quanto escurece o chão por baixo.
+const PUDDLE_WET_GROWTH: float = 0.45
+const PUDDLE_ALBEDO_MIX_DRY: float = 0.3
+const PUDDLE_ALBEDO_MIX_WET: float = 0.6
+
+## O asfalto da cidade (ambientCG, CC0), repetido a cada 6 m. Desde a 19.5 o
+## CityDecor cuida do brilho dele: à noite fica mais liso (reflete os postes e o
+## néon) e com chuva fica mais liso e mais escuro (set_ground_night e
+## set_ground_wetness). Sem chuva, igual ao de antes.
+const ASPHALT_FOLDER: String = "Road012A"
+const ASPHALT_METERS: float = 6.0
+const ASPHALT_TINT: Color = Color(0.75, 0.75, 0.75)
+const ASPHALT_ROUGHNESS_DAY: float = 0.55
+const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
+## Encharcado: quase um espelho (a rugosidade da textura ainda deixa manchas).
+const ASPHALT_ROUGHNESS_WET: float = 0.14
+## Quanto a cor do asfalto escurece encharcado (0 a 1).
+const ASPHALT_WET_DARKEN: float = 0.45
 
 ## Materiais e texturas já carregados (para não repetir o trabalho).
 static var _fixed_materials: Dictionary = {}
 static var _pbr_materials: Dictionary = {}
 static var _pbr_textures: Dictionary = {}
 static var _puddles: Array = []
+## Quanto é noite e quanto o chão está molhado (0 a 1), para o asfalto.
+static var _ground_night: float = 0.0
+static var _ground_wet: float = 0.0
+## O molhado aplicado por último nas poças (para não mexer nelas à toa).
+static var _puddles_wet: float = 0.0
 
 
 # --- Materiais realistas (PBR) -----------------------------------------------
@@ -93,6 +123,56 @@ static func pbr_material(folder: String, meters: float, tint: Color = Color.WHIT
 	return material
 
 
+# --- O chão: noite e chuva (19.5) --------------------------------------------
+
+## O material do asfalto da cidade (um só, para o chão inteiro).
+static func asphalt_material() -> StandardMaterial3D:
+	return pbr_material(ASPHALT_FOLDER, ASPHALT_METERS, ASPHALT_TINT)
+
+
+## A hora chegou (0 = dia, 1 = noite): o asfalto fica mais liso à noite.
+static func set_ground_night(night: float) -> void:
+	_ground_night = clampf(night, 0.0, 1.0)
+	_apply_ground()
+
+
+## Quanto o chão está molhado (0 = seco, 1 = encharcado): o asfalto fica mais
+## liso e mais escuro, e as poças crescem e escurecem.
+static func set_ground_wetness(wet: float) -> void:
+	_ground_wet = clampf(wet, 0.0, 1.0)
+	_apply_ground()
+
+
+static func ground_wetness() -> float:
+	return _ground_wet
+
+
+static func _apply_ground() -> void:
+	var asphalt := asphalt_material()
+	var dry := lerpf(ASPHALT_ROUGHNESS_DAY, ASPHALT_ROUGHNESS_NIGHT, _ground_night)
+	asphalt.roughness = lerpf(dry, ASPHALT_ROUGHNESS_WET, _ground_wet)
+	asphalt.albedo_color = ASPHALT_TINT.darkened(ASPHALT_WET_DARKEN * _ground_wet)
+	# As poças só mudam de 2 em 2% (são centenas de nós).
+	var at_end := (_ground_wet == 0.0 or _ground_wet == 1.0) and _ground_wet != _puddles_wet
+	if absf(_ground_wet - _puddles_wet) < 0.02 and not at_end:
+		return
+	_puddles_wet = _ground_wet
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	for node: Node in tree.get_nodes_in_group(PUDDLE_GROUP):
+		_wet_puddle(node as Decal, _ground_wet)
+
+
+static func _wet_puddle(puddle: Decal, wet: float) -> void:
+	if puddle == null:
+		return
+	var dry_size: Vector3 = puddle.get_meta(&"dry_size", puddle.size)
+	var growth := 1.0 + PUDDLE_WET_GROWTH * wet
+	puddle.size = Vector3(dry_size.x * growth, dry_size.y, dry_size.z * growth)
+	puddle.albedo_mix = lerpf(PUDDLE_ALBEDO_MIX_DRY, PUDDLE_ALBEDO_MIX_WET, wet)
+
+
 # --- Quarteirões -------------------------------------------------------------
 
 ## Chão do quarteirão: calçada de placas em volta e o miolo com piso de pedra,
@@ -134,9 +214,9 @@ static func add_park(parent: Node3D, lot: Transform3D) -> void:
 				Vector3(side * 1.2, 0.0, 0.0)))
 
 
-## Floreira de concreto (com colisão) com uma árvore (impostora: só uma foto,
-## veja TreeImpostor) e, se with_bushes, três arbustos baixos em volta (a praça
-## fica só com a árvore).
+## Floreira de concreto (com colisão) com uma árvore de rua e, se with_bushes,
+## três arbustos baixos em volta (a praça fica só com a árvore). A árvore entra
+## no TreeModel do "parent" (street_trees): um desenho por material para todas.
 static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerator, with_bushes: bool = true) -> void:
 	var planter := CSGBox3D.new()
 	planter.size = Vector3(1.8, 0.55, 1.8)
@@ -149,11 +229,26 @@ static func add_planter(parent: Node3D, base: Vector3, rng: RandomNumberGenerato
 		for spot in PLANTER_BUSH_SPOTS:
 			add_model(parent, BUSH, base + Vector3(spot.x, 0.55, spot.y),
 					BUSH_SCALE * rng.randf_range(0.8, 1.05), rng.randf() * TAU)
-	var tree := TreeImpostor.new()
-	tree.height = rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
-	tree.position = base + Vector3(0.0, 0.5, 0.0)
-	tree.rotation.y = rng.randf() * TAU  # cada árvore mostra outro lado
-	parent.add_child(tree)
+	var height := rng.randf_range(TREE_HEIGHT_RANGE.x, TREE_HEIGHT_RANGE.y)
+	var yaw := rng.randf() * TAU  # cada árvore mostra outro lado
+	var trees := street_trees(parent)
+	if trees != null and trees.model_height() > 0.0:
+		var basis := Basis(Vector3.UP, yaw).scaled(Vector3.ONE * height / trees.model_height())
+		var one: Array[Transform3D] = [Transform3D(basis, base + Vector3(0.0, 0.5, 0.0))]
+		trees.add(one)
+
+
+## O TreeModel das árvores de rua do "parent" (criado na primeira floreira).
+## null se o modelo não carregar.
+static func street_trees(parent: Node3D) -> TreeModel:
+	var trees := parent.get_node_or_null(STREET_TREES_NODE) as TreeModel
+	if trees == null:
+		trees = TreeModel.new()
+		trees.name = STREET_TREES_NODE
+		parent.add_child(trees)
+		var none: Array[Transform3D] = []
+		trees.setup(STREET_TREE, none)
+	return trees if trees.model_height() > 0.0 else null
 
 
 ## Banco simples: base de concreto e assento de madeira escura.
@@ -238,7 +333,7 @@ static func add_plaza(parent: Node3D) -> void:
 ## Poças nas beiras das ruas: manchas escuras e lisas (rugosidade 0) que
 ## refletem o céu, os postes e o néon. São Decals (projeções no chão),
 ## sorteadas sempre iguais (semente fixa). Nenhuma cai em "skip" (as ruas
-## cobertas por um bioma).
+## cobertas por um bioma). Com chuva, elas crescem (set_ground_wetness).
 static func add_puddles(parent: Node3D, half: float, skip: Array[Rect2] = []) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 90210
@@ -268,12 +363,16 @@ static func add_puddles(parent: Node3D, half: float, skip: Array[Rect2] = []) ->
 						var puddle := Decal.new()
 						puddle.texture_albedo = pair[0]
 						puddle.texture_orm = pair[1]
-						puddle.albedo_mix = 0.3
+						puddle.albedo_mix = PUDDLE_ALBEDO_MIX_DRY
 						puddle.normal_fade = 0.9  # só no chão (não no meio-fio)
 						puddle.cull_mask = 1
 						puddle.size = Vector3(length, 1.0, width) if along_x else Vector3(width, 1.0, length)
 						puddle.position = spot + Vector3(0.0, 0.2, 0.0)
 						puddle.rotation.y = turn
+						puddle.set_meta(&"dry_size", puddle.size)
+						puddle.add_to_group(PUDDLE_GROUP)
+						if _ground_wet > 0.0:
+							_wet_puddle(puddle, _ground_wet)
 						parent.add_child(puddle)
 				t += PUDDLE_STEP
 

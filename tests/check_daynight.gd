@@ -39,9 +39,20 @@ func _run() -> void:
 	Input.parse_input_event(f8)
 	await process_frame
 	await process_frame
+	# Desde a 19.4 as 3 horas passam em ADVANCE_SECONDS (a luz não pula).
+	var halfway: float = day_night.current_hour()
+	_check("o F8 passa as horas aos poucos (ainda andando)", day_night.is_advancing()
+			and fposmod(halfway - before, 24.0) < 2.9)
+	_check("o aviso já sai com a hora de chegada", messages.size() == 1
+			and absf(fposmod(float(messages[0]) - before, 24.0) - 3.0) < 0.05)
+	await create_timer(script.ADVANCE_SECONDS + 0.3).timeout
 	var after: float = day_night.current_hour()
 	print("   antes %.2f h -> depois %.2f h | HUD: '%s'" % [before, after, city.get_node("Player").get_hud().get_messages()])
-	_check("relógio andou 3 h", absf(fposmod(after - before, 24.0) - 3.0) < 0.05)
+	_check("relógio andou 3 h", absf(fposmod(after - before, 24.0) - 3.0) < 0.05 and not day_night.is_advancing())
+	# Mudar a hora por fora (menu, captura) interrompe a passagem.
+	day_night.advance_clock(3.0)
+	day_night.hour_offset = 0.0
+	_check("mudar a hora por fora para a passagem do F8", not day_night.is_advancing())
 
 	print("\n== à noite, postes e janelas acendem ==")
 	_set_hour(day_night, city, 23.0)
@@ -60,19 +71,28 @@ func _run() -> void:
 	_check("tudo apagado às 13h", lit == 0 and building._walls_material.get_shader_parameter("night") == 0.0)
 
 	print("\n== o dia com contraste (17.6), sem mexer na noite (17.5) ==")
+	# Desde a 19.4 os valores são dado (profiles/day_cycle.tres): o meio-dia e a
+	# noite do ciclo são os da 17.6 e da 17.5 (o check_day_cycle confere).
 	var env: Environment = day_night.environment
+	var noon: DayMoment = Profiles.day_cycle().sample(13.0)
+	var midnight: DayMoment = Profiles.day_cycle().sample(23.0)
+	_check("o meio-dia do ciclo tem o contraste da 17.6 (menos luz do céu, curva em S, cor viva)",
+			noon.ambient < 1.0 and noon.agx_contrast > Environment.new().tonemap_agx_contrast and noon.saturation > 1.0)
 	for sky: String in ["fotos", "sky3d"]:
 		city._apply_sky(sky)
-		var night_ambient: float = script.SKY3D_NIGHT_AMBIENT if sky == "sky3d" else script.NIGHT_AMBIENT
+		var night_ambient: float = midnight.ambient_sky3d if sky == "sky3d" else midnight.ambient
+		var day_ambient: float = noon.ambient_sky3d if sky == "sky3d" else noon.ambient
 		_set_hour(day_night, city, 13.0)
-		print("   %s 13h: ambiente %.2f | contraste %.2f | saturação %.2f" % [sky, env.ambient_light_energy,
-				env.tonemap_agx_contrast, env.adjustment_saturation])
+		print("   %s 13h: ambiente %.2f | contraste %.2f | saturação %.2f | momento %s" % [sky, env.ambient_light_energy,
+				env.tonemap_agx_contrast, env.adjustment_saturation, day_night.current_moment()])
 		_check("%s: de dia, menos luz do céu, curva em S e cor viva" % sky,
-				is_equal_approx(env.ambient_light_energy, script.DAY_AMBIENT)
-				and is_equal_approx(env.tonemap_agx_contrast, script.DAY_AGX_CONTRAST)
-				and env.adjustment_enabled and is_equal_approx(env.adjustment_saturation, script.DAY_SATURATION))
+				is_equal_approx(env.ambient_light_energy, day_ambient)
+				and is_equal_approx(env.tonemap_agx_contrast, noon.agx_contrast)
+				and env.adjustment_enabled and is_equal_approx(env.adjustment_saturation, noon.saturation))
+		_check("%s: às 13h o momento é o meio-dia" % sky, day_night.current_moment() == "meio-dia")
 		if sky == "sky3d":
-			_check("sky3d: o sol do dia mais forte", is_equal_approx(day_night.sky3d.sun_energy, script.SKY3D_SUN_ENERGY))
+			_check("sky3d: o sol do dia mais forte", is_equal_approx(day_night.sky3d.sun_energy, noon.sky3d_sun_energy)
+					and noon.sky3d_sun_energy > 1.0)
 		_set_hour(day_night, city, 23.0)
 		print("   %s 23h: ambiente %.2f | contraste %.2f | saturação %.2f" % [sky, env.ambient_light_energy,
 				env.tonemap_agx_contrast, env.adjustment_saturation])
@@ -80,9 +100,21 @@ func _run() -> void:
 				is_equal_approx(env.ambient_light_energy, night_ambient)
 				and is_equal_approx(env.tonemap_agx_contrast, Environment.new().tonemap_agx_contrast)
 				and is_equal_approx(env.adjustment_saturation, 1.0)
-				and is_equal_approx(env.tonemap_exposure, pow(2.0, script.NIGHT_EXPOSURE_EV)))
+				and is_equal_approx(env.tonemap_exposure, pow(2.0, midnight.exposure_ev)))
 		if sky == "sky3d":
 			_check("sky3d: à noite, o sol volta ao padrão", is_equal_approx(day_night.sky3d.sun_energy, 1.0))
+	city._apply_sky("fotos")
+
+	print("\n== o dia em momentos (19.4): a tarde é dourada também no Sky3D ==")
+	for sky: String in ["fotos", "sky3d"]:
+		city._apply_sky(sky)
+		_set_hour(day_night, city, 16.25)
+		var gold: Color = day_night.sky3d.sky.sun_light_color if sky == "sky3d" else day_night.sun.light_color
+		_check("%s: às 16h15 o momento é a tarde e o sol é dourado" % sky,
+				day_night.current_moment() == "tarde" and gold.b < gold.r * 0.75)
+		_set_hour(day_night, city, 9.0)
+		_check("%s: às 9h, a manhã, com a névoa mais leve que a do meio-dia" % sky,
+				day_night.current_moment() == "manha" and env.fog_density < noon.fog_density)
 	city._apply_sky("fotos")
 
 	print("\n== mistura da névoa do bioma ==")

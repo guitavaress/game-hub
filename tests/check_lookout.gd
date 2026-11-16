@@ -16,6 +16,10 @@ extends SceneTree
 ##     ainda acham lugar no disco, fora dos caminhos;
 ##   - poucos desenhos no mirante.
 ## (Scripts que usam autoloads vão por load(), sem o nome da classe.)
+## Liga as horas falsas (o RPG no nível 3). Revisão de risco da 19.9: o
+## check_lookout_horas.gd estende este teste e liga, para a montanha e o mirante
+## serem conferidos também com o bairro crescido.
+var fake_hours: bool = false
 var failures: int = 0
 var _deck_script: GDScript = load("res://worlds/city/biome/lookout_deck.gd")
 var _space: PhysicsDirectSpaceState3D
@@ -28,12 +32,14 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	load("res://tests/quiet_friends.gd").install(root)
-	load("res://tests/fake_library.gd").install(root, 200, false, true)
+	load("res://tests/fake_library.gd").install(root, 200, fake_hours, true)
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
 	while not city.is_city_ready():
 		await process_frame
+	if fake_hours:
+		_check("com as horas falsas, o RPG está no nível 3", city.district_level("rpg") == 3)
 	await physics_frame
 	await physics_frame
 	_space = city.get_world_3d().direct_space_state

@@ -2,6 +2,12 @@ extends SceneTree
 ## Teste da 15.3: a planta em setores (SectorLayout), só contas, sem a cidade.
 ## Confere casos fixos, os 200 jogos falsos (com e sem foco) e listas
 ## sorteadas, e imprime o mapa ASCII da planta dos 200 falsos.
+## Fase 19.9 (o bairro cresce com as horas): os níveis por bairro. Sem nível
+## (ou tudo 0) a planta é idêntica; com nível, as mesmas propriedades valem e o
+## bairro de nível 3 tem mais território. Revisão de risco da 19.9: com nível,
+## o anel R, as cunhas e a borda de cada bairro são os da planta sem nível (a
+## mureta, o metrô e a montanha não mudam), e nenhum bairro de nível 0 ganha
+## mais de 1 célula.
 
 const FIXTURE := "res://tests/fixtures/planta_atual.json"
 const RANDOM_LISTS := 300
@@ -32,7 +38,12 @@ func _run() -> void:
 		var counts: Array[int] = []
 		counts.assign(fixed[label])
 		_check_report(label, _verify(counts, -1))
+		var zeros: Array[int] = []
+		zeros.resize(counts.size())
+		_check("%s: sem nível = nível 0 = a planta de antes" % label,
+				_same_plan(SectorLayout.plan(counts), SectorLayout.plan(counts, -1, zeros)))
 	_check("lista vazia dá planta vazia", SectorLayout.plan([]).is_empty())
+	_check_demands()
 
 	print("\n-- 200 jogos falsos")
 	var ids: Array[String] = []
@@ -54,10 +65,13 @@ func _run() -> void:
 		print("  200 falsos%s: o maior bairro (%s) %s à borda" % [" com foco" if focus >= 0 else "",
 				ids[largest], "chega" if _reaches_border(plan, largest) else "não chega (vagas no anel de fora)"])
 		_print_map("200 falsos%s" % (", foco no RPG (norte em cima)" if focus >= 0 else ", sem foco"), plan, ids, fake)
+	_check_fake_levels(fake, ids, rpg)
 
 	print("\n-- %d listas sorteadas" % RANDOM_LISTS)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 15
+	var level_rng := RandomNumberGenerator.new()
+	level_rng.seed = 19
 	var problems: Dictionary = {}
 	var growth: Dictionary = {}
 	var reached: int = 0
@@ -67,12 +81,18 @@ func _run() -> void:
 		for d: int in rng.randi_range(1, 10):
 			counts.append(0 if rng.randf() < 0.1 else rng.randi_range(1, 40))
 		var focus: int = rng.randi_range(0, counts.size() - 1) if i % 2 == 1 else -1
-		var result: Dictionary = _verify(counts, focus)
+		# Metade das listas ganha níveis sorteados (19.9), com outro sorteio
+		# (o "rng" das listas continua igual ao de antes).
+		var levels: Array[int] = []
+		if i % 4 >= 2:
+			for d: int in counts.size():
+				levels.append(level_rng.randi_range(0, 3))
+		var result: Dictionary = _verify(counts, focus, levels)
 		for property: String in result["checks"]:
 			if not result["checks"][property]:
 				problems[property] = int(problems.get(property, 0)) + 1
 				if int(problems[property]) == 1:
-					print("  exemplo que falhou (%s): %s, foco %d" % [property, counts, focus])
+					print("  exemplo que falhou (%s): %s, foco %d, níveis %s" % [property, counts, focus, levels])
 		growth[result["growth"]] = int(growth.get(result["growth"], 0)) + 1
 		if counts.max() > 0 and _reaches_border(result["plan"], counts.find(counts.max())):
 			reached += 1
@@ -100,16 +120,23 @@ func _property_names() -> Array[String]:
 			"bissetrizes em ordem horária",
 			"mesma lista, mesma planta",
 			"R cresceu no máximo 2",
-			"foco centrado no norte"]
+			"foco centrado no norte",
+			"com nível: o mesmo R da planta sem nível",
+			"com nível: as mesmas cunhas e a mesma borda",
+			"com nível: nível 0 ganha no máximo 1 célula"]
 
 
 ## Confere todas as propriedades de uma planta. Devolve {"checks", "growth", "plan"}.
-func _verify(counts: Array[int], focus: int) -> Dictionary:
+## "levels" (19.9): o nível de horas de cada bairro (vazio = nenhum).
+func _verify(counts: Array[int], focus: int, levels: Array[int] = []) -> Dictionary:
 	var names: Array[String] = _property_names()
 	var checks: Dictionary = {}
 	for name: String in names:
+		# As comparações "com nível" só entram quando a lista tem níveis.
+		if levels.is_empty() and name.begins_with("com nível"):
+			continue
 		checks[name] = true
-	var plan: Array[DistrictSector] = SectorLayout.plan(counts, focus)
+	var plan: Array[DistrictSector] = SectorLayout.plan(counts, focus, levels)
 	var base: int = SectorLayout.base_ring(counts)
 	var ring: int = 0
 	for sector: DistrictSector in plan:
@@ -160,12 +187,78 @@ func _verify(counts: Array[int], focus: int) -> Dictionary:
 		if bisectors[(i + 1) % bisectors.size()] < bisectors[i]:
 			drops += 1
 	checks[names[7]] = bisectors.size() < 2 or drops == 1
-	checks[names[8]] = _same_plan(plan, SectorLayout.plan(counts, focus))
+	checks[names[8]] = _same_plan(plan, SectorLayout.plan(counts, focus, levels))
 	checks[names[9]] = ring - base <= 2
 	if focus >= 0 and focus < counts.size() and counts[focus] > 0:
 		var off_north: float = absf(wrapf(plan[focus].bisector(), -PI, PI))
 		checks[names[10]] = off_north <= atan2(0.5, float(ring)) + 1e-4
+	if not levels.is_empty():
+		# Com nível, comparado com a mesma lista sem nível (revisão da 19.9).
+		var plain: Array[DistrictSector] = SectorLayout.plan(counts, focus)
+		var plain_ring: int = 0
+		for sector: DistrictSector in plain:
+			for cell: Vector2i in sector.territory:
+				plain_ring = maxi(plain_ring, CityLayout.ring_of(cell))
+		checks[names[11]] = ring == plain_ring
+		var slices_ok: bool = plain.size() == plan.size()
+		var level0_ok: bool = true
+		for i: int in mini(plan.size(), plain.size()):
+			slices_ok = slices_ok and plan[i].wedge == plain[i].wedge 					and _sorted(plan[i].border_cells(ring)) == _sorted(plain[i].border_cells(plain_ring))
+			var level: int = levels[i] if i < levels.size() else 0
+			if level <= 0:
+				level0_ok = level0_ok and plan[i].territory.size() <= plain[i].territory.size() + 1
+		checks[names[12]] = slices_ok
+		checks[names[13]] = level0_ok
 	return {"checks": checks, "growth": ring - base, "plan": plan}
+
+
+## A demanda de cada nível (19.9): +25% dos quarteirões por nível, arredondado
+## para cima, e no mínimo uma vaga por nível; contagem 0 pede 0.
+func _check_demands() -> void:
+	var counts: Array[int] = [8, 1, 16, 0, 5]
+	var levels: Array[int] = [1, 3, 3, 3, 0]
+	var wanted: Array[int] = SectorLayout.demands(counts, levels)
+	_check("demanda por nível (%s)" % [wanted], wanted == ([10, 4, 28, 0, 5] as Array[int]))
+	_check("demanda sem nível = os quarteirões", SectorLayout.demands(counts) == counts)
+	var short: Array[int] = [2]
+	_check("lista de níveis curta: o que falta é 0", SectorLayout.demands(counts, short) == ([12, 1, 16, 0, 5] as Array[int]))
+	var wild: Array[int] = [9, -2, 0, 0, 0]
+	_check("nível fora de 0..3 é cortado", SectorLayout.demands(counts, wild) == ([14, 1, 16, 0, 5] as Array[int]))
+
+
+## Os 200 falsos com os níveis das horas falsas (RPG 3, Ação 2, Aventura 1, o
+## resto 0; veja tests/fake_library.gd): as propriedades valem com e sem foco,
+## o RPG tem mais território do que sem horas, e os de nível 0, juntos, não crescem.
+func _check_fake_levels(fake: Array[int], ids: Array[String], rpg: int) -> void:
+	var levels: Array[int] = []
+	var by_id: Dictionary = {"rpg": 3, "acao": 2, "aventura": 1}
+	for id: String in ids:
+		levels.append(by_id.get(id, 0))
+	_check_report("200 falsos com horas", _verify(fake, -1, levels))
+	_check_report("200 falsos com horas, foco no RPG", _verify(fake, rpg, levels))
+	var before: Array[DistrictSector] = SectorLayout.plan(fake, rpg)
+	var after: Array[DistrictSector] = SectorLayout.plan(fake, rpg, levels)
+	_check("com horas, o RPG (nível 3) tem mais território (%d → %d)" % [before[rpg].territory.size(), after[rpg].territory.size()],
+			after[rpg].territory.size() > before[rpg].territory.size())
+	_check("com horas, o RPG mantém os quarteirões", after[rpg].blocks.size() == fake[rpg])
+	# As fatias mudam de forma, então um bairro pequeno de nível 0 pode ganhar
+	# uma célula na troca; juntos, os de nível 0 cedem território aos que subiram.
+	var level0_before: int = 0
+	var level0_after: int = 0
+	for i: int in fake.size():
+		if fake[i] > 0 and levels[i] == 0:
+			level0_before += before[i].territory.size()
+			level0_after += after[i].territory.size()
+	_check("com horas, os de nível 0 juntos não crescem (%d → %d)" % [level0_before, level0_after],
+			level0_after <= level0_before)
+	# Nível 3 x nível 0: a fração de vagas do RPG é maior que a de qualquer bairro de nível 0.
+	var rpg_ratio: float = float(after[rpg].territory.size()) / fake[rpg]
+	var bigger_ratio: bool = true
+	for i: int in fake.size():
+		if fake[i] > 0 and levels[i] == 0:
+			bigger_ratio = bigger_ratio and rpg_ratio > float(after[i].territory.size()) / fake[i]
+	_check("com horas, o RPG tem mais território por quarteirão que os de nível 0", bigger_ratio)
+	_print_map("200 falsos com horas falsas, foco no RPG (norte em cima)", after, ids, fake)
 
 
 func _check_report(label: String, result: Dictionary) -> void:
@@ -190,6 +283,12 @@ func _connected(cells: Array[Vector2i]) -> bool:
 				pending.erase(cell + step)
 				queue.append(cell + step)
 	return pending.is_empty()
+
+
+func _sorted(cells: Array[Vector2i]) -> Array[Vector2i]:
+	var result: Array[Vector2i] = cells.duplicate()
+	result.sort()
+	return result
 
 
 func _same_plan(a: Array[DistrictSector], b: Array[DistrictSector]) -> bool:

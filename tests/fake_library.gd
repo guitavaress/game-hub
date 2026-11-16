@@ -13,9 +13,13 @@ extends RefCounted
 ## caso difícil para o metrô e para o mapa.
 ##
 ## Horas falsas (opcional): "install(root, 200, true)" dá a cada jogo minutos
-## jogados (a maioria com horas, uns 20% com zero) e uma "última vez". Sem o
-## terceiro argumento nada muda: o SteamLibrary segue lendo o localconfig.vdf
-## de verdade. Para casos exatos, use set_playtimes.
+## jogados (a maioria com horas, uns 20% com zero) e uma "última vez". Os
+## bairros recebem horas desiguais de propósito (HOUR_WEIGHTS: o RPG fica com
+## mais da metade), para a cidade ter bairros de níveis 0 a 3 (Fase 19.9).
+## Sem o terceiro argumento, as horas ficam DESCONHECIDAS (como sem usuário
+## logado; desde a 19.9): antes o SteamLibrary lia o localconfig.vdf de
+## verdade, e as horas reais dos App IDs da cache mudavam a planta da cidade
+## de um PC para outro. Para casos exatos, use set_playtimes.
 ##
 ## Uso (num script de teste, depois de "await process_frame"):
 ##   var library = load("res://tests/fake_library.gd")
@@ -24,6 +28,11 @@ extends RefCounted
 const FIRST_INVENTED_ID: int = 9000000
 ## Fatia de cada bairro (soma 1.0). Os que não aparecem aqui dividem o resto.
 const SHARES: Dictionary = {"rpg": 0.30, "acao": 0.15, "aventura": 0.12, "sobrevivencia": 0.10}
+## Peso das horas falsas por bairro (19.9): os minutos de cada jogo são
+## multiplicados pelo peso do bairro dele (quem não aparece aqui: 0,5). Com 200
+## jogos dá RPG no nível 3, Ação no 2, Aventura no 1 e o resto no 0 (a
+## Sobrevivência, sem nenhuma hora).
+const HOUR_WEIGHTS: Dictionary = {"rpg": 3.0, "acao": 3.0, "aventura": 2.0, "sobrevivencia": 0.0}
 
 
 ## Instala "count" jogos falsos. Devolve a lista (em ordem alfabética).
@@ -50,6 +59,8 @@ static func install(root: Node, count: int, fake_playtimes: bool = false, fixed_
 	_spread_tags(store, games)
 	if fake_playtimes:
 		_spread_playtimes(library, games)
+	else:
+		_apply_playtimes(library, {}, {})  # horas desconhecidas
 	return games
 
 
@@ -120,19 +131,24 @@ static func _apply_playtimes(library: Node, minutes: Dictionary, last_played: Di
 
 
 ## Horas inventadas (sempre as mesmas): cerca de 20% dos jogos com 0 min, o resto
-## entre 1 min e 400 h, e uma última vez nos últimos 90 dias.
+## entre 1 min e 400 h vezes o peso do bairro (HOUR_WEIGHTS), e uma última vez
+## nos últimos 90 dias.
 static func _spread_playtimes(library: Node, games: Array[SteamGame]) -> void:
 	var minutes: Dictionary = {}
 	var last_played: Dictionary = {}
 	var now := int(Time.get_unix_time_from_system())
+	var categories: Node = library.get_tree().root.get_node("GameCategories")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 13
 	for game in games:
 		if rng.randf() < 0.2:
 			minutes[game.app_id] = 0
 		else:
-			minutes[game.app_id] = rng.randi_range(1, 24000)
-			last_played[game.app_id] = now - rng.randi_range(0, 90 * 86400)
+			var weight: float = HOUR_WEIGHTS.get(categories.get_category_id(game.app_id), 0.5)
+			minutes[game.app_id] = roundi(rng.randi_range(1, 24000) * weight)
+			var played_at: int = now - rng.randi_range(0, 90 * 86400)
+			if minutes[game.app_id] > 0:
+				last_played[game.app_id] = played_at
 	_apply_playtimes(library, minutes, last_played)
 
 

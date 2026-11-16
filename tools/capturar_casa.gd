@@ -1,25 +1,34 @@
 extends SceneTree
 ## Tira as CAPTURAS da casa por pontos (Fase 17.1b). Rode COM JANELA:
 ##
-##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]
+##   godot --path . -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu] [tempo]
 ##
 ##   pasta      onde salvar os PNG. SEMPRE fora do repositório (as capturas
 ##              mostram capas de jogos, e o repositório é público)
 ##   jogos      0 = biblioteca de verdade; N = N jogos falsos (padrão: 200)
-##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22)
+##   horas      lista separada por vírgula, de 0 a 24 (padrão: 13,22); hora
+##              quebrada vira minutos no nome (6.5 dá loft_janela_06h30.png)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim.
 ##   tema       loft | cabana (padrão: loft). O do usuário volta no fim.
-##   vista      tema | retrato | floresta (padrão: tema, a vista do perfil). Fase
-##              17.9.1: troca só nesta captura a vista da janela, para comparar
-##              (retrato = o mundo de verdade pelo WindowView; floresta = o
-##              desenho da cabana). Nada é gravado no perfil. Com outra vista
-##              que não a do tema, os arquivos levam o nome dela (cabana-retrato_...).
+##   vista      tema | retrato (padrão: tema, a vista do perfil). Fase 17.9.1:
+##              troca só nesta captura a vista da janela (retrato = o mundo de
+##              verdade pelo WindowView). Nada é gravado no perfil. Com outra
+##              vista que não a do tema, os arquivos levam o nome dela
+##              (cabana-retrato_...). A vista "floresta" (o desenho da cabana)
+##              saiu na 19.3: a cabana usa o retrato desde a 17.9.2.
+##   céu        fotos | sky3d (padrão: o do usuário, que volta no fim; Fase 19.4)
+##   tempo      limpo | nublado | chuva_fraca | chuva_forte (padrão: limpo;
+##              Fase 19.6.1): o tempo lá fora, forçado pelo WeatherDirector.
+##              Fora do limpo, o nome leva o tempo (loft-chuva_forte_janela_13h)
 ##
 ## Pontos (um PNG por ponto e hora, ex.: loft_nascer_22h.png):
 ##   nascer   posição e giro de nascer da disposição atual
 ##   janela   de frente, a cerca de 3 m, com o janelão inteiro
 ##   sofa     do meio da sala para o canto de estar do tema
 ##   estante  de frente para as capas, na âncora da disposição atual
+##   perto    a 1,2 m do meio da janela (Fase 19.6.1: a vista de perto)
+##   oeste    encostado na parede oeste, a 2,7 m da janela, olhando para ela
+##   leste    o mesmo na parede leste (os dois cantos: a vista de lado)
 ##
 ## Para montar uma amostra sem mexer no jogo, estenda este script
 ## (extends "res://tools/capturar_casa.gd"), monte-a em _prepare(city, home)
@@ -33,13 +42,15 @@ const WINDOW_WAIT_SECONDS: float = 8.0
 ## As vistas da janela que dá para escolher na captura (Fase 17.9.1).
 const VIEWS: Dictionary[String, String] = {
 	"retrato": "res://worlds/home/home_window.gdshader",
-	"floresta": "res://worlds/home/home_window_forest.gdshader",
 }
 
 var _original_settings: Dictionary = {}
 ## A vista do perfil antes da troca (vazio = nada trocado) e de qual tema.
 var _original_view: String = ""
 var _view_theme: String = ""
+## Um rótulo a mais no nome dos arquivos, que uma amostra pode pôr no _prepare
+## (Fase 19.2: "novo" dá cabana-novo_janela_13h.png). Vazio = nada.
+var _mode_label: String = ""
 
 
 func _initialize() -> void:
@@ -50,7 +61,7 @@ func _run() -> void:
 	await process_frame
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.is_empty():
-		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista]")
+		push_error("Uso: -s tools/capturar_casa.gd -- <pasta> [jogos] [horas] [qualidade] [tema] [vista] [céu] [tempo]")
 		quit(1)
 		return
 	var folder: String = _absolute_folder(String(args[0]))
@@ -65,12 +76,14 @@ func _run() -> void:
 	var quality: String = String(args[3]) if args.size() > 3 else "alta"
 	var theme: String = String(args[4]) if args.size() > 4 else "loft"
 	var view: String = String(args[5]) if args.size() > 5 else "tema"
+	var sky: String = String(args[6]) if args.size() > 6 else ""
+	var weather: String = String(args[7]) if args.size() > 7 else "limpo"
 	if not _folder_allowed(folder):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
 		quit(1)
 		return
-	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)):
-		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana e vista tema|retrato|floresta.")
+	if count < 0 or quality not in ["leve", "media", "alta"] or theme not in ["loft", "cabana"] 			or (view != "tema" and not VIEWS.has(view)) or sky not in ["", "fotos", "sky3d"] 			or weather not in ["limpo", "nublado", "chuva_fraca", "chuva_forte"]:
+		push_error("Use jogos >= 0, qualidade leve|media|alta, tema loft|cabana, vista tema|retrato, céu fotos|sky3d e tempo limpo|nublado|chuva_fraca|chuva_forte.")
 		quit(1)
 		return
 	if DisplayServer.get_name() == "headless":
@@ -82,8 +95,10 @@ func _run() -> void:
 		quit(1)
 		return
 
-	_choose_settings(quality, theme)
+	_choose_settings(quality, theme, sky)
 	var prefix: String = theme if view == "tema" else "%s-%s" % [theme, view]
+	if weather != "limpo":
+		prefix += "-" + weather
 	if view != "tema":
 		_choose_view(theme, VIEWS[view])
 	if count > 0:
@@ -123,6 +138,9 @@ func _run() -> void:
 	twin.environment = camera.environment
 	city.add_child(twin)
 	twin.make_current()
+	var director: Node = city.get_node_or_null("WeatherDirector")
+	if director != null:
+		director.call("force", weather)
 	_prepare(city, home)
 	var day_night: Node = city.get("_day_night")
 	var points: Array[Dictionary] = _points(home)
@@ -142,7 +160,8 @@ func _run() -> void:
 			for i: int in SETTLE_FRAMES:
 				await process_frame
 			await RenderingServer.frame_post_draw
-			var file: String = "%s/%s_%s_%02dh.png" % [folder, prefix, point["name"], int(hour)]
+			var label: String = prefix if _mode_label.is_empty() else "%s-%s" % [prefix, _mode_label]
+			var file: String = "%s/%s_%s_%s.png" % [folder, label, point["name"], _hour_label(hour)]
 			if frame.get_texture().get_image().save_png(file) != OK:
 				push_error("Não consegui salvar: " + file)
 				failed = true
@@ -153,11 +172,15 @@ func _run() -> void:
 
 
 ## Guarda as escolhas antes da amostra; a restauração serve também aos testes.
-func _choose_settings(quality: String, theme: String) -> void:
+## Céu vazio = o do usuário (nada muda).
+func _choose_settings(quality: String, theme: String, sky: String = "") -> void:
 	var config: Node = root.get_node("AppConfig")
-	_original_settings = {"quality": config.call("get_quality"), "theme": config.call("get_home_theme")}
+	_original_settings = {"quality": config.call("get_quality"), "theme": config.call("get_home_theme"),
+		"sky": config.call("get_sky")}
 	config.call("set_quality", quality)
 	config.call("set_home_theme", theme)
+	if not sky.is_empty():
+		config.call("set_sky", sky)
 
 
 ## Troca a vista da janela do tema só nesta captura: o perfil carregado muda na
@@ -178,6 +201,7 @@ func _restore_settings() -> void:
 	var config: Node = root.get_node("AppConfig")
 	config.call("set_quality", _original_settings["quality"])
 	config.call("set_home_theme", _original_settings["theme"])
+	config.call("set_sky", _original_settings["sky"])
 	_original_settings.clear()
 
 
@@ -229,6 +253,13 @@ func _points(home: Node3D) -> Array[Dictionary]:
 	local_eye.x = clampf(local_eye.x, -room.x / 2.0 + float(home.get("WALL_THICKNESS")), room.x / 2.0 - float(home.get("WALL_THICKNESS")))
 	points.append({"name": "estante", "eye": home.to_global(local_eye),
 		"target": shelf.to_global(Vector3(0.0, EYE_HEIGHT, float(home.get("WALL_THICKNESS"))))})
+	# Fase 19.6.1: a vista de perto e de lado (onde a lente do retrato aperta).
+	var glass: Vector3 = window + Vector3.BACK * 0.01
+	points.append({"name": "perto", "eye": home.to_global(Vector3(window.x, EYE_HEIGHT, window.z + 1.2)),
+		"target": home.to_global(glass)})
+	for side: Array in [["oeste", -1.0], ["leste", 1.0]]:
+		var corner := Vector3(float(side[1]) * (room.x / 2.0 - 0.9), EYE_HEIGHT, window.z + 2.7)
+		points.append({"name": side[0], "eye": home.to_global(corner), "target": home.to_global(glass)})
 	return points
 
 
@@ -244,6 +275,14 @@ func _wait_window_view(home: Node) -> void:
 	await process_frame
 	while not bool(view.call("is_settled")) and Time.get_ticks_msec() - started < WINDOW_WAIT_SECONDS * 1000.0:
 		await process_frame
+
+
+## A hora no nome do arquivo: "13h" (hora cheia) ou "06h30" (Fase 19.4).
+static func _hour_label(hour: float) -> String:
+	var minutes: int = roundi(hour * 60.0)
+	if minutes % 60 == 0:
+		return "%02dh" % floori(minutes / 60.0)
+	return "%02dh%02d" % [floori(minutes / 60.0), minutes % 60]
 
 
 func _set_hour(day_night: Node, hour: float) -> void:

@@ -6,7 +6,9 @@ extends SceneTree
 ##   - os limites batem com o tamanho do mapa;
 ##   - area_name_at acerta a porta de cada jogo;
 ##   - (15.4) as zonas cobrem a cidade; cada bairro é contíguo e chega à borda;
-##   - a faixa de luz conta o destino e avisa quando muda (route_changed).
+##   - a faixa de luz conta o destino e avisa quando muda (route_changed);
+##   - (19.9) com horas falsas, o bairro de nível 3 ganha território, o de
+##     nível 0 não cresce, e a planta continua contígua e com borda.
 
 var failures := 0
 var _route_signals := 0
@@ -29,6 +31,19 @@ func _run() -> void:
 	library_script.install(root, 200)
 	city = await _new_city()
 	await _check_map(city, false)
+	var without_hours: Dictionary = _town_zone_counts()
+	var levels_ok := true
+	for id: String in without_hours:
+		levels_ok = levels_ok and city.district_level(id) == 0
+	_check("sem horas, todo bairro no nível 0", levels_ok and not without_hours.is_empty())
+	city.queue_free()
+	await process_frame
+
+	print("== 200 jogos falsos, com horas falsas (19.9) ==")
+	library_script.install(root, 200, true)
+	city = await _new_city()
+	await _check_map(city, false)
+	_check_growth(city, without_hours)
 
 	print("\nRESULTADO: %s" % ("TUDO OK" if failures == 0 else "%d FALHA(S)" % failures))
 	quit()
@@ -156,6 +171,44 @@ func _check_zones(city: Node, map: Node, areas: Array, bounds: Rect2, games: Arr
 			wrong += 1
 	_check("zone_id_at acerta a porta de cada jogo (erros: %d)" % wrong, wrong == 0)
 	_check("na praça não há zona", map.zone_id_at(Vector3.ZERO).is_empty())
+
+
+## Fase 19.9: com as horas falsas (o RPG com mais da metade), os níveis vêm do
+## LibraryStats, o bairro de nível 3 tem mais território do que sem horas e o
+## de nível 0 não ganha nada. "before" = as zonas de cada bairro sem horas.
+func _check_growth(city: Node, before: Dictionary) -> void:
+	var after: Dictionary = _town_zone_counts()
+	var expected: Dictionary = {"rpg": 3, "acao": 2, "aventura": 1, "sobrevivencia": 0}
+	var levels_ok := true
+	for id: String in expected:
+		levels_ok = levels_ok and city.district_level(id) == expected[id]
+	_check("os níveis das horas falsas: RPG 3, Ação 2, Aventura 1, Sobrevivência 0", levels_ok)
+	_check("o RPG (nível 3) ganhou território (%d → %d zonas)" % [before.get("rpg", 0), after.get("rpg", 0)],
+			int(after.get("rpg", 0)) > int(before.get("rpg", 0)))
+	# As fatias mudam de forma (um bairro pequeno pode ganhar uma célula); juntos,
+	# os de nível 0 cedem território aos que subiram.
+	var level0_before := 0
+	var level0_after := 0
+	for id: String in before:
+		if city.district_level(id) == 0:
+			level0_before += int(before[id])
+			level0_after += int(after.get(id, 0))
+	_check("os bairros de nível 0, juntos, não cresceram (%d → %d zonas)" % [level0_before, level0_after],
+			level0_after <= level0_before)
+	var rpg_blocks: int = (city._district_cells["rpg"] as Array).size()
+	_check("o RPG tem vagas além dos quarteirões (%d zonas, %d quarteirões)" % [after.get("rpg", 0), rpg_blocks],
+			int(after.get("rpg", 0)) >= rpg_blocks + 3)
+
+
+## Quantas zonas (dentro da mureta) cada bairro tem no mapa de agora.
+func _town_zone_counts() -> Dictionary:
+	var map = get_nodes_in_group("world_map")[0]
+	var data: Dictionary = map.get_map_data()
+	var bounds: Rect2 = data["bounds"]
+	var counts: Dictionary = {}
+	for area: Dictionary in data["areas"]:
+		counts[area["id"]] = (area["zones"] as Array).filter(func(r: Rect2) -> bool: return bounds.encloses(r)).size()
+	return counts
 
 
 ## Todas as células ligadas por lado ou canto (8 vizinhos)?

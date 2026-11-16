@@ -108,7 +108,7 @@ painel/        o painel visual do cofre (React + Motion, no Docker; http://local
   - **Um script refazível por modelo** em `tools/blender/` (as peças comuns em `comum.py`), sem `.blend` no repositório. O `.glb` vai para `assets/models/<grupo>/`, e entra junto o `.import` que a Godot gerar.
   - **Materiais compartilhados:** uma malha por material, com o nome dele (`stone`, `wood`...), para a Godot juntar as peças num desenho por material. As texturas PBR do projeto servem a todos, e nada de textura nova por modelo sem necessidade.
   - **Orçamento:** cerca de 300 KB por peça pequena e 800 KB por peça grande, com a malha reduzida só onde a forma não muda. **A qualidade vem antes:** se reduzir piorar a forma visível, o orçamento cede, e isso fica registrado no plano.
-  - **Plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
+  - **Árvores** são feitas por script (`tools/blender/gerar_arvore.py`; dono, 2026-11-13, depois da amostra da 19.2). As **outras plantas** vêm, de preferência, de modelos CC0 prontos (Poly Haven), pedidos antes ao dono: por script, ficam fracas.
   - Fora do Blender, até virar fase própria: os prédios da cidade e o terreno.
 
 ## Addons (código de terceiros)
@@ -123,20 +123,18 @@ Avaliação e candidatos: [docs/design/addons-2026-10-13.md](docs/design/addons-
 ## Como trabalhar
 
 ### Modelos e esforço
-Desde 2026-10-24 o projeto usa **Claude Code (assinatura Claude Pro) e Codex CLI (assinatura ChatGPT Plus)**, cada um no próprio binário oficial, com este `AGENTS.md` compartilhado e o MCP da Godot nos dois. O Claude Code chama o Codex pelo plugin `codex-plugin-cc` (`/codex:review`, `/codex:adversarial-review`, `/codex:rescue`). O OpenCode saiu do fluxo (histórico em [docs/OPENCODE.md](docs/OPENCODE.md)).
+Desde 2026-11-13 o projeto usa o **Claude Code (assinatura Claude Pro)** como lado principal e o **OpenCode com modelos grátis** na trilha paralela, com este `AGENTS.md` compartilhado. A assinatura ChatGPT Plus acabou nesse dia: o **Codex CLI saiu do fluxo** (os modelos Astra, Sol e Terra são recusados na conta) e o plugin `codex-plugin-cc` (`/codex:review` etc.) não é mais usado. O período OpenCode/OpenAI anterior está em [docs/OPENCODE.md](docs/OPENCODE.md).
 
-Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orquestradas pelo **Orca** (veja "Sessões e contexto"), para usar as duas assinaturas ao mesmo tempo. Os nomes são os modelos de verdade:
+As fases seguem em **duas trilhas** orquestradas pelo **Orca** (veja "Sessões e contexto"). Os nomes são os modelos de verdade:
 
 | Nome | Modelo | Lado | Papel |
 |---|---|---|---|
-| **Opus** | Claude Opus 5.5 | Claude Pro | planejar; integração difícil, geometria, shaders; coordenar a trilha principal; revisar o que o GPT fez |
+| **Opus** | Claude Opus 5.5 | Claude Pro | planejar; integração difícil, geometria, shaders; coordenar a trilha principal; revisar o que a trilha paralela fez; a revisão de risco (um segundo Opus, só de leitura) |
 | **Sonnet** | Claude Sonnet 5.5 | Claude Pro | subetapas delimitadas; rodar e relatar a bateria |
-| **Astra** | GPT-6-Astra | ChatGPT Plus | partes difíceis da trilha paralela; revisões de maior risco do que o Claude fez |
-| **Sol** | GPT-6.1-Sol | ChatGPT Plus | subetapas delimitadas da trilha paralela; revisões comuns |
-| **Terra** | GPT-5.6-Terra | ChatGPT Plus | texto mecânico, docs, rodar e relatar a bateria |
+| **Grátis** | o modelo grátis do OpenCode aprovado no teste da 19.11 (primeiro candidato: `omniroute/free-coding`, o gateway local do dono; reserva: um modelo `-free` do OpenCode Zen) | sem custo | **em teste:** subetapas pequenas e mecânicas da trilha paralela, sempre revisadas pelo Opus antes do merge |
 | **Haiku** | Claude Haiku 5.5 (id `claude-haiku-5-5`) | Claude Pro | tarefas mecânicas e de leitura: explorar arquivos e referências (só leitura), rodar a bateria e relatar, atualizar README e ROADMAP, marcar os [x] do plano, conferir licenças e créditos |
 
-**Fluxo congelado (dono, 2026-11-02):** este fluxo (Claude Code + Codex + Orca) não muda por 3 fases. Isso quer dizer: nenhuma ferramenta, orquestrador ou modelo novo (o Paperclip fica fora). Cada troca custava sessões só de documentação.
+**Fluxo congelado (dono, 2026-11-02; refeito em 2026-11-13):** o fluxo (Claude Code + OpenCode grátis + Orca) não muda por 3 fases. Isso quer dizer: nenhuma ferramenta, orquestrador ou modelo pago novo (o Paperclip e o OpenRouter pago ficam fora). Cada troca custava sessões só de documentação. A troca de 2026-11-13 foi forçada: a assinatura do ChatGPT acabou.
 - **Exceção: o REA** (engenharia reversa: MCP `rea` + skill `reverse-engineer-anything`), instalado pelo dono para o estudo do V-Sekai. Ele fica **só no desenvolvimento**, nunca no hub.
 - **Exceção: o Blender** (dono, 2026-11-04), a partir do teste da 17.7.1.
   - É a versão LTS, instalada pelo winget (`BlenderFoundation.Blender`; hoje a 5.2.3, em `C:\Program Files\Blender Foundation\Blender 5.2\`), fora do repositório e só no desktop.
@@ -154,12 +152,12 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 |---|---|---|---|
 | Planejar uma fase, arquitetura | Opus (modo plano do Claude Code) | high | **nova** |
 | Coordenar a fase | Opus | medium | uma por fase; nova quando ficar longa |
-| Subetapa **grande** (veja "Fluxo de uma fase") | Opus, ou Astra na trilha do Codex | high | **nova** |
-| Subetapa **pequena** | Sonnet, ou Sol na trilha do Codex, como subagente | medium | a do coordenador |
-| Revisão cruzada (**só nas grandes de risco**) | o Astra revisa o Claude (`/codex:review` ou `/codex:adversarial-review`); o Opus revisa o GPT (diff da branch, só leitura, antes do merge) | high | a do coordenador |
+| Subetapa **grande** (veja "Fluxo de uma fase") | Opus | high | **nova** |
+| Subetapa **pequena** | Sonnet, como subagente ou worker; ou o modelo grátis, na trilha paralela (OpenCode) | medium | a do coordenador |
+| Revisão cruzada (**só nas grandes de risco**) | um **segundo Opus, numa sessão separada e só de leitura** (worker do Orca, sem o contexto de quem escreveu), sobre o commit ou o diff | high | worker próprio |
 | Revisão visual com capturas | Opus | medium | a do coordenador |
 | Explorar arquivos e referências, só leitura | subagente Explore, com o Haiku 5.5 | low | a do coordenador |
-| Tarefa mecânica, texto, rodar e relatar testes | Haiku ou Terra, como subagente | low | a do coordenador |
+| Tarefa mecânica, texto, rodar e relatar testes | Haiku, como subagente | low | a do coordenador |
 
 - **Sessão nova** em três casos:
   - ao planejar uma fase;
@@ -168,12 +166,16 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 
   No resto, siga na sessão do coordenador. Sessão nova relê o AGENTS.md e o plano, e sessão longa encarece cada mensagem. O subagente trabalha num contexto próprio e devolve só o resultado.
 - O plano de cada fase diz, por subetapa, o tamanho (grande ou pequena), o modelo, o esforço, a trilha e, nas grandes de risco, quem revisa.
-- **Na trilha do Codex**, o Astra fica para as subetapas difíceis e as revisões de risco, e o Sol faz o resto: o ChatGPT Plus bateu no limite em 2026-11-02.
+- **Na trilha do OpenCode (modelo grátis), em teste desde a 19.11:**
+  - só subetapas **pequenas**, de escopo fechado, com os arquivos e os testes listados no prompt. Nunca shader, geometria, integração, `.tres`, arquitetura, revisão de risco nem revisão visual;
+  - **tudo o que ela entrega passa pelo Opus** (diff da branch, só leitura) antes do merge, e a bateria roda na trilha A;
+  - modelo grátis pode guardar o que recebe: o prompt nunca leva nada de `user://`, do `config.cfg`, chave, SteamID, nome de amigo ou caminho pessoal (o código do repositório é público e pode ir);
+  - se o modelo errar a mesma coisa duas vezes ou entregar abaixo do Sonnet, a subetapa volta para o Sonnet na trilha A e o teste fica registrado no plano. Sem modelo aprovado, a trilha paralela é um segundo worker do Claude num worktree.
 - **O Jev (TypeSafe) está parado** (ROADMAP, "Parados"): sem tarefa nova e sem gasto.
-- Os rótulos dos planos do período OpenCode (Astra, Sol, Luna, Spark) já eram modelos GPT: Luna (GPT-6-Luna) e Spark (GPT-5.3-Codex-Spark) saíram do fluxo.
-- O Haiku **não** é usado em shaders, geometria, integração, revisão visual com capturas, mudanças de arquitetura, nada que mexa em `.tres`, nem na revisão de risco do trabalho do outro lado.
+- Os rótulos dos planos antigos (Astra, Sol, Terra, Luna, Spark) são modelos GPT do período Codex/OpenCode pago: nenhum está disponível desde 2026-11-13. Onde um plano em andamento ainda os cita, vale a troca: Astra → Opus; Sol → Sonnet (ou o modelo grátis, se for pequena e mecânica); Terra → Haiku.
+- O Haiku **não** é usado em shaders, geometria, integração, revisão visual com capturas, mudanças de arquitetura, nada que mexa em `.tres`, nem na revisão de risco.
 - O Haiku só edita texto que nenhum outro agente esteja mexendo (subagente sozinho não isola arquivos), e o que ele entrega passa por uma conferência rápida de quem o chamou (modelo menor erra mais em contexto longo). É um teste: na próxima subetapa de texto, comparar com o Sonnet.
-- Cota: Claude Pro e ChatGPT Plus têm janelas de 5 h. O ideal é sempre uma sessão de cada lado trabalhando; a revisão cruzada roda enquanto a outra trilha implementa. Se um lado esgotar, a trilha dele pausa (ou `/codex:transfer` leva a sessão ao Codex). Mantenha a *review gate* do Codex **desligada** (gasta cota).
+- Cota: só o Claude Pro tem cota (janelas de 5 h), e agora tudo o que é difícil sai dela. Por isso: no máximo **dois workers grandes do Claude por vez** (dono, 2026-11-15; antes era um), em arquivos diferentes, cada um na sua trilha; a revisão de risco roda depois da entrega, e não junto; o que for pequeno e mecânico vai para o Haiku ou para a trilha grátis. Se a cota esgotar, a fase pausa.
 - Dois erros iguais pedem replanejamento. `xhigh`/`max`/`ultra` só para um bloqueio isolado, com hipótese e reprodução; nunca como padrão.
 
 ### Fluxo de uma fase
@@ -202,17 +204,19 @@ Desde 2026-10-25, os **dois lados implementam**, em duas trilhas paralelas orque
 - **Orquestrador (Orca, Nimbalyst):** os botões de Commit e Merge **não são usados**. O Commit pode usar o e-mail pessoal do git global, e o Merge pula a bateria e o plano. O commit é feito pelo agente, com o e-mail noreply, e o merge é feito pela trilha A, depois da revisão e com a bateria.
 - **Disparar as trilhas de uma sessão (CLI `orca`, com o Orca aberto; `orca status` confere):**
   - escreva o prompt de cada trilha num arquivo fora do repositório (pasta temporária da sessão);
-  - **B:** `orca worktree create --repo path:C:/Projetos/game-hub --name <nome> --branch worktree/<nome> --base-branch fase-N --agent codex --model gpt-6.1-sol --effort medium --prompt "$(cat <arquivo>)" --json`. O `--base-branch` tem que ser a branch da fase, nunca a `main`. Troque o modelo pelo do plano (`gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`);
+  - **B (OpenCode, modelo grátis):** `orca worktree create --repo path:C:/Projetos/game-hub --name <nome> --branch worktree/<nome> --base-branch fase-N --agent opencode --model <provedor/modelo> --prompt "$(cat <arquivo>)" --json`. O `--base-branch` tem que ser a branch da fase, nunca a `main`. O modelo é o aprovado no teste (`opencode models` lista os disponíveis). Para uma B feita pelo Claude, troque por `--agent claude --model claude-sonnet-5-5 --effort medium`;
   - **A:** `orca agent launch --agent claude --worktree path:C:/Projetos/game-hub --model claude-opus-5-5 --effort medium --prompt "$(cat <arquivo>)" --json`;
   - o prompt da B começa conferindo a base (`git merge-base --is-ancestor <hash-base> HEAD`) e lista os arquivos dela, **incluindo os testes**;
   - acompanhar: `orca terminal read --terminal <handle>`; responder a uma pergunta: `orca terminal send --terminal <handle> --text "..." --enter`;
-  - o Orca abre o Claude com `--dangerously-skip-permissions` e o Codex em modo YOLO. A tela de confirmação do Claude é aceita **pelo dono**, nunca pelo agente;
+  - o Orca abre o Claude com `--dangerously-skip-permissions`. A tela de confirmação do Claude é aceita **pelo dono**, nunca pelo agente;
   - **só no Orca: feche as sessões finalizadas antes de abrir as novas.** `orca terminal list` mostra as abertas, e `orca terminal close --terminal <handle> --tab` fecha uma. Feche só as deste projeto que já entregaram, nunca a do coordenador que está disparando. O worktree da B fica até o merge, mesmo com a sessão dele fechada;
   - **subetapa nova para a B depois de um merge:** um worktree novo (`<nome>2`, `<nome>3`...) criado da branch da fase, para já ter o que a A juntou. Não reaproveite o worktree antigo;
   - **limpeza (padrão):** depois que a A juntou a branch da B, apague o worktree e a branch. Antes, confira `git merge-base --is-ancestor worktree/<nome> fase-N` e `git -C <pasta do worktree> status --short` vazio; depois rode `orca worktree rm --worktree name:<nome> --delete-branch`. Worktree com trabalho em andamento não se apaga;
   - sobras do Orca em `C:/Users/gui_t/orca/workspaces/.orca-preparing/` (travadas, com HEAD solto) só se apagam se o processo do Orca que as travou não existir mais (o número depois de `orca-create-preparation:v1:` em `.git/worktrees/*/locked`) e se estiverem limpas: `git worktree unlock <pasta>`, `git worktree remove <pasta>` e `git worktree prune`.
 - **Prompt da próxima sessão:** toda entrega termina dizendo se o próximo passo é sessão nova ou não e com um prompt pronto por trilha ativa, com a ferramenta, o modelo e o esforço.
 - **Uma bateria por vez:** o `user://` (com o `config.cfg` e o cache) é um só para todos os worktrees. O `run_tests.sh` tem trava só onde há `flock` (Linux); **no Windows (Git Bash) roda sem trava**. Um `godot -s` rodado à mão (inclusive as capturas) nunca espera. Por isso, antes de rodar testes ou capturas, confira se há Godot de teste rodando (PowerShell: `Get-CimInstance Win32_Process -Filter "Name like 'Godot%'" | Select-Object ProcessId,CommandLine`; as de teste têm `-s` ou `--headless` na linha; o editor aberto não conta) e espere ela acabar.
+  - **A fila (dono, 2026-11-15):** as trilhas não combinam a vez entre si. O `run_tests.sh` já entra na fila sozinho, no Windows e no Linux. **Capturas, medidas e qualquer `godot -s` à mão rodam por `bash tools/com_trava.sh <comando...>`**, que usa a mesma trava: quem chega com a Godot ocupada avisa e espera sozinho. A conferência à mão acima só vale para uma Godot aberta fora da fila.
+- **Trilhas em paralelo e a bateria (dono, 2026-11-15):** a trilha que trabalha num worktree roda só os testes do que mudou, mesmo numa subetapa grande, e faz as próprias capturas e medidas. A **bateria completa roda uma vez por merge**, feita pela sessão coordenadora no checkout principal. No checkout principal nada muda: a subetapa grande roda a bateria completa antes do commit.
 
 ### Testes
 - **Bateria completa** (`bash tests/run_tests.sh`, até `RESULTADO GERAL: TUDO OK`): antes do commit de uma subetapa **grande**, antes de cada merge e ao fim da fase. Na **pequena**, rode só os testes do que mudou (`bash tests/run_tests.sh check_<nome> ...`). Commit **só de docs** dispensa a bateria. No PowerShell, use `& 'C:\Program Files\Git\bin\bash.exe' tests/run_tests.sh` (o `bash` do PATH pode abrir o WSL).

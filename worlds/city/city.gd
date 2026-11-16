@@ -66,6 +66,11 @@ const METRO_MAX_PER_DISTRICT: int = 4
 ## A CASA (Fase 9): fica longe da cidade (fora de qualquer tamanho de
 ## cidade), ao sul. Ninguém a vê de fora: entra-se pela porta "Casa" da praça.
 const HOME_ORIGIN: Vector3 = Vector3(0.0, 0.0, 1500.0)
+## A chuva da cidade (19.6): o nó que mostra o tempo fora dos bairros com
+## clima próprio. E o nome de cada tempo no aviso do tempo acelerado.
+const CITY_WEATHER_NAME: String = "DistrictWeather_cidade"
+const WEATHER_NAMES: Dictionary = {"limpo": "limpo", "nublado": "nublado",
+		"chuva_fraca": "chuva fraca", "chuva_forte": "chuva forte"}
 ## Porta "Casa" na praça: na beira sul, a leste do eixo, de frente para o
 ## norte (o chafariz). Fica fora dos caminhos de quem anda pela praça (os
 ## eixos que levam às quatro ruas e o lado sul do chafariz), longe da estação
@@ -103,9 +108,6 @@ const SKY_NIGHT: Texture2D = preload("res://assets/polyhaven/hdri/rogland_clear_
 ## (ganho), e o brilho do sol fica em u = 0,607 da foto panorâmica.
 const SKY_SUNSET_GAIN: float = 0.27
 const SKY_SUNSET_GLOW_U: float = 0.607
-## Rugosidade do asfalto: seco de dia, "molhado" (reflete o néon) à noite.
-const ASPHALT_ROUGHNESS_DAY: float = 0.55
-const ASPHALT_ROUGHNESS_NIGHT: float = 0.18
 ## Som do aviso "A cidade está pronta" (Kenney Music Jingles, CC0).
 const CITY_READY_SOUND: AudioStream = preload("res://assets/kenney/music-jingles/jingles_PIZZI00.ogg")
 
@@ -124,6 +126,8 @@ var _plaza_friends: Array[FriendNpc] = []
 var _plaza_reserved: Array[Array] = [[HOME_DOOR_ARRIVAL, HOME_DOOR_ARRIVAL]]
 ## Relógio de dia e noite (sol, céu, luzes).
 var _day_night: DayNight
+## O tempo da cidade (Fase 19.6: limpo, nublado, chuva), um só para o mundo.
+var _weather_director: WeatherDirector
 ## Ambiente da cidade (céu, neblina, efeitos), para trocar a qualidade.
 var _environment: Environment
 ## O céu de fotos: o WorldEnvironment, o sol (que de noite vira a "lua") e o
@@ -155,6 +159,9 @@ var _map: CityMap
 var _district_cells: Dictionary[String, Array] = {}
 ## O setor (fatia) de cada bairro, do SectorLayout.
 var _sectors: Dictionary[String, DistrictSector] = {}
+## O nível de horas de cada bairro (19.9, de 0 a 3; LibraryStats.district_levels),
+## lido uma vez ao montar a cidade. Dá o território a mais na planta.
+var _district_levels: Dictionary[String, int] = {}
 ## A montanha (15.14): o bairro dela e como foi montada, para refazer na troca
 ## da qualidade.
 var _backdrop_district: String = ""
@@ -204,8 +211,7 @@ func _ready() -> void:
 	_build_ground_and_walls(half, openings)
 	# O clima vem com todos os bairros e a montanha prontos: ele cobre as zonas
 	# do bairro (quarteirões, vagas e a montanha).
-	for district in districts:
-		_build_weather(district["id"])
+	_build_weather(districts)
 	await _keep_frame_light()
 	# O chão dos biomas cobre as ruas dos bairros deles: faixas e poças pulam essas zonas.
 	var covered := _build_biome_covers(districts, half, player)
@@ -230,6 +236,17 @@ func _ready() -> void:
 	# Postes e janelas (grupo "city_night") acendem conforme a hora.
 	_day_night.night_changed.connect(_on_night_changed)
 	_on_night_changed(_day_night.get_night())
+	# A janela da casa refaz o retrato a cada momento novo do dia (revisão da
+	# 19.4: sem isso, ela ficava com o retrato da manhã até o pôr do sol).
+	_day_night.moment_changed.connect(func(_id: String) -> void:
+		get_tree().call_group_flags(SceneTree.GROUP_CALL_DEFERRED, WindowView.GROUP, &"on_world_changed"))
+	# E a cada tempo novo, quando a passagem termina (19.6: a janela mostra o
+	# tempo fechado). Com o tempo acelerado (teste), um aviso diz qual é.
+	_weather_director.weather_changed.connect(func(state: String) -> void:
+		get_tree().call_group_flags(SceneTree.GROUP_CALL_DEFERRED, WindowView.GROUP, &"on_world_changed")
+		if _weather_director.time_scale > 1.0:
+			player.get_hud().show_message("Tempo: %s" % WEATHER_NAMES.get(state, state),
+					"--clima-rapido (teste) acelera o tempo.", Toast.Kind.INFO, 3.0))
 
 	if play_intro:
 		# A cidade lá fora está pronta: a porta da rua destranca.
@@ -261,6 +278,12 @@ func _ready() -> void:
 
 func is_city_ready() -> bool:
 	return _is_ready
+
+
+## O nível de horas do bairro (19.9, de 0 a 3) com que a planta foi montada.
+## Bairro sem jogos ou desconhecido = 0.
+func district_level(category_id: String) -> int:
+	return _district_levels.get(category_id, 0)
 
 
 # --- Abertura ----------------------------------------------------------------
@@ -392,9 +415,10 @@ func _rebuild_backdrop() -> void:
 
 func _on_night_changed(night: float) -> void:
 	get_tree().call_group("city_night", "set_night", night)
-	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon.
+	# Asfalto molhado à noite: menos rugoso = reflete os postes e o néon (o
+	# CityDecor junta a noite com a chuva, 19.5).
 	if _asphalt != null:
-		_asphalt.roughness = lerpf(ASPHALT_ROUGHNESS_DAY, ASPHALT_ROUGHNESS_NIGHT, night)
+		CityDecor.set_ground_night(night)
 	for district_sign in _district_signs:
 		district_sign.set_night(night)
 
@@ -448,11 +472,15 @@ func _group_into_districts(games: Array[SteamGame]) -> Array[Dictionary]:
 func _build_districts(districts: Array[Dictionary], total_games: int) -> Array[Vector2i]:
 	var counts: Array[int] = []
 	var ids: Array[String] = []
+	# O nível de horas de cada bairro (19.9): mais horas, mais território.
+	_district_levels = LibraryStats.district_levels(LibraryStats.compute()["districts"])
+	var levels: Array[int] = []
 	for district in districts:
 		counts.append(ceili(district["games"].size() / float(CityLayout.LOTS_PER_BLOCK)))
 		ids.append(district["id"])
+		levels.append(_district_levels.get(district["id"], 0))
 	# O bairro com terreno de fundo (a montanha) fica com a fatia no norte.
-	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids))
+	var sectors: Array[DistrictSector] = SectorLayout.plan(counts, BiomeBuilder.focus_index(ids), levels)
 	var cells: Array[Vector2i] = []
 	# Hero e logo de todos os jogos, em threads, na ordem em que os prédios
 	# vão ser montados: quando chegar a vez de cada prédio, a arte já está pronta.
@@ -523,13 +551,13 @@ func _add_block_ground(parent: Node3D, cell: Vector2i, category_id: String) -> v
 		CityDecor.add_block_ground(parent, CityLayout.block_center(cell), GameCategories.get_category_color(category_id))
 
 
-## O setor coberto de cada bairro com bioma (neve nas ruas, com colisão e
-## passos), os pinheiros e as rochas, e a névoa e o vento do primeiro deles.
-## Roda depois do metrô: as estações e as portas ficam livres dos enfeites.
-## Devolve as áreas cobertas de todos.
+## O setor coberto de cada bairro com bioma (o chão do bioma nas ruas, com
+## colisão e passos), os enfeites, e a névoa e o som de fundo de cada um
+## (19.1: uma atmosfera por bioma; só a de maior peso fala com o céu).
+## Roda depois do metrô e dos prédios: as estações, as portas e os prédios
+## ficam livres dos enfeites. Devolve as áreas cobertas de todos.
 func _build_biome_covers(districts: Array[Dictionary], half: float, player: Player) -> Array[Rect2]:
 	var covered: Array[Rect2] = []
-	var has_atmosphere := false
 	var inside := Rect2(-half, -half, half * 2.0, half * 2.0)
 	for district in districts:
 		var biome := BiomeBuilder.biome_of(district["id"])
@@ -545,10 +573,8 @@ func _build_biome_covers(districts: Array[Dictionary], half: float, player: Play
 		# Os enfeites só mudam ao abrir a cidade (não se refazem na troca da qualidade).
 		BiomeBuilder.add_scatter(self, district["id"], biome, town,
 				GraphicsQuality.scatter_amount(AppConfig.get_quality()))
-		if not has_atmosphere:
-			# A névoa e o vento valem também na trilha e no mirante.
-			BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
-			has_atmosphere = true
+		# A névoa e o som de fundo valem também na trilha e no mirante.
+		BiomeBuilder.add_atmosphere(self, district["id"], biome, rects + mountain, player, _day_night)
 		if biome.cover_streets:
 			covered.append_array(rects)
 	return covered
@@ -584,17 +610,31 @@ func _build_backdrop(districts: Array[Dictionary], half: float) -> Array[Rect2]:
 	return []
 
 
-## Clima do bairro (garoa etc.), se o perfil tiver. Um só por bairro; vale em
-## todas as zonas dele (quarteirões e vagas, cada uma com meia rua em volta).
-func _build_weather(category_id: String) -> void:
-	var profile := Profiles.district(category_id)
-	var zones := _map.zone_rects(category_id)
-	if profile == null or profile.effective_weather() == null or zones.is_empty():
-		return
+## O clima (19.6): o WeatherDirector decide o tempo da cidade toda; aqui
+## ficam os que MOSTRAM o tempo. Um por bairro com clima no perfil (a neve da
+## montanha), nas zonas dele (quarteirões e vagas, cada uma com meia rua em
+## volta, e a montanha); e a chuva da cidade, em todo o resto (as outras ruas,
+## a praça e a casa, que ouve a chuva pela janela).
+func _build_weather(districts: Array[Dictionary]) -> void:
+	var own: Array[Rect2] = []
+	for district in districts:
+		var profile := Profiles.district(district["id"])
+		var zones := _map.zone_rects(district["id"])
+		if profile == null or profile.effective_weather() == null or zones.is_empty():
+			continue
+		_add_weather("DistrictWeather_%s" % district["id"], profile.effective_weather(), zones.duplicate(), [])
+		own.append_array(zones)
+	_add_weather(CITY_WEATHER_NAME, WeatherSpec.new(), [], own)
+	# Os que acabaram de nascer recebem o tempo de agora.
+	_weather_director.publish(true)
+
+
+func _add_weather(node_name: String, spec: WeatherSpec, areas: Array[Rect2], exclude: Array[Rect2]) -> void:
 	var weather := DistrictWeather.new()
-	weather.name = "DistrictWeather_%s" % category_id
-	weather.spec = profile.effective_weather()
-	weather.areas = zones.duplicate()
+	weather.name = node_name
+	weather.spec = spec
+	weather.areas = areas
+	weather.exclude = exclude
 	add_child(weather)
 
 
@@ -833,6 +873,7 @@ func _build_landmark(category_id: String, buildings: Array[CityBuilding],
 	landmark.category_id = category_id
 	landmark.buildings = buildings
 	landmark.anchor = anchor
+	landmark.level = district_level(category_id)  # 19.10: o marco cresce com as horas
 	add_child(landmark)
 	return landmark
 
@@ -999,6 +1040,11 @@ func _build_environment() -> void:
 	_day_night.sunset_glow_u = SKY_SUNSET_GLOW_U
 	_apply_sky(AppConfig.get_sky())
 	add_child(_day_night)
+	# O tempo vem logo depois do relógio: o céu já abre com ele.
+	_weather_director = WeatherDirector.new()
+	_weather_director.name = "WeatherDirector"
+	_weather_director.day_night = _day_night
+	add_child(_weather_director)
 
 
 ## Monta o céu escolhido (e desmonta o outro, se a opção mudou com o hub aberto).
@@ -1187,7 +1233,7 @@ func _build_ground_and_walls(half: float, openings: Array[Rect2] = []) -> void:
 	ground.size = Vector3(half * 2.0, 1.0, half * 2.0)
 	ground.position = Vector3(0.0, -0.5, 0.0)
 	# Asfalto realista (ambientCG, CC0), repetido a cada 6 m.
-	_asphalt = CityDecor.pbr_material("Road012A", 6.0, Color(0.75, 0.75, 0.75))
+	_asphalt = CityDecor.asphalt_material()
 	ground.material = _asphalt
 	ground.use_collision = true
 	add_child(ground)

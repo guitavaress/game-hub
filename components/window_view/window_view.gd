@@ -13,8 +13,9 @@ extends Node
 ##     chega uns quadros depois), vira uma textura comum, e o SubViewport é
 ##     desfeito (assim os buffers do 3D não ficam ocupando a placa);
 ##   - o retrato é refeito só quando a fase do dia muda (dia, pôr do sol,
-##     noite), quando o ponto muda ou quando a qualidade gráfica muda. Nunca a
-##     cada quadro;
+##     noite), quando o ponto muda, quando a qualidade gráfica muda ou quando
+##     o mundo avisa que mudou (on_world_changed: um momento novo do dia, um
+##     tempo novo). Nunca a cada quadro;
 ##   - a janela (um ShaderMaterial, em set_material) recebe a textura e amostra
 ##     o retrato pela direção do olhar, como um céu. Sem ponto, ou enquanto o
 ##     mundo monta, ela fica com a vista de reserva do próprio shader; quando o
@@ -39,12 +40,18 @@ signal portrait_lost
 const POINT_GROUP: StringName = &"window_view_point"
 ## Onde ficam as janelas (os pontos avisam por aqui: on_point_changed).
 const GROUP: StringName = &"window_view"
-## A lente do retrato, como a janela a mostra: 100° de um lado ao outro, numa
+## A lente do retrato, como a janela a mostra: 130° de um lado ao outro, numa
 ## imagem 2:1 (o tamanho em px vem do GraphicsQuality.apply_to_window_view).
-## Larga o bastante para quem olha a janela de quase todo canto da sala. Com o
-## zoom do ponto (WindowViewPoint.zoom), a câmera fecha a lente e a janela
-## mostra o mesmo pedaço maior.
-const FOV_X_DEGREES: float = 100.0
+## Com o zoom do ponto (WindowViewPoint.zoom), a câmera fecha a lente e a
+## janela mostra o mesmo pedaço maior.
+## Fase 19.6.1: era 100°. Na imagem 2:1, a altura ficava com só ±31°: a 2 m do
+## vidro, olhar para o alto ou para baixo da janela já passava da lente, e o
+## shader apertava a vista nas beiradas (a "deformação" que escorregava pela
+## janela quando se andava pela sala). Com 130°, a altura vai a ±47°: dá para
+## chegar a 1 m do vidro, ou olhar de lado de quase toda a sala, sem passar
+## dela. A imagem ficou mais larga na mesma proporção, para o meio continuar
+## tão nítido quanto antes.
+const FOV_X_DEGREES: float = 130.0
 const NEAR: float = 0.5
 const FAR: float = 4000.0
 ## As fases do dia, pela "noite" (0 = dia, 1 = noite) que o mundo avisa: o
@@ -138,6 +145,13 @@ func set_night(night: float) -> void:
 ## Um ponto entrou ou saiu do grupo (quem chama é o WindowViewPoint).
 func on_point_changed() -> void:
 	_refresh()
+
+
+## O mundo lá fora mudou sem trocar a fase (um momento novo do dia, como a
+## manhã e a tarde): o retrato é refeito e se funde no anterior. Quem chama é o
+## mundo, pelo grupo GROUP. Pedidos no meio de uma captura se juntam num só.
+func on_world_changed() -> void:
+	_refresh(true)
 
 
 static func phase_of(night: float) -> int:

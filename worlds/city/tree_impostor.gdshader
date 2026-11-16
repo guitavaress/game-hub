@@ -24,10 +24,33 @@ uniform float sway_speed = 1.1;
 // Altura da árvore no retângulo (metros, sem a escala): a base não se mexe e
 // o balanço cresce até a ponta.
 uniform float sway_height = 1.0;
+// Fase 19.2: perto, quem desenha é o modelo (TreeModel, tree_model.gdshader).
+// A impostora some até "near_hide" m da câmera do jogador, numa troca
+// pontilhada de "near_band" m (o pontilhado completa o do modelo).
+// 0 = sempre visível (as árvores da cidade e o pinheiro de hoje).
+uniform float near_hide = 0.0;
+uniform float near_band = 4.0;
+// 19.3: quanto a distância da troca de cada árvore varia (fração, para cada
+// lado; a mesma conta do tree_model.gdshader).
+uniform float near_jitter = 0.0;
 
 varying flat float frame;
+// 0 = o modelo desenha esta cópia; 1 = a impostora (só com near_hide > 0).
+varying flat float far_weight;
+
+#include "res://worlds/city/tree_swap.gdshaderinc"
 
 void vertex() {
+	far_weight = 1.0;
+	if (near_hide > 0.0) {
+		float d = distance(MAIN_CAM_INV_VIEW_MATRIX[3].xyz, MODEL_MATRIX[3].xyz);
+		float own = tree_swap_distance(MODEL_MATRIX[3].xyz, near_hide, near_jitter);
+		far_weight = smoothstep(own - near_band, own + near_band, d);
+		if (far_weight <= 0.0) {
+			// Perto: a cópia vira um ponto (o modelo desenha).
+			VERTEX = vec3(0.0);
+		}
+	}
 	// Escala da instância (o nó ou a cópia da MultiMesh). Sem escala = 1.
 	float scale_x = length(MODEL_MATRIX[0].xyz);
 	float scale_y = length(MODEL_MATRIX[1].xyz);
@@ -65,4 +88,8 @@ void fragment() {
 	// "atravessando" as folhas quando o sol está atrás.
 	NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz, 0.5));
 	BACKLIGHT = vec3(0.25, 0.3, 0.2) * tint;
+	// Na faixa da troca: os pontos do modelo saem daqui.
+	if (near_hide > 0.0 && tree_swap_dither(FRAGCOORD.xy) >= far_weight) {
+		discard;
+	}
 }

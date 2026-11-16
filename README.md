@@ -24,15 +24,24 @@ O mural reúne os amigos online. Na parede, suas estatísticas mostram as horas 
 
 Os jogos se agrupam em **dez bairros por categoria**, com arquitetura, cores, marcos e sons próprios. Cartas tem luzes de cassino; Terror tem néon falhando, névoa e garoa à noite. Fachadas mostram a arte dos jogos, e olhar para uma porta revela as horas jogadas e os amigos que estão ali.
 
-A cidade acompanha o relógio do computador: o céu muda, as janelas acendem e o néon toma conta da noite. Você também pode fixar dia ou noite pelo menu.
+A cidade acompanha o relógio do computador, e o dia passa **sem pulos**: nascer do sol rosado, manhã fria e limpa, tarde dourada com sombras longas, pôr do sol e noite. As janelas acendem e o néon toma conta quando escurece. Para ver tudo depressa, aperte **F8**, que adianta o relógio em três horas. Você também pode fixar dia ou noite pelo menu.
+
+**O tempo muda sozinho.** Ele abre, fecha e chove, com passagens suaves. O céu fecha, o chão molha e a chuva tem riscos, respingo no chão e som. O mesmo tempo aparece de um jeito em cada lugar: chuva na cidade, nevasca na montanha, poeira no deserto, folhas na floresta. Dentro de casa, a **janela** mostra o tempo lá fora, com a chuva escorrendo no vidro. Para parar tudo isso, ou fixar um tempo, use **Esc › Som e vídeo › Clima** (Dinâmico, Limpo, Nublado, Chuva ou Forte).
+
+**As árvores são modelos de verdade**, de perto e de longe: nas floreiras da cidade, nos pinheiros do RPG e na vista da janela da cabana.
+
+**O que você joga cresce.** O bairro com mais horas jogadas ganha mais terreno, e o marco dele fica mais alto (até 45% a mais). Sem horas conhecidas, a cidade fica como era. Confira no mapa (**M**).
 
 Quer ir direto ao que interessa? **Tab** encontra o jogo e desenha uma rota no chão. **Shift + Enter**, na busca, leva direto até a porta. Há bússola, minimapa, mapa grande e **metrô entre os bairros**.
 
 ### Suba até o mirante
 
-No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
+No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha por uma **encosta coberta de pinheiros e rochas**, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
 
-Esse é o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**.
+Esse foi o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**. Agora ele tem companhia:
+
+- **Aventura é uma floresta.** Grama no chão, árvores altas de mata com árvores novas por baixo, rochas com musgo, passarinhos, folhas na chuva e uma névoa verde leve. Os passos soam na grama, e os prédios dão lugar a arcos.
+- **Sobrevivência é um deserto.** Areia no chão e nas ruas, rochas grandes cobertas de areia, nenhuma árvore, vento e uma névoa quente e leve. Onde chove na cidade, aqui sobe poeira. Os passos usam, por enquanto, o som da neve.
 
 ### Veja onde os amigos estão
 
@@ -254,18 +263,21 @@ No Linux, o hub é também um **compositor Wayland** (Rust + [Smithay](https://g
 
 - **Céus (HDRI):** [Poly Haven](https://polyhaven.com), **CC0** (domínio público): `kloofendal_48d_partly_cloudy_puresky` (dia), `qwantani_dusk_2_puresky` (pôr do sol) e `rogland_clear_night` (noite), em 2K. Detalhes em `assets/polyhaven/LICENSE.txt`.
 - **Texturas (PBR):** [ambientCG](https://ambientcg.com), **CC0**: Bricks097, Concrete034, Concrete048, Road012A, Tiles139 e Tiles141, em 1K. Detalhes em `assets/ambientcg/LICENSE.txt`.
-- **Bioma montanha (Fase 15):** neve `Snow010A` e rocha `Rock058` da [ambientCG](https://ambientcg.com), em 1K; rocha 3D `moon_rock_02` e fotos do pinheiro `fir_sapling_medium` da [Poly Haven](https://polyhaven.com), tiradas por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). Tudo **CC0**. O modelo do pinheiro (78 MB) não fica no repositório.
+- **Bioma montanha (Fase 15):** neve `Snow010A` e rocha `Rock058` da [ambientCG](https://ambientcg.com), em 1K; rocha 3D `moon_rock_02` da [Poly Haven](https://polyhaven.com). Tudo **CC0**.
 - **Pedra de calçamento (bairro Aventura):** `PavingStones070`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K.
+- **Bioma floresta (Fase 19.7):** grama `Grass001`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K (só os mapas Color, NormalGL e Roughness).
+- **Bioma deserto (Fase 19.8):** areia `Ground093C`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K (só os mapas Color, NormalGL e Roughness).
 - **Madeira dos modelos (Fase 17):** `Wood049`, da [ambientCG](https://ambientcg.com) (**CC0**), em 1K: o veio dos modelos feitos no Blender (deque, abrigo, bancos).
 - **Ícone (Fase 18):** o símbolo casa-portal do estudo de marca do próprio Game Hub (versão flat), em `assets/brand/icone.svg`. É arte do projeto, sob a mesma licença **MIT** (`assets/brand/LICENSE.txt`).
 - **Fonte:** Barlow e Barlow Condensed, de Jeremy Tribby ([Google Fonts](https://github.com/google/fonts)), licença **SIL Open Font License 1.1**. O texto da licença está em `assets/fonts/barlow/OFL.txt`.
-- **Árvores:** fotos da `jacaranda_tree` da [Poly Haven](https://polyhaven.com) (**CC0**), tiradas em 8 ângulos por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). O modelo original (215 MB) não fica no repositório; para refazer as fotos, baixe o glTF na Poly Haven e rode o script (as instruções estão no topo dele).
+- **Árvores (Fase 19.3; 19.7):** a árvore de rua, o pinheiro e a árvore da floresta são modelos do próprio projeto, feitos por script no Blender ([`tools/blender/gerar_arvore.py`](tools/blender/gerar_arvore.py)), em `assets/models/trees/` (**MIT**, como o resto do repositório). As fotos de longe saem desses modelos, por [`tools/make_tree_impostor.gd`](tools/make_tree_impostor.gd). Até a 19.2, as árvores eram fotos da `jacaranda_tree` e da `fir_sapling_medium` da [Poly Haven](https://polyhaven.com) (**CC0**).
 - **Avatar e hologramas dos amigos:** "Animated Human", da [Quaternius](https://quaternius.com) (**CC0**), baixado do [Poly Pizza](https://poly.pizza/m/c3Ibh9I3udk). Detalhes em `assets/quaternius/LICENSE.txt`.
-- **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds (inclusive os passos na neve, `footstep_snow_000` a `004`), Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
+- **Modelos e sons:** pacotes da [Kenney](https://kenney.nl), todos **CC0**. A licença de cada pacote está em `assets/kenney/<pacote>/License.txt`. Em uso: Nature Kit (arbustos), Impact Sounds (inclusive os passos na neve, `footstep_snow_000` a `004`, e na grama, `footstep_grass_000` a `004`, desde a 19.7), Interface Sounds, Sci-Fi Sounds, Casino Audio, RPG Audio e Music Jingles. City Kit Roads e Mini Characters vieram da primeira versão visual e continuam na pasta, sem uso no momento.
 - **Menu de depuração (F3):** [Debug Menu](https://github.com/godot-extended-libraries/godot-debug-menu) v1.2.0, de Calinou, licença **MIT** (`addons/debug_menu/LICENSE.md`). F3 alterna entre FPS, tempos de quadro e hardware.
 - **Céu Sky3D (opção Céu = Sky3D):** [Sky3D](https://github.com/TokisanGames/Sky3D) v2.1.0, de Cory Petkovsek, J. Cuéllar e colaboradores, licença **MIT** (`addons/sky_3d/LICENSE.txt`); o mapa da Lua (`MoonMap.png`) é de GPoSM, também **MIT**. A Via Láctea original do addon (CC BY 4.0) ficou de fora: as estrelas são geradas por [`tools/gerar_estrelas.gd`](tools/gerar_estrelas.gd) (CC0).
 - O estalo da lareira da cabana (`fire_crackle.wav`) é gerado por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), CC0. As toras, o tapete e a vista da floresta são shaders feitos por código (nada baixado).
 - **A fogueira, o terraço de pedra, os bancos e o monte de pedras da trilha** (Fase 17.7.1) são modelos feitos no [Blender](https://www.blender.org) só por script, por [`tools/blender/`](tools/blender/README.md) (os scripts são GPL-3.0, porque usam a API do Blender; os `.glb` gerados, em `assets/models/trail/`, são nossos, MIT). Nada baixado: a textura da lenha e da brasa é assada no próprio Blender, e os bancos usam a madeira feita por código da casa.
+- O som da chuva (`rain_loop.wav`), junto com o resto dos sons gerados, também sai de [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py) (Fase 19.5), CC0. A chuva, os riscos, o respingo e o vidro molhado da janela são shaders e partículas feitos por código (nada baixado).
 - O vento, os passarinhos, o `metro_ride.wav` e o `city_bed.wav` (fundo da cidade) são gerados por [`assets/generated/make_sounds.py`](assets/generated/make_sounds.py), também CC0 (`assets/generated/LICENSE.txt`).
 
 ## Licença

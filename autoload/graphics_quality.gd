@@ -83,6 +83,23 @@ static func weather_amount(level: String) -> float:
 	return 1.0
 
 
+## As camadas da chuva (Fase 19.5) que cada qualidade liga:
+##   riscos   quanto dos riscos que caem (a mesma conta do weather_amount);
+##   respingo quanto dos respingos no chão perto do jogador (0 = desligado);
+##   chao     o asfalto fica mais liso e escuro e as poças crescem (quase
+##            de graça: só muda o material e as poças que já existem);
+##   som      o som da chuva;
+##   ceu      o céu fecha (menos sol, mais névoa).
+## Nenhuma camada acende luz nova.
+static func rain_layers(level: String) -> Dictionary:
+	match level:
+		"leve":
+			return {"riscos": 0.25, "respingo": 0.0, "chao": true, "som": true, "ceu": true}
+		"media":
+			return {"riscos": 0.6, "respingo": 0.5, "chao": true, "som": true, "ceu": true}
+	return {"riscos": 1.0, "respingo": 1.0, "chao": true, "som": true, "ceu": true}
+
+
 ## Tamanho do quadrado da grade da montanha (m): 4 na Leve, 3 na Média, 2 na
 ## Alta (quanto menor, mais fina a encosta e mais triângulos). Fase 15.14.
 static func terrain_cell_meters(level: String) -> float:
@@ -126,18 +143,23 @@ static func mirror_resolution(level: String) -> Vector2i:
 ## as bordas. As bordas são as mesmas da janela do jogo (apply_to_viewport):
 ## com o mesmo MSAA, os shaders que o retrato compila servem também para a
 ## tela, e a cidade não paga a compilação duas vezes. Na Leve, menor e sem FSR.
+## Fase 19.6.1: a lente passou de 100° a 130° (WindowView.FOV_X_DEGREES), e a
+## largura cresceu 1,75 vez (era 1024, 1536 e 2048), para o meio da vista ter
+## quase os mesmos pixels por grau de antes (97%). Na Alta, 6,4 milhões de pixels (26 MB
+## na placa por retrato; dois durante a fusão), desenhados só na troca do
+## momento do dia ou do tempo.
 static func apply_to_window_view(viewport: SubViewport, level: String) -> void:
 	match level:
 		"leve":
-			viewport.size = Vector2i(1024, 512)
+			viewport.size = Vector2i(1792, 896)
 			viewport.msaa_3d = Viewport.MSAA_DISABLED
 			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 		"media":
-			viewport.size = Vector2i(1536, 768)
+			viewport.size = Vector2i(2688, 1344)
 			viewport.msaa_3d = Viewport.MSAA_DISABLED
 			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
 		_:
-			viewport.size = Vector2i(2048, 1024)
+			viewport.size = Vector2i(3584, 1792)
 			viewport.msaa_3d = Viewport.MSAA_2X
 			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
 	viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR

@@ -9,11 +9,14 @@ extends RefCounted
 
 const WORLD_PATH: String = "res://profiles/world_profile.tres"
 const HOME_CATALOG_PATH: String = "res://profiles/home_catalog.tres"
+## O dia em momentos (Fase 19.4), gerado por tools/gerar_ciclo_do_dia.gd.
+const DAY_CYCLE_PATH: String = "res://profiles/day_cycle.tres"
 
 static var _world: WorldProfile = null
 static var _by_id: Dictionary[String, DistrictProfile] = {}
 static var _ids: Array[String] = []
 static var _home_catalog: HomeCatalog = null
+static var _day_cycle: DayCycleSpec = null
 
 
 ## O mundo atual (a cidade).
@@ -51,6 +54,18 @@ static func home_catalog() -> HomeCatalog:
 			push_error("Profiles: não consegui carregar %s." % HOME_CATALOG_PATH)
 			_home_catalog = HomeCatalog.new()
 	return _home_catalog
+
+
+## O dia da cidade: a lista dos momentos (Fase 19.4). Sem o arquivo, um dia
+## de um momento só (o meio-dia), com um aviso.
+static func day_cycle() -> DayCycleSpec:
+	if _day_cycle == null:
+		_day_cycle = load(DAY_CYCLE_PATH) as DayCycleSpec
+		if _day_cycle == null:
+			push_error("Profiles: não consegui carregar %s." % DAY_CYCLE_PATH)
+			_day_cycle = DayCycleSpec.new()
+			_day_cycle.moments.append(DayMoment.new())
+	return _day_cycle
 
 
 ## O tema da casa com esse id. Id vazio ou desconhecido = o primeiro do

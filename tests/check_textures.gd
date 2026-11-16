@@ -32,16 +32,18 @@ func _run() -> void:
 		for file in DirAccess.get_files_at("res://assets/ambientcg/" + folder):
 			if file.ends_with(".import"):
 				imports.append("res://assets/ambientcg/%s/%s" % [folder, file])
-	imports.append("res://assets/generated/tree_impostor.png.import")
+	imports.append("res://assets/generated/street_tree_impostor.png.import")
 	# Fase 15.0 (bioma montanha): o atlas do pinheiro e as texturas da rocha 3D.
 	imports.append("res://assets/generated/pine_impostor.png.import")
+	# 19.7: o atlas da árvore da floresta.
+	imports.append("res://assets/generated/forest_tree_impostor.png.import")
 	for folder in DirAccess.get_directories_at("res://assets/polyhaven/models"):
 		var textures := "res://assets/polyhaven/models/%s/textures" % folder
 		for file in DirAccess.get_files_at(textures):
 			if file.ends_with(".import"):
 				imports.append("%s/%s" % [textures, file])
-	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3.
-	_check("achou as 30 texturas da ambientCG, os 2 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 35)
+	# 17.8: a Wood049 (madeira dos modelos) entrou com as suas 3; 19.7: a Grass001; 19.8: a Ground093C (areia), com as suas 3.
+	_check("achou as 36 texturas da ambientCG, os 3 atlas e as 3 da rocha (%d)" % imports.size(), imports.size() == 42)
 	var bad: Array[String] = []
 	var bad_normals: Array[String] = []
 	for path in imports:
@@ -74,7 +76,7 @@ func _run() -> void:
 		"res://assets/ambientcg/Road012A/Road012A_1K-JPG_Color.jpg",
 		"res://assets/ambientcg/Bricks097/Bricks097_1K-JPG_NormalGL.jpg",
 		"res://assets/ambientcg/Concrete034/Concrete034_1K-JPG_Roughness.jpg",
-		"res://assets/generated/tree_impostor.png",
+		"res://assets/generated/street_tree_impostor.png",
 		"res://assets/ambientcg/Snow010A/Snow010A_1K-JPG_Color.jpg",
 		"res://assets/generated/pine_impostor.png",
 	]

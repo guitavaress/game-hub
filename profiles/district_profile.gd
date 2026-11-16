@@ -38,7 +38,8 @@ extends Resource
 @export_file("*.gd") var props_script: String = ""
 
 @export_group("Clima")
-## Clima do bairro (ex.: garoa à noite). Vazio = tempo normal (Fase 7.6).
+## Como o bairro mostra o tempo da cidade (Fase 7.6; desde a 19.6 o tempo é
+## do WeatherDirector). Vazio = a chuva da cidade.
 @export var weather: WeatherSpec
 
 @export_group("Arquitetura")

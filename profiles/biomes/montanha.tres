@@ -19,11 +19,10 @@ rock_folder = "Rock058"
 
 [sub_resource type="Resource" id="Resource_xj38d"]
 script = ExtResource("3_vs8nu")
-source = "res://assets/generated/pine_impostor.png"
-kind = "impostor"
+source = "res://assets/models/trees/pine.glb"
+kind = "tree"
 density = 1.5
 height_range = Vector2(8, 14)
-tint = Color(0.45, 0.55, 0.55, 1)
 collision_radius = 0.4
 walkable_clearance = 6.0
 
@@ -36,10 +35,9 @@ collision_radius = 0.35
 
 [sub_resource type="Resource" id="Resource_wwntb"]
 script = ExtResource("3_vs8nu")
-source = "res://assets/generated/pine_impostor.png"
-kind = "impostor"
+source = "res://assets/models/trees/pine.glb"
+kind = "tree"
 height_range = Vector2(10, 18)
-tint = Color(0.45, 0.55, 0.55, 1)
 collision_radius = 0.4
 walkable_clearance = 6.0
 in_town = false
@@ -55,7 +53,6 @@ on_backdrop = true
 [sub_resource type="Resource" id="Resource_6ejfq"]
 script = ExtResource("5_wc7ny")
 kind = "neve"
-night_only = false
 
 [resource]
 script = ExtResource("4_or3wn")

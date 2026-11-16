@@ -1,15 +1,15 @@
 # Fase 18: Mostrar para amigos
 
-**Status:** aprovado em 2026-11-10; em andamento
-**Branch:** `fase-18`, criada da `origin/main` depois do merge da Fase 17 (PR #3).
+**Status:** publicada em 2026-11-12; esperando o retorno dos amigos
+**Branch:** `fase-18`, criada da `origin/main` depois do merge da Fase 17 (PR #3); juntada na `main` pelo PR #4 (`1adca9b`).
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma página de Release no GitHub com um `.zip`. O amigo baixa, descompacta, abre o `GameHub.exe` e entra na casa, sem instalar a Godot e sem editar arquivo. Em Esc há um botão "Contar o que achei", que copia um resumo para ele colar para você.
-- **Agora:** 18.0 a 18.6 feitas: o `bash tools/empacotar_windows.sh` gera o zip para os amigos (`C:\Projetos\game-hub-builds\GameHub-0.18.0-windows.zip`, 74 MB) com o `.exe`, o LEIA-ME e as licenças, e recusa o pacote se achar algo pessoal. A próxima é a 18.7 (o Release, quando você pedir).
+- **Agora:** o [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) está no ar desde 2026-11-12, com o zip (`GameHub-0.18.0-windows.zip`, 74 MB: o `.exe`, o LEIA-ME e as licenças). Falta os amigos usarem e mandarem o resumo do botão "Contar o que achei".
 - **Ordem:** PR da Fase 17 → o build que abre de verdade → o primeiro uso de um PC "limpo" → amigos sem chave → o botão de feedback → o zip e o Release → os amigos usam.
 - **Para testar:** cada subetapa traz o próprio checklist; a 18.2 já entrega um `.exe` para você abrir.
 - **Decisões já tomadas (2026-11-09):** PR da 17 no GitHub primeiro; entrega por Release no GitHub; feedback por botão que copia um resumo; a chave é opcional e o hub não cobra.
-- **Decisões que esperam você:** pedir a publicação do Release (18.7). O ícone foi decidido em 2026-11-10: o símbolo do brand kit.
+- **Decisões que esperam você:** nenhuma. Quando um amigo responder, cole o resumo dele (sem o nome) para entrar em "O que os amigos disseram"; aí a fase fecha.
 
 ## Contexto
 É a fase [2. Mostrar para amigos](../ROADMAP.md#2-mostrar-para-amigos), a etapa 2 do produto: 2 ou 3 amigos instalam e usam. Hoje só o dono usa o hub, sempre pelo editor, com o cache cheio e a chave configurada. O amigo vai encontrar o contrário: um `.exe`, cache vazio, sem chave, outra placa de vídeo.
@@ -89,6 +89,7 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
   - Teste: bateria completa; descompactar o zip numa pasta nova, abrir e jogar; conferir o tamanho.
   - Commit: `Fase 18.6: o pacote do Windows com LEIA-ME e licencas`
 - [ ] **18.7 Release e os amigos** (só de docs + publicação · Opus e o dono · medium)
+  - **Publicado (2026-11-12):** PR #4 juntado na `main` (`1adca9b`), tag `v0.18.0`, Release "Game Hub 0.18.0 — Mostrar para amigos" com o `GameHub-0.18.0-windows.zip`, e o README com o link (`bccc8eb`). **Falta:** "O que os amigos disseram" e o fechamento. A subetapa segue aberta até lá.
   - Faz: bateria completa, PR da `fase-18` e merge (dono). Tag `v0.18.0` e o Release no GitHub com o zip e as notas (o texto do LEIA-ME resumido), **só quando o dono pedir**. O dono manda o link a 2 ou 3 amigos.
   - Registro: este plano ganha a seção "O que os amigos disseram" (os resumos colados, sem nome de ninguém; o repositório é público). O que virar ideia vai para `docs/ideias/`; o que for defeito vira uma 18.8 curta.
   - Fecha a fase: README (linha 18 na tabela), ROADMAP (fase feita, "Etapa 2" do produto), `Início.md`.
@@ -109,7 +110,11 @@ Trilha A (Claude, checkout principal). Trilha B (Codex, worktree próprio) só n
 - Telemetria ou envio automático de feedback: nada sai do PC do amigo sem ele copiar e colar.
 - Perfis do usuário (Parados) e a visita aos amigos (a próxima fase).
 
+## O que os amigos disseram
+Aguardando. Os resumos entram aqui sem o nome de ninguém (o repositório é público). O que virar ideia vai para `docs/ideias/`; o que for defeito vira uma 18.8 curta.
+
 ## Decisões tomadas durante a fase
+- 2026-11-12 (18.7): o Release foi publicado e a fase fica aberta só esperando o retorno dos amigos. A [Fase 19](fase-19.md) começa em paralelo, sem esperar. O fechamento (README, ROADMAP, `Início.md`) será feito na branch que estiver em uso quando o retorno chegar.
 - 2026-11-11 (revisão do README, a pedido do dono): apresentação reorganizada como um passeio pela casa, cidade, mirante e amigos, com o ícone já existente. Corrigidos o estado da Fase 17 (na `main`), o foco do produto (launcher e amigos; desktop em pausa), a versão da Godot (4.7.2) e a disponibilidade do pacote (Release ainda pendente). Controles, execução pelo código, configuração e créditos preservados e reorganizados. Manutenção só de docs: não conclui a 18.7 nem autoriza publicação.
 - 2026-11-11 (18.6): o pacote e a trava.
   - **Arquivos além do plano:** `tools/pacote/licencas.txt` (a lista das licenças: o script copia dela e o `check_package` confere contra o disco), `tools/pacote/licenca_godot.gd` (a licença da Godot não está no disco: sai de `Engine.get_license_text()`, `get_copyright_info()` e `get_license_info()`) e `tools/pacote/listar_pck.gd` (lista o pck pela própria Godot, com `--main-pack`).

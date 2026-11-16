@@ -266,17 +266,26 @@ func _check_biomes() -> void:
 		ids.append(biome.id)
 		_check("chão válido", biome.ground_meters > 0 and biome.ground_normal_strength >= 0)
 		_check("casca válida", biome.shell in ["", "building", "arch"])
-		_check("terreno configurado", biome.backdrop != null)
+		# O terreno de fundo é só da montanha (19.7: a floresta não tem).
+		_check("terreno configurado na montanha", biome.id != "montanha" or biome.backdrop != null)
+		var folders: Array[String] = [biome.ground_folder, biome.path_folder]
 		if biome.backdrop != null:
-			for folder in [biome.ground_folder, biome.path_folder, biome.backdrop.snow_folder, biome.backdrop.rock_folder]:
-				for suffix in ["Color", "NormalGL", "Roughness"]:
-					_check("textura: %s %s" % [folder, suffix], ResourceLoader.exists("res://assets/ambientcg/%s/%s_1K-JPG_%s.jpg" % [folder, folder, suffix]))
+			folders.append_array([biome.backdrop.snow_folder, biome.backdrop.rock_folder])
+		for spec in biome.scatter:
+			if spec != null and not spec.material_folder.is_empty():
+				folders.append(spec.material_folder)
+		for folder in folders:
+			for suffix in ["Color", "NormalGL", "Roughness"]:
+				_check("textura: %s %s" % [folder, suffix], ResourceLoader.exists("res://assets/ambientcg/%s/%s_1K-JPG_%s.jpg" % [folder, folder, suffix]))
 		for scatter in biome.scatter:
 			_check("scatter válido", scatter != null)
 			if scatter == null:
 				continue
 			var source := load(scatter.source)
-			_check("tipo de asset", (scatter.kind == "impostor" and source is Texture2D) or (scatter.kind == "mesh" and source is PackedScene))
+			# 19.3: "tree" é um modelo do Blender, com o atlas de longe ao lado (TreeModel.impostor_path).
+			_check("tipo de asset", (scatter.kind == "impostor" and source is Texture2D) or (scatter.kind == "mesh" and source is PackedScene)
+					or (scatter.kind == "tree" and source is PackedScene
+						and ResourceLoader.exists(TreeModel.impostor_path(scatter.source))))
 			_check("intervalos do scatter", scatter.height_range.x > 0 and scatter.height_range.y >= scatter.height_range.x and scatter.density >= 0 and scatter.walkable_clearance >= 0 and scatter.collision_radius >= 0)
 		if biome.ambience_bed != null:
 			for sound in biome.ambience_bed.files:
@@ -285,12 +294,22 @@ func _check_biomes() -> void:
 	var offenders: Array[String] = []
 	_scan_ids("res://worlds", ids, offenders)
 	_check("mundos não fixam ids de bioma", offenders.is_empty())
-	# Desde a 15.6, só o RPG tem bioma (a montanha, com neve, arcos e passos na neve).
+	# Desde a 15.6, o RPG tem bioma (a montanha, com neve, arcos e passos na neve);
+	# desde a 19.7, a Aventura (a floresta, com grama, passos na grama e folhas na chuva);
+	# desde a 19.8, a Sobrevivência (o deserto, com areia, passos da neve e poeira).
 	for district in Profiles.districts():
 		if district.id == "rpg":
 			_check("o RPG usa a montanha", district.biome != null and district.biome.id == "montanha"
 					and district.effective_shell() == "arch" and district.footstep() == "snow"
 					and district.effective_weather() != null and district.effective_weather().kind == "neve")
+		elif district.id == "aventura":
+			_check("a Aventura usa a floresta", district.biome != null and district.biome.id == "floresta"
+					and district.effective_shell() == district.biome.shell and district.footstep() == "grass"
+					and district.effective_weather() != null and district.effective_weather().kind == "folhas")
+		elif district.id == "sobrevivencia":
+			_check("a Sobrevivência usa o deserto", district.biome != null and district.biome.id == "deserto"
+					and district.effective_shell() == district.biome.shell and district.footstep() == "snow"
+					and district.effective_weather() != null and district.effective_weather().kind == "poeira")
 		else:
 			_check("bairro sem bioma: " + district.id, district.biome == null and district.effective_shell() == district.shell and district.effective_weather() == district.weather and district.footstep() == "concrete")
 	var sample := DistrictProfile.new()

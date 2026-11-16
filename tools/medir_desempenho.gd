@@ -6,11 +6,18 @@ extends SceneTree
 ## a nova LADO A LADO, no mesmo dia. Com outra coisa rodando, o FPS cai pela
 ## metade e até os desenhos por quadro mudam, sem nenhuma mudança no código.
 ##
-##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora>
+##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [tempo] [horas]
 ##
 ##   jogos      0 = a biblioteca de verdade; N = N jogos falsos (tests/fake_library.gd)
 ##   qualidade  leve | media | alta        (padrão: leve)
 ##   hora       hora da cidade, 0 a 24     (padrão: 22, noite)
+##   tempo      limpo | nublado | chuva_fraca | chuva_forte (Fase 19.6; padrão:
+##              limpo): fixa o tempo da cidade toda, com o chão e o céu no ponto.
+##              "fraca" e "forte" (da 19.5) valem como chuva_fraca e chuva_forte
+##   horas      - | falsas (Fase 19.9; padrão: -). Só com jogos falsos: "-" deixa
+##              as horas desconhecidas (a planta de antes da 19.9); "falsas" usa
+##              as horas falsas da tests/fake_library.gd (o RPG no nível 3: a
+##              planta com os bairros crescidos)
 ##
 ## A caminhada é sempre a mesma: da praça até a rua mais longe do mapa e de
 ## volta, a 9 m/s (correndo), olhando para onde anda. Imprime uma linha com o
@@ -44,13 +51,24 @@ func _run() -> void:
 	var count := int(args[0]) if args.size() > 0 else 0
 	var quality := String(args[1]) if args.size() > 1 else "leve"
 	var hour := float(args[2]) if args.size() > 2 else 22.0
+	var rain := String(args[3]) if args.size() > 3 else "limpo"
+	rain = {"fraca": "chuva_fraca", "forte": "chuva_forte"}.get(rain, rain)
+	if rain not in ["limpo", "nublado", "chuva_fraca", "chuva_forte"]:
+		push_error("O tempo deve ser limpo, nublado, chuva_fraca (ou fraca) ou chuva_forte (ou forte).")
+		quit(1)
+		return
+	var hours := String(args[4]) if args.size() > 4 else "-"
+	if hours not in ["-", "falsas"]:
+		push_error("As horas devem ser - (desconhecidas) ou falsas.")
+		quit(1)
+		return
 
 	var config := root.get_node("AppConfig")
 	var original_quality: String = config.get_quality()
 	config.set_quality(quality)
 	if count > 0:
 		var library_script: GDScript = load("res://tests/fake_library.gd")
-		library_script.install(root, count)
+		library_script.install(root, count, hours == "falsas")
 	var games: int = root.get_node("SteamLibrary").get_installed_games().size()
 
 	_print_environment()
@@ -74,6 +92,10 @@ func _run() -> void:
 	var day_night = city._day_night
 	day_night.hour_offset = hour - day_night.current_hour()
 	day_night.update_now()
+	var director: Node = city.get_node_or_null("WeatherDirector")
+	if director != null:
+		director.call("force", rain)
+	print("MEDIDA_TEMPO ", rain)
 
 	var player = city.get_node("Player")
 	# A abertura (tela GAME HUB) termina antes de andar; a caminhada é na rua.

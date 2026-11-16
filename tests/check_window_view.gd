@@ -8,20 +8,23 @@ extends SceneTree
 ##   - o retrato é refeito só na troca de fase do dia (dia, pôr do sol, noite),
 ##     nunca a cada aviso de hora; sem ponto, volta a vista de reserva, mesmo
 ##     se o ponto sair no meio de uma captura;
-##   - o shader da floresta não usa o retrato;
+##   - um shader sem o retrato (sem view_mix) não tira retrato nenhum;
 ##   - o enquadramento de quem usa a janela (17.9.2, set_framing): a lente fecha
 ##     com o zoom e o olhar sobe, do mesmo ponto; sem mudança, nada é refeito;
 ##   - as camadas escondidas pelo ponto (WindowViewPoint.hidden_layers) também
 ##     somem da câmera do retrato, junto com a da casa;
 ##   - na cidade: um ponto só, posto quando ela fica pronta, alto e virado para
 ##     a montanha; a casa tira um retrato só;
+##   - a lente (19.6.1): de onde se anda pela sala, a janela fica fora da faixa
+##     em que o shader aperta a vista, e o meio do retrato segue nítido;
+##   - a chuva no vidro (19.6.1): a força chega ao shader sem refazer o
+##     retrato, e continua depois de trocar o tema;
 ##   - nenhum arquivo de worlds/home nem de components cita worlds/city.
 
 const CONFIG := "user://config.cfg"
 const VIEW_SCRIPT := "res://components/window_view/window_view.gd"
 const POINT_SCRIPT := "res://components/window_view/window_view_point.gd"
 const CITY_SHADER := "res://worlds/home/home_window.gdshader"
-const FOREST_SHADER := "res://worlds/home/home_window_forest.gdshader"
 ## A camada da casa (Home.INTERIOR_LAYER = 20).
 const HOME_LAYER_MASK: int = 1 << 19
 ## Uma camada que o MUNDO esconde do retrato (aqui a 18, como as placas da cidade).
@@ -73,8 +76,14 @@ func _check_component() -> void:
 	_check("sem ponto: nenhum retrato, a janela fica com a vista de reserva",
 			view.capture_count == 0 and not view.has_portrait() and float(material.get_shader_parameter("view_mix")) == 0.0)
 	var WindowViewScript: GDScript = load(VIEW_SCRIPT)
-	_check("o shader da cidade usa o retrato; o da floresta, não",
-			WindowViewScript.uses_view(load(CITY_SHADER)) and not WindowViewScript.uses_view(load(FOREST_SHADER)))
+	_check("o shader da cidade usa o retrato; um sem view_mix, não",
+			WindowViewScript.uses_view(load(CITY_SHADER)) and not WindowViewScript.uses_view(_plain_shader()))
+	_check_lens(view)
+	var rain_uniform := false
+	for uniform: Dictionary in (load(CITY_SHADER) as Shader).get_shader_uniform_list():
+		rain_uniform = rain_uniform or uniform["name"] == "rain"
+	_check("o shader da janela tem a chuva no vidro (rain), desligada por padrão",
+			rain_uniform and material.get_shader_parameter("rain") in [null, 0.0])
 
 	print("== com ponto ==")
 	var point = load(POINT_SCRIPT).new()
@@ -123,6 +132,14 @@ func _check_component() -> void:
 	_check("cada retrato teve o próprio quadro, sempre em UPDATE_ONCE",
 			_seen.size() == 3 and _seen.all(func(seen: Dictionary) -> bool: return seen["mode"] == SubViewport.UPDATE_ONCE))
 
+	print("== um momento novo do dia, na mesma fase (revisão da 19.4) ==")
+	view.on_world_changed()
+	await _frames(3)
+	_check("o mundo mudou: o retrato é refeito uma vez, na mesma fase",
+			view.capture_count == 4 and view.get_phase() == view.Phase.DAY and _seen.size() == 4)
+	_check("e se funde no anterior", float(material.get_shader_parameter("view_blend")) < 1.0)
+	await create_timer(view.CROSSFADE_SECONDS + 0.3).timeout
+
 	print("== o enquadramento de quem usa a janela (17.9.2) ==")
 	var plain: Dictionary = _seen[0]
 	var before: int = view.capture_count
@@ -157,16 +174,67 @@ func _check_component() -> void:
 			and float(material.get_shader_parameter("view_mix")) == 0.0)
 	point.free()
 	captures = view.capture_count
-	var forest := ShaderMaterial.new()
-	forest.shader = load(FOREST_SHADER)
-	view.set_material(forest)
+	var no_view := ShaderMaterial.new()
+	no_view.shader = _plain_shader()
+	view.set_material(no_view)
 	var point2 = load(POINT_SCRIPT).new()
 	world.add_child(point2)
 	view.set_night(1.0)
 	await _frames(3)
-	_check("com o shader da floresta, nenhum retrato", view.capture_count == captures)
+	_check("com um shader sem o retrato, nenhum retrato", view.capture_count == captures)
 	world.queue_free()
 	await _frames(2)
+
+
+## A lente do retrato (Fase 19.6.1): de onde se anda pela sala, a janela fica
+## dentro dela, longe da faixa em que o shader aperta a vista (a partir de 92%
+## do ângulo da lente, como o fit_angle do home_window.gdshader); e o meio do
+## retrato tem quase os mesmos pixels por grau de antes, em toda qualidade.
+func _check_lens(view: Node) -> void:
+	print("== a lente (19.6.1) ==")
+	const KNEE := 0.92
+	const EYE := 1.7
+	var home_script: GDScript = load("res://worlds/home/home.gd")
+	var room: Vector3 = home_script.ROOM_SIZE
+	var size: Vector2 = home_script.WINDOW_SIZE
+	var center_x: float = home_script.WINDOW_CENTER_X
+	var bottom: float = home_script.WINDOW_SILL_Y
+	var lens: Vector2 = view.tan_half_fov()
+	var limit := Vector2(tan(atan(lens.x) * KNEE), tan(atan(lens.y) * KNEE))
+	# De pé a 1,2 m do vidro (o ponto "perto" das capturas), o alto e o pé da
+	# janela. Com a lente de 100°, o aperto começava a 2,2 m.
+	var vertical := maxf(absf(bottom + size.y - EYE), absf(bottom - EYE)) / 1.2
+	_check("a 1,2 m do vidro, o alto e o pé da janela ficam fora do aperto (%.2f < %.2f)" % [vertical, limit.y],
+			vertical < limit.y)
+	# Perto de uma parede de lado (a 0,9 m dela), a 3 m do vidro, a outra ponta
+	# da janela. Mais perto do vidro, a ponta de lá entra no começo do aperto.
+	var side := room.x / 2.0 - 0.9
+	var across := (side + absf(center_x) + size.x / 2.0) / 3.0
+	_check("de lado, a 3 m do vidro, a janela toda fica fora do aperto (%.2f < %.2f)" % [across, limit.x],
+			across < limit.x)
+	var old_widths := {"leve": 1024, "media": 1536, "alta": 2048}
+	var old_half := tan(deg_to_rad(100.0) / 2.0)
+	var sharp := true
+	var quality: GDScript = load("res://autoload/graphics_quality.gd")
+	for level: String in old_widths:
+		var viewport := SubViewport.new()
+		quality.apply_to_window_view(viewport, level)
+		var now := float(viewport.size.x) / (2.0 * lens.x)
+		var before := float(old_widths[level]) / (2.0 * old_half)
+		sharp = sharp and now >= before * 0.95 and viewport.size.x == viewport.size.y * 2
+		viewport.free()
+	_check("o meio do retrato segue nítido: pelo menos 95% dos pixels por grau de antes, em 2:1", sharp)
+
+
+## Um shader de janela que não usa o retrato (sem view_mix): o lugar do antigo
+## desenho da floresta da cabana, que saiu na 19.3.
+func _plain_shader() -> Shader:
+	var shader := Shader.new()
+	shader.code = "shader_type spatial;
+uniform float night = 0.0;
+void fragment() { ALBEDO = vec3(0.2, 0.3, 0.2); }
+"
+	return shader
 
 
 func _on_view_child(node: Node) -> void:
@@ -234,6 +302,23 @@ func _check_city() -> void:
 	home.set_night(0.02)
 	await _frames(3)
 	_check("a casa refaz o retrato só na troca de fase", view.capture_count == 2)
+
+	print("== a chuva no vidro (19.6.1) ==")
+	var captures: int = view.capture_count
+	home.set_weather_rain(0.7)
+	await _frames(2)
+	_check("a força da chuva chega ao vidro, sem refazer o retrato",
+			is_equal_approx(float(home._window_material.get_shader_parameter("rain")), 0.7)
+			and view.capture_count == captures)
+	var app = root.get_node("AppConfig")
+	app.set_home_theme("cabana")
+	await _frames(3)
+	_check("trocar o tema refaz o vidro e a chuva continua nele",
+			is_equal_approx(float(home._window_material.get_shader_parameter("rain")), 0.7))
+	app.set_home_theme("")
+	await _frames(3)
+	home.set_weather_rain(0.0)
+	_check("sem chuva, o vidro volta a 0", float(home._window_material.get_shader_parameter("rain")) == 0.0)
 	_check_sign_layers(city)
 	city.queue_free()
 	await _frames(3)

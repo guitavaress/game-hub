@@ -14,6 +14,15 @@
 // 450 m atrás do vidro: andando pela sala, os prédios de perto se mexem mais
 // que os de longe. De dia, céu claro; no pôr do sol, laranja; à noite, céu
 // escuro e janelas acesas. "night" vem da casa (grupo city_night).
+//
+// A CHUVA NO VIDRO (Fase 19.6.1): com "rain" acima de 0 (a casa passa a força
+// que o mundo avisa: 0,5 = chuva fraca, 1 = forte), por cima da vista e por
+// baixo dos reflexos: os riscos da chuva caindo lá fora (três planos, a 2,5, 6
+// e 14 m do vidro, que andam com quem anda pela sala), a névoa do vidro
+// molhado, as gotas paradas no vidro e as que escorrem aos trancos, deixando
+// um rastro limpo com gotinhas. Cada gota é uma lente: mostra a vista virada
+// (de noite, as luzes da cidade aparecem nelas) e pega o brilho da sala. Tudo
+// por conta (sorteio por número inteiro), sem textura. Com 0, nada disso roda.
 shader_type spatial;
 render_mode unshaded, fog_disabled, shadows_disabled;
 
@@ -30,6 +39,16 @@ uniform vec3 day_building : source_color = vec3(0.34, 0.39, 0.47);
 uniform vec3 night_building : source_color = vec3(0.025, 0.03, 0.045);
 uniform vec3 lit_window : source_color = vec3(1.0, 0.74, 0.45);
 
+// --- A chuva no vidro (Fase 19.6.1) ---
+// 0 = sem chuva, 0,5 = chuva fraca, 1 = forte.
+uniform float rain : hint_range(0.0, 1.0) = 0.0;
+// A cor que os riscos e a névoa do vidro molhado somam à vista, de dia e de noite.
+uniform vec3 rain_tint_day : source_color = vec3(0.6, 0.64, 0.7);
+uniform vec3 rain_tint_night : source_color = vec3(0.16, 0.17, 0.21);
+// O quanto a gota desvia o olhar (a gota é uma lente: no meio, quase nada;
+// na borda, a vista do outro lado).
+uniform float drop_refraction = 0.5;
+
 // --- A vista de verdade (o WindowView preenche) ---
 // O retrato da vez e o anterior (durante a troca de fase do dia).
 uniform sampler2D view_texture : source_color, filter_linear, repeat_disable;
@@ -41,7 +60,7 @@ uniform float view_mix = 0.0;
 // 0 = o anterior, 1 = o da vez.
 uniform float view_blend = 1.0;
 // tan(meia abertura) da lente do retrato, em x e em y.
-uniform vec2 view_tan_half_fov = vec2(1.19, 0.6);
+uniform vec2 view_tan_half_fov = vec2(2.145, 1.072);
 // Brilho do retrato. O retrato já vem com o "filme" de cor do mundo, e o da
 // casa passa por cima: o ganho devolve o que ele escurece.
 uniform float view_gain = 1.25;
@@ -77,6 +96,149 @@ void vertex() {
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// Um sorteio de 0 a 1 por célula inteira (a chuva). Só conta com números
+// inteiros: não perde precisão com o tempo, como o seno de números grandes.
+float rand(ivec2 cell, int seed) {
+	uint h = (uint(cell.x) * 73856093u) ^ (uint(cell.y) * 19349663u) ^ (uint(seed) * 83492791u);
+	h ^= h >> 16u;
+	h *= 2246822519u;
+	h ^= h >> 13u;
+	h *= 3266489917u;
+	h ^= h >> 16u;
+	return float(h) / 4294967295.0;
+}
+
+// --- A chuva lá fora ---------------------------------------------------------
+const float RAIN_SLANT = 0.1;      // o vento inclina a chuva (m de lado por m de queda)
+const float RAIN_SPEED = 9.0;      // m/s
+const float RAIN_PERIOD = 2.2;     // de quantos em quantos metros, numa coluna, pode cair um risco
+const float RAIN_LENGTH = 0.8;     // o comprimento do risco (o borrão da queda), em m
+const float RAIN_THICKNESS = 0.006;
+
+// Os riscos de um plano a "depth" m atrás do vidro, em colunas de "width" m.
+// Devolve quanto o pixel é risco (0 a 1). Longe, o risco fino fica com um
+// pixel de largura e mais transparente (não pisca).
+float streak_layer(vec3 dir, float depth, float width, float density, int seed) {
+	float t = (-depth - local_camera.z) / dir.z;
+	vec2 q = local_camera.xy + dir.xy * t;
+	q.x += q.y * RAIN_SLANT;
+	float pixel = fwidth(q.x);
+	float column = floor(q.x / width);
+	int c = int(column);
+	float fall = q.y / RAIN_PERIOD + fract(TIME * RAIN_SPEED / RAIN_PERIOD) + rand(ivec2(c, 0), seed) * 7.0;
+	int row = int(floor(fall));
+	// 0 = a cabeça do risco (embaixo, mais forte), 1 = o fim dele.
+	float along = fract(fall) * RAIN_PERIOD / RAIN_LENGTH;
+	float present = step(rand(ivec2(c, row), seed + 1), density);
+	float center = (column + 0.2 + 0.6 * rand(ivec2(c, row), seed + 2)) * width;
+	float spread = max(RAIN_THICKNESS, pixel * 1.2);
+	float line = (1.0 - smoothstep(0.0, spread, abs(q.x - center))) * (RAIN_THICKNESS / spread);
+	float body = step(along, 1.0) * smoothstep(0.0, 0.06, along) * sqrt(max(1.0 - along, 0.0));
+	return line * body * present;
+}
+
+// Os três planos juntos. A quantidade de riscos cresce com a força (na fraca,
+// poucos; na forte, cheio).
+float falling_rain(vec3 dir, float amount) {
+	float density = amount * amount * 0.6;
+	float near = streak_layer(dir, 2.5, 0.1, density, 101);
+	float middle = streak_layer(dir, 6.0, 0.24, density, 211);
+	float far = streak_layer(dir, 14.0, 0.56, density, 307);
+	return clamp(near + middle * 0.8 + far * 0.6, 0.0, 1.0);
+}
+
+// --- As gotas no vidro (em metros, no plano do vidro) -------------------------
+// Uma gota de raio "radius" em "center": em xy, onde o pixel está nela (0 no
+// meio, 1 na borda: serve de "normal"); em z, quanto o pixel é gota (com a
+// borda suavizada pelo tamanho do pixel).
+vec3 drop_shape(vec2 p, vec2 center, vec2 radius) {
+	vec2 d = (p - center) / radius;
+	float len = length(d);
+	float aa = max(fwidth(len), 0.001);
+	return vec3(d, clamp((1.0 - len) / aa, 0.0, 1.0));
+}
+
+// Gotas paradas, uma por célula de "cell" m (algumas células, pela
+// "presence"). Cada gota cai (aparece de uma vez), fica e seca devagar; depois
+// cai outra no lugar ("rate": quantas vezes por segundo).
+vec3 still_drops(vec2 p, float cell, vec2 radii, float presence, float rate, int seed) {
+	ivec2 id = ivec2(floor(p / cell));
+	float r = mix(radii.x, radii.y, pow(rand(id, seed), 2.0));
+	vec2 jitter = vec2(rand(id, seed + 1), rand(id, seed + 2)) - 0.5;
+	vec2 center = (vec2(id) + 0.5) * cell + jitter * max(cell - 2.0 * r, 0.0);
+	float life = fract(TIME * rate + rand(id, seed + 3));
+	float size = smoothstep(0.0, 0.015, life) * (1.0 - smoothstep(0.6, 1.0, life));
+	vec3 drop = drop_shape(p, center, vec2(r * max(size, 0.4)));
+	drop.z *= size * step(rand(id, seed + 4), presence);
+	return drop;
+}
+
+// A gota que escorre (uma por coluna de 13 cm, pela "presence"): desce aos
+// trancos, balançando um pouco, e deixa acima dela um rastro do vidro limpo.
+// Em xyz, como em drop_shape; em w, o rastro (0 a 1).
+vec4 sliding_drop(vec2 p, float presence, int seed) {
+	const float WIDTH = 0.13;
+	float column = floor(p.x / WIDTH);
+	ivec2 id = ivec2(int(column), 0);
+	float on = step(rand(id, seed), presence);
+	float period = mix(4.0, 9.0, rand(id, seed + 1));
+	float u = fract(TIME / period + rand(id, seed + 2));
+	// Para, desce, para: a curva nunca volta para cima.
+	float slide = u - sin(u * TAU * 4.0) / (TAU * 4.0);
+	float y = mix(1.2, -1.8, slide);
+	float phase = rand(id, seed + 3) * TAU;
+	float x0 = (column + 0.5) * WIDTH + (rand(id, seed + 4) - 0.5) * 0.04;
+	float r = mix(0.011, 0.017, rand(id, seed + 5));
+	float x_drop = x0 + sin(y * 9.0 + phase) * 0.012;
+	vec3 drop = drop_shape(p, vec2(x_drop, y), vec2(r, r * 1.3));
+	float above = p.y - y;
+	float x_trail = x0 + sin(p.y * 9.0 + phase) * 0.012;
+	float trail = (1.0 - smoothstep(r * 0.35, r * 0.8, abs(p.x - x_trail)))
+			* smoothstep(0.0, r, above) * (1.0 - smoothstep(0.05, 0.55, above));
+	return vec4(drop.xy, drop.z * on, trail * on);
+}
+
+// Todas as gotas: em xy, a "normal" da gota mais forte no pixel; em z, quanto
+// é gota; em w, o rastro limpo.
+vec4 glass_rain(vec2 p, float amount) {
+	float many = pow(amount, 1.5);
+	vec3 best = still_drops(p, 0.075, vec2(0.007, 0.016), many * 0.6, 0.05, 11);
+	vec3 small = still_drops(p + vec2(0.013, 0.021), 0.032, vec2(0.003, 0.006), many * 0.75, 0.09, 23);
+	if (small.z > best.z) {
+		best = small;
+	}
+	vec4 slide = sliding_drop(p, smoothstep(0.25, 1.0, amount) * 0.75, 37);
+	if (slide.z > best.z) {
+		best = slide.xyz;
+	}
+	// As gotinhas que a gota que desceu deixou no rastro.
+	vec3 left = still_drops(p + vec2(0.007, 0.0), 0.016, vec2(0.0025, 0.004), 0.7, 0.0, 41);
+	left.z *= step(0.2, slide.w);
+	if (left.z > best.z) {
+		best = left;
+	}
+	return vec4(best, slide.w);
+}
+
+// A chuva por cima da vista (antes do vidro): os riscos, a névoa do vidro
+// molhado (limpa no rastro e nas gotas) e a borda escura da gota.
+vec3 rain_over(vec3 color, vec4 wet, float streaks) {
+	vec3 tint = mix(rain_tint_day, rain_tint_night, night);
+	color += (color * 0.6 + tint * 0.5) * streaks;
+	float haze = rain * 0.16 * (1.0 - max(wet.w, wet.z));
+	color = mix(color, tint, haze);
+	float rim = smoothstep(0.55, 1.0, length(wet.xy)) * wet.z;
+	color *= (1.0 - rim * 0.6) * (1.0 + wet.z * 0.1);
+	return color;
+}
+
+// O brilho da gota (por cima de tudo): o céu de dia, a sala de noite.
+vec3 drop_glint(vec4 wet) {
+	float glint = (1.0 - smoothstep(0.0, 0.42, length(wet.xy - vec2(-0.32, 0.4)))) * wet.z;
+	vec3 color = mix(vec3(0.28, 0.3, 0.33), reflection_light_color * 0.3, night);
+	return color * glint;
 }
 
 // Uma fileira de prédios a "depth" m do vidro. Devolve a cor em rgb e, em a,
@@ -146,9 +308,12 @@ vec3 fallback_view(vec3 dir, vec2 uv) {
 
 // Um ângulo que passa da lente do retrato: até "knee" fica igual; dali até
 // 90° ele é apertado aos poucos para dentro de "edge" (sem cortar seco, que
-// esticaria a última coluna do retrato por toda a janela).
+// esticaria a última coluna do retrato por toda a janela). Fase 19.6.1: com a
+// lente de 130°, quase ninguém chega aqui, e o aperto começa só em 92% da
+// lente (era 80%: com a de 100°, a faixa apertada escorregava pela janela
+// quando se andava pela sala).
 float fit_angle(float angle, float edge) {
-	float knee = edge * 0.8;
+	float knee = edge * 0.92;
 	float over = abs(angle) - knee;
 	if (over <= 0.0) {
 		return angle;
@@ -212,24 +377,34 @@ void fragment() {
 	if (dir.z > -0.01) {
 		dir.z = -0.01;
 	}
+	// A chuva (Fase 19.6.1): as gotas no vidro e os riscos lá fora. A vista é
+	// vista através da gota (o olhar desviado pela "normal" dela).
+	vec4 wet = vec4(0.0);
+	float streaks = 0.0;
+	vec3 view_dir = dir;
+	if (rain > 0.001) {
+		wet = glass_rain(local_position.xy, rain);
+		streaks = falling_rain(dir, rain);
+		view_dir = normalize(vec3(dir.xy - wet.xy * wet.z * drop_refraction, dir.z));
+	}
 	float m = view_mix;
 	vec3 color = vec3(0.0);
 	if (m < 1.0) {
 		// À noite, a reserva some no primeiro terço da entrada.
 		float leaving = mix(1.0 - m, 1.0 - smoothstep(0.0, 0.35, m), night);
-		color = fallback_view(dir, UV) * leaving;
+		color = rain_over(fallback_view(view_dir, UV), wet, streaks) * leaving;
 	}
 	if (m > 0.0) {
 		float lights = 0.0;
 		float outside = 0.0;
-		vec3 seen = portrait_view(dir, lights, outside);
+		vec3 seen = portrait_view(view_dir, lights, outside);
 		// Muito de lado o vidro vira quase espelho: fora da lente do retrato,
 		// em vez da beirada comprimida, um véu escuro do vidro.
 		seen = mix(seen, glass_tint * (0.12 + 0.6 * (1.0 - night)), outside);
 		lights *= 1.0 - outside;
-		vec3 view = glass(seen, dir, UV);
+		vec3 view = glass(rain_over(seen, wet, streaks), dir, UV);
 		float lit = mix(smoothstep(0.5, 1.0, m), smoothstep(0.3, 0.75, m), lights);
 		color += view * mix(m, lit, night);
 	}
-	ALBEDO = color;
+	ALBEDO = color + drop_glint(wet);
 }

@@ -17,6 +17,10 @@ extends SceneTree
 ##     inteira: check_mountain_fallback).
 ## (Scripts que usam autoloads vão por load(), sem o nome da classe: em -s,
 ## o nome puxa os autoloads antes da hora.)
+## Liga as horas falsas (o RPG no nível 3). Revisão de risco da 19.9: o
+## check_mountain_trail_horas.gd estende este teste e liga, para a montanha e o mirante
+## serem conferidos também com o bairro crescido.
+var fake_hours: bool = false
 var failures: int = 0
 var _space: PhysicsDirectSpaceState3D
 ## A plataforma do mirante (15.10), por load(): ela usa o TrailDressing.
@@ -30,7 +34,7 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	load("res://tests/quiet_friends.gd").install(root)
-	load("res://tests/fake_library.gd").install(root, 200, false, true)
+	load("res://tests/fake_library.gd").install(root, 200, fake_hours, true)
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	var started := Time.get_ticks_msec()
@@ -38,6 +42,8 @@ func _run() -> void:
 	while not city.is_city_ready():
 		await process_frame
 	print("cidade montada em %d ms (com a montanha)" % (Time.get_ticks_msec() - started))
+	if fake_hours:
+		_check("com as horas falsas, o RPG está no nível 3", city.district_level("rpg") == 3)
 	await physics_frame
 	await physics_frame
 	_space = city.get_world_3d().direct_space_state
@@ -146,7 +152,8 @@ func _run() -> void:
 	_check("o chão de neve da cidade não vai para a montanha", cover != null and cover_outside == 0)
 	var scatter_outside := 0
 	for child: Node in city.get_children():
-		if child.has_method("get_transforms"):
+		# Só os enfeites do bioma (o BiomeScatter; 19.3: as árvores de rua são um TreeModel, sem família).
+		if child.has_method("get_transforms") and String(child.name).begins_with("BiomeScatter_"):
 			for index in 8:
 				for item: Transform3D in child.get_transforms(index):
 					if maxf(absf(item.origin.x), absf(item.origin.z)) > half:

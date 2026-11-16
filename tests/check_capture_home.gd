@@ -45,8 +45,9 @@ func _check_home() -> void:
 				var target: Vector3 = home.to_local(point["target"])
 				_check(label + ": olho dentro da sala", bounds.has_point(eye))
 				_check(label + ": olha para dentro da sala", bounds.has_point(target) and eye.distance_to(target) > 0.01)
-			var expected: Array[String] = ["nascer", "janela", "sofa", "estante"]
-			_check("quatro pontos com nomes únicos", names == expected)
+			# 19.6.1: perto, oeste e leste (a vista da janela de perto e de lado).
+			var expected: Array[String] = ["nascer", "janela", "sofa", "estante", "perto", "oeste", "leste"]
+			_check("sete pontos com nomes únicos", names == expected)
 			var spawn: Transform3D = home.call("get_spawn_transform")
 			_check("nascer preserva o giro da disposição",
 				Vector3(points[0]["eye"] - points[0]["target"]).normalized().is_equal_approx(spawn.basis.z))
@@ -62,7 +63,7 @@ func _check_home() -> void:
 	_check("a vista trocada vale para a captura", cabin.get("window_shader") == VIEWS["retrato"])
 	_restore_settings()
 	_check("a vista do perfil volta no fim", cabin.get("window_shader") == cabin_view)
-	_check("as duas vistas existem", VIEWS.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)))
+	_check("as vistas existem", VIEWS.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)))
 	_check("recusa a raiz do repositório", not _folder_allowed("res://"))
 	_check("recusa pasta relativa dentro do repositório", not _folder_allowed("capturas"))
 	_check("recusa a raiz relativa", not _folder_allowed("."))

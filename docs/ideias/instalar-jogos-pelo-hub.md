@@ -1,5 +1,5 @@
 ---
-status: crua
+status: virou-fase
 versao: V1
 custo:
 data: "2026-11-02"
@@ -9,6 +9,8 @@ data: "2026-11-02"
 
 ## O que é
 Espaços na cidade para os jogos que você tem, mas não instalou. Instalar começaria por dentro do hub, por exemplo pela Steam com `steam://install/<id>`. Veio da resposta 7 da [revisão da ROADMAP](../revisao-roadmap-2026-11-02.md): "gostei da ideia de termos os espaços para instalar os jogos por dentro do Game Hub".
+
+**Virou fase em 2026-11-15:** [7. Instalar jogos pelo hub](../ROADMAP.md#7-instalar-jogos-pelo-hub), na ROADMAP.
 
 ## Para quem / por que importa
 Para quem tem poucos jogos instalados, o que é o caso do dono: a cidade ficaria cheia mesmo assim, e instalar um jogo viraria um gesto dentro do mundo.
