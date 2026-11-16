@@ -43,12 +43,15 @@ const CONTROL_ROWS: Array[Array] = [
 	[["E"], ["X"], "interagir"],
 	[["Tab"], ["Y"], "achar um jogo"],
 	[["M"], ["View"], "mapa da cidade"],
+	[["V"], ["R3"], "trocar a visão"],
 	[["Shift+Enter"], ["X"], "na busca: ir até a porta"],
 	[["←→"], ["LB", "RB"], "trocar de aba"],
 	[["Esc"], ["Menu"], "pausa (este menu)"],
 ]
 ## Teclas que só existem no teclado, numa linha de dica embaixo da lista.
-const KEYBOARD_ONLY_TIP: String = "F8 adianta o relógio · F11 tela cheia · L3 = apertar o analógico"
+const KEYBOARD_ONLY_TIP: String = "F8 adianta o relógio · F11 tela cheia · L3/R3 = apertar o analógico"
+## A visão do jogador (Fase 20): [valor no AppConfig, texto].
+const VIEW_OPTIONS: Array[Array] = [["first", "Primeira pessoa"], ["third", "Terceira pessoa"]]
 
 var _pages: Array[Control] = []
 var _current_page: int = 0
@@ -70,6 +73,7 @@ var _controls_changed: bool = false
 var _fullscreen_check: CheckButton
 var _map_check: CheckButton
 var _motion_check: CheckButton
+var _view_buttons: Dictionary[String, Button] = {}
 var _sensitivity_slider: HSlider
 var _stick_slider: HSlider
 var _fov_slider: HSlider
@@ -444,6 +448,9 @@ func _build_controls_page() -> Control:
 			&"HubCaption")
 	motion_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(motion_hint)
+	var view_row := _row("Visão")
+	view_row.add_child(_segmented(VIEW_OPTIONS, _view_buttons, AppConfig.set_view))
+	page.add_child(view_row)
 	_sensitivity_slider = _controls_slider(page, "Sensibilidade do mouse",
 			AppConfig.MOUSE_SENSITIVITY_RANGE * 100.0, 5.0, _on_sensitivity_changed)
 	_sensitivity_value = _last_slider_value
@@ -628,6 +635,7 @@ func refresh() -> void:
 	_fullscreen_check.button_pressed = HubWindow.is_fullscreen()
 	_map_check.button_pressed = AppConfig.get_show_map()
 	_motion_check.button_pressed = AppConfig.get_camera_motion()
+	_choose(_view_buttons, AppConfig.get_view())
 	_sensitivity_slider.value = roundf(AppConfig.get_mouse_sensitivity() * 100.0)
 	_stick_slider.value = roundf(AppConfig.get_stick_sensitivity() * 100.0)
 	_fov_slider.value = AppConfig.get_fov()

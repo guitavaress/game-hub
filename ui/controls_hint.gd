@@ -2,7 +2,7 @@ class_name ControlsHint
 extends PanelContainer
 ## Cartão de controles da PRIMEIRA VEZ (Fase 10.7): uma faixa no pé da tela
 ## com as teclas principais (WASD andar · Shift correr · E usar · Tab buscar ·
-## M mapa · Esc menu). Some sozinho depois de SHOW_SECONDS ou no primeiro E.
+## M mapa · V visão · Esc menu). Some sozinho depois de SHOW_SECONDS ou no primeiro E.
 ## Ao sumir, grava "já visto" no config.cfg (AppConfig) e avisa (closed).
 ##
 ## Quem decide mostrar é o jogador, no fim da abertura (Player.finish_intro),
@@ -23,6 +23,7 @@ const KEYS: Array[Array] = [
 	["interact", "usar"],
 	["search", "buscar"],
 	["map", "mapa"],
+	["view", "visão"],
 	["menu", "menu"],
 ]
 
