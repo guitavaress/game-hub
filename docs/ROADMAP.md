@@ -172,6 +172,8 @@ O que a fase tem de resolver (o plano decide):
 
 **Pronto quando:** você aperta a tecla e passa a ver o seu avatar por trás, anda pela cidade e pela casa sem a câmera entrar em parede, volta à primeira pessoa, olha para baixo e vê o seu corpo andando; abrir um jogo, o mapa e a busca funcionam igual nas duas.
 
+**Andamento:** é a [Fase 20](plans/fase-20.md), aprovada em 2026-11-16. O dono escolheu este item para vir antes dos itens 4 a 7. A ordem: o corpo aprende a andar sem deslizar → a tecla e a opção no menu → o corpo em primeira pessoa → a câmera em terceira pessoa → o que depende da visão → medida e fechamento.
+
 ## Dia de conferência
 
 As fases feitas que diziam "falta a conferência no desktop" viram **um checklist único, feito num dia só**: [plans/conferencia-desktop.md](plans/conferencia-desktop.md).
@@ -234,6 +236,7 @@ Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas 
   - a cerimônia completa vale só para subetapas grandes, e a revisão cruzada só nos pontos de risco;
   - as conferências pendentes viram um dia só.
   Detalhes no [AGENTS.md](../AGENTS.md) e na [revisão](revisao-roadmap-2026-11-02.md).
+- **2026-11-16:** a Fase 20 é "Primeira e terceira pessoa" (o item 8), por escolha do dono: dá mudança visível logo, e o corpo que anda serve depois aos amigos andando. Os itens 4 a 7 seguem na mesma ordem.
 - **2026-11-12:** os biomas baratos passam à frente de visitar amigos, porque o jogo do V-Sekai está parado desde junho de 2025 (números na [fase 4](#4-visitar-amigos)). A Fase 19 ganha também as árvores no Blender e o céu vivo (dia em gradiente, clima dinâmico, chuva refeita).
 
 As regras de arquitetura (dados de mundo em perfis, plataforma isolada etc.) estão no [AGENTS.md](../AGENTS.md#regras-de-arquitetura).

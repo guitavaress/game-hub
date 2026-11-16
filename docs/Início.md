@@ -5,7 +5,10 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 **Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
 
 ## Agora
-- **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), **fechada em 2026-11-15 e na `main`** (PR #5, 2026-11-16), com o [Release 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0) publicado em 2026-11-16 (zip de 83 MB): árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
+- **Fase atual:** [Fase 20, Primeira e terceira pessoa](plans/fase-20.md), aprovada em 2026-11-16, na branch `fase-20`. Uma tecla (V) vai alternar a visão: na terceira pessoa você vê o seu avatar por trás; na primeira, vê o próprio corpo ao olhar para baixo.
+  - **Próxima subetapa:** 20.1, o corpo aprende a andar, correr e pular sem deslizar (ainda sem mudança na tela).
+  - **Espera você:** nada agora. Na 20.4 você escolhe o jeito da terceira pessoa pelas capturas.
+- **Fase anterior:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), **fechada em 2026-11-15 e na `main`** (PR #5, 2026-11-16), com o [Release 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0) publicado em 2026-11-16 (zip de 83 MB): árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Fechamento (19.13, 2026-11-15):** bateria completa ok. No desktop (Alta, 200 jogos), a caminhada não caiu em relação ao começo da fase: 132 FPS antes e 136 agora, medidos na mesma hora. A chuva forte custa cerca de 1%. A cidade leva cerca de 1 s a mais para montar (de ~9,3 para ~10,2 s). Os números estão no [plano](plans/fase-19.md).
   - **Subetapa anterior:** 19.8 (2026-11-15, `b3dbf33`): a Sobrevivência vira deserto. Areia no chão e nas ruas, rochas maiores com areia por cima, nenhuma árvore, vento, **poeira** no lugar da chuva, névoa quente e leve, arcos no lugar dos prédios e passos com o som da neve. Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.8\`. Antes, 19.7 (2026-11-14, `408c116`): a Aventura vira floresta. Grama no chão e nas ruas, calçada de pedra, árvores altas de mata (feitas no Blender) com árvores novas por baixo, rochas com musgo, pássaros cantando, folhas caindo na chuva, uma névoa verde leve e passos na grama. As portas viraram **arcos** no meio da mata (a recomendação); com prédios, as árvores só cabem nas vagas. Capturas das duas em `C:\Projetos\game-hub-referencias\fase-19\19.7\arcos\` e `...\19.7\predios\`.
   - **Antes dela:** 19.6.1 (2026-11-14, `8d187a6`): a janela na chuva. Dentro de casa, com chuva lá fora, o vidro mostra os riscos caindo e as gotas paradas e escorrendo (poucas na chuva fraca, muitas na forte; à noite elas pegam as luzes). A vista não entorta mais quando você anda pela sala ou chega perto do vidro. Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.6.1\` (antes e depois do warp, nos três tempos). A janela ao vivo continua sendo uma fase própria ([A janela de verdade](ROADMAP.md#5-a-janela-de-verdade)).
@@ -16,7 +19,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
   - **Teste do modelo grátis (OpenCode):** o `free-coding` reprovou na 19.11 (ela passa ao Sonnet). O `free-reasoning` foi aprovado para pesquisa e texto com revisão: escreveu a ideia do [fork da NVIDIA](ideias/godot-fork-nvidia.md).
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).
   - **Falta:** 2 ou 3 amigos usarem e mandarem o resumo do botão "Contar o que achei". Cole o resumo (sem o nome) para um agente registrar no plano; aí a fase fecha.
-- **Próxima fase:** [Visitar amigos](ROADMAP.md#4-visitar-amigos), adiada em 2026-11-12 (o jogo do V-Sekai está parado desde junho de 2025).
+- **Depois da Fase 20:** [Visitar amigos](ROADMAP.md#4-visitar-amigos), adiada em 2026-11-12 (o jogo do V-Sekai está parado desde junho de 2025), e os itens 5 a 7 da ROADMAP.
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
@@ -79,8 +82,11 @@ gantt
     section Biomas e céu
     Fase 19 Biomas, árvores e céu    :done, f19, 2026-11-12, 2026-11-15
 
+    section Visão
+    Fase 20 Primeira e terceira pessoa :active, f20, 2026-11-16, 7d
+
     section Próximas, sem data
-    Visitar amigos                   :u4, after f19, 7d
+    Visitar amigos                   :u4, after f20, 7d
 ```
 Ao fechar uma fase, troque `active` por `done` e acerte a data do fim. A fase que começar ganha uma linha com a data de início e sai de "Próximas".
 
