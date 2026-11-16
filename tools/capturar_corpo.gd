@@ -17,6 +17,9 @@ extends SceneTree
 ##   pes         parado, olhando quase reto para baixo (85°): o pescoço não pode aparecer
 ##   andando     andando (W), olhando para baixo, duas fotos
 ##   correndo    correndo (Shift+W), olhando para baixo
+##   frente_andando, frente_correndo
+##               olhando reto para a frente, andando e correndo, duas fotos cada
+##               (20.3.1: nada do corpo no meio nem na metade de cima da tela)
 ##   sombra      de costas para o sol, olhando para a sombra (com cabeça)
 ## Só em casa:
 ##   espelho     de frente para o espelho, a 1,6 m
@@ -144,6 +147,19 @@ func _shots(place: String, tag: String, start: Transform3D, sun_travel: Vector3,
 	Input.action_release("move_forward")
 	Input.action_release("sprint")
 	await create_timer(0.6).timeout
+	for sprint in [false, true]:
+		var kind := "correndo" if sprint else "andando"
+		_place(start, 0.0)
+		if sprint:
+			Input.action_press("sprint")
+		Input.action_press("move_forward")
+		await create_timer(WALK_SECONDS).timeout
+		await _shot(place + "_frente_" + kind + "1", tag, 0)
+		await create_timer(WALK_GAP_SECONDS).timeout
+		await _shot(place + "_frente_" + kind + "2", tag, 0)
+		Input.action_release("move_forward")
+		Input.action_release("sprint")
+		await create_timer(0.6).timeout
 	var away := Vector3(sun_travel.x, 0.0, sun_travel.z)
 	if away.length() > 0.01:
 		_place(Transform3D(Basis.looking_at(away.normalized()), sunny), -35.0)

@@ -159,6 +159,29 @@ func _run() -> void:
 			and _all_cast(full.get_meshes(), GeometryInstance3D.SHADOW_CASTING_SETTING_ON) and full.get_shadow_twin_layers() == 0)
 	_check("em casa, o espelho também o vê", _layers(full) & mirror.get_mirror_camera().cull_mask != 0)
 	_check("o inteiro fica no meio do jogador (sem o recuo)", full.position.is_equal_approx(Vector3.ZERO))
+	# 20.3.1: escondido (viagem, foco), a terceira pessoa também tira o inteiro
+	# da câmera; a sombra fica na cópia. E o provador o mostra mesmo escondido.
+	var near := Transform3D(player.global_basis, player.global_position + player.global_basis.x * 0.3)
+	player.travel_to(near, "", 0.1, 0.05)
+	await _settle()
+	_check("terceira pessoa + viagem: o inteiro sai da câmera, a sombra fica", avatar.is_hidden()
+			and _layers(full) & camera.cull_mask == 0 and full.get_shadow_twin_layers() == INSIDE)
+	await create_timer(0.6).timeout
+	_check("depois da viagem, o inteiro volta para a câmera", not avatar.is_hidden()
+			and _layers(full) & camera.cull_mask != 0 and full.get_shadow_twin_layers() == 0)
+	_stand_in_front(player, home, mirror, 1.6)
+	await _frames(4)
+	player.focus_on(mirror)
+	await create_timer(0.6).timeout
+	_check("terceira pessoa + provador (escondido): o inteiro posado, visto e com sombra",
+			avatar.is_hidden() and avatar.is_posed() and _layers(full) & camera.cull_mask != 0
+			and _all_cast(full.get_meshes(), GeometryInstance3D.SHADOW_CASTING_SETTING_ON))
+	_check("no provador, o inteiro está parado (Idle)",
+			full.get_animation_player().current_animation == AvatarBody.IDLE_ANIMATION)
+	player.leave_focus(true)
+	await _settle()
+	_check("saindo do provador na terceira pessoa, o inteiro segue visto", not avatar.is_posed()
+			and _layers(full) & camera.cull_mask != 0)
 	avatar.set_view("lado")
 	_check("visão inválida é ignorada", avatar.get_view() == "third")
 	avatar.set_view("first")

@@ -52,6 +52,9 @@ const MIN_SPEED_SCALE: float = 0.5
 const MAX_SPEED_SCALE: float = 3.2
 ## Tempo (s) da mistura entre duas animações, para a pose não dar um pulo.
 const BLEND_TIME: float = 0.2
+## Tempo (s) no ar antes de trocar para o Jump (Fase 20.3.1). Descer uma guia
+## tira o pé do chão por um instante, e o corpo pulava por um quadro.
+const AIR_GRACE: float = 0.15
 ## Quanto o osso da cabeça encolhe ao esconder (não é zero, que quebra a matriz).
 const HIDDEN_HEAD_SCALE: float = 0.001
 ## O osso encolhido ao esconder a cabeça (Fase 20.3): o pescoço, que leva a
@@ -93,6 +96,8 @@ var _meshes: Array[MeshInstance3D] = []
 ## primeira vez que alguém pede.
 var _shadow_twins: Array[MeshInstance3D] = []
 var _palette: ShaderMaterial
+## Quando (ms, Time.get_ticks_msec) o corpo saiu do chão; -1 = no chão.
+var _air_since: int = -1
 
 
 ## A máscara de "layers" que deixa o corpo só no reflexo.
@@ -193,12 +198,19 @@ func play_walk(start: float = 0.0) -> void:
 ## Escolhe a animação pelo estado e acerta a cadência pela velocidade real.
 ## horizontal_speed = m/s no plano (sem a vertical); on_floor falso = no ar.
 ## Pode ser chamada todo quadro: só troca a animação quando o estado muda.
+## No ar, o Jump só entra depois de AIR_GRACE segundos (uma queda curta, como
+## descer uma guia, segue no passo).
 func animate(horizontal_speed: float, on_floor: bool) -> void:
 	if _animation_player == null:
 		return
+	var now := Time.get_ticks_msec()
+	if on_floor:
+		_air_since = -1
+	elif _air_since < 0:
+		_air_since = now
 	var animation := IDLE_ANIMATION
 	var cadence := 1.0
-	if not on_floor:
+	if not on_floor and now - _air_since >= int(AIR_GRACE * 1000.0):
 		animation = JUMP_ANIMATION
 	elif horizontal_speed >= RUN_THRESHOLD:
 		animation = RUN_ANIMATION
@@ -248,6 +260,8 @@ func get_shadow_mode() -> ShadowMode:
 ## ficar numa camada que a câmera não vê (o espelho) e mesmo assim fazer sombra
 ## para ela: a Godot só faz a sombra de quem está numa camada que a câmera vê.
 ## A cópia anda junto (é o mesmo esqueleto) e nunca é desenhada, só a sombra.
+## Só vale DEPOIS do _ready (do add_child): antes, as malhas ainda não existem e
+## a chamada não faz nada, sem aviso.
 func set_shadow_twin_layers(layers: int) -> void:
 	if layers != 0 and _shadow_twins.is_empty():
 		for mesh in _meshes:

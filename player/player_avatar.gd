@@ -27,7 +27,12 @@ extends Node3D
 ## Quanto (m) os corpos ficam para trás da câmera na primeira pessoa: olhando
 ## para baixo, a câmera fica na frente do pescoço, e não dentro dele, e vê o
 ## peito, os braços, as pernas e os pés.
-const FIRST_PERSON_BACK: float = 0.2
+## Fase 20.3.1: era 0,2, e andando com a cabeça um pouco inclinada (30°) a mão
+## esquerda cruzava o meio da tela a cada passo. Com 0,3, olhando reto para a
+## frente nada do corpo aparece, a 30° para baixo a mão fica no terço de baixo
+## (medido: topo da mão em 66% da altura andando, 61% correndo) e olhando para
+## baixo o corpo continua lá.
+const FIRST_PERSON_BACK: float = 0.3
 
 var _first: AvatarBody
 var _full: AvatarBody
@@ -100,6 +105,8 @@ func hold_pose(spot: Transform3D) -> void:
 	_posed = true
 	_full.top_level = true
 	_full.global_transform = spot
+	# Parado desde o primeiro quadro, sem misturar com o passo de antes.
+	_full.play_idle()
 	_apply()
 
 
@@ -139,7 +146,9 @@ func _make_body(body_name: String, spec: AvatarSpec) -> AvatarBody:
 func _apply() -> void:
 	var view_mask := AvatarBody.view_layers(_indoors)
 	# O inteiro é visto pela câmera do jogador na terceira pessoa e no provador.
-	var full_seen := _view == AppConfig.VIEW_THIRD or _posed
+	# Escondido (foco, viagem, abertura), a terceira pessoa também o tira da
+	# câmera, que atravessaria o próprio corpo; a sombra fica na cópia.
+	var full_seen := (_view == AppConfig.VIEW_THIRD and not _hidden) or _posed
 	_first.visible = _view == AppConfig.VIEW_FIRST and not _hidden and not _posed
 	_first.set_render_layers(view_mask)
 	_first.set_shadow_mode(AvatarBody.ShadowMode.OFF)

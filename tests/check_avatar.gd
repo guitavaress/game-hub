@@ -168,8 +168,21 @@ func _check_motion() -> void:
 	body.animate(9.0, true)
 	_check("9 m/s: Run", player.current_animation == AvatarBody.RUN_ANIMATION)
 	var run_scale := player.speed_scale
+	# 20.3.1: uma queda curta (descer uma guia) segue no passo; o Jump só
+	# entra depois de AIR_GRACE segundos no ar.
 	body.animate(5.0, false)
-	_check("no ar: Jump (mesmo andando)", player.current_animation == AvatarBody.JUMP_ANIMATION)
+	_check("acabou de sair do chão: segue no Run", player.current_animation == AvatarBody.RUN_ANIMATION)
+	# Pelo relógio (o corpo também mede por ele): o create_timer pode disparar
+	# antes, se o quadro anterior demorou.
+	var left_floor := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - left_floor < int(AvatarBody.AIR_GRACE * 1000.0) + 50:
+		await process_frame
+	body.animate(5.0, false)
+	_check("no ar por mais de %.2f s: Jump (mesmo andando)" % AvatarBody.AIR_GRACE,
+			player.current_animation == AvatarBody.JUMP_ANIMATION)
+	body.animate(5.0, true)
+	body.animate(5.0, false)
+	_check("de volta ao chão, a tolerância recomeça", player.current_animation == AvatarBody.RUN_ANIMATION)
 	body.animate(0.0, true)
 	_check("de volta ao chão parado: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
 

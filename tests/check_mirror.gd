@@ -63,7 +63,8 @@ func _run() -> void:
 			and viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED)
 	_stand_in_front(player, home, mirror, 1.8, false)
 	await _frames(4)
-	_check("a 1,8 m e olhando, ligado", mirror.is_active() and mirror.get_body().visible)
+	_check("a 1,8 m e olhando, ligado (e a câmera do espelho vê o corpo)", mirror.is_active()
+			and _body_layers(mirror) & mirror.get_mirror_camera().cull_mask != 0)
 	var body_spot: Vector3 = player.to_global(Vector3(0.0, 0.0, player.get_avatar().FIRST_PERSON_BACK))
 	_check("o corpo está onde o jogador está (um pouco atrás da câmera)",
 			mirror.get_body().global_position.distance_to(body_spot) < 0.01)
