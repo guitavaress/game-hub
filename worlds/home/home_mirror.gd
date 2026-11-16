@@ -40,7 +40,7 @@ const FRAME_WOOD: Color = Color(0.22, 0.14, 0.08)
 ## cantos escuros, e o espelho precisa de luz para quem se olha nele.
 const SCONCE_COLOR: Color = Color(1.0, 0.78, 0.55)
 const SCONCE_ENERGY: float = 1.1
-## Até onde (m, da câmera ao vidro) o espelho desenha.
+## Até onde (m, do jogador ao vidro, medido no chão) o espelho desenha.
 const ACTIVE_DISTANCE: float = 4.5
 ## Até onde (m) a câmera do espelho enxerga além do vidro.
 const MIRROR_FAR: float = 12.0
@@ -187,12 +187,18 @@ func reflect_point(point: Vector3) -> Vector3:
 
 
 ## Desenhar ou não: em casa, perto, na frente do vidro e com ele na tela.
-func _should_draw(player: Node, camera: Camera3D) -> bool:
+## "Perto" é medido pelo JOGADOR (Fase 20.4): na terceira pessoa a câmera fica
+## atrás dele, e, medido por ela, o espelho quase não ligaria. A câmera só
+## precisa estar na frente do vidro (o reflexo sai dela) e ver o vidro.
+func _should_draw(player: Node3D, camera: Camera3D) -> bool:
 	if not player.has_method("is_indoors") or not player.is_indoors():
 		return false
-	var eye := camera.global_position
-	var distance := (eye - get_glass_center()).dot(get_normal())
-	if distance < 0.1 or eye.distance_to(get_glass_center()) > ACTIVE_DISTANCE:
+	var center := get_glass_center()
+	if (camera.global_position - center).dot(get_normal()) < 0.1:
+		return false
+	var body := player.global_position
+	body.y = center.y  # a distância no chão (a altura do olho não importa)
+	if (body - center).dot(get_normal()) < 0.1 or body.distance_to(center) > ACTIVE_DISTANCE:
 		return false
 	for corner in _glass_corners():
 		if camera.is_position_in_frustum(corner):

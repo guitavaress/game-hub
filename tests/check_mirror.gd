@@ -29,6 +29,7 @@ func _run() -> void:
 	var backup := FileAccess.get_file_as_string(CONFIG)
 	for setter in ["set_home_theme", "set_home_layout", "set_home_wall_color", "set_home_neon_color"]:
 		app.call(setter, "")
+	app.set_view("first")  # a conta do reflexo abaixo usa o olho na cabeça
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
@@ -79,6 +80,23 @@ func _run() -> void:
 	player.set_indoors(home.get_environment())
 	await _frames(3)
 	_check("de volta em casa, liga de novo", mirror.is_active())
+
+	print("== na terceira pessoa (20.4: a distância é medida pelo jogador) ==")
+	player.toggle_view()
+	_stand_in_front(player, home, mirror, 3.4, false)
+	await create_timer(0.6).timeout
+	await _frames(2)
+	var eye_distance: float = camera.global_position.distance_to(mirror.get_glass_center())
+	_check("com o jogador a 3,4 m e a câmera a %.1f m (mais que %.1f), ligado" % [eye_distance, mirror.ACTIVE_DISTANCE],
+			eye_distance > mirror.ACTIVE_DISTANCE and mirror.is_active())
+	_check("e o reflexo sai da câmera", mirror_camera.global_position.distance_to(mirror.reflect_point(camera.global_position)) < 0.01)
+	_stand_in_front(player, home, mirror, 4.8, false)
+	await _frames(4)
+	_check("com o jogador a 4,8 m, desligado", not mirror.is_active())
+	player.toggle_view()
+	_stand_in_front(player, home, mirror, 1.8, false)
+	await create_timer(0.6).timeout
+	await _frames(2)
 
 	print("== a conta do reflexo ==")
 	var eye := camera.global_position

@@ -6,7 +6,7 @@ extends SceneTree
 ## a nova LADO A LADO, no mesmo dia. Com outra coisa rodando, o FPS cai pela
 ## metade e até os desenhos por quadro mudam, sem nenhuma mudança no código.
 ##
-##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [tempo] [horas]
+##   ~/.local/bin/godot --path . -s tools/medir_desempenho.gd -- <jogos> <qualidade> <hora> [tempo] [horas] [visão]
 ##
 ##   jogos      0 = a biblioteca de verdade; N = N jogos falsos (tests/fake_library.gd)
 ##   qualidade  leve | media | alta        (padrão: leve)
@@ -18,6 +18,8 @@ extends SceneTree
 ##              as horas desconhecidas (a planta de antes da 19.9); "falsas" usa
 ##              as horas falsas da tests/fake_library.gd (o RPG no nível 3: a
 ##              planta com os bairros crescidos)
+##   visão      first | third (Fase 20.4; padrão: first): a visão do jogador
+##              durante a medida. A do usuário volta no fim.
 ##
 ## A caminhada é sempre a mesma: da praça até a rua mais longe do mapa e de
 ## volta, a 9 m/s (correndo), olhando para onde anda. Imprime uma linha com o
@@ -63,9 +65,18 @@ func _run() -> void:
 		quit(1)
 		return
 
+	var view := String(args[5]) if args.size() > 5 else "first"
+	if view not in ["first", "third"]:
+		push_error("A visão deve ser first ou third.")
+		quit(1)
+		return
+
 	var config := root.get_node("AppConfig")
 	var original_quality: String = config.get_quality()
+	var original_view: String = config.get_view()
 	config.set_quality(quality)
+	config.set_view(view)
+	print("MEDIDA_VISAO ", view)
 	if count > 0:
 		var library_script: GDScript = load("res://tests/fake_library.gd")
 		library_script.install(root, count, hours == "falsas")
@@ -188,6 +199,7 @@ func _run() -> void:
 	_report("MEDIDA_ESPELHO", games, quality, hour, build_ms, mirror_deltas, mirror_draws, mirror_samples)
 	await _measure_mountain(city, player, games, quality, hour, build_ms)
 	config.set_quality(original_quality)
+	config.set_view(original_view)
 	quit()
 
 

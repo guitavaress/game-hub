@@ -11,7 +11,7 @@ extends SceneTree
 ##   - o corpo anda (e corre) quando o jogador anda, e para quando ele para;
 ##   - na viagem e na abertura, o de primeira pessoa some e volta;
 ##   - o provador põe o inteiro no lugar, visto pela câmera, e o devolve;
-##   - set_view (para a 20.4): a terceira pessoa mostra o inteiro;
+##   - a terceira pessoa (o jogador manda no set_view, 20.4) mostra o inteiro;
 ##   - trocar as cores no config.cfg pinta os dois corpos.
 
 const CONFIG := "user://config.cfg"
@@ -151,9 +151,11 @@ func _run() -> void:
 	await _settle()
 	_check("depois da abertura, volta", first.visible)
 
-	print("== a visão (set_view, para a 20.4) ==")
-	avatar.set_view("third")
+	print("== a visão (a terceira pessoa da 20.4 chama o set_view) ==")
+	player.toggle_view()
+	await create_timer(0.6).timeout
 	await _frames(1)
+	_check("o jogador passou o corpo para a terceira pessoa", avatar.get_view() == "third")
 	_check("terceira pessoa: o de primeira pessoa some", not first.visible)
 	_check("e a câmera do jogador vê o inteiro, que faz a própria sombra", _layers(full) & camera.cull_mask != 0
 			and _all_cast(full.get_meshes(), GeometryInstance3D.SHADOW_CASTING_SETTING_ON) and full.get_shadow_twin_layers() == 0)
@@ -184,10 +186,21 @@ func _run() -> void:
 			and _layers(full) & camera.cull_mask != 0)
 	avatar.set_view("lado")
 	_check("visão inválida é ignorada", avatar.get_view() == "third")
-	avatar.set_view("first")
+	player.toggle_view()
+	await create_timer(0.6).timeout
 	await _frames(1)
 	_check("de volta à primeira pessoa", first.visible and _layers(full) & camera.cull_mask == 0
 			and full.get_shadow_twin_layers() == INSIDE)
+
+	print("== andar de ré (20.4) ==")
+	avatar.animate(5.0, true, true)
+	_check("de ré, o passo dos dois toca ao contrário", full.get_animation_player().speed_scale < 0.0
+			and first.get_animation_player().speed_scale < 0.0)
+	avatar.animate(5.0, true, false)
+	_check("para a frente, normal", full.get_animation_player().speed_scale > 0.0)
+	avatar.animate(0.0, true, true)
+	_check("parado, de ré não muda nada (Idle a 1,0)", is_equal_approx(full.get_animation_player().speed_scale, 1.0))
+	await _frames(2)
 
 	print("== cores ==")
 	var data: Dictionary = app.get_avatar().duplicate(true)

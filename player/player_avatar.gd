@@ -21,7 +21,9 @@ extends Node3D
 ##   - o espelho: get_full_body() (para ler e conferir) e, no provador,
 ##     hold_pose() e release_pose() (o inteiro fica parado na frente do vidro,
 ##     visto também pela câmera do jogador);
-##   - a terceira pessoa (20.4): set_view() troca quais corpos a câmera vê.
+##   - a terceira pessoa (20.4): set_view() troca quais corpos a câmera vê, e o
+##     Player gira este nó (rotation.y) para o corpo virar para onde anda; de
+##     costas, o passo toca ao contrário (animate com backwards).
 ## As cores vêm do config.cfg ([avatar]) e mudam na hora.
 
 ## Quanto (m) os corpos ficam para trás da câmera na primeira pessoa: olhando
@@ -52,13 +54,26 @@ func _ready() -> void:
 
 
 ## Anda, corre ou pula pela velocidade do jogador (AvatarBody.animate). No
-## provador, o inteiro fica parado.
-func animate(horizontal_speed: float, on_floor: bool) -> void:
+## provador, o inteiro fica parado. "backwards" (terceira pessoa, andando para
+## trás com o corpo virado para a frente): o passo toca de trás para a frente,
+## para o pé não deslizar (o modelo não tem animação de andar de ré).
+func animate(horizontal_speed: float, on_floor: bool, backwards: bool = false) -> void:
 	_first.animate(horizontal_speed, on_floor)
+	_reverse_step(_first, backwards)
 	if _posed:
 		_full.animate(0.0, true)
 	else:
 		_full.animate(horizontal_speed, on_floor)
+		_reverse_step(_full, backwards)
+
+
+## Andando ou correndo para trás: a mesma animação, com a cadência negativa.
+func _reverse_step(body: AvatarBody, backwards: bool) -> void:
+	var animation := body.get_animation_player()
+	if not backwards or animation == null:
+		return
+	if animation.current_animation in [AvatarBody.WALK_ANIMATION, AvatarBody.RUN_ANIMATION]:
+		animation.speed_scale = -absf(animation.speed_scale)
 
 
 ## Dentro ou fora de casa: troca as camadas (quem acende o corpo muda).

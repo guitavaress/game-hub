@@ -1,6 +1,6 @@
 class_name Player
 extends CharacterBody3D
-## Jogador em primeira pessoa.
+## Jogador em primeira ou terceira pessoa.
 ##
 ## - Mouse gira a visão; W/A/S/D anda; Espaço pula; Shift corre.
 ## - Esc abre o menu de pausa (PauseMenu) e Tab abre a busca de jogos
@@ -14,6 +14,12 @@ extends CharacterBody3D
 ##   da mira) tem get_look_info(), que devolve um dicionário.
 ## - O seu corpo (Fase 20.3) é um PlayerAvatar, filho deste nó: olhando para
 ##   baixo, você vê o tronco, os braços, as pernas e os pés, e ele faz sombra.
+## - TERCEIRA PESSOA (Fase 20.4): V (ou R3) alterna a visão. A câmera é a mesma;
+##   ela sai para a ponta de um braço (SpringArm3D, criado por código e preso à
+##   cabeça), atrás do ombro direito. O braço bate no mundo (prédios, árvores,
+##   paredes e teto da casa) e encolhe: a câmera se aproxima e não atravessa.
+##   Encolhido demais (ARM_CLOSE), o corpo some da câmera até haver espaço.
+##   A escolha fica no config.cfg ([controls] view).
 ##
 ## A origem (posição) deste nó fica nos PÉS do jogador.
 
@@ -46,6 +52,43 @@ const INDOOR_AMBIENCE_CUTOFF_HZ: float = 900.0
 const INDOOR_AMBIENCE_DB: float = -10.0
 ## Quanto tempo (s) a câmera leva para chegar à tela 3D e para voltar.
 const FOCUS_SLIDE_SECONDS: float = 0.45
+
+## TERCEIRA PESSOA (Fase 20.4). O braço da câmera:
+## comprimento (m) fora e dentro de casa (a sala tem 9 x 7 m e teto de 3 m);
+const ARM_LENGTH_OUTDOOR: float = 3.0
+const ARM_LENGTH_INDOOR: float = 1.8
+## de onde ele sai, a partir do meio da cabeça: à direita (o ombro) e acima.
+## O ombro mais o raio da ponta (ARM_RADIUS) cabem na cápsula do jogador (0,4 m
+## de raio): encostado de lado numa parede, a ponta não começa dentro dela;
+const ARM_SHOULDER: float = 0.3
+const ARM_HEIGHT: float = 0.25
+## a ponta é uma bolinha deste raio (m), maior que o canto do plano "near" da
+## câmera, e para a esta folga (m) do que acertar;
+const ARM_RADIUS: float = 0.08
+const ARM_MARGIN: float = 0.05
+## com o braço mais curto que isto (m), a câmera ficaria colada na cabeça: o
+## corpo some da câmera (a sombra fica) até haver espaço;
+const ARM_CLOSE: float = 0.5
+## quanto tempo (s) leva a passagem de uma visão para a outra;
+const VIEW_SWITCH_SECONDS: float = 0.35
+## na terceira pessoa, o limite para olhar para cima e para baixo é menor
+## (olhando quase reto para cima, a câmera iria parar debaixo do corpo).
+const THIRD_MAX_PITCH_DEGREES: float = 70.0
+## O JEITO da terceira pessoa (a decisão do dono, na amostra da 20.4). Para
+## testar o outro, troque o valor de THIRD_PERSON_STYLE aqui:
+##   STYLE_SHOULDER ("ombro", o padrão): o avatar fica de costas para a câmera
+##     e gira com o mouse, como na primeira pessoa. Andando de lado, ele vira
+##     para o lado; para trás, anda de ré (o passo ao contrário);
+##   STYLE_FREE ("livre"): o mouse gira só a câmera, em volta do avatar, e o
+##     avatar vira para onde anda.
+const STYLE_SHOULDER: String = "ombro"
+const STYLE_FREE: String = "livre"
+const THIRD_PERSON_STYLE: String = STYLE_SHOULDER
+## Rapidez com que o avatar vira para onde anda na terceira pessoa.
+const AVATAR_TURN_FOLLOW: float = 10.0
+## Andando para trás: a parte "para trás" do movimento passa desta fração.
+## Abaixo disso (de lado), o avatar vira para o lado e anda para a frente.
+const BACKWARD_SHARE: float = 0.3
 
 ## Sons (pacotes CC0 da Kenney).
 ## Passos por SUPERFÍCIE. Quem monta um chão diz do que ele é com
@@ -137,6 +180,21 @@ var _focus_leaving: bool = false
 var _focus_tween: Tween
 var _camera_rest: Transform3D = Transform3D.IDENTITY
 
+## TERCEIRA PESSOA (veja as constantes ARM_*): o braço, a visão escolhida, o
+## andamento da passagem (0 = primeira pessoa, 1 = terceira), o comprimento do
+## braço para este lugar (fora ou dentro de casa), o comprimento de verdade
+## agora (já encolhido pelo que o braço acertou) e o jeito (ombro ou livre;
+## começa no THIRD_PERSON_STYLE, e as ferramentas de captura podem trocar).
+var _arm: SpringArm3D
+var _view: String = AppConfig.VIEW_FIRST
+var _view_progress: float = 0.0
+var _arm_reach: float = ARM_LENGTH_OUTDOOR
+var _arm_now: float = 0.0
+var third_person_style: String = THIRD_PERSON_STYLE
+## Para onde o avatar olha no mundo (giro no Y) e se ele anda de ré agora.
+var _facing: float = 0.0
+var _backwards: bool = false
+
 ## INTERAGIR (E): quem está sendo olhado e responde ao E, há quanto tempo o E
 ## está segurado nele, e se o E já disparou nesta segurada.
 var _interact_target: Node = null
@@ -176,6 +234,11 @@ func _ready() -> void:
 	_avatar = PlayerAvatar.new()
 	_avatar.name = "Avatar"
 	add_child(_avatar)
+	_build_arm()
+	# A visão volta do config.cfg já pronta, sem a passagem.
+	_view = AppConfig.get_view()
+	_view_progress = 1.0 if _view == AppConfig.VIEW_THIRD else 0.0
+	_facing = rotation.y
 	look_info_changed.connect(_hud.set_look_info)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# O menu de pausa (Esc) e a busca de jogos (Tab) vêm junto com o jogador,
@@ -202,7 +265,11 @@ func _ready() -> void:
 		if section == "controls" and key == "mouse_sensitivity":
 			_sensitivity_scale = AppConfig.get_mouse_sensitivity()
 		elif section == "controls" and key == "stick_sensitivity":
-			_stick_scale = AppConfig.get_stick_sensitivity())
+			_stick_scale = AppConfig.get_stick_sensitivity()
+		elif section == "controls" and key == "view":
+			# A opção em Esc › Controles (ou o V): a passagem começa já (com o
+			# menu aberto o mundo está pausado, e ela anda quando ele fecha).
+			_view = AppConfig.get_view())
 
 	_steps_player = _make_sound_player(-8.0)
 	_body_player = _make_sound_player(-6.0)
@@ -217,6 +284,10 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if in_intro or _focus_screen != null:
+		return
+	if event.is_action_pressed("toggle_view") and not event.is_echo():
+		if toggle_view():
+			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		# screen_relative: o movimento em pixels da TELA. O "relative" vem na
@@ -238,7 +309,13 @@ func look_by(screen_motion: Vector2) -> void:
 	rotate_y(-screen_motion.x * sensitivity)
 	# ...e só a "cabeça" para cima/baixo (eixo X).
 	_head.rotate_x(-screen_motion.y * sensitivity)
-	var limit := deg_to_rad(MAX_PITCH_DEGREES)
+	_clamp_pitch()
+
+
+## O limite para olhar para cima e para baixo: o da primeira pessoa, ou o
+## menor da terceira (mistura os dois durante a passagem).
+func _clamp_pitch() -> void:
+	var limit := deg_to_rad(lerpf(MAX_PITCH_DEGREES, THIRD_MAX_PITCH_DEGREES, _view_blend()))
 	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
 
 
@@ -290,8 +367,7 @@ func _look_with_stick(delta: float) -> void:
 	var speed := STICK_TURN_SPEED * _stick_scale * delta
 	rotate_y(-stick.x * speed)
 	_head.rotate_x(-stick.y * speed)
-	var limit := deg_to_rad(MAX_PITCH_DEGREES)
-	_head.rotation.x = clampf(_head.rotation.x, -limit, limit)
+	_clamp_pitch()
 
 
 ## A câmera ganha o balanço a cada quadro de tela (e não de física), para não
@@ -300,12 +376,145 @@ func _process(delta: float) -> void:
 	_look_with_stick(delta)
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var free := _focus_screen == null and not _traveling and not in_intro
+	_update_arm(delta)
+	var rest := _view_rest()
+	_camera_feel.set_rest(rest, 1.0 - _view_blend())
 	_camera_feel.update(delta, horizontal_speed, _stride_progress / _stride_length,
 			is_on_floor(), _sprinting, free)
-	# O corpo anda junto; no foco, na viagem e na abertura, o de primeira
-	# pessoa some (a câmera sai da cabeça).
-	_avatar.animate(horizontal_speed, is_on_floor())
-	_avatar.set_hidden(not free)
+	if _focus_screen == null and not free:
+		# Viagem e abertura: o CameraFeel não mexe, mas a câmera acompanha o
+		# braço (sem isto, chegando perto de uma parede ela ficaria dentro).
+		_camera.transform = rest
+	# O raio do olhar sai do ombro, e não da câmera: o que está entre a câmera
+	# e o avatar não conta (na primeira pessoa, o braço é 0 e nada muda).
+	_look_ray.position = Vector3(0.0, 0.0, -_arm_now)
+	# O corpo anda junto. No foco, na viagem e na abertura ele some da câmera
+	# (ela sai do lugar); na terceira pessoa, também com o braço curto demais.
+	_update_facing(delta)
+	_avatar.animate(horizontal_speed, is_on_floor(), _backwards)
+	_avatar.set_view(AppConfig.VIEW_THIRD if _view_progress > 0.0 else AppConfig.VIEW_FIRST)
+	_avatar.set_hidden(not free or _is_camera_close())
+
+
+# --- Terceira pessoa ----------------------------------------------------------
+
+## O braço da câmera (SpringArm3D: a peça da Godot que encolhe quando bate em
+## algo). Ele não carrega a câmera (ela continua em Head/Camera3D, onde todo
+## mundo a procura): o Player lê o comprimento dele e põe a câmera na ponta.
+## Bate só no mundo (camada 1) e ignora a própria cápsula.
+func _build_arm() -> void:
+	_arm = SpringArm3D.new()
+	_arm.name = "CameraArm"
+	var tip := SphereShape3D.new()
+	tip.radius = ARM_RADIUS
+	_arm.shape = tip
+	_arm.margin = ARM_MARGIN
+	_arm.collision_mask = 1
+	_arm.spring_length = _arm_reach
+	_arm.add_excluded_object(get_rid())
+	# Na primeira pessoa o braço fica parado (não gasta nada).
+	_arm.process_mode = Node.PROCESS_MODE_DISABLED
+	_head.add_child(_arm)
+
+
+## A visão atual (AppConfig.VIEW_FIRST ou VIEW_THIRD).
+func get_view() -> String:
+	return _view
+
+
+func is_third_person() -> bool:
+	return _view == AppConfig.VIEW_THIRD
+
+
+## ALTERNA A VISÃO (V / R3): grava a outra no config.cfg, e a passagem anima.
+## Não alterna na abertura, na viagem, com painel aberto nem no foco numa tela.
+## Devolve se alternou.
+func toggle_view() -> bool:
+	if in_intro or _traveling or is_overlay_open():
+		return false
+	var other := AppConfig.VIEW_FIRST if is_third_person() else AppConfig.VIEW_THIRD
+	AppConfig.set_view(other)
+	_view = other
+	return true
+
+
+func get_camera_arm() -> SpringArm3D:
+	return _arm
+
+
+## O comprimento do braço agora (m): 0 na primeira pessoa; na terceira, o do
+## lugar (fora ou dentro de casa), encolhido pelo que o braço acertou.
+func get_arm_length() -> float:
+	return _arm_now
+
+
+## A passagem já terminou (a câmera chegou à visão escolhida)?
+func is_view_settled() -> bool:
+	return _view_progress == (1.0 if is_third_person() else 0.0)
+
+
+## A passagem, com curva suave: 0 na primeira pessoa, 1 na terceira.
+func _view_blend() -> float:
+	return smoothstep(0.0, 1.0, _view_progress)
+
+
+## Na terceira pessoa (ou passando para ela), com o braço curto demais?
+func _is_camera_close() -> bool:
+	return _view_progress > 0.0 and _arm_now < ARM_CLOSE
+
+
+## A cada quadro: anda a passagem e mede o braço. O ombro e o comprimento
+## crescem juntos com a curva da passagem; o que o braço acertou corta o
+## comprimento. O braço sempre mede o comprimento inteiro do lugar (assim a
+## passagem não espera a física).
+func _update_arm(delta: float) -> void:
+	var target := 1.0 if is_third_person() else 0.0
+	_view_progress = move_toward(_view_progress, target, delta / VIEW_SWITCH_SECONDS)
+	var blend := _view_blend()
+	var active := _view_progress > 0.0
+	_arm.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
+	_arm.position = Vector3(ARM_SHOULDER, ARM_HEIGHT, 0.0) * blend
+	_arm.spring_length = _arm_reach
+	_arm_now = blend * _arm_reach
+	if active:
+		_arm_now = minf(_arm_now, _arm.get_hit_length())
+	_clamp_pitch()
+
+
+## Onde a câmera fica em repouso agora (no espaço da cabeça): dentro dela na
+## primeira pessoa; na ponta do braço na terceira.
+func _view_rest() -> Transform3D:
+	return Transform3D(_camera_rest.basis, _camera_rest.origin + _arm.position + Vector3(0.0, 0.0, _arm_now))
+
+
+## Para onde o corpo olha. Na primeira pessoa, para a frente do jogador. Na
+## terceira:
+##   - ombro: de costas para a câmera; andando de lado, vira para o lado; para
+##     trás, olha para a frente e anda de ré;
+##   - livre: vira para onde anda e fica assim parado (a câmera gira em volta).
+func _update_facing(delta: float) -> void:
+	_backwards = false
+	if _view_progress <= 0.0 or _avatar.is_posed():
+		_facing = rotation.y
+		_avatar.rotation.y = 0.0
+		return
+	var flat := Vector3(velocity.x, 0.0, velocity.z)
+	var moving := flat.length() > AvatarBody.MOVE_THRESHOLD
+	var follow := 1.0 - exp(-AVATAR_TURN_FOLLOW * delta)
+	if third_person_style == STYLE_FREE:
+		if moving:
+			_facing = lerp_angle(_facing, atan2(-flat.x, -flat.z), follow)
+		_avatar.rotation.y = wrapf(_facing - rotation.y, -PI, PI)
+		return
+	var local_yaw := 0.0
+	if moving:
+		var local := global_basis.inverse() * flat  # no espaço do jogador: -Z = frente
+		if local.z > BACKWARD_SHARE * local.length():
+			_backwards = true
+			local = -local
+		local_yaw = atan2(-local.x, -local.z)
+	_avatar.rotation.y = lerp_angle(_avatar.rotation.y, local_yaw, follow)
+	_facing = rotation.y + _avatar.rotation.y
 
 
 ## Lê a marca do chão em que o jogador pisa (a colisão de baixo do
@@ -437,6 +646,9 @@ func teleport_to(target: Transform3D) -> void:
 		rotation.y = atan2(-forward.x, -forward.z)
 	_head.rotation.x = 0.0
 	velocity = Vector3.ZERO
+	# O avatar chega virado para a frente (na terceira pessoa "livre", também).
+	_facing = rotation.y
+	_avatar.rotation.y = 0.0
 
 
 ## EM CASA: quem cobre um interior (a Home) chama isto quando o jogador entra
@@ -446,10 +658,14 @@ func teleport_to(target: Transform3D) -> void:
 ##     e nem é desenhado);
 ##   - o HUD esconde a bússola e o minimapa;
 ##   - o som do mundo fica abafado;
-##   - o corpo troca de camada (em casa, quem o acende são as luzes da casa).
+##   - o corpo troca de camada (em casa, quem o acende são as luzes da casa);
+##   - o braço da terceira pessoa fica mais curto (ARM_LENGTH_INDOOR).
 func set_indoors(environment: Environment) -> void:
 	_indoors = environment != null
 	_avatar.set_indoors(_indoors)
+	_arm_reach = ARM_LENGTH_INDOOR if _indoors else ARM_LENGTH_OUTDOOR
+	if _arm != null:
+		_arm.spring_length = _arm_reach
 	_camera.environment = environment
 	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
 	_hud.set_indoors(_indoors)
@@ -544,7 +760,8 @@ func move_focus_camera(pose: Transform3D) -> void:
 		_slide_camera(pose)
 
 
-## Sai do foco: a câmera volta para a cabeça e o jogador ganha os controles
+## Sai do foco: a câmera volta para o repouso da visão atual (a cabeça, ou a
+## ponta do braço) e o jogador ganha os controles
 ## de novo. "instant" pula a animação (ex.: um jogo abriu).
 func leave_focus(instant: bool = false) -> void:
 	if _focus_screen == null or (_focus_leaving and not instant):
@@ -555,7 +772,7 @@ func leave_focus(instant: bool = false) -> void:
 	if instant:
 		_end_focus()
 	else:
-		_slide_camera(_head.global_transform * _camera_rest, _end_focus)
+		_slide_camera(_head.global_transform * _view_rest(), _end_focus)
 
 
 func is_focused() -> bool:
@@ -586,7 +803,7 @@ func _end_focus() -> void:
 	if _focus_tween != null:
 		_focus_tween.kill()
 		_focus_tween = null
-	_camera.transform = _camera_rest
+	_camera.transform = _view_rest()
 	_focus_screen = null
 	_focus_leaving = false
 	_update_hud_visibility()
@@ -618,8 +835,9 @@ func travel_to(target: Transform3D, message: String = "", fade_seconds: float = 
 func _update_look_target() -> void:
 	var info := {}
 	# Com o foco numa tela, o cartão some (o raio continua preso à câmera).
-	if _focus_screen == null and _look_ray.is_colliding():
-		info = _find_look_info(_look_ray.get_collider())
+	var hit := _look_target()
+	if _focus_screen == null and hit != null:
+		info = _find_look_info(hit)
 	if info != _current_look_info:
 		_current_look_info = info
 		look_info_changed.emit(info)
@@ -641,8 +859,9 @@ func _update_look_target() -> void:
 func _update_interact(delta: float) -> void:
 	var pressed := Input.is_action_pressed("interact")
 	var target: Node = null
-	if _can_interact() and _look_ray.is_colliding():
-		target = _find_interactable(_look_ray.get_collider())
+	var hit := _look_target()
+	if _can_interact() and hit != null:
+		target = _find_interactable(hit)
 	if target != _interact_target:
 		_reset_interact_hold()
 		_interact_target = target
@@ -669,6 +888,17 @@ func _update_interact(delta: float) -> void:
 func _can_interact() -> bool:
 	return not in_intro and not _traveling and not is_overlay_open() \
 			and not GameLauncher.is_busy() and not AppLauncher.is_busy()
+
+
+## O que o raio do olhar acertou, se estiver ao alcance (look_distance)
+## medido a partir da cabeça do jogador, e não da câmera: na terceira pessoa,
+## não dá para interagir de mais longe que na primeira. null = nada.
+func _look_target() -> Object:
+	if not _look_ray.is_colliding():
+		return null
+	if _look_ray.get_collision_point().distance_to(_head.global_position) > look_distance:
+		return null
+	return _look_ray.get_collider()
 
 
 func _find_interactable(hit: Object) -> Node:
