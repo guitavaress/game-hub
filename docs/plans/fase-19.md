@@ -160,6 +160,7 @@ Trilha A (Claude, checkout principal). Trilha B (OpenCode com modelo grátis, em
 - Visitar amigos (fase 4 da ROADMAP) e o fechamento da Fase 18.
 
 ## Decisões tomadas durante a fase
+- 2026-11-16 (Release, a pedido do dono): versão **0.19.0** (`project.godot`), pacote do Windows montado por `tools/empacotar_windows.sh` (`GameHub-0.19.0-windows.zip`, 83 MB, 25 arquivos, 22 licenças; a trava passou) e aberto uma vez pelo pck, sem erro. Tag `v0.19.0` e Release no GitHub; o README aponta para ele.
 - 2026-11-15 (19.13): medida e fechamento. Bateria completa: `RESULTADO GERAL: TUDO OK`.
   - **A medida final** (desktop, RTX 4070, Alta, 200 jogos, 2560x1440, vsync a 165 Hz, `medir_desempenho.gd`, duas vezes cada):
 
