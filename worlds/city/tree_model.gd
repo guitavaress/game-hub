@@ -17,6 +17,14 @@ extends Node3D
 ## a Godot só desenha o modelo das células perto e a impostora das longe
 ## (visibility_range). Dentro da célula, a troca é árvore por árvore (no shader).
 ##
+## A CÂMERA DA TERCEIRA PESSOA (Fase 20.5): cada árvore ganha um volume só da
+## câmera (CameraBlock) com a forma da copa: um casco convexo tirado do modelo
+## (crown_hull), da altura em que os galhos abrem até o topo, um pouco mais
+## estreito que as folhas (CROWN_SHRINK). O braço da câmera para na beira da
+## copa, em vez de entrar nos galhos; o jogador não bate nele. Um corpo por
+## célula, com uma forma por árvore (a mesma forma da espécie, na escala da
+## cópia).
+##
 ## O atlas de um modelo é sempre impostor_path(modelo):
 ## assets/models/trees/pine.glb -> assets/generated/pine_impostor.png.
 ##
@@ -36,11 +44,21 @@ const SWAP_BAND: float = 2.5
 const SWAP_JITTER: float = 0.15
 ## Quanto a ponta anda com o vento (m, na altura do modelo): o mesmo do pinheiro de hoje.
 const SWAY: float = 0.18
+## A copa (para o volume da câmera) começa onde o modelo passa deste raio (m,
+## sem escala): abaixo é só o tronco, que já tem colisão de verdade.
+const CROWN_MIN_RADIUS: float = 0.6
+## O volume fica com esta fração do raio das folhas: a câmera pode encostar
+## nas pontas soltas, mas não entra no meio dos galhos.
+const CROWN_SHRINK: float = 0.85
+## Fatia de altura (m, sem escala) e pontos por anel do casco da copa.
+const CROWN_BAND: float = 0.5
+const CROWN_RING: int = 8
 const SHADER: Shader = preload("res://worlds/city/tree_model.gdshader")
 const GENERATED: String = "res://assets/generated/"
 
 ## As espécies já lidas: [modelo, tinta] -> {bark_mesh, leaves_mesh,
-## bark_material, leaves_material, impostor_mesh, impostor_material, height, radius}.
+## bark_material, leaves_material, impostor_mesh, impostor_material, height, radius,
+## crown_shape}.
 static var _species: Dictionary = {}
 
 var _transforms: Array[Transform3D] = []
@@ -103,6 +121,7 @@ static func _load_species(model_path: String, atlas_path: String, tint: Color) -
 	var impostor_material := TreeImpostor.make_material(atlas, info, tint, SWAY, height)
 	impostor_material.set_shader_parameter("near_jitter", SWAP_JITTER)
 	return {
+		"crown_shape": crown_hull([bark, leaves]),
 		"bark_mesh": bark,
 		"leaves_mesh": leaves,
 		"bark_material": bark_material,
@@ -112,6 +131,39 @@ static func _load_species(model_path: String, atlas_path: String, tint: Color) -
 		"height": height,
 		"radius": radius,
 	}
+
+
+## O casco da copa (para o volume da câmera): em cada fatia de CROWN_BAND m de
+## altura, o raio mais largo das malhas; da primeira fatia que passa de
+## CROWN_MIN_RADIUS até o topo, um anel de CROWN_RING pontos com esse raio
+## vezes CROWN_SHRINK. O casco convexo desses anéis é a forma (null se o
+## modelo não tiver copa).
+static func crown_hull(meshes: Array) -> ConvexPolygonShape3D:
+	var bands := {}
+	for mesh: Mesh in meshes:
+		for surface in mesh.get_surface_count():
+			var vertices: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+			for vertex in vertices:
+				var band := floori(vertex.y / CROWN_BAND)
+				bands[band] = maxf(float(bands.get(band, 0.0)), Vector2(vertex.x, vertex.z).length())
+	var keys := bands.keys()
+	keys.sort()
+	var points := PackedVector3Array()
+	var started := false
+	for band: int in keys:
+		var radius := float(bands[band])
+		started = started or radius > CROWN_MIN_RADIUS
+		if not started:
+			continue
+		for y in [band * CROWN_BAND, (band + 1) * CROWN_BAND]:
+			for k in CROWN_RING:
+				var angle := TAU * k / CROWN_RING
+				points.append(Vector3(cos(angle) * radius * CROWN_SHRINK, y, sin(angle) * radius * CROWN_SHRINK))
+	if points.size() < 4:
+		return null
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = points
+	return shape
 
 
 ## O material de uma malha do modelo: as texturas que vieram no .glb, no shader
@@ -229,7 +281,10 @@ func _fill_cell(key: Vector2i, data: Dictionary) -> void:
 	for item: Transform3D in _by_cell[key]:
 		local.append(Transform3D(item.basis, item.origin - cell.position))
 		largest = maxf(largest, item.basis.get_scale().y)
+	_fill_camera_block(cell, local, data)
 	for instance: Node in cell.get_children():
+		if not instance is MultiMeshInstance3D:
+			continue
 		var multimesh := (instance as MultiMeshInstance3D).multimesh
 		multimesh.instance_count = local.size()
 		for k in local.size():
@@ -241,6 +296,34 @@ func _fill_cell(key: Vector2i, data: Dictionary) -> void:
 		else:
 			# O vento tira a árvore um pouco da caixa.
 			(instance as GeometryInstance3D).extra_cull_margin = 1.0
+
+
+## O volume só da câmera de uma célula (CameraBlock): um corpo, uma forma de
+## copa por árvore. Refeito inteiro quando a célula ganha árvores.
+func _fill_camera_block(cell: Node3D, local: Array[Transform3D], data: Dictionary) -> void:
+	var crown: ConvexPolygonShape3D = data.get("crown_shape")
+	if crown == null:
+		return
+	var body := cell.get_node_or_null(^"CameraBlock") as StaticBody3D
+	if body == null:
+		body = CameraBlock.make_body()
+		cell.add_child(body)
+	for owner_id in body.get_shape_owners():
+		body.remove_shape_owner(owner_id)
+	for item in local:
+		var owner_id := body.create_shape_owner(body)
+		body.shape_owner_add_shape(owner_id, crown)
+		body.shape_owner_set_transform(owner_id, item)
+
+
+## Quantas formas de copa (volumes da câmera) há, somando as células.
+func get_camera_block_count() -> int:
+	var count := 0
+	for key: Vector2i in _cells:
+		var body := (_cells[key] as Node3D).get_node_or_null(^"CameraBlock") as StaticBody3D
+		if body != null:
+			count += body.get_shape_owners().size()
+	return count
 
 
 ## A troca na distância da qualidade atual: nos materiais (árvore por árvore)
@@ -262,6 +345,8 @@ func _apply_distance(data: Dictionary) -> void:
 	for key: Vector2i in _cells:
 		for instance: Node in (_cells[key] as Node3D).get_children():
 			var geometry := instance as GeometryInstance3D
+			if geometry == null:
+				continue
 			if geometry.name == "Impostor":
 				geometry.visibility_range_begin = maxf(0.0, nearest - slack)
 			else:

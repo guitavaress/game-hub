@@ -2,7 +2,7 @@ extends SceneTree
 ## Tira as CAPTURAS da terceira pessoa (Fase 20.4), pela CÂMERA DO JOGADOR (a
 ## da ponta do braço). Rode COM JANELA, pela fila:
 ##
-##   bash tools/com_trava.sh <godot> --path . -s tools/capturar_terceira.gd -- <pasta> [jogos] [jeitos] [qualidade]
+##   bash tools/com_trava.sh <godot> --path . -s tools/capturar_terceira.gd -- <pasta> [jogos] [jeitos] [qualidade] [conjunto]
 ##
 ##   pasta      onde salvar os PNG, numa subpasta por jeito (ombro/, livre/).
 ##              SEMPRE fora do repositório (as capturas mostram capas de jogos)
@@ -10,6 +10,8 @@ extends SceneTree
 ##   jeitos     lista separada por vírgula (padrão: ombro,livre)
 ##   qualidade  leve | media | alta (padrão: alta). A do usuário volta no fim,
 ##              e a visão do config.cfg também.
+##   conjunto   20.4 (padrão: as fotos abaixo) ou 20.5 (as do que depende da
+##              visão, veja _run_20_5; só no primeiro jeito da lista).
 ##
 ## Fotos (PNG), por jeito:
 ##   praca_parado, praca_andando, praca_correndo (13 h e 22 h): por trás, na praça
@@ -51,6 +53,7 @@ func _run() -> void:
 	var count := int(args[1]) if args.size() > 1 else 200
 	var styles := (String(args[2]) if args.size() > 2 else "ombro,livre").split(",")
 	var quality := String(args[3]) if args.size() > 3 else "alta"
+	var set_name := String(args[4]) if args.size() > 4 else "20.4"
 	var repo := ProjectSettings.globalize_path("res://").replace("\\", "/").simplify_path()
 	if (base.to_lower() + "/").begins_with(repo.to_lower() + "/"):
 		push_error("A pasta das capturas não pode ficar dentro do repositório.")
@@ -83,6 +86,13 @@ func _run() -> void:
 	var plaza: Transform3D = _player.global_transform
 	var day_night: Node = city.get("_day_night")
 	var spots := _find_spots(city)
+
+	if set_name == "20.5":
+		_folder = base
+		DirAccess.make_dir_recursive_absolute(_folder)
+		_player.set("third_person_style", styles[0])
+		await _run_20_5(city, spots, plaza, day_night)
+		styles = PackedStringArray()
 
 	for style in styles:
 		_folder = base + "/" + style
@@ -146,6 +156,135 @@ func _run() -> void:
 	config.set_quality(original_quality)
 	config.set_view(original_view)
 	quit(1 if _failed else 0)
+
+
+## AS FOTOS DA 20.5 (o que depende da visão), na terceira pessoa, às 13 h:
+##   floresta_antes / floresta_depois   o mesmo ponto da 20.4, com o braço sem e
+##                                      com os volumes da copa (CameraBlock)
+##   floresta_andando_1..3              andando pela floresta, em 3 pontos
+##   costas_arvore, costas_predio (+ _cima e _baixo: olhando para cima e para
+##                                      baixo), predio_1m   encostado
+##   computador_1..3, luneta_1..3, provador_1..3   o foco: indo, na tela, voltando
+##   porta_carregando                   a porta de um jogo carregando (E segurado)
+##   volta_porta                        o 1º quadro depois de voltar do jogo
+##   volta_viagem                       logo depois de uma viagem rápida
+##   casa_entrando, casa_dentro         chegando em casa (o braço encolhendo) e depois
+func _run_20_5(city: Node, spots: Dictionary, plaza: Transform3D, day_night: Node) -> void:
+	var tag := "13h"
+	await _set_hour(day_night, 13.0)
+	_player.call("set_indoors", null)
+	var arm: SpringArm3D = _player.call("get_camera_arm")
+	if spots.has("floresta"):
+		var full_mask := arm.collision_mask
+		arm.collision_mask = 1  # como na 20.4: sem a camada só da câmera
+		_place(spots["floresta"], -8.0)
+		await _shot("floresta_antes", tag)
+		arm.collision_mask = full_mask
+		_place(spots["floresta"], -8.0)
+		await _shot("floresta_depois", tag)
+		_place(spots["floresta"], -8.0)
+		Input.action_press("move_forward")
+		for i in 3:
+			await create_timer(1.6).timeout
+			await _shot("floresta_andando_%d" % (i + 1), tag, 0)
+		Input.action_release("move_forward")
+		await create_timer(0.8).timeout
+	for spot_name: String in ["costas_arvore", "costas_predio", "predio_1m"]:
+		if spots.has(spot_name):
+			_place(spots[spot_name], -8.0)
+			await _shot(spot_name, tag)
+	if spots.has("costas_predio"):
+		_place(spots["costas_predio"], 35.0)
+		await _shot("costas_predio_cima", tag)
+		_place(spots["costas_predio"], -45.0)
+		await _shot("costas_predio_baixo", tag)
+
+	# A porta carregando e a volta do jogo.
+	if spots.has("porta_cartao"):
+		_place(spots["porta_cartao"], -5.0)
+		await _shot("porta_parado", tag)
+		var fade := root.get_node("ScreenFade")
+		fade.call("set_door_charge", 0.8, "Jogo Falso", Color(1.0, 0.4, 0.7), "solte E para cancelar")
+		await _shot("porta_carregando", tag, 20)
+		fade.call("set_door_charge", 0.0)
+	var portals: Array = get_nodes_in_group("game_portal").filter(func(p: Node) -> bool:
+		return city.is_ancestor_of(p) and p.has_method("get_return_transform"))
+	if not portals.is_empty():
+		_place(plaza, -8.0)
+		await _shot("antes_do_jogo", tag)
+		_player.call("teleport_to", portals[0].call("get_return_transform"))
+		await _shot("volta_porta", tag, 0)
+		await _shot("volta_porta_depois", tag, 20)
+
+	# Viagem rápida.
+	_place(plaza, -8.0)
+	for i in 10:
+		await process_frame
+	var away := Transform3D(plaza.basis, plaza.origin + plaza.basis.z * -20.0)
+	await _travel(away, 0.35, 0.15)
+	await _shot("volta_viagem", tag, 0)
+
+	# O foco, na terceira pessoa: indo, na tela, voltando.
+	var home: Node3D = city.call("get_home")
+	var spawn: Transform3D = home.call("get_spawn_transform")
+	_player.call("set_indoors", null)
+	_place(plaza, -8.0)
+	await _travel(spawn, 0.2, 0.1)
+	for i in 4:
+		await physics_frame
+	await _shot("casa_entrando", tag, 0)
+	await _shot("casa_dentro", tag, 40)
+	var desk: Node = home.get_node_or_null("ComputerDesk")
+	if desk != null:
+		var screen: Node3D = desk.call("get_screen")
+		var front: Vector3 = screen.global_position + screen.global_basis.z * 1.6
+		front.y = home.global_position.y + 0.1
+		_place(Transform3D(Basis.looking_at(-screen.global_basis.z), front), -5.0)
+		await _focus_shots("computador", screen, tag)
+	var mirror: Node3D = home.call("get_furniture", "espelho")
+	var normal: Vector3 = mirror.call("get_normal")
+	var feet: Vector3 = mirror.global_position + normal * 1.8
+	feet.y = home.global_position.y + 0.1
+	_place(Transform3D(Basis.looking_at(-normal), feet), -5.0)
+	await _focus_shots("provador", mirror, tag)
+	var terrain := get_first_node_in_group("mountain_trail")
+	var deck: Node = terrain.call("get_deck") if terrain != null else null
+	var scope: Node3D = deck.call("get_telescope") if deck != null else null
+	if scope != null:
+		_player.call("set_indoors", null)
+		var aim := -scope.global_basis.z
+		aim.y = 0.0
+		aim = aim.normalized()
+		var stand := scope.global_position - aim * 1.3
+		_place(Transform3D(Basis.looking_at(aim), stand + Vector3.UP * 0.1), -5.0)
+		await _focus_shots("luneta", scope, tag)
+	else:
+		print("Capturas: sem luneta")
+
+
+## Uma viagem rápida (travel_to), esperando ela acabar.
+func _travel(target: Transform3D, fade_seconds: float, hold_seconds: float) -> void:
+	_player.call("travel_to", target, "", fade_seconds, hold_seconds)
+	await process_frame
+	while bool(_player.call("is_traveling")):
+		await process_frame
+
+
+## Três fotos de um foco: indo (no meio do caminho), na tela e voltando.
+func _focus_shots(prefix: String, target: Node3D, tag: String) -> void:
+	for i in SETTLE_FRAMES:
+		await process_frame
+	await _shot(prefix + "_0", tag, 0)
+	_player.call("focus_on", target)
+	await create_timer(0.2).timeout
+	await _shot(prefix + "_1", tag, 0)
+	await create_timer(0.6).timeout
+	await _shot(prefix + "_2", tag, 0)
+	_player.call("leave_focus")
+	await create_timer(0.24).timeout
+	await _shot(prefix + "_3", tag, 0)
+	await create_timer(0.6).timeout
+	await _shot(prefix + "_4", tag, 0)
 
 
 ## Anda por WALK_SECONDS segurando as ações e tira a foto andando.

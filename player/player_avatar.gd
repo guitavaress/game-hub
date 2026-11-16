@@ -35,6 +35,13 @@ extends Node3D
 ## (medido: topo da mão em 66% da altura andando, 61% correndo) e olhando para
 ## baixo o corpo continua lá.
 const FIRST_PERSON_BACK: float = 0.3
+## Onde o pé toca o chão no ciclo de cada animação (fração de 0 a 1; medido no
+## osso do pé do modelo da Quaternius na 20.5: o pé chega ao chão descendo).
+## O som dos passos da terceira pessoa sai nesses pontos (take_step).
+const STEP_CONTACTS: Dictionary[String, Array] = {
+	AvatarBody.WALK_ANIMATION: [0.1, 0.6],
+	AvatarBody.RUN_ANIMATION: [0.2, 0.7],
+}
 
 var _first: AvatarBody
 var _full: AvatarBody
@@ -42,6 +49,9 @@ var _view: String = AppConfig.VIEW_FIRST
 var _indoors: bool = false
 var _hidden: bool = false
 var _posed: bool = false
+## O passo (take_step): a animação e a fração do ciclo na última conferência.
+var _step_animation: String = ""
+var _step_phase: float = 0.0
 
 
 func _ready() -> void:
@@ -74,6 +84,42 @@ func _reverse_step(body: AvatarBody, backwards: bool) -> void:
 		return
 	if animation.current_animation in [AvatarBody.WALK_ANIMATION, AvatarBody.RUN_ANIMATION]:
 		animation.speed_scale = -absf(animation.speed_scale)
+
+
+## O PÉ TOCOU O CHÃO desde a última chamada? Lê a animação do corpo (Walk ou
+## Run) e vê se ela passou por um dos STEP_CONTACTS, para a frente ou de ré.
+## O Player chama a cada quadro de física na terceira pessoa e toca o som do
+## passo quando dá true: o som cai junto com o pé.
+func take_step() -> bool:
+	var body := _first if _posed else _full
+	var animation := body.get_animation_player()
+	if animation == null or not STEP_CONTACTS.has(String(animation.current_animation)):
+		_step_animation = ""
+		return false
+	var current := String(animation.current_animation)
+	var length := animation.current_animation_length
+	if length <= 0.0:
+		return false
+	var phase := fposmod(animation.current_animation_position / length, 1.0)
+	if current != _step_animation:
+		# Começou a andar (ou trocou de animação): só marca onde está.
+		_step_animation = current
+		_step_phase = phase
+		return false
+	var from := _step_phase
+	var to := phase
+	_step_phase = phase
+	if from == to:
+		return false
+	if animation.speed_scale < 0.0:
+		var swap := from
+		from = to
+		to = swap
+	for contact: float in STEP_CONTACTS[current]:
+		# Passou pelo ponto entre "from" (exclusivo) e "to" (inclusivo), com a volta do ciclo.
+		if (from < to and contact > from and contact <= to) or (from > to and (contact > from or contact <= to)):
+			return true
+	return false
 
 
 ## Dentro ou fora de casa: troca as camadas (quem acende o corpo muda).

@@ -66,9 +66,19 @@ const ARM_HEIGHT: float = 0.25
 ## câmera, e para a esta folga (m) do que acertar;
 const ARM_RADIUS: float = 0.08
 const ARM_MARGIN: float = 0.05
-## com o braço mais curto que isto (m), a câmera ficaria colada na cabeça: o
-## corpo some da câmera (a sombra fica) até haver espaço;
-const ARM_CLOSE: float = 0.5
+## com o braço mais curto que isto (m), o corpo some da câmera (a sombra
+## fica) até haver espaço. Fase 20.5: era 0,5, e encostado de costas numa
+## parede (o braço fica com ~0,37 m) o corpo sumia. Como o braço sai do ombro
+## (0,3 m à direita e 0,25 m acima), mesmo com ele em 0 a câmera fica a ~0,39 m
+## do meio da cabeça: com 0,2 a nuca aparece no canto da tela, sem entrar nela;
+const ARM_CLOSE: float = 0.2
+## quão rápido (m/s) o braço muda de comprimento ao entrar e sair de casa (de
+## 3,0 para 1,8 m em ~0,4 s: sem pulo da câmera);
+const ARM_REACH_SPEED: float = 3.0
+## no foco (tela, luneta, provador), enquanto a câmera desliza, o corpo
+## aparece só com ela a mais que isto (m) do eixo dele (dos pés à cabeça):
+## ela passa perto da cabeça no caminho, e o corpo some ali.
+const FOCUS_BODY_CLEARANCE: float = 0.6
 ## quanto tempo (s) leva a passagem de uma visão para a outra;
 const VIEW_SWITCH_SECONDS: float = 0.35
 ## na terceira pessoa, o limite para olhar para cima e para baixo é menor
@@ -177,7 +187,17 @@ var _outdoor_camera_far: float = 4000.0
 ## dentro da cabeça.
 var _focus_screen: Node3D = null
 var _focus_leaving: bool = false
-var _focus_tween: Tween
+## No foco, na terceira pessoa: o corpo ainda aparece (a câmera longe dele)?
+## Indo, ele some de vez quando a câmera chega perto ou na pose; voltando,
+## aparece quando ela se afasta (veja _update_focus_body).
+var _focus_body_shown: bool = false
+## O deslizar da câmera no foco (_slide_camera): de onde, para onde, o tempo
+## andado, o andamento (0 a 1; 1 = parada) e quem chamar no fim.
+var _slide_from: Transform3D
+var _slide_to: Transform3D
+var _slide_elapsed: float = 0.0
+var _slide_t: float = 1.0
+var _slide_done: Callable = Callable()
 var _camera_rest: Transform3D = Transform3D.IDENTITY
 
 ## TERCEIRA PESSOA (veja as constantes ARM_*): o braço, a visão escolhida, o
@@ -190,6 +210,12 @@ var _view: String = AppConfig.VIEW_FIRST
 var _view_progress: float = 0.0
 var _arm_reach: float = ARM_LENGTH_OUTDOOR
 var _arm_now: float = 0.0
+## O comprimento do lugar AGORA: anda até _arm_reach aos poucos (ARM_REACH_SPEED).
+var _arm_reach_now: float = ARM_LENGTH_OUTDOOR
+## Depois de um teleporte, o braço (que mede na física) ainda tem a medida do
+## lugar velho: por estes quadros de física, o Player mede o braço ele mesmo
+## (_cast_arm), e a câmera chega no lugar certo já no primeiro quadro.
+var _arm_fresh_frames: int = 0
 var third_person_style: String = THIRD_PERSON_STYLE
 ## Para onde o avatar olha no mundo (giro no Y) e se ele anda de ré agora.
 var _facing: float = 0.0
@@ -206,6 +232,8 @@ var _steps_player: AudioStreamPlayer
 var _body_player: AudioStreamPlayer
 ## Quanto já andou desde o último passo (metros).
 var _stride_progress: float = 0.0
+## Quantos passos tocaram desde que o jogador nasceu (os testes contam).
+var steps_played: int = 0
 var _was_on_floor: bool = true
 ## Balanço, afundada e FOV da câmera (veja CameraFeel).
 var _camera_feel: CameraFeel
@@ -350,6 +378,8 @@ func _physics_process(delta: float) -> void:
 	_update_footsteps(delta, speed, falling_speed)
 	_update_look_target()
 	_update_interact(delta)
+	if _arm_fresh_frames > 0:
+		_arm_fresh_frames -= 1
 
 
 ## OLHAR COM O ANALÓGICO DIREITO: a cada quadro, vira a visão pela inclinação
@@ -373,6 +403,9 @@ func _look_with_stick(delta: float) -> void:
 ## A câmera ganha o balanço a cada quadro de tela (e não de física), para não
 ## engasgar em monitores de taxa alta. Parada durante o foco e a viagem.
 func _process(delta: float) -> void:
+	# O deslizar do foco primeiro: o resto (o corpo aparece?) já vê a câmera
+	# no lugar deste quadro.
+	_advance_slide(delta)
 	_look_with_stick(delta)
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var free := _focus_screen == null and not _traveling and not in_intro
@@ -393,7 +426,10 @@ func _process(delta: float) -> void:
 	_update_facing(delta)
 	_avatar.animate(horizontal_speed, is_on_floor(), _backwards)
 	_avatar.set_view(AppConfig.VIEW_THIRD if _view_progress > 0.0 else AppConfig.VIEW_FIRST)
-	_avatar.set_hidden(not free or _is_camera_close())
+	var hidden := not free or _is_camera_close()
+	if _focus_screen != null:
+		hidden = not _update_focus_body()
+	_avatar.set_hidden(hidden)
 
 
 # --- Terceira pessoa ----------------------------------------------------------
@@ -401,7 +437,9 @@ func _process(delta: float) -> void:
 ## O braço da câmera (SpringArm3D: a peça da Godot que encolhe quando bate em
 ## algo). Ele não carrega a câmera (ela continua em Head/Camera3D, onde todo
 ## mundo a procura): o Player lê o comprimento dele e põe a câmera na ponta.
-## Bate só no mundo (camada 1) e ignora a própria cápsula.
+## Bate no mundo (camada 1) e nos volumes só da câmera (CameraBlock, Fase
+## 20.5: a copa das árvores e as luminárias penduradas), e ignora a própria
+## cápsula.
 func _build_arm() -> void:
 	_arm = SpringArm3D.new()
 	_arm.name = "CameraArm"
@@ -409,7 +447,7 @@ func _build_arm() -> void:
 	tip.radius = ARM_RADIUS
 	_arm.shape = tip
 	_arm.margin = ARM_MARGIN
-	_arm.collision_mask = 1
+	_arm.collision_mask = 1 | CameraBlock.mask()
 	_arm.spring_length = _arm_reach
 	_arm.add_excluded_object(get_rid())
 	# Na primeira pessoa o braço fica parado (não gasta nada).
@@ -470,15 +508,33 @@ func _is_camera_close() -> bool:
 func _update_arm(delta: float) -> void:
 	var target := 1.0 if is_third_person() else 0.0
 	_view_progress = move_toward(_view_progress, target, delta / VIEW_SWITCH_SECONDS)
+	_arm_reach_now = move_toward(_arm_reach_now, _arm_reach, ARM_REACH_SPEED * delta)
 	var blend := _view_blend()
 	var active := _view_progress > 0.0
 	_arm.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
 	_arm.position = Vector3(ARM_SHOULDER, ARM_HEIGHT, 0.0) * blend
-	_arm.spring_length = _arm_reach
-	_arm_now = blend * _arm_reach
+	_arm.spring_length = _arm_reach_now
+	_arm_now = blend * _arm_reach_now
 	if active:
-		_arm_now = minf(_arm_now, _arm.get_hit_length())
+		var hit := _cast_arm() if _arm_fresh_frames > 0 else _arm.get_hit_length()
+		_arm_now = minf(_arm_now, hit)
 	_clamp_pitch()
+
+
+## Mede o braço agora, como o SpringArm3D mede (a bolinha da ponta andando ao
+## longo dele), sem esperar a física. Só logo depois de um teleporte.
+func _cast_arm() -> float:
+	if not is_inside_tree():
+		return _arm.spring_length
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _arm.shape
+	query.collision_mask = _arm.collision_mask
+	query.exclude = [get_rid()]
+	var from := _arm.global_transform
+	query.transform = Transform3D(Basis.IDENTITY, from.origin)
+	query.motion = from.basis.z.normalized() * _arm.spring_length
+	var result := get_world_3d().direct_space_state.cast_motion(query)
+	return _arm.spring_length * result[0]
 
 
 ## Onde a câmera fica em repouso agora (no espaço da cabeça): dentro dela na
@@ -550,14 +606,27 @@ func _update_footsteps(delta: float, speed: float, falling_speed: float) -> void
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var stride := SPRINT_STRIDE if speed > walk_speed else WALK_STRIDE
 	_stride_length = stride
+	# Na terceira pessoa o pé está na tela: o som sai quando o pé da animação
+	# toca o chão (PlayerAvatar.take_step), e não pela distância andada.
+	var by_animation := _view_progress >= 0.5
+	var foot_down := _avatar.take_step()
 	if on_floor and horizontal_speed > 1.0:
 		_stride_progress += horizontal_speed * delta
 		if _stride_progress >= stride:
 			_stride_progress = 0.0
-			_play_random(_steps_player, FOOTSTEP_SURFACES[_surface])
+			if not by_animation:
+				_play_step()
+		if by_animation and foot_down:
+			_play_step()
 	else:
 		# Parado: o primeiro passo ao voltar a andar sai logo.
 		_stride_progress = stride * 0.7
+
+
+## O som de um passo, na superfície em que se pisa (os testes contam).
+func _play_step() -> void:
+	steps_played += 1
+	_play_random(_steps_player, FOOTSTEP_SURFACES[_surface])
 
 
 func _make_sound_player(volume_db: float) -> AudioStreamPlayer:
@@ -649,6 +718,12 @@ func teleport_to(target: Transform3D) -> void:
 	# O avatar chega virado para a frente (na terceira pessoa "livre", também).
 	_facing = rotation.y
 	_avatar.rotation.y = 0.0
+	# O braço chega medido no lugar novo, e a câmera vai junto já (sem um
+	# quadro dentro de um prédio, nem preso curto na medida do lugar velho).
+	_arm_fresh_frames = 2
+	if _arm != null and _focus_screen == null:
+		_update_arm(0.0)
+		_camera.transform = _view_rest()
 
 
 ## EM CASA: quem cobre um interior (a Home) chama isto quando o jogador entra
@@ -659,13 +734,13 @@ func teleport_to(target: Transform3D) -> void:
 ##   - o HUD esconde a bússola e o minimapa;
 ##   - o som do mundo fica abafado;
 ##   - o corpo troca de camada (em casa, quem o acende são as luzes da casa);
-##   - o braço da terceira pessoa fica mais curto (ARM_LENGTH_INDOOR).
+##   - o braço da terceira pessoa fica mais curto (ARM_LENGTH_INDOOR), aos
+##     poucos (ARM_REACH_SPEED).
 func set_indoors(environment: Environment) -> void:
 	_indoors = environment != null
 	_avatar.set_indoors(_indoors)
+	# O braço vai até o novo comprimento aos poucos (_update_arm).
 	_arm_reach = ARM_LENGTH_INDOOR if _indoors else ARM_LENGTH_OUTDOOR
-	if _arm != null:
-		_arm.spring_length = _arm_reach
 	_camera.environment = environment
 	_camera.far = INDOOR_CAMERA_FAR if _indoors else _outdoor_camera_far
 	_hud.set_indoors(_indoors)
@@ -749,6 +824,8 @@ func focus_on(screen: Node3D) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var window := get_viewport().get_visible_rect().size
 	var pose: Transform3D = screen.get_camera_pose(_camera.fov, window.x / maxf(window.y, 1.0))
+	# Na terceira pessoa o corpo ainda aparece no começo do caminho.
+	_focus_body_shown = is_third_person() and not _is_camera_close()
 	_slide_camera(pose)
 	screen.set_focused(true, self)
 
@@ -784,25 +861,62 @@ func get_focused_screen() -> Node3D:
 
 
 ## Anima a câmera da posição atual até "target" (no mundo), suavizando a
-## partida e a chegada. "on_done" é chamado no fim.
+## partida e a chegada (curva seno). "on_done" é chamado no fim. Quem anda é
+## o _advance_slide, no _process do jogador (Fase 20.5: antes era um Tween,
+## que mexia na câmera DEPOIS de o jogador decidir se o corpo aparece, e o
+## corpo ficava um quadro a mais à vista com a câmera já perto dele).
 func _slide_camera(target: Transform3D, on_done: Callable = Callable()) -> void:
-	if _focus_tween != null:
-		_focus_tween.kill()
-	var start := _camera.global_transform
-	_focus_tween = create_tween()
-	_focus_tween.tween_method(func(t: float) -> void:
-		_camera.global_transform = start.interpolate_with(target, t),
-		0.0, 1.0, FOCUS_SLIDE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	if on_done.is_valid():
-		_focus_tween.tween_callback(on_done)
+	_slide_from = _camera.global_transform
+	_slide_to = target
+	_slide_done = on_done
+	_slide_t = 0.0
+	_slide_elapsed = 0.0
+
+
+## Um quadro do deslizar da câmera (no foco).
+func _advance_slide(delta: float) -> void:
+	if _slide_t >= 1.0:
+		return
+	_slide_elapsed += delta
+	var x := clampf(_slide_elapsed / FOCUS_SLIDE_SECONDS, 0.0, 1.0)
+	_slide_t = x
+	_camera.global_transform = _slide_from.interpolate_with(_slide_to, (1.0 - cos(PI * x)) / 2.0)
+	if x >= 1.0 and _slide_done.is_valid():
+		var done := _slide_done
+		_slide_done = Callable()
+		done.call()
+
+
+## No foco, o corpo aparece? (true = sim). Primeira pessoa: nunca (a câmera
+## veria o corpo sem cabeça por fora). Terceira: indo, até a câmera chegar
+## perto dele ou na pose (e aí some de vez); voltando, quando ela se afasta.
+func _update_focus_body() -> bool:
+	if not is_third_person():
+		_focus_body_shown = false
+		return false
+	var far := _camera_body_distance() > FOCUS_BODY_CLEARANCE
+	if _focus_leaving:
+		_focus_body_shown = far
+	elif not far or _slide_t >= 1.0:
+		_focus_body_shown = false
+	return _focus_body_shown
+
+
+## A distância (m) da câmera ao eixo do corpo (dos pés ao alto da cabeça).
+func _camera_body_distance() -> float:
+	var feet := global_position + Vector3.UP * 0.2
+	var top := _head.global_position + Vector3.UP * 0.2
+	var point := _camera.global_position
+	var axis := top - feet
+	var t := clampf((point - feet).dot(axis) / maxf(axis.length_squared(), 0.0001), 0.0, 1.0)
+	return point.distance_to(feet + axis * t)
 
 
 ## Fim do foco: câmera no lugar, HUD de volta e mouse preso (se o hub não foi
 ## dormir por causa de um jogo; aí quem cuida do mouse é o HubWindow).
 func _end_focus() -> void:
-	if _focus_tween != null:
-		_focus_tween.kill()
-		_focus_tween = null
+	_slide_t = 1.0
+	_slide_done = Callable()
 	_camera.transform = _view_rest()
 	_focus_screen = null
 	_focus_leaving = false

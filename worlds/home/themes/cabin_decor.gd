@@ -537,6 +537,9 @@ func _add_hanging_lantern(at: Vector3) -> void:
 	chain.position = Vector3(0.0, 0.75 - 0.225, 0.0)
 	lantern.add_child(chain)
 	_add_lantern_body(lantern, Vector3.ZERO, 1.0, true)
+	# A câmera da terceira pessoa não entra no lampião (Fase 20.5): um volume só
+	# dela, do corpo até o meio da corrente.
+	CameraBlock.add_cylinder(lantern, "LanternCameraBlock", 0.18, 0.5, Vector3(0.0, 0.22, 0.0))
 
 
 ## O corpo do lampião (base, vidro aceso, quatro hastes e o chapéu), com a
