@@ -36,7 +36,7 @@ Quer ir direto ao que interessa? **Tab** encontra o jogo e desenha uma rota no c
 
 ### Suba até o mirante
 
-No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
+No bairro RPG, o asfalto dá lugar à **neve, aos pinheiros e aos arcos de pedra**. Atrás dele, uma trilha sobe a montanha por uma **encosta coberta de pinheiros e rochas**, com paradas, bancos e fogueira. No alto, o mirante destaca o seu RPG mais jogado; a luneta e a torre de pedra completam a vista da cidade lá embaixo.
 
 Esse foi o primeiro bioma do projeto: o começo da ideia de que **o que você joga molda o mundo**. Agora ele tem companhia:
 
