@@ -3,6 +3,7 @@ extends SceneTree
 ##   - AvatarSpec: to_dict -> from_dict devolve o mesmo, e dado ruim não quebra;
 ##   - a seção [avatar] do config.cfg grava e lê o mesmo;
 ##   - AvatarBody: ~1,7 m, olhando para +Z, Idle e Walk em loop;
+##   - animate (20.1): Idle/Walk/Run/Jump pela velocidade, cadência, cabeça e sombra;
 ##   - cada parte (faixa do UV) é a parte certa do corpo e recebe a cor certa;
 ##   - FriendNpc com e sem avatar.
 ## Guarda o config.cfg antes e devolve no fim (arquivo e memória do AppConfig).
@@ -21,6 +22,7 @@ func _run() -> void:
 	_check_spec()
 	_check_config()
 	await _check_body()
+	await _check_motion()
 	_check_zones()
 	await _check_friend_npc()
 
@@ -141,6 +143,109 @@ func _check_body() -> void:
 	body.set_render_layers(AvatarBody.reflection_layers())
 	_check("corpo só na camada do reflexo", meshes.all(func(m: MeshInstance3D) -> bool: return m.layers == 1 << 18))
 	holder.queue_free()
+
+
+## Fase 20.1: o corpo anda pela velocidade, esconde a cabeça e escolhe a sombra.
+func _check_motion() -> void:
+	print("== AvatarBody: andar, cabeça e sombra ==")
+	var body := AvatarBody.new()
+	root.add_child(body)
+	await process_frame
+	var player := body.get_animation_player()
+
+	body.animate(0.0, true)
+	_check("parado: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
+	body.animate(0.3, true)
+	_check("abaixo do limiar de andar: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
+	body.animate(5.0, true)
+	_check("5 m/s: Walk", player.current_animation == AvatarBody.WALK_ANIMATION)
+	var walk_scale := player.speed_scale
+	body.animate(9.0, true)
+	_check("9 m/s: Run", player.current_animation == AvatarBody.RUN_ANIMATION)
+	var run_scale := player.speed_scale
+	body.animate(5.0, false)
+	_check("no ar: Jump (mesmo andando)", player.current_animation == AvatarBody.JUMP_ANIMATION)
+	body.animate(0.0, true)
+	_check("de volta ao chão parado: Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
+
+	# Cadência: cresce com a velocidade e respeita a faixa.
+	body.animate(2.0, true)
+	var slow := player.speed_scale
+	body.animate(3.0, true)
+	var medium := player.speed_scale
+	_check("Walk: a cadência cresce com a velocidade (%.2f < %.2f)" % [slow, medium], slow < medium)
+	body.animate(8.0, true)
+	var run_slow := player.speed_scale
+	body.animate(12.0, true)
+	var run_fast := player.speed_scale
+	_check("Run: a cadência cresce com a velocidade", run_slow < run_fast)
+	body.animate(0.7, true)
+	_check("cadência mínima respeitada", player.speed_scale >= AvatarBody.MIN_SPEED_SCALE - 0.0001)
+	body.animate(100.0, true)
+	_check("cadência máxima respeitada", is_equal_approx(player.speed_scale, AvatarBody.MAX_SPEED_SCALE))
+	_check("pelo passo medido: 5 m/s e 9 m/s dão cadência dentro da faixa",
+			walk_scale <= AvatarBody.MAX_SPEED_SCALE and run_scale <= AvatarBody.MAX_SPEED_SCALE
+			and walk_scale >= AvatarBody.MIN_SPEED_SCALE)
+	body.animate(0.0, true)
+	_check("parado volta a cadência 1", is_equal_approx(player.speed_scale, 1.0))
+
+	# play_idle e play_walk seguem funcionando.
+	body.play_walk()
+	_check("play_walk ainda toca o Walk em cadência 1", player.current_animation == AvatarBody.WALK_ANIMATION
+			and is_equal_approx(player.speed_scale, 1.0))
+	body.play_idle()
+	_check("play_idle ainda toca o Idle", player.current_animation == AvatarBody.IDLE_ANIMATION)
+
+	# Cabeça: encolhe mesmo com a animação rodando, e volta.
+	var skeleton := body.get_skeleton()
+	var head := skeleton.find_bone("Head")
+	# O modificador age só no desenho do quadro: lê-se a pose no skeleton_updated.
+	var seen: Array[float] = []
+	skeleton.skeleton_updated.connect(func() -> void:
+		seen.append(skeleton.get_bone_global_pose(head).basis.get_scale().x))
+	body.animate(5.0, true)
+	for i in 3:
+		await process_frame
+	var normal: float = seen[-1]
+	body.set_head_hidden(true)
+	seen.clear()
+	for i in 5:
+		await process_frame
+	var hidden: float = seen[-1]
+	_check("cabeça encolhida com o Walk rodando (%.3f -> %.4f)" % [normal, hidden],
+			not seen.is_empty() and hidden < normal * 0.05)
+	_check("is_head_hidden", body.is_head_hidden())
+	body.set_head_hidden(false)
+	seen.clear()
+	for i in 5:
+		await process_frame
+	var back: float = seen[-1]
+	_check("cabeça volta ao tamanho (%.3f)" % back, absf(back - normal) < normal * 0.1)
+
+	# Sombra: três modos.
+	var meshes := body.find_children("*", "MeshInstance3D", true, false)
+	_check("sombra padrão: normal", meshes.all(func(m: MeshInstance3D) -> bool:
+			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON))
+	body.set_shadow_mode(AvatarBody.ShadowMode.OFF)
+	_check("sem sombra", meshes.all(func(m: MeshInstance3D) -> bool:
+			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF) and not body.cast_shadows)
+	body.set_shadow_mode(AvatarBody.ShadowMode.SHADOWS_ONLY)
+	_check("só sombra", meshes.all(func(m: MeshInstance3D) -> bool:
+			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY))
+	body.set_shadow_mode(AvatarBody.ShadowMode.NORMAL)
+	_check("de volta ao normal", meshes.all(func(m: MeshInstance3D) -> bool:
+			return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON))
+	body.queue_free()
+
+	# cast_shadows = false (como o FriendNpc e o espelho usam) segue valendo.
+	var quiet := AvatarBody.new()
+	quiet.cast_shadows = false
+	root.add_child(quiet)
+	await process_frame
+	_check("cast_shadows = false segue sem sombra", quiet.find_children("*", "MeshInstance3D", true, false)
+			.all(func(m: MeshInstance3D) -> bool: return m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF))
+	quiet.queue_free()
+	await process_frame
 
 
 ## Cada faixa do UV é a parte do corpo do nome: confere pelos ossos dos vértices.
