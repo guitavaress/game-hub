@@ -56,7 +56,10 @@ Trilha A: checkout principal (Opus coordena e faz as grandes, uma por vez). Tril
   - Faz: cria a `fase-20`; grava este plano em `docs/plans/fase-20.md`; a ROADMAP diz que o item 8 é a Fase 20, em andamento; `Início.md` (fase atual, linha no gantt). Mede a caminhada no desktop (Alta, 200 jogos) e anota o número aqui.
   - Arquivos: `docs/plans/fase-20.md` (novo), `docs/ROADMAP.md`, `docs/Início.md`.
   - Commit: `Docs: plano da Fase 20`
-- [ ] **20.1 O corpo aprende a andar** (pequena · Sonnet, trilha B · medium)
+- [x] **20.1 O corpo aprende a andar** (pequena · Sonnet, trilha B · medium) — 2026-11-16; `aee6ef2` (trilha B), merge `0de17a3`, bateria completa ok
+  - **Entregue:** `animate(horizontal_speed, on_floor)`, `set_head_hidden(on)`/`is_head_hidden()`, `enum ShadowMode { NORMAL, OFF, SHADOWS_ONLY }` com `set_shadow_mode`/`get_shadow_mode`. A cabeça é encolhida por um `SkeletonModifier3D` (`HeadHider`), que roda depois da animação: vale só para o quadro desenhado (a pose guardada do osso segue com escala 1).
+  - **Passada medida** (osso `LeftFoot`, 60 quadros por ciclo, altura de 1,7 m): Walk 1,585 m por ciclo de 1,0 s; Run 2,362 m por ciclo de 0,625 s. Cadência limitada a 0,5–3,2.
+  - **Pendência para a 20.3:** o jogador anda a 5 m/s, o que dá cadência 3,15 no Walk (passo acelerado demais). Candidato: baixar o `RUN_THRESHOLD` de 7 para cerca de 3,5 (5 m/s vira Run a 1,32; 9 m/s, Run a 2,38), decidido pela captura. A passada não acompanha uma altura diferente de 1,7 m. O Jump toca uma vez e segura a pose (não há animação de pouso).
   - Faz: `AvatarBody.animate(speed, on_floor)` com Idle/Walk/Run/Jump, blend e cadência casada; `set_head_hidden(on)` (encolhe o osso da cabeça); `set_shadow_mode(...)` (normal, sem sombra, só sombra). Nada muda na tela ainda.
   - Arquivos: `components/avatar/avatar_body.gd`, `tests/check_avatar.gd`.
   - Teste: `check_avatar` (a animação certa por velocidade; o `speed_scale` cresce com a velocidade; a cabeça encolhe e volta), mais `check_mirror` e `check_friends_wall` (nada quebrou).

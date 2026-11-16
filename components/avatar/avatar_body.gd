@@ -165,23 +165,23 @@ func animate(horizontal_speed: float, on_floor: bool) -> void:
 	if _animation_player == null:
 		return
 	var animation := IDLE_ANIMATION
-	var scale := 1.0
+	var cadence := 1.0
 	if not on_floor:
 		animation = JUMP_ANIMATION
 	elif horizontal_speed >= RUN_THRESHOLD:
 		animation = RUN_ANIMATION
-		scale = horizontal_speed / (RUN_STRIDE / RUN_CYCLE)
+		cadence = horizontal_speed / (RUN_STRIDE / RUN_CYCLE)
 	elif horizontal_speed >= MOVE_THRESHOLD:
 		animation = WALK_ANIMATION
-		scale = horizontal_speed / (WALK_STRIDE / WALK_CYCLE)
-	scale = clampf(scale, MIN_SPEED_SCALE, MAX_SPEED_SCALE) if animation != IDLE_ANIMATION \
+		cadence = horizontal_speed / (WALK_STRIDE / WALK_CYCLE)
+	cadence = clampf(cadence, MIN_SPEED_SCALE, MAX_SPEED_SCALE) if animation != IDLE_ANIMATION \
 			and animation != JUMP_ANIMATION else 1.0
 	if _animation_player.has_animation(animation) and _animation_player.current_animation != animation:
 		var anim := _animation_player.get_animation(animation)
 		# O pulo toca uma vez e segura a pose; o resto fica em loop.
 		anim.loop_mode = Animation.LOOP_NONE if animation == JUMP_ANIMATION else Animation.LOOP_LINEAR
 		_animation_player.play(animation, BLEND_TIME)
-	_animation_player.speed_scale = scale
+	_animation_player.speed_scale = cadence
 
 
 ## Esconde a cabeça (a primeira pessoa não pode ver o próprio pescoço por dentro):
