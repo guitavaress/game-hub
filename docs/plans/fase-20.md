@@ -1,6 +1,6 @@
 # Fase 20: Primeira e terceira pessoa
 
-**Status:** aprovado em 2026-11-16; em andamento
+**Status:** aprovado em 2026-11-16; **fechada em 2026-11-16** (na branch `fase-20`; a `main` e o Release esperam o dono)
 **Branch:** `fase-20`, criada da `main` (`c0bda53`).
 
 ## Para o dono (até 10 linhas)
@@ -10,7 +10,7 @@
 - **Decisões que esperam você:** (1) na amostra da 20.4, o jeito da terceira pessoa: câmera sobre o ombro com o avatar sempre de costas (recomendado, igual à primeira pessoa nos controles) ou avatar que vira para onde anda; (2) o botão do controle (proposto: clique do analógico direito, se estiver livre); (3) se a fase fecha com um Release 0.20.0.
 
 ## Contexto
-É a fase [8. Primeira e terceira pessoa](../ROADMAP.md#8-primeira-e-terceira-pessoa), escolhida pelo dono em 2026-11-16 para ser a Fase 20 (passa à frente de Visitar amigos, da janela, dos amigos andando e de instalar jogos). Dá mudança visível logo, e o corpo que anda aqui é a mesma peça dos amigos andando e do "V4 ao vivo".
+É a fase [8. Primeira e terceira pessoa](../ROADMAP.md#8-primeira-e-terceira-pessoa--feita-na-fase-20), escolhida pelo dono em 2026-11-16 para ser a Fase 20 (passa à frente de Visitar amigos, da janela, dos amigos andando e de instalar jogos). Dá mudança visível logo, e o corpo que anda aqui é a mesma peça dos amigos andando e do "V4 ao vivo".
 
 O que já existe (lido em 2026-11-16):
 - **Jogador** (`player/player.gd`, `player/player.tscn`): `CharacterBody3D` com `Head` (1,6 m) › `Camera3D` › `LookRay` (30 m, máscara 5). O corpo gira no Y, a cabeça no X. A câmera **não vê** a camada 19 (`AvatarBody.REFLECTION_LAYER`). O foco numa tela (`focus_on`, `_slide_camera`, `leave_focus`) desliza a câmera e a devolve para `_head.global_transform * _camera_rest`.
@@ -116,7 +116,8 @@ Trilha A: checkout principal (Opus coordena e faz as grandes, uma por vez). Tril
   - Teste: bateria completa.
   - Manual: nas duas visões, abrir um jogo por uma porta, usar a luneta, sentar na mesa (Linux), usar o computador, o provador, o mapa, a busca e o metrô.
   - Commit: `Fase 20.5: tudo funciona nas duas visões`
-- [ ] **20.6 Medida e fechamento** (grande · Opus coordena; Haiku nos docs · medium)
+- [x] **20.6 Medida e fechamento** (grande · Opus coordena; Haiku nos docs · medium) — 2026-11-16; bateria completa ok (`RESULTADO GERAL: TUDO OK`), commit `Docs: fechamento da Fase 20`
+  - **Medida** (desktop, Alta, 200 jogos, 13 h, tempo limpo): primeira pessoa **143,7 e 144,2 FPS**, terceira **140,7 e 141,8** (p99 13 a 14 ms). Abaixo da partida (149,4 e 148,0), mas a máquina estava mais carregada (NVIDIA Broadcast, Edge, Discord e Spotify abertos). Por isso a coordenadora mediu o código do começo da fase (`c0bda53`, numa cópia à parte) intercalado com o de agora, na mesma hora: partida **135,6 e 129,6**, agora **134,7 e 135,1**. **A primeira pessoa não custou nada;** a terceira fica ~2% abaixo da primeira na mesma sessão, dentro da meta de 3%. Casa e espelho no teto do vsync (165); na terceira pessoa a casa desenha mais (310 → 455) e o espelho também (158 → 249). Montanha 161,7–162,5. Montagem 9,9–10,4 s.
   - Faz: bateria completa; a mesma medida da 20.0, nas duas visões; README (o que mudou para quem usa), ROADMAP (fase feita), `Início.md`; versão 0.20.0 só se o dono pedir o Release.
   - Commit: `Docs: fechamento da Fase 20`
 

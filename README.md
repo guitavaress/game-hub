@@ -6,7 +6,7 @@
 
 **Sua biblioteca Steam é um lugar. Entre para jogar.**
 
-Um launcher em forma de **mundo 3D em primeira pessoa**, inspirado no PlayStation Home e feito em Godot. Você começa em casa, sai para uma cidade construída com os seus jogos e encontra os amigos como hologramas pelo caminho.
+Um launcher em forma de **mundo 3D em primeira ou terceira pessoa**, inspirado no PlayStation Home e feito em Godot. Você começa em casa, sai para uma cidade construída com os seus jogos e encontra os amigos como hologramas pelo caminho.
 
 Cada jogo instalado tem uma porta. Entre, espere o anel da mira encher e o jogo abre pela Steam. O hub se minimiza; quando você fecha o jogo, volta ao mesmo lugar, com um resumo da sessão.
 
@@ -17,6 +17,8 @@ Cada jogo instalado tem uma porta. Entre, espere o anel da mira encher e o jogo 
 ### Comece em casa
 
 Luz quente, um sofá, um canto de leitura e **a cidade de verdade na janela**. Na estante, cada caixa tem a capa de um jogo seu: olhe para ela e segure **E** para jogar sem sair de casa.
+
+**Você tem corpo.** Olhando para baixo, você vê o seu avatar andando, e ele faz sombra no chão. Aperte **V** (ou o analógico direito no controle) para passar à **terceira pessoa**: a câmera vai para trás do ombro, você vê o avatar andar, correr e pular, e ela se aproxima sozinha quando bate numa parede, num prédio, numa árvore ou no teto da casa. A escolha fica guardada para a próxima vez.
 
 O mural reúne os amigos online. Na parede, suas estatísticas mostram as horas jogadas, os mais jogados e os maiores bairros. No espelho, você escolhe o visual do avatar. Em **Esc › Casa**, troque entre **loft e cabana**, mude as cores e escolha a posição dos móveis.
 
@@ -90,6 +92,7 @@ O foco atual é **abrir jogos e encontrar os amigos**. Depois do teste com amigo
 | **E** | Interagir com portas, mural e espelho; **segure** na estante para abrir um jogo |
 | **Tab** | Buscar um jogo; **Enter** traça a rota, **Shift + Enter** vai até a porta |
 | **M** | Abrir ou fechar o mapa da cidade |
+| **V** | Alternar entre primeira e terceira pessoa |
 | **Esc** | Pausa e configurações; voltar ou fechar painéis; cancelar a espera de um jogo |
 | **Setas / Enter** | Navegar e escolher nos menus |
 | **F11** | Alternar tela cheia |
@@ -101,7 +104,7 @@ O foco atual é **abrir jogos e encontrar os amigos**. Depois do teste com amigo
 
 | Controle | Ação |
 |---|---|
-| Analógicos esquerdo / direito | Andar / olhar; aperte o esquerdo para correr |
+| Analógicos esquerdo / direito | Andar / olhar; aperte o esquerdo para correr e o direito para alternar a visão |
 | **A** / **X** | Pular ou confirmar / interagir |
 | **Y** / **View** / **Menu** | Busca / mapa / pausa |
 | **B** | Voltar; fechar painéis; cancelar a espera do jogo |
@@ -113,7 +116,7 @@ As dicas da tela mudam automaticamente entre teclado e controle.
 
 Em **Esc › Som e vídeo › Qualidade**, escolha **Alta**, **Média** ou **Leve**. A Leve reduz efeitos, sombras e a resolução do 3D, mantendo a interface nítida. Para notebook com gráfico integrado, comece por ela.
 
-Em **Esc › Controles**, ajuste a sensibilidade do mouse e do controle, o campo de visão e o balanço da câmera. Em **Som e vídeo**, ajuste os volumes e a hora da cidade.
+Em **Esc › Controles**, ajuste a sensibilidade do mouse e do controle, o campo de visão, o balanço da câmera e a **visão** (primeira ou terceira pessoa). Em **Som e vídeo**, ajuste os volumes e a hora da cidade.
 
 ## Amigos da Steam (opcional)
 
