@@ -115,6 +115,9 @@ const PENDANTS: Array[Array] = [
 const PENDANT_CONE: float = 40.0
 const PENDANT_FILL: float = 0.35
 const PENDANT_FILL_RANGE: float = 4.0
+## O volume só da câmera em volta da cúpula (CameraBlock): raio e altura (m).
+const PENDANT_CAMERA_RADIUS: float = 0.3
+const PENDANT_CAMERA_HEIGHT: float = 0.36
 ## O abajur: cor da cúpula acesa (acima de 1 acende o brilho) e força da luz.
 const FLOOR_LAMP_SHADE: Color = Color(1.5, 0.95, 0.5)
 const FLOOR_LAMP_ENERGY: float = 2.4
@@ -172,6 +175,10 @@ func _add_pendant(at: Vector3, shadow: bool, bulb_y: float) -> void:
 	shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	shade.position = Vector3(at.x, bulb_y + 0.06, at.z)
 	add_node(shade)
+	# A câmera da terceira pessoa não entra na cúpula (Fase 20.5): um volume só
+	# dela, do tamanho da cúpula com a lâmpada.
+	CameraBlock.add_cylinder(target, "PendantCameraBlock", PENDANT_CAMERA_RADIUS,
+			PENDANT_CAMERA_HEIGHT, Vector3(at.x, bulb_y + 0.05, at.z))
 	var bulb := MeshInstance3D.new()
 	bulb.name = "PendantBulb"
 	var bulb_mesh := SphereMesh.new()

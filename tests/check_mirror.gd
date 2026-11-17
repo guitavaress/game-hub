@@ -7,10 +7,14 @@ extends SceneTree
 ##   - a câmera do espelho fica no reflexo do olho (simétrico ao plano do vidro),
 ##     com o corte no vidro;
 ##   - fora de casa, desligado;
-##   - trocar as cores do avatar no config.cfg pinta o corpo do reflexo.
+##   - trocar as cores do avatar no config.cfg pinta o corpo do reflexo;
+##   - Fase 20.3: o espelho não tem corpo próprio, reflete o inteiro do jogador
+##     (PlayerAvatar), e não vê o corpo de primeira pessoa.
 
 const CONFIG := "user://config.cfg"
 const REFLECTION_MASK := 1 << 18
+## As camadas do corpo de primeira pessoa (16 em casa, 17 fora).
+const FIRST_PERSON_MASK := (1 << 15) | (1 << 16)
 
 var failures := 0
 
@@ -25,6 +29,7 @@ func _run() -> void:
 	var backup := FileAccess.get_file_as_string(CONFIG)
 	for setter in ["set_home_theme", "set_home_layout", "set_home_wall_color", "set_home_neon_color"]:
 		app.call(setter, "")
+	app.set_view("first")  # a conta do reflexo abaixo usa o olho na cabeça
 	var city: Node = load("res://worlds/city/city.tscn").instantiate()
 	city.play_intro = false
 	root.add_child(city)
@@ -45,6 +50,10 @@ func _run() -> void:
 	_check("a câmera do jogador não vê o reflexo", camera.cull_mask & REFLECTION_MASK == 0)
 	_check("a câmera do espelho vê o reflexo e o interior", mirror_camera.cull_mask & REFLECTION_MASK != 0
 			and mirror_camera.cull_mask & (1 << 19) != 0 and mirror_camera.cull_mask & 1 == 0)
+	_check("e não vê o corpo de primeira pessoa", mirror_camera.cull_mask & FIRST_PERSON_MASK == 0)
+	_check("o espelho não tem corpo próprio", mirror.get_node_or_null("ReflectionBody") == null
+			and mirror.find_children("*", "Skeleton3D", true, false).is_empty())
+	_check("o corpo do espelho é o inteiro do jogador", mirror.get_body() == player.get_avatar().get_full_body())
 	_check("o corpo do reflexo está só na camada do reflexo", _body_layers(mirror) == REFLECTION_MASK)
 
 	print("== ligado só quando importa ==")
@@ -52,12 +61,14 @@ func _run() -> void:
 	player.set_indoors(home.get_environment())
 	await _frames(4)
 	_check("no ponto de nascer (longe), desligado", not mirror.is_active()
-			and viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED and not mirror.get_body().visible)
+			and viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED)
 	_stand_in_front(player, home, mirror, 1.8, false)
 	await _frames(4)
-	_check("a 1,8 m e olhando, ligado", mirror.is_active() and mirror.get_body().visible)
-	_check("o corpo está onde o jogador está", Vector2(mirror.get_body().global_position.x, mirror.get_body().global_position.z)
-			.distance_to(Vector2(player.global_position.x, player.global_position.z)) < 0.01)
+	_check("a 1,8 m e olhando, ligado (e a câmera do espelho vê o corpo)", mirror.is_active()
+			and _body_layers(mirror) & mirror.get_mirror_camera().cull_mask != 0)
+	var body_spot: Vector3 = player.to_global(Vector3(0.0, 0.0, player.get_avatar().FIRST_PERSON_BACK))
+	_check("o corpo está onde o jogador está (um pouco atrás da câmera)",
+			mirror.get_body().global_position.distance_to(body_spot) < 0.01)
 	_stand_in_front(player, home, mirror, 1.8, true)
 	await _frames(4)
 	_check("de costas para o espelho, desligado", not mirror.is_active())
@@ -69,6 +80,23 @@ func _run() -> void:
 	player.set_indoors(home.get_environment())
 	await _frames(3)
 	_check("de volta em casa, liga de novo", mirror.is_active())
+
+	print("== na terceira pessoa (20.4: a distância é medida pelo jogador) ==")
+	player.toggle_view()
+	_stand_in_front(player, home, mirror, 3.4, false)
+	await create_timer(0.6).timeout
+	await _frames(2)
+	var eye_distance: float = camera.global_position.distance_to(mirror.get_glass_center())
+	_check("com o jogador a 3,4 m e a câmera a %.1f m (mais que %.1f), ligado" % [eye_distance, mirror.ACTIVE_DISTANCE],
+			eye_distance > mirror.ACTIVE_DISTANCE and mirror.is_active())
+	_check("e o reflexo sai da câmera", mirror_camera.global_position.distance_to(mirror.reflect_point(camera.global_position)) < 0.01)
+	_stand_in_front(player, home, mirror, 4.8, false)
+	await _frames(4)
+	_check("com o jogador a 4,8 m, desligado", not mirror.is_active())
+	player.toggle_view()
+	_stand_in_front(player, home, mirror, 1.8, false)
+	await create_timer(0.6).timeout
+	await _frames(2)
 
 	print("== a conta do reflexo ==")
 	var eye := camera.global_position
@@ -145,7 +173,7 @@ func _modes(count: int) -> Array:
 
 func _body_layers(mirror: Node) -> int:
 	var layers := -1
-	for mesh in mirror.get_body().find_children("*", "MeshInstance3D", true, false):
+	for mesh in mirror.get_body().get_meshes():
 		layers = (mesh as MeshInstance3D).layers if layers == -1 or layers == (mesh as MeshInstance3D).layers else -2
 	return layers
 

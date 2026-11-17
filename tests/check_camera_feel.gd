@@ -17,6 +17,7 @@ func _run() -> void:
 	await process_frame
 	var app = root.get_node("AppConfig")
 	app.set_camera_motion(true)
+	app.set_view("first")  # a parte "no jogador" supõe a primeira pessoa
 
 	var camera := Camera3D.new()
 	camera.fov = 75.0
@@ -88,6 +89,41 @@ func _run() -> void:
 	_check("deslocamento 0 e FOV base", feel.get_offset() == Vector3.ZERO and is_equal_approx(camera.fov, 75.0)
 		and camera.transform == rest)
 	app.set_camera_motion(true)
+
+	print("\n== o repouso vem de quem manda (20.4, terceira pessoa) ==")
+	var arm_rest := Transform3D(Basis.IDENTITY, Vector3(0.3, 0.25, 3.0))
+	feel.set_rest(arm_rest, 0.0)
+	feel.update(delta, 0.0, 0.7, true, false, true)
+	_check("set_rest move a câmera para o novo repouso", camera.transform.origin.is_equal_approx(arm_rest.origin)
+		and feel.get_rest() == arm_rest)
+	var bob_max := 0.0
+	for i in 300:
+		stride = fmod(stride + 5.0 * delta / 2.2, 1.0)
+		feel.update(delta, 5.0, stride, true, false, true)
+		bob_max = maxf(bob_max, Vector2(feel.get_offset().x, feel.get_offset().y).length())
+	_check("com o balanço em 0, andar não balança (%.4f m)" % bob_max, bob_max < 0.0005)
+	feel.land(8.0)
+	var dip := 0.0
+	for i in 12:
+		feel.update(delta, 0.0, 0.7, true, false, true)
+		dip = minf(dip, feel.get_offset().y)
+	_check("mas o pouso continua (%.3f m)" % dip, dip <= -0.04)
+	for i in 120:
+		stride = fmod(stride + 9.0 * delta / 3.0, 1.0)
+		feel.update(delta, 9.0, stride, true, true, true)
+	_check("e o FOV da corrida também", absf(camera.fov - 80.0) < 0.1)
+	for i in 120:
+		feel.update(delta, 0.0, 0.7, true, false, true)
+	feel.set_rest(rest, 0.5)
+	var half_max := 0.0
+	for i in 300:
+		stride = fmod(stride + 5.0 * delta / 2.2, 1.0)
+		feel.update(delta, 5.0, stride, true, false, true)
+		half_max = maxf(half_max, absf(feel.get_offset().y))
+	_check("no meio da passagem, meio balanço (%.4f m)" % half_max, half_max > 0.003 and half_max < 0.0101)
+	feel.set_rest(rest, 1.0)
+	for i in 120:
+		feel.update(delta, 0.0, 0.7, true, false, true)
 
 	print("\n== inativo (foco / viagem) ==")
 	feel.update(delta, 5.0, 0.5, true, false, true)

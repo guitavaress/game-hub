@@ -65,6 +65,20 @@ func _run() -> void:
 	_check("Enter liga e desliga a opção", app.get_camera_motion() == (not motion_before))
 	await _key(KEY_ENTER)
 	_check("e de novo, volta", app.get_camera_motion() == motion_before)
+	# Fase 20.2: a linha "Visão" (duas escolhas) pelo teclado.
+	var view_before: String = app.get_view()
+	var other_view := "third" if view_before == "first" else "first"
+	await _key(KEY_DOWN)
+	_check("↓ chega na linha 'Visão'", settings._view_buttons.values().has(_focus()))
+	steps = 0
+	while _focus() != settings._view_buttons[other_view] and steps < 3:
+		await _key(KEY_RIGHT if other_view == "third" else KEY_LEFT)
+		steps += 1
+	_check("←/→ chegam em '%s'" % other_view, _focus() == settings._view_buttons[other_view])
+	await _key(KEY_ENTER)
+	_check("Enter escolhe a visão", app.get_view() == other_view)
+	app.set_view(view_before)
+	await _go_to(settings, settings._motion_check, KEY_UP)
 	await _go_to(settings, settings._tab_buttons[1], KEY_UP)
 	await _key(KEY_LEFT)
 	_check("← na aba volta para Som e vídeo", settings.get_page() == 0)

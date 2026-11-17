@@ -5,7 +5,18 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
 **Painel visual, ao vivo:** com o Docker aberto, `docker compose -f painel/compose.yaml up -d` na pasta do projeto e abra http://localhost:4170 ([como funciona](../painel/README.md)).
 
 ## Agora
-- **Fase atual:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), **fechada em 2026-11-15 e na `main`** (PR #5, 2026-11-16), com o [Release 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0) publicado em 2026-11-16 (zip de 83 MB): árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
+- **Fase atual:** [Fase 20, Primeira e terceira pessoa](plans/fase-20.md), aprovada e **fechada em 2026-11-16**, e **na `main`** (PR #7, 2026-11-16). A tecla V (R3 no controle) alterna a visão: na terceira pessoa você vê o seu avatar por trás; na primeira, vê o próprio corpo ao olhar para baixo. Bateria completa ok; a primeira pessoa não custou FPS, e a terceira fica ~2% abaixo dela (medido junto com o código do começo da fase).
+  - **Feita:** 20.1 (2026-11-16, `aee6ef2`): o corpo do avatar anda, corre e pula pela velocidade (ainda sem mudança na tela).
+  - **Feita:** 20.2 (2026-11-16, `f3e3b44`): Esc › Controles tem a linha "Visão" (primeira ou terceira pessoa), e a tecla V (R3 no controle) aparece na lista de teclas e no cartão "COMO JOGAR". Apertar V ainda não faz nada: a câmera chega na 20.4.
+  - **Feita:** 20.3 (2026-11-16, `1dc947d`): olhando para baixo você vê o seu corpo; a sombra no chão tem cabeça; o espelho mostra o corpo de verdade, e no provador o avatar aparece também na frente do vidro. A caminhada não caiu (151,3 e 148,5 FPS). A revisão de risco não achou nada grave. Capturas em `C:\Projetos\game-hub-referencias\fase-20\20.3\`.
+  - **Feita:** 20.3.1 (2026-11-16, `7d77f27`): olhando reto para a frente o corpo não aparece mais (o braço não cruza a tela); reto para baixo aparecem o peito, os braços, as pernas e a sombra; descer uma guia não faz o corpo pular. Capturas em `C:\Projetos\game-hub-referencias\fase-20\20.3.1\`.
+  - **Espera você:** testar a 20.3 (checklist no plano); dizer se a pose parada do avatar no provador incomoda (é a do modelo, com um pé à frente); dizer se quer ver mais do corpo ao olhar um pouco para baixo; confirmar o R3 como botão da visão.
+  - **Feita:** 20.4 (2026-11-16, `67fe3ec`): **a tecla V (R3 no controle) alterna a visão.** Na terceira pessoa a câmera fica atrás do ombro direito, você vê o avatar andar, correr e pular, e ela se aproxima quando bate em parede, prédio ou no teto da casa. A caminhada ficou dentro da meta (pior rodada 2,5% abaixo da partida). Capturas das duas variantes em `C:\Projetos\game-hub-referencias\fase-20\20.4\ombro\` e `...\livre\`.
+  - **Decidido (2026-11-16):** a terceira pessoa fica no jeito "Ombro": o avatar fica sempre de costas e gira com o mouse.
+  - **Feita:** 20.5 (2026-11-16, `57d159c`, e a correção do teste 20.5.1, `ca9767f`): **na floresta os galhos não tapam mais a tela** (a câmera bate num volume invisível na copa; o mesmo nas luminárias da casa). Encostado num prédio o corpo não some mais. Computador, luneta e provador vão e voltam sem a câmera passar pela cabeça; voltando de um jogo ou de uma viagem a câmera já chega atrás do ombro; entrar e sair de casa encurta e alonga o braço suavemente; na terceira pessoa cada passo soa quando o pé toca o chão. A caminhada ficou 1,6% abaixo da partida. Capturas em `C:\Projetos\game-hub-referencias\fase-20\20.5\`.
+  - **Feita:** 20.6 (2026-11-16): bateria completa ok, a medida nas duas visões, README e ROADMAP.
+  - **Espera você:** confirmar o R3 como botão da visão e dizer se a sombra do corpo em casa fica (uns 100 desenhos a mais, sem mudar o FPS).
+- **Fase anterior:** [Fase 19, Biomas baratos, árvores e céu vivo](plans/fase-19.md), **fechada em 2026-11-15 e na `main`** (PR #5, 2026-11-16), com o [Release 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0) publicado em 2026-11-16 (zip de 83 MB): árvores feitas no Blender, o dia em gradiente, clima dinâmico com a chuva refeita, a floresta e o deserto, e os bairros crescendo com as horas.
   - **Fechamento (19.13, 2026-11-15):** bateria completa ok. No desktop (Alta, 200 jogos), a caminhada não caiu em relação ao começo da fase: 132 FPS antes e 136 agora, medidos na mesma hora. A chuva forte custa cerca de 1%. A cidade leva cerca de 1 s a mais para montar (de ~9,3 para ~10,2 s). Os números estão no [plano](plans/fase-19.md).
   - **Subetapa anterior:** 19.8 (2026-11-15, `b3dbf33`): a Sobrevivência vira deserto. Areia no chão e nas ruas, rochas maiores com areia por cima, nenhuma árvore, vento, **poeira** no lugar da chuva, névoa quente e leve, arcos no lugar dos prédios e passos com o som da neve. Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.8\`. Antes, 19.7 (2026-11-14, `408c116`): a Aventura vira floresta. Grama no chão e nas ruas, calçada de pedra, árvores altas de mata (feitas no Blender) com árvores novas por baixo, rochas com musgo, pássaros cantando, folhas caindo na chuva, uma névoa verde leve e passos na grama. As portas viraram **arcos** no meio da mata (a recomendação); com prédios, as árvores só cabem nas vagas. Capturas das duas em `C:\Projetos\game-hub-referencias\fase-19\19.7\arcos\` e `...\19.7\predios\`.
   - **Antes dela:** 19.6.1 (2026-11-14, `8d187a6`): a janela na chuva. Dentro de casa, com chuva lá fora, o vidro mostra os riscos caindo e as gotas paradas e escorrendo (poucas na chuva fraca, muitas na forte; à noite elas pegam as luzes). A vista não entorta mais quando você anda pela sala ou chega perto do vidro. Capturas em `C:\Projetos\game-hub-referencias\fase-19\19.6.1\` (antes e depois do warp, nos três tempos). A janela ao vivo continua sendo uma fase própria ([A janela de verdade](ROADMAP.md#5-a-janela-de-verdade)).
@@ -16,7 +27,7 @@ O painel do cofre. Daqui se chega a tudo o que organiza o projeto.
   - **Teste do modelo grátis (OpenCode):** o `free-coding` reprovou na 19.11 (ela passa ao Sonnet). O `free-reasoning` foi aprovado para pesquisa e texto com revisão: escreveu a ideia do [fork da NVIDIA](ideias/godot-fork-nvidia.md).
 - **Esperando os amigos:** [Fase 18, Mostrar para amigos](plans/fase-18.md). O [Release 0.18.0](https://github.com/guitavaress/game-hub/releases/tag/v0.18.0) foi publicado em 2026-11-12 (PR #4 na `main`, tag `v0.18.0`, zip de 74 MB com o `.exe`, o `LEIA-ME.txt` e as 22 licenças).
   - **Falta:** 2 ou 3 amigos usarem e mandarem o resumo do botão "Contar o que achei". Cole o resumo (sem o nome) para um agente registrar no plano; aí a fase fecha.
-- **Próxima fase:** [Visitar amigos](ROADMAP.md#4-visitar-amigos), adiada em 2026-11-12 (o jogo do V-Sekai está parado desde junho de 2025).
+- **Depois da Fase 20:** [Visitar amigos](ROADMAP.md#4-visitar-amigos), adiada em 2026-11-12 (o jogo do V-Sekai está parado desde junho de 2025), e os itens 5 a 7 da ROADMAP.
 - **Para fazer num dia só:** [Dia de conferência no desktop](plans/conferencia-desktop.md).
 - **Última fase feita:** [Fase 17, O momento uau](plans/fase-17.md), já na `main` (PR #3). As capturas de antes e depois ficam em `C:\Projetos\game-hub-referencias\uau\` (fora do repositório).
 - **Decidido em 2026-11-02:** a [revisão da ROADMAP](revisao-roadmap-2026-11-02.md#decisões) e a [revisão de design](design/revisao-2026-11-02.md).
@@ -79,8 +90,11 @@ gantt
     section Biomas e céu
     Fase 19 Biomas, árvores e céu    :done, f19, 2026-11-12, 2026-11-15
 
+    section Visão
+    Fase 20 Primeira e terceira pessoa :done, f20, 2026-11-16, 1d
+
     section Próximas, sem data
-    Visitar amigos                   :u4, after f19, 7d
+    Visitar amigos                   :u4, after f20, 7d
 ```
 Ao fechar uma fase, troque `active` por `done` e acerte a data do fim. A fase que começar ganha uma linha com a data de início e sai de "Próximas".
 

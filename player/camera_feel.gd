@@ -4,10 +4,16 @@ extends Node
 ## ao pousar e FOV que abre correndo. Fica como filho do Player, que o alimenta
 ## (velocidade, passada, chão, pouso) e o chama a cada quadro com update().
 ##
-## Tudo é um deslocamento PEQUENO da câmera dentro da cabeça (a posição de
-## repouso mais um vetor de poucos centímetros). Durante o foco numa tela 3D
-## e na viagem rápida, quem manda na câmera é o Player (active = false): aqui
-## nada é mexido, e o estado volta a zero.
+## Tudo é um deslocamento PEQUENO da câmera sobre a posição de repouso (um
+## vetor de poucos centímetros). Durante o foco numa tela 3D e na viagem
+## rápida, quem manda na câmera é o Player (active = false): aqui nada é
+## mexido, e o estado volta a zero.
+##
+## O REPOUSO vem de quem manda (Fase 20.4, set_rest): na primeira pessoa é o
+## lugar da câmera dentro da cabeça; na terceira, a ponta do braço da câmera,
+## que muda a cada quadro. Na terceira pessoa o balanço lateral e o vertical
+## desligam (o corpo do avatar já balança); o pouso, o FOV da corrida e o da
+## porta continuam.
 ##
 ## A opção "Balanço da câmera" (AppConfig, seção [controls]) desliga tudo.
 
@@ -35,6 +41,9 @@ const BOB_WEIGHT_FOLLOW: float = 8.0
 
 var _camera: Camera3D
 var _rest: Transform3D = Transform3D.IDENTITY
+## Quanto do balanço de andar vale (1 = todo, na primeira pessoa; 0 = nada, na
+## terceira; no meio, durante a passagem de uma para a outra).
+var _bob_scale: float = 1.0
 var _base_fov: float = 75.0
 var _motion_on: bool = true
 ## Quanto do balanço está valendo (0 parado, 1 andando), suavizado.
@@ -56,6 +65,17 @@ func setup(camera: Camera3D, rest: Transform3D) -> void:
 	camera.fov = _base_fov
 	_motion_on = AppConfig.get_camera_motion()
 	AppConfig.settings_changed.connect(_on_settings_changed)
+
+
+## O repouso da câmera agora (no espaço do pai dela, a cabeça) e quanto do
+## balanço de andar vale (0 a 1). O Player chama a cada quadro, antes do update.
+func set_rest(rest: Transform3D, bob: float = 1.0) -> void:
+	_rest = rest
+	_bob_scale = clampf(bob, 0.0, 1.0)
+
+
+func get_rest() -> Transform3D:
+	return _rest
 
 
 ## O FOV "de descanso" (parado); vem da opção do config.
@@ -106,8 +126,9 @@ func update(delta: float, horizontal_speed: float, stride_fraction: float,
 	var fov_bonus := 0.0
 	if _motion_on:
 		var arc := sin(stride_fraction * PI)
-		target_offset.y = BOB_VERTICAL * (arc - 0.5) * _bob_weight
-		target_offset.x = BOB_LATERAL * _side * (arc - 0.5) * _bob_weight
+		var bob := _bob_weight * _bob_scale
+		target_offset.y = BOB_VERTICAL * (arc - 0.5) * bob
+		target_offset.x = BOB_LATERAL * _side * (arc - 0.5) * bob
 		# Mola crítica: a câmera afundada volta ao lugar em ~0,25 s.
 		var accel := -LAND_SPRING * LAND_SPRING * _land_offset - 2.0 * LAND_SPRING * _land_velocity
 		_land_velocity += accel * delta
@@ -124,8 +145,9 @@ func update(delta: float, horizontal_speed: float, stride_fraction: float,
 	# Porta carregando: o ScreenFade guarda o estado "uma porta carregando".
 	var charge := ease(ScreenFade.door_charge.get_progress(), 1.8)
 	target_offset += _rest.basis * Vector3(0.0, 0.0, -CHARGE_FORWARD * charge)
-	if _offset != Vector3.ZERO or target_offset != Vector3.ZERO:
-		_camera.transform = Transform3D(_rest.basis, _rest.origin + target_offset)
+	# Sempre: o repouso pode ter mudado (o braço da terceira pessoa encolhe e
+	# estica a cada quadro).
+	_camera.transform = Transform3D(_rest.basis, _rest.origin + target_offset)
 	_offset = target_offset
 	_camera.fov = _base_fov + _sprint_fov - CHARGE_FOV * charge
 

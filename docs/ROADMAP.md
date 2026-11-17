@@ -156,7 +156,7 @@ Estudo de partida, com a menor versão testável ("um terreno que instala") e o 
 
 **Pronto quando:** você entra num terreno de um jogo não instalado, manda instalar, vê o portal subir junto com a porcentagem do download e, ao terminar, ele está pronto na cidade e abre o jogo.
 
-### 8. Primeira e terceira pessoa
+### 8. Primeira e terceira pessoa — feita na Fase 20
 **Objetivo:** uma tecla (e um botão do controle) alterna entre a primeira e a terceira pessoa. Na terceira, a câmera fica atrás do seu avatar e você o vê andar pela cidade. Na primeira, **ao olhar para baixo você vê o próprio corpo** (tronco, braços, pernas e pés), andando junto.
 
 **Pedida pelo dono em 2026-11-15.** Hoje o hub é só primeira pessoa e o jogador não tem corpo no mundo: o avatar (`AvatarBody`, com as cores e as peças que você escolhe na casa) aparece só no espelho e nos hologramas dos amigos. Ele já tem as animações de parado e de andar.
@@ -171,6 +171,8 @@ O que a fase tem de resolver (o plano decide):
 - **serve aos amigos:** o corpo que anda aqui é a mesma peça dos [amigos andando](#6-amigos-andando-pela-cidade) e do "V4 ao vivo"; vale fazer o andar uma vez só, em `components/avatar/`.
 
 **Pronto quando:** você aperta a tecla e passa a ver o seu avatar por trás, anda pela cidade e pela casa sem a câmera entrar em parede, volta à primeira pessoa, olha para baixo e vê o seu corpo andando; abrir um jogo, o mapa e a busca funcionam igual nas duas.
+
+**Andamento:** é a [Fase 20](plans/fase-20.md), aprovada em 2026-11-16. O dono escolheu este item para vir antes dos itens 4 a 7. A ordem: o corpo aprende a andar sem deslizar → a tecla e a opção no menu → o corpo em primeira pessoa → a câmera em terceira pessoa → o que depende da visão → medida e fechamento. **A fase está feita e na `main`** (PR #7, 2026-11-16); a terceira pessoa ficou no jeito "Ombro" (o avatar sempre de costas).
 
 ## Dia de conferência
 
@@ -206,6 +208,7 @@ Nada aqui anda sem uma decisão nova sua.
 | 16 Leitura | Capas inteiras na estante, arco legível dos dois lados, avisos e título em lugares próprios, nomes da praça só de perto, textos que dizem o que apertar e estações do metrô com o lugar | [fase-16](plans/fase-16.md) |
 | 17 O momento uau | A casa à noite com objetos e a cidade de verdade na janela (que acende quando fica pronta); a cidade com contraste de dia e de noite; a trilha do RPG com paradas e os modelos do Blender; o mirante como destino; a torre em pedra; a cabana com o aconchego do loft | [fase-17](plans/fase-17.md) |
 | 19 Biomas, árvores e céu vivo | Árvores em modelo (Blender) em todo o hub; o dia em gradiente, sem pulo; clima dinâmico com a chuva refeita e a chuva no vidro da casa; a Aventura como floresta e a Sobrevivência como deserto; bairro e marco que crescem com as horas; a encosta do RPG com pinheiros e rochas | [fase-19](plans/fase-19.md) |
+| 20 Primeira e terceira pessoa | O seu corpo no mundo: olhando para baixo você vê o avatar andando, com sombra; V (ou R3) passa à terceira pessoa, com a câmera atrás do ombro que não atravessa parede, árvore nem teto; o espelho mostra o seu corpo; telas, luneta, provador, portas e viagem funcionam nas duas visões | [fase-20](plans/fase-20.md) |
 | Linux | O hub roda no Linux; a plataforma fica isolada em `autoload/platform/` ([PLATAFORMA](PLATAFORMA.md)) | [fase-linux](plans/fase-linux.md) |
 
 ## Horizonte (sem compromisso)
@@ -234,6 +237,7 @@ Ideias guardadas para não se perderem. Nada aqui está planejado. Ideias novas 
   - a cerimônia completa vale só para subetapas grandes, e a revisão cruzada só nos pontos de risco;
   - as conferências pendentes viram um dia só.
   Detalhes no [AGENTS.md](../AGENTS.md) e na [revisão](revisao-roadmap-2026-11-02.md).
+- **2026-11-16:** a Fase 20 é "Primeira e terceira pessoa" (o item 8), por escolha do dono: dá mudança visível logo, e o corpo que anda serve depois aos amigos andando. Os itens 4 a 7 seguem na mesma ordem.
 - **2026-11-12:** os biomas baratos passam à frente de visitar amigos, porque o jogo do V-Sekai está parado desde junho de 2025 (números na [fase 4](#4-visitar-amigos)). A Fase 19 ganha também as árvores no Blender e o céu vivo (dia em gradiente, clima dinâmico, chuva refeita).
 
 As regras de arquitetura (dados de mundo em perfis, plataforma isolada etc.) estão no [AGENTS.md](../AGENTS.md#regras-de-arquitetura).

@@ -113,6 +113,10 @@ func _run() -> void:
 	var home: Node3D = city.call("get_home")
 	var player: Node3D = city.get_node("Player")
 	var player_camera: Camera3D = player.get_node("Head/Camera3D")
+	# O corpo do jogador (Fase 20.3) fica fora: estas fotos são do cenário, de
+	# uma câmera que não é a do jogador.
+	if player.has_method("get_avatar"):
+		(player.call("get_avatar") as Node3D).visible = false
 	DisplayServer.window_set_size(SIZE)
 	# Quadro próprio: mantém 1600x900 mesmo se o SO limitar a janela; sem HUD.
 	var frame: SubViewport = SubViewport.new()

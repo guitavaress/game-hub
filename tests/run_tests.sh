@@ -52,7 +52,17 @@ if [ -n "$errors" ]; then
 	exit 1
 fi
 
-# 2. Roda cada teste. Cada um imprime "RESULTADO: TUDO OK" (ou as falhas).
+# 2. A visão do jogador (Fase 20.5): os testes rodam sempre a partir da
+#    primeira pessoa, seja qual for a do usuário no config.cfg. Ela é guardada
+#    aqui e devolvida no fim, também em erro e em Ctrl+C (tests/visao_da_bateria.gd).
+devolver_visao() {
+	timeout 60 "$GODOT" --headless --path . -s res://tests/visao_da_bateria.gd -- devolver >/dev/null 2>&1
+}
+trap devolver_visao EXIT
+trap 'exit 130' INT TERM
+timeout 60 "$GODOT" --headless --path . -s res://tests/visao_da_bateria.gd -- guardar >/dev/null 2>&1
+
+# 3. Roda cada teste. Cada um imprime "RESULTADO: TUDO OK" (ou as falhas).
 failed=0
 for t in $TESTS; do
 	args=()
@@ -78,7 +88,7 @@ for t in $TESTS; do
 	fi
 done
 
-# 3. O compositor nativo (Fase 14, parte 2): os testes do Rust e as licenças
+# 4. O compositor nativo (Fase 14, parte 2): os testes do Rust e as licenças
 #    dos crates. Só na bateria inteira, no Linux, com o Rust instalado e depois
 #    de compilar uma vez (o --offline garante que a bateria nunca baixa nada).
 if [ $# -eq 0 ]; then

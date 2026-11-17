@@ -32,6 +32,7 @@ const HINTS: Dictionary[String, Array] = {
 	"interact": [["E"], ["X"]],
 	"search": [["Tab"], ["Y"]],
 	"map": [["M"], ["View"]],
+	"view": [["V"], ["R3"]],
 	"menu": [["Esc"], ["Menu"]],
 	"back": [["Esc"], ["B"]],
 	"confirm": [["Enter"], ["A"]],
