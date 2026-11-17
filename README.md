@@ -53,9 +53,9 @@ Hoje eles mostram a presença da Steam. **Visitar e conversar com amigos dentro 
 
 ## Experimentar
 
-**Projeto pessoal em desenvolvimento · versão 0.19.0 · atualizado em 16/11/2026.**
+**Projeto pessoal em desenvolvimento · versão 0.20.0 · atualizado em 16/11/2026.**
 
-A **Fase 19, Biomas baratos, árvores e céu vivo**, já está na `main`: árvores em modelo, o dia em gradiente, clima dinâmico, a floresta, o deserto e os bairros que crescem com as horas. A **Fase 18, Mostrar para amigos**, segue em teste com amigos: o pacote do Windows traz instruções, licenças e um botão de feedback. **O Release mais novo: [baixar o Game Hub 0.19.0](https://github.com/guitavaress/game-hub/releases/tag/v0.19.0).**
+A **Fase 20, Primeira e terceira pessoa**, já está na `main`: você tem corpo no mundo, e a tecla V passa à terceira pessoa, com a câmera atrás do ombro. Antes dela, a **Fase 19** trouxe as árvores em modelo, o dia em gradiente, o clima dinâmico, a floresta, o deserto e os bairros que crescem com as horas. A **Fase 18, Mostrar para amigos**, segue em teste com amigos: o pacote do Windows traz instruções, licenças e um botão de feedback. **O Release mais novo: [baixar o Game Hub 0.20.0](https://github.com/guitavaress/game-hub/releases/tag/v0.20.0).**
 
 ### Pacote do Windows
 
