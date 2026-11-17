@@ -117,15 +117,10 @@ func _run() -> void:
 	print("== alternar (V) ==")
 	_check("V passa para a primeira pessoa", player.toggle_view() and player.get_view() == "first")
 	_check("e grava no config.cfg", app.get_view() == "first")
-	var head_seen := false
-	var samples := 0
-	var frames := 0
-	while not player.is_view_settled() and frames < 300:
-		await process_frame
-		frames += 1
-		if player.get_arm_length() < close:
-			samples += 1
-			head_seen = head_seen or _seen(full, camera)
+	var pass_info := await _run_view_pass(player, camera, [full])
+	var head_seen: bool = pass_info.seen
+	var samples: int = pass_info.samples
+	var frames: int = pass_info.frames
 	_check("a passagem termina (%d quadros)" % frames, player.is_view_settled())
 	_check("com o braço curto, a câmera não vê o corpo inteiro (%d quadros)" % samples, samples > 0 and not head_seen)
 	await _frames(1)
@@ -136,20 +131,17 @@ func _run() -> void:
 	var press := InputEventAction.new()
 	press.action = "toggle_view"
 	press.pressed = true
+	# Sem o _process real entre o V e a contagem: um quadro longo ali já andaria a
+	# passagem além da janela do braço curto (_run_view_pass anda no passo fixo).
+	player.set_process(false)
 	root.push_input(press)
 	await process_frame
 	_check("o evento do V volta para a terceira", player.get_view() == "third" and app.get_view() == "third")
-	head_seen = false
-	samples = 0
-	frames = 0
-	while not player.is_view_settled() and frames < 300:
-		await process_frame
-		frames += 1
-		if player.get_arm_length() < close:
-			samples += 1
-			head_seen = head_seen or _seen(full, camera) or _seen(first, camera)
+	pass_info = await _run_view_pass(player, camera, [full, first])
+	head_seen = pass_info.seen
+	samples = pass_info.samples
 	await _frames(1)
-	_check("na ida também, com o braço curto, nenhum corpo aparece", samples > 0 and not head_seen)
+	_check("na ida também, com o braço curto, nenhum corpo aparece (%d quadros, visto=%s)" % [samples, head_seen], samples > 0 and not head_seen)
 	_check("terceira de novo: o inteiro visto", _seen(full, camera) and not first.visible)
 
 	print("== a opção do menu ==")
@@ -631,6 +623,27 @@ func _ambience_muffled() -> bool:
 	return false
 
 
+## Anda a passagem de visão com um passo de tempo FIXO (1/60 s), chamando o
+## _process do jogador à mão, e conta os quadros em que o braço está curto
+## (abaixo de ARM_CLOSE) e se algum corpo de "bodies" apareceu nesses quadros.
+## Por que não esperar quadros de verdade: a passagem anda com o tempo real
+## (delta), e um quadro longo (PC ocupado) pulava a janela do braço curto de
+## uma vez (0 quadros), e o teste falhava sem o jogo ter errado nada.
+func _run_view_pass(player: Node, camera: Camera3D, bodies: Array) -> Dictionary:
+	var info := {"seen": false, "samples": 0, "frames": 0}
+	player.set_process(false)
+	while not player.is_view_settled() and info.frames < 300:
+		player._process(1.0 / 60.0)
+		info.frames += 1
+		if player.get_arm_length() < player.ARM_CLOSE:
+			info.samples += 1
+			for body: Node3D in bodies:
+				info.seen = info.seen or _seen(body, camera)
+	player.set_process(true)
+	await process_frame
+	return info
+
+
 func _settle_view(player: Node) -> void:
 	var frames := 0
 	while not player.is_view_settled() and frames < 300:
@@ -639,9 +652,15 @@ func _settle_view(player: Node) -> void:
 	await _frames(2)
 
 
+## Espera "count" passos de física e DEPOIS um _process inteiro do jogador. O
+## sinal process_frame sai ANTES do _process do quadro: lendo logo depois dele,
+## o estado era o do quadro anterior, e se a física alcançou vários passos de
+## uma vez (após um quadro longo) esse _process era anterior ao passo que viu
+## a parede, e o braço ainda media 3,00 m. Por isso o segundo process_frame.
 func _frames(count: int) -> void:
 	for i in count:
 		await physics_frame
+	await process_frame
 	await process_frame
 
 
