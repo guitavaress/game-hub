@@ -1,13 +1,14 @@
 # Fase 20: Primeira e terceira pessoa
 
-**Status:** aprovado em 2026-11-16; **fechada em 2026-11-16** (na branch `fase-20`; a `main` e o Release esperam o dono)
+**Status:** aprovado em 2026-11-16; **fechada em 2026-11-16** e **na `main`** (PR #7, 2026-11-16)
 **Branch:** `fase-20`, criada da `main` (`c0bda53`).
 
 ## Para o dono (até 10 linhas)
 - **O que você vai ver quando a fase acabar:** uma tecla (V) e um botão do controle alternam a visão. Na terceira pessoa, a câmera fica atrás do ombro do seu avatar e você o vê andar, correr e pular pela cidade e pela casa, sem a câmera entrar em parede. Na primeira, ao olhar para baixo, você vê o seu corpo andando, e ele faz sombra no chão.
 - **Ordem:** o corpo aprende a andar sem deslizar → a tecla e a opção no menu → o corpo em primeira pessoa (e o espelho passa a mostrar o corpo de verdade) → a câmera em terceira pessoa → tudo o que depende da visão (E, portas, luneta, mesa, espelho) → medida e fechamento.
 - **Para testar:** cada subetapa traz o próprio checklist.
-- **Decisões que esperam você:** (1) na amostra da 20.4, o jeito da terceira pessoa: câmera sobre o ombro com o avatar sempre de costas (recomendado, igual à primeira pessoa nos controles) ou avatar que vira para onde anda; (2) o botão do controle (proposto: clique do analógico direito, se estiver livre); (3) se a fase fecha com um Release 0.20.0.
+- **Decidido em 2026-11-16:** a terceira pessoa fica no jeito **Ombro** (o avatar sempre de costas), e a fase fecha com o Release 0.20.0.
+- **Decisões que esperam você:** (1) confirmar o R3 (clique do analógico direito) como botão da visão; (2) se a sombra do corpo dentro de casa fica.
 
 ## Contexto
 É a fase [8. Primeira e terceira pessoa](../ROADMAP.md#8-primeira-e-terceira-pessoa--feita-na-fase-20), escolhida pelo dono em 2026-11-16 para ser a Fase 20 (passa à frente de Visitar amigos, da janela, dos amigos andando e de instalar jogos). Dá mudança visível logo, e o corpo que anda aqui é a mesma peça dos amigos andando e do "V4 ao vivo".
@@ -139,6 +140,7 @@ Trilha A: checkout principal (Opus coordena e faz as grandes, uma por vez). Tril
 - 2026-11-16: o item 8 da ROADMAP vira a Fase 20, por escolha do dono.
 - 2026-11-16 (20.2): o botão do controle é o clique do analógico direito (R3, índice 8), que estava livre. Falta o dono confirmar.
 - 2026-11-16 (20.3): a sombra vem de uma cópia "só sombra" da malha, porque a Godot só faz sombra de quem a câmera vê; as camadas do corpo são 17 (fora), 16 (dentro) e 19 (o inteiro); o `set_indoors` ficou com um argumento só. Os conceitos "dentro de casa" e "o seu corpo" ficaram no `AvatarBody` (camadas), porque movê-los para `player/` faria a casa e a cidade dependerem do jogador (a revisão recomendou deixar).
+- 2026-11-16 (fechamento): o dono escolheu o jeito **Ombro** para a terceira pessoa (`STYLE_SHOULDER`, que já era o padrão; o `STYLE_FREE` continua no código, desligado). A fase vai para a `main` pelo PR #7 e fecha com o Release 0.20.0. Seguem abertas: o R3 e a sombra do corpo dentro de casa.
 
 ## Checklist de teste manual (fim da fase)
 1. Abrir o hub pelo editor (F5). Em casa, olhar para baixo: o corpo aparece, sem cabeça na frente.
