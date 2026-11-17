@@ -172,7 +172,7 @@ O que a fase tem de resolver (o plano decide):
 
 **Pronto quando:** você aperta a tecla e passa a ver o seu avatar por trás, anda pela cidade e pela casa sem a câmera entrar em parede, volta à primeira pessoa, olha para baixo e vê o seu corpo andando; abrir um jogo, o mapa e a busca funcionam igual nas duas.
 
-**Andamento:** é a [Fase 20](plans/fase-20.md), aprovada em 2026-11-16. O dono escolheu este item para vir antes dos itens 4 a 7. A ordem: o corpo aprende a andar sem deslizar → a tecla e a opção no menu → o corpo em primeira pessoa → a câmera em terceira pessoa → o que depende da visão → medida e fechamento. **A fase está feita e na `main`** (PR #7, 2026-11-16); a terceira pessoa ficou no jeito "Ombro" (o avatar sempre de costas).
+**Andamento:** é a [Fase 20](plans/fase-20.md), aprovada em 2026-11-16. O dono escolheu este item para vir antes dos itens 4 a 7. A ordem: o corpo aprende a andar sem deslizar → a tecla e a opção no menu → o corpo em primeira pessoa → a câmera em terceira pessoa → o que depende da visão → medida e fechamento. **A fase está feita e na `main`** (PR #7, 2026-11-16), com o [Release 0.20.0](https://github.com/guitavaress/game-hub/releases/tag/v0.20.0) publicado no mesmo dia; a terceira pessoa ficou no jeito "Ombro" (o avatar sempre de costas).
 
 ## Dia de conferência
 

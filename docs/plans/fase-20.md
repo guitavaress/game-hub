@@ -141,6 +141,7 @@ Trilha A: checkout principal (Opus coordena e faz as grandes, uma por vez). Tril
 - 2026-11-16 (20.2): o botão do controle é o clique do analógico direito (R3, índice 8), que estava livre. Falta o dono confirmar.
 - 2026-11-16 (20.3): a sombra vem de uma cópia "só sombra" da malha, porque a Godot só faz sombra de quem a câmera vê; as camadas do corpo são 17 (fora), 16 (dentro) e 19 (o inteiro); o `set_indoors` ficou com um argumento só. Os conceitos "dentro de casa" e "o seu corpo" ficaram no `AvatarBody` (camadas), porque movê-los para `player/` faria a casa e a cidade dependerem do jogador (a revisão recomendou deixar).
 - 2026-11-16 (fechamento): o dono escolheu o jeito **Ombro** para a terceira pessoa (`STYLE_SHOULDER`, que já era o padrão; o `STYLE_FREE` continua no código, desligado). A fase vai para a `main` pelo PR #7 e fecha com o Release 0.20.0. Seguem abertas: o R3 e a sombra do corpo dentro de casa.
+- 2026-11-16 (Release, a pedido do dono): versão **0.20.0** (`project.godot`), pacote do Windows montado por `tools/empacotar_windows.sh` (`GameHub-0.20.0-windows.zip`, 83 MB, 25 arquivos, 22 licenças; a trava passou) e aberto uma vez pelo pck, sem erro. Tag `v0.20.0` e Release no GitHub; o README aponta para ele.
 
 ## Checklist de teste manual (fim da fase)
 1. Abrir o hub pelo editor (F5). Em casa, olhar para baixo: o corpo aparece, sem cabeça na frente.
